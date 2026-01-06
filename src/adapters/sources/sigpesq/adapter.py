@@ -1,5 +1,4 @@
 import os
-
 from typing import Any, Dict, List
 
 from loguru import logger
@@ -38,6 +37,10 @@ class SigPesqAdapter(ISource):
         """
         Ensures necessary environment variables are set for sigpesq_agent.
         """
+        # Support SIGPESQ_USER as alias for SIGPESQ_USERNAME
+        if os.getenv("SIGPESQ_USER") and not os.getenv("SIGPESQ_USERNAME"):
+            os.environ["SIGPESQ_USERNAME"] = os.getenv("SIGPESQ_USER")
+
         required_vars = ["SIGPESQ_USERNAME", "SIGPESQ_PASSWORD"]
         missing = [v for v in required_vars if not os.getenv(v)]
 
@@ -45,7 +48,11 @@ class SigPesqAdapter(ISource):
             logger.error(
                 f"Missing environment variables for SigPesq: {', '.join(missing)}"
             )
-            raise EnvironmentError(f"SigPesq Agent requires: {', '.join(missing)}")
+            # Try to be helpful if they used the wrong one
+            if "SIGPESQ_USERNAME" in missing and os.getenv("SIGPESQ_USER"):
+                logger.info("Found SIGPESQ_USER, mapped to SIGPESQ_USERNAME.")
+            else:
+                raise EnvironmentError(f"SigPesq Agent requires: {', '.join(missing)}")
 
         logger.debug("Environment variables for SigPesq verified.")
 
