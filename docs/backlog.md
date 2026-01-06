@@ -8,7 +8,7 @@ Tracks the delivery of versions to production (Main Branch).
 | Version | Date | Status | Description | PR / Commit |
 |---------|------|--------|-------------|-------------|
 | **v0.0.0** | 2026-01-01 | Released | Project Initiation | - |
-| **v0.3.0** | 2026-01-02 | Released | Integration of Organizational Units | PR #6 |
+| **v0.2.0** | 2026-01-06 | Released | Research Group Ingestion & Local Infrastructure | Main |
 
 ## 2. In Progress Items (Current Sprint)
 Reflecting active work from `SI.3 Product Backlog`.
