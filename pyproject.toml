@@ -1,0 +1,22 @@
+[project]
+name = "horizon_etl"
+version = "0.1.0"
+description = "ETL pipeline for FAPES data using Prefect and Supabase"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "prefect>=3.0.0",
+    "pydantic>=2.0.0",
+    "supabase>=2.0.0",
+    "pandas>=2.0.0",
+    "requests>=2.30.0",
+    "beautifulsoup4>=4.12.0",
+    "python-dotenv>=1.0.0",
+    "docling>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "black", "isort", "mypy"]
+
+[tool.setuptools]
+packages = ["src"]

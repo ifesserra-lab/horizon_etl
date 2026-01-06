@@ -1,0 +1,57 @@
+# SI.1 – Especificação dos Requisitos do Software
+**Projeto:** Horizon ETL
+**Versão:** 1.0
+**Data:** 06/01/2026
+**Responsável:** Antigravity (Senior Analyst)
+
+---
+
+## 1. Objetivo do Documento
+Registrar os requisitos funcionais e não funcionais do sistema Horizon ETL, focando na extração, transformação e carga de dados de múltiplas fontes acadêmicas.
+
+---
+
+## 2. Escopo do Sistema
+O **Horizon ETL** é uma infraestrutura de dados que automatiza a coleta de informações de pesquisa e extensão.
+- **Entradas**: SigPesq, Lattes, FAPES, Google Scholar.
+- **Saída**: Banco de Dados Unificado (Supabase) para consumo por outros sistemas.
+
+---
+
+## 3. Stakeholders
+| Nome / Papel | Interesse | Responsabilidade |
+|---------------|-----------|------------------|
+| **Product Owner** | Priorização das fontes | Validar dados extraídos |
+| **Gestores (Campus)** | Relatórios gerenciais | Definir métricas de sucesso |
+| **Pesquisadores** | Visibilidade do perfil | Validar precisão dos dados |
+
+---
+
+## 4. Requisitos Funcionais (RF)
+
+| ID | Requisito | Critério de Aceitação | Origem |
+|----|-----------|------------------------|--------|
+| **RF-01** | O sistema deve extrair dados de projetos do SigPesq. | Projetos persistidos no Supabase com metadados completos. | PM1.3 (R1) |
+| **RF-02** | O sistema deve extrair dados curriculares da Plataforma Lattes. | Perfil, formação e produções carregadas para pesquisadores listados. | PM1.3 (R2) |
+| **RF-04** | O sistema deve extrair dados de execução (Projetos/Bolsas/Compras) da FAPES. | Dados financeiros e de bolsistas vinculados persistidos. | PM1.3 (R3) |
+| **RF-05** | O sistema deve coletar metadados do Google Scholar. | Citações e índice-h atualizados. | PM1.3 (R4) |
+| **RF-06** | O sistema deve normalizar nomes de autores e instituições. | Entidades duplicadas fundidas (Merge) em ID único. | Arq. |
+
+---
+
+## 5. Requisitos Não Funcionais (RNF)
+
+| ID | Categoria | Descrição | Restrição Técnica |
+|----|------------|-----------|-------------------|
+| **RNF-01** | Idempotência | Re-execução de pipelines não deve duplicar dados. | `UPSERT` obrigatório. |
+| **RNF-02** | Resiliência | Pipelines devem suportar falhas de rede (retries). | Prefect Retries. |
+| **RNF-03** | Arquitetura | Código desacoplado seguindo Clean/Hexagonal Arch. | Modules `etl`, `core`. |
+| **RNF-04** | Stack | Python 3.10+, Prefect, Supabase. | PM1.0 |
+| **RNF-05** | Qualidade | Cobertura de testes em lógicas de transformação. | Pytest, TDD. |
+| **RNF-06** | Observabilidade | Todas as ações do sistema devem gerar logs estruturados. | Loguru/Prefect Logger. |
+
+---
+
+## 6. Restrições
+- Rate Limits do Google Scholar e Lattes (cnpq).
+- Acesso à VPN institucional pode ser necessário para SigPesq (a confirmar).
