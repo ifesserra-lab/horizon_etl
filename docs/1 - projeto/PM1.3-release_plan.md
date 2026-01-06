@@ -36,7 +36,7 @@ O projeto será entregue em 4 releases mensais incrementais.
 **Funcionalidades:**
 - ETL de Projetos, Bolsas e Compras (Dados Abertos/API).
 - ETL de Projetos aprovados, Bolsistas vinculados e Compras realizadas.
-- **Extração de Editais de Fomento (Crawler PDF + Docling/NLP).**
+- **Integração API FAPES (Projetos, Bolsas e Pagamentos).**
 - Classificação de oportunidades.
 
 ## 2.4 Release R4 – Google Scholar
