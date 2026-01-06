@@ -149,14 +149,10 @@ Desenvolver a integração com a **API da FAPES** para extrair dados estruturado
 - **Teste (TDD)**:
     - [ ] Teste Unitário: Client HTTP com Mock da API FAPES.
     - [ ] Teste de Contrato: Validação do Schema JSON retornado.
-- **Deploy**:
+- **Deploy**:   
     - [ ] Flow `ingest_fapes_api` agendado.
-- **Deploy**:
-    - [ ] Flow `extract_fapes_editais` registrado e agendado.
-    - [ ] Volume persistente configurado para armazenar os PDFs baixados (evitar re-download).
-    - [ ] Tratamento de erros para PDFs corrompidos ou ilegíveis.
 - **Observabilidade**:
-    - [ ] Logs detalhando: "Editais Encontrados", "Novos Baixados", "Falha na Extração".
+    - [ ] Logs detalhando: "Projetos Encontrados"  , "Novos Baixados", "Falha na Extração".
 
 #### Tasks Sugeridas
 1.  **T-006 [Dev]**: Criar `FapesSiteScraper` para listar e baixar PDFs.

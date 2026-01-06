@@ -95,4 +95,4 @@ erDiagram
 |-----------|----------------------|
 | RF-01 (SigPesq) | Entidade `PROJECT`, Fluxo 3.1 |
 | RF-02 (Lattes) | Entidade `RESEARCHER`, `PUBLICATION`, Fluxo 3.2 |
-| RNF-01 (Idempotência) | Fluxo 3.1 (Load Step), RN-02 |
+| RNF-01 (Idempotência) | Fluxo 3.1 (Load Step), RN-02 |    
