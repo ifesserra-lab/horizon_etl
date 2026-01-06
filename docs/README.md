@@ -24,6 +24,9 @@ Technical analysis and design phase artifacts.
 ### 3. General Tracking
 - **[backlog.md](backlog.md)**: High-level dashboard for production releases and hierarchical item status.
 
+### 4. Local Infrastructure
+- **[docker-compose.yml](../docker-compose.yml)**: Orchestration for local Prefect Server and PostgreSQL.
+
 ---
 > [!NOTE]
 > All changes to these documents must be approved and reflected in the `task.md` of active features.
