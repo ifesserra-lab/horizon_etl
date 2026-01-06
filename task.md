@@ -4,15 +4,16 @@
 - [ ] **Setup**:
     - [ ] Create `feat/extract-sigpesq` branch.
     - [ ] Install `sigpesq_agent` library.
+    - [ ] Install `research_domain_lib`.
 - [ ] **T-001 [Dev]**: Integrate `UsingSigPesq` (from `sigpesq_agent`)
     - [ ] Implement Adapter wrapping the library.
     - [ ] Verify `get_projects()` output.
     - [ ] Verify `get_research_groups()` output.
     - [ ] Verify `get_scholars()` output.
 - [ ] **T-002 [Dev]**: Implement Mappers (`src/core/logic`)
-    - [ ] `map_project`: Raw -> Domain
-    - [ ] `map_group`: Raw -> Domain
-    - [ ] `map_scholar`: Raw -> Domain
+    - [ ] `map_project`: Raw -> `research_domain_lib.Project`
+    - [ ] `map_group`: Raw -> `research_domain_lib.ResearchGroup`
+    - [ ] `map_scholar`: Raw -> `research_domain_lib.Researcher`
 - [ ] **T-003 [Ops]**: Prefect Flow
     - [ ] `flow_ingest_sigpesq.py`
 

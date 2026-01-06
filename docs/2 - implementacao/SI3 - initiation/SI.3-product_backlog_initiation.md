@@ -36,10 +36,10 @@ Desenvolver o pipeline de extração para o SigPesq. O sistema deve conectar e e
     - [ ] Dados de **Projetos** extraídos (Título, Data, Status).
     - [ ] Dados de **Grupos de Pesquisa** extraídos (Líder, Área, certificado).
     - [ ] Dados de **Bolsistas** extraídos (Nome, Modalidade de bolsa, Vigência).
-    - [ ] Mapeamento correto para entidades do domínio (`Project`, `ResearchGroup`, `Scholarship`).
+    - [ ] Mapeamento correto utilizando entidades da lib **`research_domain_lib`** (`Project`, `ResearchGroup`, `Researcher`).
 - **Teste (TDD)**:
     - [ ] Teste Unitário: Parser de HTML/JSON do SigPesq com mocks.
-    - [ ] Teste Integração: Gravação no Supabase (Container de teste).
+    - [ ] Teste Integração: Gravação via `ResearchDomainLib` (ou suas abstrações).
     - [ ] Cobertura > 80% no módulo `adapters/sources/sigpesq`.
 - **Deploy**:
     - [ ] Flow `ingest_sigpesq` registrado no Prefect.

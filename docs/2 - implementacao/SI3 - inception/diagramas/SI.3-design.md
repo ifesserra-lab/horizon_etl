@@ -47,20 +47,24 @@ flowchart TD
 
     %% Dependency Injection (Orchestration)
     Flow -.-> PortSource
-    Flow -.-> Logic
     Flow -.-> PortSink
 
     %% Data Flow (ETL)
     PortSource == 1. Extract (Raw Data) ==> Logic
-    Logic == 2. Transform (Domain) ==> PortSink
+    Logic == 2. Transform (Domain Entities from Lib) ==> PortSink
+    PortSink == 3. Load (Persist) ==> ResearchDomainLib
     
     SigPesq --implements--> PortSource
     Lattes --implements--> PortSource
     Fapes --implements--> PortSource
     
-    Supabase --implements--> PortSink
+    %% External Libraries
+    subgraph SharedKernel [Shared Libraries]
+        ResearchDomainLib[Research Domain Lib\n(Entities & Repositories)]
+    end
     
-    Logic --> Domain
+    Logic -.uses.-> ResearchDomainLib
+    Supabase --extends--> ResearchDomainLib
 ```
 
 ### 3.2 Estrutura de Diretórios (Consolidada)
