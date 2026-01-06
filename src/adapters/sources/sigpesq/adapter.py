@@ -62,28 +62,14 @@ class SigPesqAdapter(ISource):
         """
         logger.info(f"Triggering sigpesq_agent in {self.download_dir}...")
 
-        try:
-            # Attempt to import and run the agent
-            import sigpesq_agent
+        # Attempt to import and run the agent
+        import agent_sigpesq
 
-            # Check for common entry points (heuristic)
-            if hasattr(sigpesq_agent, "main"):
-                sigpesq_agent.main()
-            elif hasattr(sigpesq_agent, "run"):
-                sigpesq_agent.run()
-            else:
-                logger.warning("sigpesq_agent imported but no run/main found.")
+        # Check for common entry points (heuristic)
+        if hasattr(agent_sigpesq, "main"):
+            agent_sigpesq.main()
+        elif hasattr(agent_sigpesq, "run"):
+            agent_sigpesq.run()
+        else:
+            logger.warning("agent_sigpesq imported but no run/main found.")
 
-        except ImportError:
-            logger.warning(
-                "sigpesq_agent library not found. Running in Mock/Offline mode."
-            )
-            # Create dummy report for testing
-            report_dir = os.path.join(self.download_dir, "report")
-            os.makedirs(report_dir, exist_ok=True)
-            with open(os.path.join(report_dir, "mock_project_001.json"), "w") as f:
-                f.write(
-                    '{"titulo": "Projeto Mock SigPesq", "situacao": "Em Andamento", "id_projeto": "12345"}'
-                )
-        except Exception as e:
-            logger.error(f"Error running sigpesq_agent: {e}")
