@@ -8,6 +8,10 @@ from src.flows.ingest_sigpesq import ingest_sigpesq_flow
 # Load environment variables
 load_dotenv()
 
+import os
+# Ensure connection to the local Prefect Server
+os.environ.setdefault("PREFECT_API_URL", "http://127.0.0.1:4200/api")
+
 
 def main():
     """
