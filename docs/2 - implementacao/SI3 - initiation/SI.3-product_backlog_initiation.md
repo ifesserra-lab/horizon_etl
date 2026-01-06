@@ -122,32 +122,35 @@ Extrair dados do Portal da Transparência/Dados Abertos sobre repasses da FAPES.
 
 ---
 
-### US-006 – Extração de Editais FAPES (PDF)
+### US-006 – Integração API FAPES (Projetos e Bolsas)
 ```yaml
 id: US-006
 milestone: R3
 prioridade: Alta
 tamanho: 8
-origem: [RF-04, RNF-01]
+origem: [RF-04]
 tags: [type:feature, area:backend, source:fapes]
 dependencias: []
 modulos_afetados: [src/adapters/sources/fapes, src/flows]
 ```
 
 #### Descrição
-Desenvolver um crawler para monitorar e baixar editais no site da FAPES, utilizando **Regex ou processamento de texto nativo** para extrair o **Objetivo** e o **Cronograma** (Etapas e Datas) dos arquivos PDF.
+Desenvolver a integração com a **API da FAPES** para extrair dados estruturados de:
+1.  **Projetos** (Títulos, vigência, valores).
+2.  **Bolsistas** (Beneficiários de bolsas).
+3.  **Pagamentos** (Execução financeira).
 
 #### Critérios de Aceitação (Definition of Done)
 - **Funcional**:
-    - [ ] Crawler navega e identifica novos editais.
-    - [ ] Download e armazenamento seguro dos PDFs originais.
-    - [ ] Extração estruturada do "Objetivo" (Texto).
-    - [ ] Extração estruturada do "Cronograma" (Lista de objetos {etapa, data}).
-    - [ ] Exportação/Carga dos dados extraídos para JSON/Banco.
+    - [ ] Conexão autenticada/segura com API FAPES.
+    - [ ] Extração de dados de **Projetos** mapeados para o Domínio.
+    - [ ] Extração de dados de **Bolsistas** mapeados para o Domínio.
+    - [ ] Extração de dados de **Pagamentos** financeiros.
 - **Teste (TDD)**:
-    - [ ] Teste Unitário: Regex de extração de datas com múltiplos formatos.
-    - [ ] Teste Unitário: Validar extração sem dependência de serviço externo.
-    - [ ] Teste de Integração: Fluxo completo (Downloader -> Parser -> Loader).
+    - [ ] Teste Unitário: Client HTTP com Mock da API FAPES.
+    - [ ] Teste de Contrato: Validação do Schema JSON retornado.
+- **Deploy**:
+    - [ ] Flow `ingest_fapes_api` agendado.
 - **Deploy**:
     - [ ] Flow `extract_fapes_editais` registrado e agendado.
     - [ ] Volume persistente configurado para armazenar os PDFs baixados (evitar re-download).
