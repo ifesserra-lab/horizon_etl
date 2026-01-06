@@ -3,26 +3,17 @@ from typing import Any, Dict, Optional
 
 from loguru import logger
 
-# Try to import from the library, or define placeholders for development if missing
+# Try to import from the library
 try:
-    from research_domain_lib.domain.entities import Project, Researcher, ResearchGroup
+    from research_domain import Researcher, ResearchGroup
 except ImportError:
-    # Placeholder for dev environment where lib might not be installed yet
-    logger.warning("research_domain_lib not found. Using Mock entities.")
+    # Fallback if lib is missing
+    logger.warning("research_domain not found. Using Mock entities for Researcher/ResearchGroup.")
     import uuid
-
     from pydantic import BaseModel, Field
 
     class Entity(BaseModel):
         id: uuid.UUID = Field(default_factory=uuid.uuid4)
-
-    class Project(Entity):
-        title: str
-        status: str
-        start_date: Optional[datetime] = None
-        end_date: Optional[datetime] = None
-        origin_id: str
-        metadata: Dict[str, Any] = {}
 
     class ResearchGroup(Entity):
         name: str
@@ -34,6 +25,27 @@ except ImportError:
     class Researcher(Entity):
         name: str
         role: str
+        metadata: Dict[str, Any] = {}
+
+# Project might not be in the lib yet, verify/define locally
+try:
+    from research_domain import Project
+except ImportError:
+    # logger.warning("Project entity not found in research_domain. Using local definition.")
+    import uuid
+    from pydantic import BaseModel, Field
+    
+    # Base Entity if not imported above
+    if 'Entity' not in locals():
+         class Entity(BaseModel):
+            id: uuid.UUID = Field(default_factory=uuid.uuid4)
+
+    class Project(Entity):
+        title: str
+        status: str
+        start_date: Optional[datetime] = None
+        end_date: Optional[datetime] = None
+        origin_id: str
         metadata: Dict[str, Any] = {}
 
 

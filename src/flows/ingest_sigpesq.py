@@ -1,13 +1,14 @@
+from datetime import timedelta
+from typing import Any, Dict, List
 
-from typing import Any, List
-
+from prefect import flow, task, get_run_logger
 from dotenv import load_dotenv
-from prefect import flow, get_run_logger, task
 
 from src.adapters.sources.sigpesq.adapter import SigPesqAdapter
+from src.core.logic.loaders import SigPesqFileLoader
 from src.core.logic.mappers import SigPesqMapper
-
-# Load environment variables from .env file
+from src.core.logic.research_group_loader import ResearchGroupLoader
+from src.core.ports.sink import ISink
 load_dotenv()
 
 
@@ -95,6 +96,29 @@ def persist_data(entities: List[Any]) -> None:
     logger.info("Persistence complete.")
 
 
+@task
+def persist_research_groups():
+    """
+    Finds the latest Research Group Excel file and loads it into the database.
+    """
+    logger = get_run_logger()
+    import glob
+    import os
+    
+    # Find latest file
+    files = glob.glob("data/raw/sigpesq/research_group/*.xlsx")
+    if not files:
+        logger.warning("No Research Group Excel files found.")
+        return
+
+    # Sort by mtime
+    latest_file = max(files, key=os.path.getmtime)
+    logger.info(f"Loading Research Groups from {latest_file}")
+    
+    loader = ResearchGroupLoader()
+    loader.process_file(latest_file)
+
+
 @flow(name="Ingest SigPesq")
 def ingest_sigpesq_flow() -> None:
     """
@@ -108,6 +132,9 @@ def ingest_sigpesq_flow() -> None:
     raw_data = extract_data()
     entities = transform_data(raw_data)
     persist_data(entities)
+    
+    # Ingest Research Groups from Excel (US-007)
+    persist_research_groups()
 
     logger.info("Flow finished successfully.")
 
