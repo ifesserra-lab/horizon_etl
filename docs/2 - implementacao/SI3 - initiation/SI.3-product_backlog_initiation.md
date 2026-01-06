@@ -201,7 +201,42 @@ prioridade: Crítica
 tamanho: 5
 origem: [RNF-01, RNF-06]
 tags: [type:arch, area:core]
+
+## Epic 5: Ingestão de Grupos de Pesquisa (Excel) (Release 1)
+**Objetivo**: Processar planilhas extraídas do SigPesq e popular o domínio de Grupos de Pesquisa.
+
+### US-007 – Carga de Grupos de Pesquisa (Excel -> DB)
+```yaml
+id: US-007
+milestone: R1
+prioridade: Alta
+tamanho: 5
+origem: [RF-01]
+tags: [type:feature, area:backend, source:sigpesq]
+dependencias: [US-001]
+modulos_afetados: [src/flows, src/core/logic]
 ```
+
+#### Descrição
+Ler o arquivo Excel de Grupos de Pesquisa (processado na US-001/Extração) e persistir utilizando os Controllers da `research_domain_lib`. Deve garantir a criação da hierarquia (Universidade -> Campus -> Grupo).
+
+#### Critérios de Aceitação
+- **Funcional**:
+    - [ ] Leitura do Excel `data/raw/sigpesq/research_group/*.xlsx`.
+    - [ ] **Universidade** "UFSC" criada (se não existir) via `UniversityController`.
+    - [ ] **Campus** "Florianópolis" criado (se não existir) via `CampusController`.
+    - [ ] **Grupo de Pesquisa** criado com nome, sigla e vínculos via `ResearchGroupController`.
+- **Teste**:
+    - [ ] Teste de Integração com banco (Mock ou Local) validando a criação dos registros.
+- **Deploy**:
+    - [ ] Flow `ingest_sigpesq_groups` executável via `app.py`.
+
+#### Tasks Sugeridas
+1.  **T-010 [Dev]**: Implementar `ResearchGroupExcelLoader`.
+    - *Critério*: Ler Excel com Pandas e iterar linhas.
+2.  **T-011 [Dev]**: Implementar Lógica de Carga (Service).
+    - *Critério*: Usar `UniversityController`, `CampusController`, `ResearchGroupController` para idempotência.
+
 
 #### Descrição
 Implementar Base Repository com Loguru e lógica de `ON CONFLICT DO UPDATE`.
