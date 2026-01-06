@@ -9,11 +9,11 @@ services:
       - POSTGRES_PASSWORD=prefect
       - POSTGRES_DB=prefect
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - prefect_db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U prefect"]
+      test: [ "CMD-SHELL", "pg_isready -U prefect" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,7 +21,7 @@ services:
   server:
     image: prefecthq/prefect:2-python3.11
     restart: always
-    entrypoint: ["/usr/bin/tini", "-g", "--", "prefect", "server", "start"]
+    entrypoint: [ "/usr/bin/tini", "-g", "--", "prefect", "server", "start" ]
     environment:
       - PREFECT_UI_API_URL=http://127.0.0.1:4200/api
       - PREFECT_API_DATABASE_CONNECTION_URL=postgresql+asyncpg://prefect:prefect@database:5432/prefect
