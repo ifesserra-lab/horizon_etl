@@ -135,7 +135,7 @@ modulos_afetados: [src/adapters/sources/fapes, src/flows]
 ```
 
 #### Descrição
-Desenvolver um crawler para monitorar e baixar editais no site da FAPES, utilizando processamento de linguagem natural ou regex (via Docling) para extrair o **Objetivo** e o **Cronograma** (Etapas e Datas) dos arquivos PDF.
+Desenvolver um crawler para monitorar e baixar editais no site da FAPES, utilizando **Regex ou processamento de texto nativo** para extrair o **Objetivo** e o **Cronograma** (Etapas e Datas) dos arquivos PDF.
 
 #### Critérios de Aceitação (Definition of Done)
 - **Funcional**:
@@ -146,7 +146,7 @@ Desenvolver um crawler para monitorar e baixar editais no site da FAPES, utiliza
     - [ ] Exportação/Carga dos dados extraídos para JSON/Banco.
 - **Teste (TDD)**:
     - [ ] Teste Unitário: Regex de extração de datas com múltiplos formatos.
-    - [ ] Teste Unitário: Mock da biblioteca `docling` para evitar dependência externa nos testes.
+    - [ ] Teste Unitário: Validar extração sem dependência de serviço externo.
     - [ ] Teste de Integração: Fluxo completo (Downloader -> Parser -> Loader).
 - **Deploy**:
     - [ ] Flow `extract_fapes_editais` registrado e agendado.
