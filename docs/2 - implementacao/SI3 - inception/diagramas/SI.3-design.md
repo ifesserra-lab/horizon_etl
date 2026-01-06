@@ -41,7 +41,7 @@ flowchart TD
     subgraph Adapters [src/adapters]
         SigPesq[SigPesq Source]
         Lattes[Lattes Source]
-        Fapes[Fapes Source]
+        Fapes[Fapes API Client]
         Supabase[Supabase Sink]
     end
 
