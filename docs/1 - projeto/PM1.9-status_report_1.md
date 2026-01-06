@@ -16,17 +16,19 @@ O foco atual é garantir a total conformidade com os Padrões Ágeis antes do fe
 ## 2. Progresso da Sprint / Iteração
 | Item | Previsto | Concluído | Observações |
 |------|----------|-----------|-------------|
-| **US-001** (Extract SigPesq) | Sim | Sim (90%) | Resta validação final e merge. |
+| **US-001** (Extract SigPesq) | Sim | Sim | Concluído. |
+| **US-007** (Ingestão Grupos Pesquisa) | Sim | Sim | Integrado com Knowledge Areas e cnpq_url (PR #4). |
 | **US-005** (Observability) | Sim | Sim | Logs e estrutura base implementadas. |
 | **US-006** (Fapes API) | Não | Não | Agendado para R3. |
 
 ---
 
 ## 3. Entregáveis desde o Último Relato
-- `src/flows/ingest_sigpesq.py`: Pipeline ETL funcional.
-- `src/adapters/sources/sigpesq`: Adaptador para arquivos locais.
+- `src/core/logic/research_group_loader.py`: Ingestão de grupos via Excel.
+- `src/flows/ingest_sigpesq.py`: Pipeline ETL atualizado com US-007.
 - `docs/2 - implementacao/SI.3-design.md`: Arquitetura Hexagonal documentada.
 - `PM1.3 Release Plan`: Atualizado com datas reais.
+- `tests/test_loader_mapping.py`: Testes unitários para mapeamento de grupos.
 
 ---
 

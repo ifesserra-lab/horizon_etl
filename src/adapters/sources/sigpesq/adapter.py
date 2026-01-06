@@ -63,13 +63,15 @@ class SigPesqAdapter(ISource):
         logger.info(f"Triggering sigpesq_agent in {self.download_dir}...")
 
         # Attempt to import and run the agent
-        import agent_sigpesq
+        import asyncio
+        from agent_sigpesq.services.reports_service import SigpesqReportService
 
-        # Check for common entry points (heuristic)
-        if hasattr(agent_sigpesq, "main"):
-            agent_sigpesq.main()
-        elif hasattr(agent_sigpesq, "run"):
-            agent_sigpesq.run()
-        else:
-            logger.warning("agent_sigpesq imported but no run/main found.")
+        async def run_agent():
+            service = SigpesqReportService(headless=True, download_dir=self.download_dir)
+            return await service.run()
+
+        success = asyncio.run(run_agent())
+        
+        if not success:
+             raise RuntimeError("SigpesqReportService failed to download reports.")
 
