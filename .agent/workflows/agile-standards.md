@@ -164,4 +164,7 @@ Maintain the following artifacts throughout the lifecycle:
         - Managing Branches (Remote).
         - Releases.
     - [ ] **AVOID** `git` CLI commands where MCP alternatives exist.
+    - [ ] **GitHub CLI (`gh`) Usage**:
+        - [ ] **Initial Setup (MANDATORY)**: Always check for and create the mandatory labels (`epic`, `us`, `task`) if they do not exist when starting a project.
+        - [ ] **Release Milestones**: Always use `gh` or `gh api` to create all milestones defined in `PM1.3 Release Plan` (including titles, due dates, and descriptions) immediately after the plan is approved.
     - [ ] **Legacy Git**: Use `git` CLI only for local workspace synchronization (checkout/pull) if MCP equivalent is unavailable.
