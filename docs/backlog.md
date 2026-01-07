@@ -19,6 +19,7 @@ Reflecting active work from `SI.3 Product Backlog`.
     - [x] T-Leaders [Implementação de Líderes] (PR #7 - Merged)
     - [x] T-ResearcherID [E-mail como identification_id] (PR #10 - Merged)
     - [x] T-StrategyPattern [Refatoração Strategy Pattern] (PR #11 - Merged)
+    - [x] T-GranularStrategy [Refatoração Granular Pattern] (PR #12 - Pending Merger)
     - [x] US-005 Observabilidade e Idempotência (Implemented)
 
 - **Epic 3: Dados de Execução FAPES (Release 3)**
