@@ -8,6 +8,14 @@ from src.adapters.sources.sigpesq.adapter import SigPesqAdapter
 from src.core.logic.loaders import SigPesqFileLoader
 from src.core.logic.mappers import SigPesqMapper
 from src.core.logic.research_group_loader import ResearchGroupLoader
+from src.core.logic.strategies.sigpesq_excel import (
+    SigPesqExcelMappingStrategy,
+    SigPesqOrganizationStrategy,
+    SigPesqCampusStrategy,
+    SigPesqKnowledgeAreaStrategy,
+    SigPesqResearcherStrategy,
+    SigPesqRoleStrategy
+)
 from src.core.ports.sink import ISink
 load_dotenv()
 
@@ -115,7 +123,14 @@ def persist_research_groups():
     latest_file = max(files, key=os.path.getmtime)
     logger.info(f"Loading Research Groups from {latest_file}")
     
-    loader = ResearchGroupLoader()
+    loader = ResearchGroupLoader(
+        mapping_strategy=SigPesqExcelMappingStrategy(),
+        org_strategy=SigPesqOrganizationStrategy(),
+        campus_strategy=SigPesqCampusStrategy(),
+        area_strategy=SigPesqKnowledgeAreaStrategy(),
+        researcher_strategy=SigPesqResearcherStrategy(),
+        role_strategy=SigPesqRoleStrategy()
+    )
     loader.process_file(latest_file)
 
 
