@@ -7,9 +7,7 @@
 ---
 
 ## 1. Resumo Executivo
-O projeto iniciou a fase de implementação da **Mecanismo de Ingestão do SigPesq (US-001)**. A infraestrutura base foi estabelecida com sucesso, incluindo o setup do repositório, definição da arquitetura (Docs SI) e implementação da primeira pipeline ETL. O ambiente está estável, e a integração com as bibliotecas core (`sigpesq_agent`, `research_domain_lib`) foi concluída.
-
-O foco atual é garantir a total conformidade com os Padrões Ágeis antes do fechamento da release de meio de mês.
+O projeto concluiu a **Mecanismo de Ingestão do SigPesq (US-001 e US-007)** e a infraestrutura de orquestração local. O ambiente está estável com Prefect 3 rodando em Docker, e a integração com as bibliotecas core (`sigpesq_agent`, `research_domain_lib`) foi consolidada no branch `main`.
 
 ---
 
@@ -48,9 +46,9 @@ O foco atual é garantir a total conformidade com os Padrões Ágeis antes do fe
 ---
 
 ## 6. Próximas Ações (Próxima Quinzena)
-- Merge da US-001 para `developing` > `main`.
+- Início da **US-001 (Researcher/Scholarship Ingestion - Pending Part)**.
 - Início da **US-002 (Lattes Extraction)**.
-- Release da versão `v0.1.0` (Alpha).
+- Planejamento da Release `v0.3.0`.
 
 ---
 
