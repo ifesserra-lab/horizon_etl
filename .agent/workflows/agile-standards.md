@@ -104,6 +104,7 @@ Maintain the following artifacts throughout the lifecycle:
 - [ ] **Style**: Code must pass `black`, `flake8`, `isort`.
 - [ ] **Business Logic**: All business rules requirements must be satisfied and verified.
 - [ ] **Observability**: **MANDATORY**. All critical actions and state changes MUST be logged (Info/Error) with context.
+- [ ] **Design Patterns**: Apply the **Strategy Pattern** when multiple algorithms or behaviors are required for a specific task to ensure extensibility and reduce code duplication.
 
 ## 8. Pull Request Standards
 - [ ] **Process**:
