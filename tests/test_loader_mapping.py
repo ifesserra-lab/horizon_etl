@@ -2,10 +2,25 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 from src.core.logic.research_group_loader import ResearchGroupLoader
+from src.core.logic.strategies.sigpesq_excel import (
+    SigPesqExcelMappingStrategy,
+    SigPesqOrganizationStrategy,
+    SigPesqCampusStrategy,
+    SigPesqKnowledgeAreaStrategy,
+    SigPesqResearcherStrategy,
+    SigPesqRoleStrategy
+)
 
 def test_research_group_loader_mapping():
     # Setup
-    loader = ResearchGroupLoader()
+    loader = ResearchGroupLoader(
+        mapping_strategy=SigPesqExcelMappingStrategy(),
+        org_strategy=SigPesqOrganizationStrategy(),
+        campus_strategy=SigPesqCampusStrategy(),
+        area_strategy=SigPesqKnowledgeAreaStrategy(),
+        researcher_strategy=SigPesqResearcherStrategy(),
+        role_strategy=SigPesqRoleStrategy()
+    )
     loader.uni_ctrl = MagicMock()
     loader.campus_ctrl = MagicMock()
     loader.rg_ctrl = MagicMock()

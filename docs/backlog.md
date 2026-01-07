@@ -17,7 +17,9 @@ Reflecting active work from `SI.3 Product Backlog`.
     - [x] US-001 [Extração Projetos SigPesq](https://github.com/ifesserra-lab/horizon_etl/issues/2) (Merged)
     - [x] US-007 [Ingestão Grupos de Pesquisa] (PR #4 - Merged)
     - [x] T-Leaders [Implementação de Líderes] (PR #7 - Merged)
-    - [x] T-ResearcherID [E-mail como identification_id] (PR #9 - In Progress)
+    - [x] T-ResearcherID [E-mail como identification_id] (PR #10 - Merged)
+    - [x] T-StrategyPattern [Refatoração Strategy Pattern] (PR #11 - Merged)
+    - [x] T-GranularStrategy [Refatoração Granular Pattern] (PR #12 - Pending Merger)
     - [x] US-005 Observabilidade e Idempotência (Implemented)
 
 - **Epic 3: Dados de Execução FAPES (Release 3)**
