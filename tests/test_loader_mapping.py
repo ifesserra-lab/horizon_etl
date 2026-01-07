@@ -10,19 +10,31 @@ def test_research_group_loader_mapping():
     loader.campus_ctrl = MagicMock()
     loader.rg_ctrl = MagicMock()
     loader.area_ctrl = MagicMock()
+    loader.researcher_ctrl = MagicMock()
+    loader.role_ctrl = MagicMock()
     
     # Mock return values
     loader.ensure_organization = MagicMock(return_value=1)
     loader.ensure_campus = MagicMock(return_value=1)
     loader.ensure_knowledge_area = MagicMock(return_value=1)
     
+    mock_research_group = MagicMock()
+    mock_research_group.id = 100
+    mock_research_group.name = 'Grupo Teste'
+    loader.rg_ctrl.create_research_group.return_value = mock_research_group
+    
+    mock_researcher = MagicMock()
+    mock_researcher.id = 50
+    loader.ensure_researcher = MagicMock(return_value=mock_researcher)
+
     # Create invalid/dummy dataframe
     data = {
         'Nome': ['Grupo Teste'],
         'Sigla': ['GT'],
         'Unidade': ['Campus X'],
         'AreaConhecimento': ['Area Y'],
-        'Column1': ['http://cnpq.br/grupo']
+        'Column1': ['http://cnpq.br/grupo'],
+        'Lideres': ['Carlos Campos (carlos@ifes.edu.br)']
     }
     df = pd.DataFrame(data)
     
@@ -39,9 +51,12 @@ def test_research_group_loader_mapping():
         campus_id=1,
         organization_id=1,
         short_name='GT',
-        cnpq_url='http://cnpq.br/grupo', # This is what we want to verify
+        cnpq_url='http://cnpq.br/grupo',
         knowledge_area_ids=[1]
     )
+    
+    loader.ensure_researcher.assert_called_with('Carlos Campos', 'carlos@ifes.edu.br')
+    loader.rg_ctrl.add_leader.assert_called()
     
     import os
     if os.path.exists(tmp_path):
