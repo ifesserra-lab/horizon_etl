@@ -23,9 +23,10 @@ def test_research_group_loader_mapping():
     mock_research_group.name = 'Grupo Teste'
     loader.rg_ctrl.create_research_group.return_value = mock_research_group
     
+    loader.researcher_ctrl.get_all.return_value = []
     mock_researcher = MagicMock()
     mock_researcher.id = 50
-    loader.ensure_researcher = MagicMock(return_value=mock_researcher)
+    loader.researcher_ctrl.create_researcher.return_value = mock_researcher
 
     # Create invalid/dummy dataframe
     data = {
@@ -55,7 +56,11 @@ def test_research_group_loader_mapping():
         knowledge_area_ids=[1]
     )
     
-    loader.ensure_researcher.assert_called_with('Carlos Campos', 'carlos@ifes.edu.br')
+    loader.researcher_ctrl.create_researcher.assert_called_with(
+        name='Carlos Campos', 
+        emails=['carlos@ifes.edu.br'],
+        identification_id='carlos@ifes.edu.br'
+    )
     loader.rg_ctrl.add_leader.assert_called()
     
     import os
