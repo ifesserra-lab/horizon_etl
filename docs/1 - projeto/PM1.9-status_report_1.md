@@ -7,7 +7,7 @@
 ---
 
 ## 1. Resumo Executivo
-O projeto concluiu a **Mecanismo de Ingestão do SigPesq (US-001 e US-007)** e a infraestrutura de orquestração local. O ambiente está estável com Prefect 3 rodando em Docker, e a integração com as bibliotecas core (`sigpesq_agent`, `research_domain_lib`) foi consolidada no branch `main`.
+O projeto concluiu a **Mecanismo de Ingestão do SigPesq (US-001 e US-007)** e a infraestrutura de orquestração local. Recentemente, foi implementado o **Padrão de Estratégia Granular** para o `ResearchGroupLoader`, melhorando a extensibilidade. O ambiente está estável com Prefect 3 rodando em Docker, e a versão **v0.3.0** foi liberada no branch `main`.
 
 ---
 
@@ -48,7 +48,7 @@ O projeto concluiu a **Mecanismo de Ingestão do SigPesq (US-001 e US-007)** e a
 ## 6. Próximas Ações (Próxima Quinzena)
 - Início da **US-001 (Researcher/Scholarship Ingestion - Pending Part)**.
 - Início da **US-002 (Lattes Extraction)**.
-- Planejamento da Release `v0.3.0`.
+- **Concluído**: Implementação de Líderes e Strategies (v0.3.0).
 
 ---
 
