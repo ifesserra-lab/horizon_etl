@@ -121,9 +121,13 @@ class ResearchGroupLoader:
         # Create
         try:
             emails = [email] if email else []
-            res = self.researcher_ctrl.create_researcher(name=name, emails=emails)
+            res = self.researcher_ctrl.create_researcher(
+                name=name, 
+                emails=emails,
+                identification_id=email # Use email as ID (User requirement)
+            )
             self._researcher_cache[cache_key] = res
-            logger.info(f"Researcher created: {name} ({email})")
+            logger.info(f"Researcher created: {name} (ID: {email})")
             return res
         except Exception as e:
             logger.error(f"Error creating researcher '{name}': {e}")
