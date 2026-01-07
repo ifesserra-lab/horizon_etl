@@ -1,6 +1,6 @@
 import pandas as pd
 from loguru import logger
-from research_domain import UniversityController, CampusController, ResearchGroupController, KnowledgeAreaController
+from research_domain import UniversityController, CampusController, ResearchGroupController, KnowledgeAreaController, ResearcherController, RoleController
 
 class ResearchGroupLoader:
     def __init__(self):
@@ -8,11 +8,15 @@ class ResearchGroupLoader:
         self.campus_ctrl = CampusController()
         self.rg_ctrl = ResearchGroupController()
         self.area_ctrl = KnowledgeAreaController()
+        self.researcher_ctrl = ResearcherController()
+        self.role_ctrl = RoleController()
         
         # Cache to avoid repeated DB hits
         self._org_id = None
         self._campus_cache = {}
         self._area_cache = {}
+        self._role_cache = {}
+        self._researcher_cache = {}
 
     def ensure_organization(self):
         """Ensures UFSC exists."""
@@ -84,6 +88,72 @@ class ResearchGroupLoader:
         except:
             pass
 
+    def ensure_leader_role(self):
+        """Ensures the Leader role exists."""
+        if "leader" in self._role_cache:
+            return self._role_cache["leader"]
+        
+        try:
+            role = self.role_ctrl.get_or_create_leader_role()
+            self._role_cache["leader"] = role
+            logger.info(f"Role 'Leader' ensured (ID: {role.id})")
+            return role
+        except Exception as e:
+            logger.error(f"Error ensuring leader role: {e}")
+            return None
+
+    def ensure_researcher(self, name: str, email: str = None):
+        """Ensures a researcher exists."""
+        cache_key = f"{name}|{email}"
+        if cache_key in self._researcher_cache:
+            return self._researcher_cache[cache_key]
+
+        # Lookup by name/email (simplistic for now)
+        try:
+            all_res = self.researcher_ctrl.get_all()
+            for res in all_res:
+                if res.name == name:
+                    self._researcher_cache[cache_key] = res
+                    return res
+        except Exception as e:
+            logger.error(f"Error fetching researchers: {e}")
+
+        # Create
+        try:
+            emails = [email] if email else []
+            res = self.researcher_ctrl.create_researcher(name=name, emails=emails)
+            self._researcher_cache[cache_key] = res
+            logger.info(f"Researcher created: {name} ({email})")
+            return res
+        except Exception as e:
+            logger.error(f"Error creating researcher '{name}': {e}")
+            self._try_rollback(self.researcher_ctrl)
+            return None
+
+    def _parse_leaders(self, leaders_str: str):
+        """Parses leaders string like 'Name (email), Name2 (email2)'."""
+        if not leaders_str or pd.isna(leaders_str):
+            return []
+        
+        import re
+        # Pattern to match "Name (email)" or just "Name"
+        # Supports comma or semicolon separation
+        parts = re.split(r'[,;]', str(leaders_str))
+        leaders = []
+        for part in parts:
+            part = part.strip()
+            if not part:
+                continue
+            
+            match = re.match(r'^(.*?)\s*\((.*?)\)$', part)
+            if match:
+                name = match.group(1).strip()
+                email = match.group(2).strip()
+                leaders.append((name, email))
+            else:
+                leaders.append((part, None))
+        return leaders
+
     def ensure_knowledge_area(self, area_name: str):
         """Ensures Knowledge Area exists."""
         if not area_name or pd.isna(area_name):
@@ -124,6 +194,9 @@ class ResearchGroupLoader:
             logger.error(f"Failed to read Excel: {e}")
             return
 
+        # 0. Ensure Role
+        self.ensure_leader_role()
+
         # 1. Ensure Org
         org_id = self.ensure_organization()
         if not org_id:
@@ -163,6 +236,10 @@ class ResearchGroupLoader:
                     if aid:
                         area_ids.append(aid)
                 
+                # Parse Leaders
+                leaders_data = self._parse_leaders(row.get('Lideres'))
+                
+                group = None
                 # Check existence
                 if name in existing_groups_map:
                     group = existing_groups_map[name]
@@ -177,29 +254,48 @@ class ResearchGroupLoader:
                             logger.warning(f"Failed to update group {name}: {e}")
                             
                     skipped += 1
-                    continue
+                else:    
+                    # 2. Ensure Campus
+                    campus_name = unidade if pd.notna(unidade) else "Campus Desconhecido"
+                    campus_id = self.ensure_campus(campus_name, org_id)
                     
-                # 2. Ensure Campus
-                campus_name = unidade if pd.notna(unidade) else "Campus Desconhecido"
-                campus_id = self.ensure_campus(campus_name, org_id)
-                
-                if not campus_id:
-                    continue
+                    if not campus_id:
+                        continue
 
-                # 4. Create Group
-                self.rg_ctrl.create_research_group(
-                    name=name,
-                    campus_id=campus_id,
-                    organization_id=org_id,
-                    short_name=sigla if pd.notna(sigla) else None,
-                    cnpq_url=site_url if pd.notna(site_url) else None,
-                    knowledge_area_ids=area_ids if area_ids else None
-                )
-                
-                # Update cache
-                # existing_groups_map[name] = ...
-                count += 1
-                
+                    # 4. Create Group
+                    try:
+                        group = self.rg_ctrl.create_research_group(
+                            name=name,
+                            campus_id=campus_id,
+                            organization_id=org_id,
+                            short_name=sigla if pd.notna(sigla) else None,
+                            cnpq_url=site_url if pd.notna(site_url) else None,
+                            knowledge_area_ids=area_ids if area_ids else None
+                        )
+                        count += 1
+                    except Exception as e:
+                        logger.error(f"Failed to create group {name}: {e}")
+                        self._try_rollback(self.rg_ctrl)
+                        continue
+
+                # 5. Associate Leaders
+                if group and leaders_data:
+                    from datetime import date
+                    for l_name, l_email in leaders_data:
+                        researcher = self.ensure_researcher(l_name, l_email)
+                        if researcher:
+                            try:
+                                # Start date is today if not specified
+                                self.rg_ctrl.add_leader(
+                                    team_id=group.id,
+                                    person_id=researcher.id,
+                                    start_date=date.today()
+                                )
+                                logger.debug(f"Leader {l_name} associated to group {name}")
+                            except Exception as e:
+                                logger.warning(f"Failed to associate leader {l_name} to unit {name}: {e}")
+                                self._try_rollback(self.rg_ctrl)
+
             except Exception as e:
                 logger.error(f"Error processing row {row}: {e}")
                 self._try_rollback(self.rg_ctrl)
