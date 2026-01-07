@@ -7,8 +7,9 @@ Tracks the delivery of versions to production (Main Branch).
 
 | Version | Date | Status | Description | PR / Commit |
 |---------|------|--------|-------------|-------------|
-| **v0.0.0** | 2026-01-01 | Released | Project Initiation | - |
+| **v0.3.0** | 2026-01-07 | Released | SigPesq Enhancements, ResearcherID & Granular Strategy Pattern | PR #13 |
 | **v0.2.0** | 2026-01-06 | Released | Research Group Ingestion & Local Infrastructure | Main |
+| **v0.0.0** | 2026-01-01 | Released | Project Initiation | - |
 
 ## 2. In Progress Items (Current Sprint)
 Reflecting active work from `SI.3 Product Backlog`.
@@ -19,7 +20,7 @@ Reflecting active work from `SI.3 Product Backlog`.
     - [x] T-Leaders [Implementação de Líderes] (PR #7 - Merged)
     - [x] T-ResearcherID [E-mail como identification_id] (PR #10 - Merged)
     - [x] T-StrategyPattern [Refatoração Strategy Pattern] (PR #11 - Merged)
-    - [x] T-GranularStrategy [Refatoração Granular Pattern] (PR #12 - Pending Merger)
+    - [x] T-GranularStrategy [Refatoração Granular Pattern] (PR #12 - Merged)
     - [x] US-005 Observabilidade e Idempotência (Implemented)
 
 - **Epic 3: Dados de Execução FAPES (Release 3)**
