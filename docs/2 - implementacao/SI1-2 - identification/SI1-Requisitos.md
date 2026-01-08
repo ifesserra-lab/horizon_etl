@@ -36,6 +36,8 @@ O **Horizon ETL** é uma infraestrutura de dados que automatiza a coleta de info
 | **RF-04** | O sistema deve extrair dados de execução (Projetos/Bolsas/Compras) da FAPES. | Dados financeiros e de bolsistas vinculados persistidos. | PM1.3 (R3) |
 | **RF-05** | O sistema deve coletar metadados do Google Scholar. | Citações e índice-h atualizados. | PM1.3 (R4) |
 | **RF-06** | O sistema deve normalizar nomes de autores e instituições. | Entidades duplicadas fundidas (Merge) em ID único. | Arq. |
+| **RF-07** | O sistema deve exportar dados de grupos de pesquisa de uma Unidade Organizacional para JSON. | Arquivo JSON gerado seguindo schema do ResearchGroup. | User Req. |
+| **RF-08** | O sistema deve exportar dados canônicos (Organização, Campus, Áreas) para arquivos JSON separados. | Arquivos `organizations.json`, `campuses.json`, `knowledge_areas.json` gerados. | User Req. |
 
 ---
 

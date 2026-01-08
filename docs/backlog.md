@@ -22,6 +22,7 @@ Reflecting active work from `SI.3 Product Backlog`.
     - [x] T-StrategyPattern [Refatoração Strategy Pattern] (PR #11 - Merged)
     - [x] T-GranularStrategy [Refatoração Granular Pattern] (PR #12 - Merged)
     - [x] US-005 Observabilidade e Idempotência (Implemented)
+    - [ ] US-008 [Exportação JSON Canônico e Grupos] (In Progress)
 
 - **Epic 3: Dados de Execução FAPES (Release 3)**
     - [ ] US-006 [Extração de Editais FAPES (PDF)](https://github.com/ifesserra-lab/horizon_etl/issues/1)

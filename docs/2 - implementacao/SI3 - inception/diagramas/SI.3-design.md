@@ -43,6 +43,7 @@ flowchart TD
         Lattes[Lattes Source]
         Fapes[Fapes API Client]
         Supabase[Supabase Sink]
+        JsonFile[JSON File Sink]
     end
 
     %% Dependency Injection (Orchestration)
@@ -57,6 +58,8 @@ flowchart TD
     SigPesq --implements--> PortSource
     Lattes --implements--> PortSource
     Fapes --implements--> PortSource
+    
+    JsonFile --implements--> PortSink
     
     %% External Libraries
     subgraph SharedKernel [Shared Libraries]
@@ -128,6 +131,12 @@ class ISink(ABC):
     @abstractmethod
     def load(self, data: List[DomainEntity]) -> LoadStats:
         """Persiste dados cuidando de Upserts/Deduplicação."""
+        pass
+
+class IExportSink(ABC):
+    @abstractmethod
+    def export(self, data: List[DomainEntity], path: str) -> None:
+        """Exporta entidades para um formato de arquivo."""
         pass
 ```
 
