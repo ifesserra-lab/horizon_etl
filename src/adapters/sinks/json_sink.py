@@ -22,6 +22,9 @@ class JsonSink(IExportSink):
                 
             # Internal serializer helper
             def serialize(obj):
+                if isinstance(obj, dict):
+                    return obj
+
                 if isinstance(obj, BaseModel):
                     return obj.model_dump(mode='json')
                 

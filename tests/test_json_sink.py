@@ -63,3 +63,19 @@ def test_json_sink_creates_directories(tmp_path):
     
     # Assert
     assert os.path.exists(output_file)
+    
+def test_json_sink_export_dicts(tmp_path):
+    # Arrange
+    sink = JsonSink()
+    data = [{"id": 1, "name": "Dict 1"}, {"id": 2, "name": "Dict 2"}]
+    output_file = tmp_path / "test_output_dicts.json"
+    
+    # Act
+    sink.export(data, str(output_file))
+    
+    # Assert
+    assert os.path.exists(output_file)
+    with open(output_file, 'r') as f:
+        content = json.load(f)
+        assert len(content) == 2
+        assert content[0]['name'] == "Dict 1"
