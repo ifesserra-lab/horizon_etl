@@ -25,7 +25,8 @@ Reflecting active work from `SI.3 Product Backlog`.
     - [x] US-008 [Exportação JSON Canônico e Grupos] (PR #15 - Merged)
     
 - **Epic 6: Atualização Base CNPq (Release v0.4.0)**
-    - [x] US-009 [Sincronização de Grupos CNPq] (PR #18 - Merged)
+    - [x] US-009 [Sincronização de Grupos CNPq] (PR #18, #19 - Merged)
+    - [ ] US-010 [Sincronização de Egressos CNPq]
 
 - **Epic 3: Dados de Execução FAPES (Release 3)**
     - [ ] US-006 [Extração de Editais FAPES (PDF)](https://github.com/ifesserra-lab/horizon_etl/issues/1)
