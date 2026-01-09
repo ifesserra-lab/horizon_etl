@@ -78,6 +78,7 @@ class CnpqSyncLogic:
         Synchronizes members of a research group.
         """
         import unicodedata
+        from sqlalchemy import text
         
         def normalize(text):
             if not text: return ""
@@ -203,7 +204,43 @@ class CnpqSyncLogic:
                         )
                         logger.info(f"Member {name} ({role_name}) associated to group {group_id}")
                     else:
-                        logger.debug(f"Member {name} already associated to group {group_id}. Skipping.")
+                        # UPDATE LOGIC for Egressos
+                        # If the member is already associated, check if we need to update the end_date
+                        # This handles Active -> Egresso transition
+                        try:
+                            # We need to find the specific association to check dates
+                            target_member = next((em for em in existing_members if em.person_id == researcher.id), None)
+                            
+                            if target_member:
+                                current_end_date = target_member.end_date
+                                # Check if end_date provided by CNPq is 'new' (we have it, DB doesn't)
+                                # or different (CNPq has date, DB has different date)
+                                
+                                should_update = False
+                                if end_date and current_end_date != end_date:
+                                    should_update = True
+                                
+                                if should_update:
+                                    logger.info(f"Updating member {name} dates: End {current_end_date} -> {end_date}")
+                                    
+                                    # Use direct SQL update for safety and to avoid ORM complexity with composite keys/relationships
+                                    upd_query = text("""
+                                        UPDATE team_members 
+                                        SET end_date = :end_dt 
+                                        WHERE team_id = :gid AND person_id = :pid
+                                    """)
+                                    session = self.rg_ctrl._service._repository._session
+                                    session.execute(upd_query, {
+                                        "end_dt": end_date,
+                                        "gid": group_id,
+                                        "pid": researcher.id
+                                    })
+                                    session.commit()
+                                else:
+                                    logger.debug(f"Member {name} up to date.")
+
+                        except Exception as inner_e:
+                            logger.warning(f"Failed to update member {name}: {inner_e}")
                         
                 except Exception as e:
                     logger.warning(f"Could not associate member {name}: {e}")
