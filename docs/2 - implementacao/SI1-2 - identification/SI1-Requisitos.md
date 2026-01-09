@@ -38,7 +38,7 @@ O **Horizon ETL** é uma infraestrutura de dados que automatiza a coleta de info
 | **RF-06** | O sistema deve normalizar nomes de autores e instituições. | Entidades duplicadas fundidas (Merge) em ID único. | Arq. |
 | **RF-07** | O sistema deve exportar dados de grupos de pesquisa de uma Unidade Organizacional para JSON. | Arquivo JSON gerado seguindo schema do ResearchGroup. | User Req. |
 | **RF-08** | O sistema deve exportar dados canônicos (Organização, Campus, Áreas) para arquivos JSON separados. | Arquivos `organizations.json`, `campuses.json`, `knowledge_areas.json` gerados. | User Req. |
-| **RF-09** | O sistema deve extrair e atualizar dados de grupos de pesquisa do CNPq DGP. | Dados do grupo (espelho) e membros atualizados no banco de dados via `dgp_cnpq_lib`. | User Req. |
+| **RF-09** | O sistema deve extrair e atualizar dados de grupos de pesquisa do CNPq DGP. | Dados do grupo (espelho), membros e **linhas de pesquisa (mapeadas para Áreas do Conhecimento)** atualizados no banco de dados via `dgp_cnpq_lib`. | User Req. |
 
 ---
 

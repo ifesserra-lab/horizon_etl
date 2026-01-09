@@ -6,6 +6,7 @@ from research_domain import (
     ResearcherController,
     ResearchGroupController,
     RoleController,
+    KnowledgeAreaController,
 )
 
 
@@ -18,6 +19,7 @@ class CnpqSyncLogic:
         self.rg_ctrl = ResearchGroupController()
         self.res_ctrl = ResearcherController()
         self.role_ctrl = RoleController()
+        self.ka_ctrl = KnowledgeAreaController()
         self._leader_role_id = None
 
     def _get_leader_role_id(self):
@@ -137,6 +139,25 @@ class CnpqSyncLogic:
                         else:
                             logger.error(f"Could not create nor find researcher {name}. Skipping.")
                             continue
+                
+                # SELF-HEALING: Ensure it exists in 'researchers' table (Joined Inheritance fix)
+                # The library might only be inserting into 'persons' if mapping is partial.
+                try:
+                    session = self.rg_ctrl._service._repository._session
+                    # Check if exists in researchers
+                    chk_res = text("SELECT 1 FROM researchers WHERE id = :rid")
+                    is_researcher = session.execute(chk_res, {"rid": researcher.id}).scalar()
+                    
+                    if not is_researcher:
+                        logger.info(f"Fixing missing 'researchers' row for ID {researcher.id}")
+                        # Insert with just ID (other cols are URLs, nullable)
+                        ins_res = text("INSERT INTO researchers (id) VALUES (:rid)")
+                        session.execute(ins_res, {"rid": researcher.id})
+                        session.commit()
+                except Exception as e:
+                    logger.warning(f"Failed to fix researchers table for {name}: {e}")
+                    # Don't block flow
+                    pass
 
                 # 2. Get/Create Role
                 role_name = m_data.get("role", "Pesquisador")
@@ -204,3 +225,86 @@ class CnpqSyncLogic:
             self.rg_ctrl._service._repository._session.commit()
         except Exception:
             pass
+
+    def sync_knowledge_areas(self, group_id: Any, lines_data: List[Dict[str, Any]]):
+        """
+        Syncs research lines as Knowledge Areas and associates them to the group.
+        """
+        import unicodedata
+        from sqlalchemy import text
+
+        def normalize(text):
+            if not text: return ""
+            return unicodedata.normalize('NFC', str(text).strip())
+
+        if not lines_data:
+            return
+
+        try:
+            # 1. Fetch/Create Knowledge Areas
+            ka_map = {}
+            all_kas = self.ka_ctrl.get_all()
+            for ka in all_kas:
+                if ka.name:
+                    ka_map[normalize(ka.name).lower()] = ka
+
+            processed_kas = []
+            for line in lines_data:
+                raw_name = line.get("nome_da_linha_de_pesquisa")
+                if not raw_name:
+                    continue
+                
+                norm_name = normalize(raw_name)
+                key = norm_name.lower()
+                
+                ka = ka_map.get(key)
+                if not ka:
+                    logger.info(f"Creating new Knowledge Area: {norm_name}")
+                    try:
+                        ka = self.ka_ctrl.create_knowledge_area(name=norm_name)
+                        ka_map[key] = ka # Update map
+                    except Exception as e:
+                        logger.error(f"Failed to create KA {norm_name}: {e}")
+                        continue
+                else:
+                    logger.debug(f"Using existing KA: {ka.name}")
+
+                if ka:
+                    processed_kas.append(ka)
+
+            # 2. Associate with Group (Direct SQL for safety/performance)
+            session = self.rg_ctrl._service._repository._session
+            
+            for ka in processed_kas:
+                try:
+                    # Check existence
+                    check_query = text("SELECT 1 FROM group_knowledge_areas WHERE group_id = :gid AND area_id = :aid")
+                    exists = session.execute(check_query, {"gid": group_id, "aid": ka.id}).fetchone()
+                    
+                    if not exists:
+                        logger.info(f"Associating KA '{ka.name}' to Group {group_id}")
+                        ins_query = text("INSERT INTO group_knowledge_areas (group_id, area_id) VALUES (:gid, :aid)")
+                        session.execute(ins_query, {"gid": group_id, "aid": ka.id})
+                    else:
+                        logger.debug(f"KA '{ka.name}' already associated to Group {group_id}")
+                
+                except Exception as e:
+                    logger.error(f"Failed to associate KA {ka.id} to Group {group_id}: {e}")
+                    # Don't rollback whole transaction, just skip this association? 
+                    # Actually, if auto-commit isn't on, we might need to rollback sub-transaction if using Postgres
+                    # But here likely wrapping inside outer transaction or session management.
+                    # Safe pattern:
+                    try:
+                        session.rollback()
+                    except:
+                        pass
+            
+            session.commit()
+            logger.info(f"Synced {len(processed_kas)} research lines/KAs for group {group_id}")
+
+        except Exception as e:
+            logger.error(f"Failed to sync knowledge areas for {group_id}: {e}")
+            try:
+                self.rg_ctrl._service._repository._session.rollback()
+            except:
+                pass
