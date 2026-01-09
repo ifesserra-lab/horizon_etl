@@ -1,0 +1,103 @@
+from typing import Any, Dict, List, Optional
+
+from dgp_cnpq_lib import CnpqCrawler
+from loguru import logger
+
+
+class CnpqCrawlerAdapter:
+    """
+    Adapter for dgp_cnpq_lib to extract research group data from CNPq DGP.
+    """
+
+    def __init__(self):
+        self._crawler = CnpqCrawler()
+
+    def get_group_data(self, url: str) -> Optional[Dict[str, Any]]:
+        """
+        Extracts data for a single research group from its mirror URL.
+        """
+        try:
+            logger.info(f"Extracting data from CNPq Mirror: {url}")
+            data = self._crawler.get_data(url)
+            return data
+        except Exception as e:
+            logger.error(f"Failed to extract data from {url}: {e}")
+            return None
+
+    def extract_members(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Parses member data from the raw extracted dictionary.
+        Members are usually found under 'recursos_humanos' fieldset.
+        """
+        members = []
+        logger.info(f"Available keys in raw data: {list(data.keys())}")
+
+        rh_content = data.get("recursos_humanos") or data.get("recursos_humanos_do_grupo") or {}
+        logger.info(f"RH content keys: {list(rh_content.keys())}")
+
+        # Researchers table
+        if "pesquisadores" in rh_content:
+            for item in rh_content["pesquisadores"]:
+                # The key can be 'nome', 'nome_do_pesquisador' or even 'pesquisadores'
+                name = (
+                    item.get("nome") or 
+                    item.get("nome_do_pesquisador") or 
+                    item.get("pesquisadores")
+                )
+                if name:
+                    members.append(
+                        {
+                            "name": name,
+                            "role": "Pesquisador",
+                            "data_inicio": item.get("data_inclusao") or item.get("data_inicio"),
+                            "data_fim": item.get("data_egresso") or item.get("data_fim"),
+                            "bolsa": item.get("bolsa"),
+                        }
+                    )
+
+        # Students table
+        if "estudantes" in rh_content:
+            for item in rh_content["estudantes"]:
+                name = (
+                    item.get("nome") or 
+                    item.get("nome_do_estudante") or 
+                    item.get("estudantes")
+                )
+                if name:
+                    members.append(
+                        {
+                            "name": name,
+                            "role": "Estudante",
+                            "data_inicio": item.get("data_inclusao") or item.get("data_inicio"),
+                            "data_fim": item.get("data_egresso") or item.get("data_fim"),
+                            "nivel": item.get("nivel"),
+                        }
+                    )
+
+        # Technicians
+        if "tecnicos" in rh_content:
+            for item in rh_content["tecnicos"]:
+                name = (
+                    item.get("nome") or 
+                    item.get("nome_do_tecnico") or 
+                    item.get("tecnicos")
+                )
+                if name:
+                    members.append(
+                        {
+                            "name": name,
+                            "role": "Técnico",
+                            "data_inicio": item.get("data_inclusao") or item.get("data_inicio"),
+                            "data_fim": item.get("data_egresso") or item.get("data_fim"),
+                        }
+                    )
+
+        return members
+
+    def extract_leaders(self, data: Dict[str, Any]) -> List[str]:
+        """
+        Extracts leader names.
+        Usually found in 'identificacao' under 'lideres_do_grupo'.
+        """
+        ident_content = data.get("identificacao", {})
+        return ident_content.get("lideres_do_grupo", [])

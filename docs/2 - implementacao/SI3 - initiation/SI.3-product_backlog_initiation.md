@@ -253,6 +253,46 @@ Implementar Base Repository com Loguru e lógica de `ON CONFLICT DO UPDATE`.
 
 ---
 
+## Epic 6: Atualização de Grupos de Pesquisa CNPq (Release 2)
+**Objetivo**: Enriquecer dados dos grupos de pesquisa com informações oficiais do CNPq (DGP).
+
+### US-009 – Atualização de Dados de Grupos via DGP/CNPq
+```yaml
+id: US-009
+milestone: R2
+prioridade: Média
+tamanho: 8
+origem: [RF-09, RNF-01, RNF-02, RNF-06]
+tags: [type:feature, area:backend, source:cnpq]
+dependencias: [US-007]
+modulos_afetados: [src/flows, src/core/logic/strategies]
+```
+
+#### Descrição
+Desenvolver um novo pipeline que extrai URLs de espelho de grupos do banco de dados, utiliza a lib `dgp_cnpq_lib` para coletar dados atualizados (nome, líderes, linhas de pesquisa) e atualiza os membros do grupo.
+
+#### Critérios de Aceitação (Definition of Done)
+- **Funcional**:
+    - [ ] Extração de URLs de grupos existentes no DB via `ResearchGroupRepository`.
+    - [ ] Uso da `dgp_cnpq_lib` para extrair dados do espelho.
+    - [ ] Atualização dos dados do grupo (Líderes, Linhas de Pesquisa) no DB.
+    - [ ] Sincronização de membros do grupo (inserção de novos, atualização de participações).
+- **Teste (TDD)**:
+    - [ ] Teste Unitário: Estratégia de mapeamento dos dados da lib para o domínio `ResearchGroup`.
+    - [ ] Teste de Integração: Mock da `dgp_cnpq_lib` e verificação de UPSERT no DB.
+- **Deploy**:
+    - [ ] Flow `sync_cnpq_groups` registrado e explorável no `app.py`.
+- **Observabilidade**:
+    - [ ] Log de "Qtd de Grupos Processados", "Sucesso/Erro por URL".
+
+#### Tasks Sugeridas
+1.  **T-012 [Dev]**: Implementar `CnpqCrawlerStrategy`.
+    - *Critério*: Mapear `dict` retornado pela lib para as entidades do domínio.
+2.  **T-013 [Ops]**: Criar Flow Prefect `sync_cnpq_groups`.
+    - *Critério*: Flow orquestra: Seleção -> Crawler -> Persistência.
+
+---
+
 # 4. Backlog Refinado (Release 1)
 
 | ID | Título | Milestone | Status |

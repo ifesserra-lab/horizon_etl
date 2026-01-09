@@ -1,0 +1,120 @@
+from dotenv import load_dotenv
+from typing import Optional
+from prefect import flow, get_run_logger, task
+from research_domain import ResearchGroupController, CampusController
+
+from src.adapters.sources.cnpq_crawler import CnpqCrawlerAdapter
+from src.core.logic.strategies.cnpq_sync import CnpqSyncLogic
+
+load_dotenv()
+
+
+@task
+def get_groups_to_sync(
+    limit: Optional[int] = None, offset: int = 0, campus_name: Optional[str] = None
+):
+    """
+    Fetches research groups that have a CNPq URL, optionally filtering by campus name.
+    """
+    logger = get_run_logger()
+    logger.info("Fetching research groups with CNPq URLs...")
+    
+    rg_ctrl = ResearchGroupController()
+    all_groups = rg_ctrl.get_all()
+    
+    # Campus filtering if requested
+    campus_id = None
+    if campus_name:
+        logger.info(f"Filtering by campus matching: '{campus_name}'")
+        campus_ctrl = CampusController()
+        campuses = campus_ctrl.get_all()
+        matching_campuses = [c for c in campuses if campus_name.lower() in c.name.lower()]
+        
+        if not matching_campuses:
+            logger.warning(f"No campus found matching '{campus_name}'. Proceeding with no results.")
+            return []
+        
+        if len(matching_campuses) > 1:
+            logger.warning(f"Multiple campuses match '{campus_name}': {[c.name for c in matching_campuses]}. Using the first one: {matching_campuses[0].name}")
+        
+        campus_id = matching_campuses[0].id
+        logger.info(f"Using Campus ID {campus_id} for filtering.")
+
+    sync_list = []
+    for g in all_groups:
+        if getattr(g, 'cnpq_url', None):
+            # Check campus filter
+            if campus_id and getattr(g, 'campus_id', None) != campus_id:
+                continue
+                
+            sync_list.append({
+                "id": g.id,
+                "name": g.name,
+                "url": g.cnpq_url
+            })
+    
+    # Simple slicing for limit/offset
+    if limit is not None:
+        sync_list = sync_list[offset : offset + limit]
+        logger.info(f"Batched {len(sync_list)} groups (offset={offset}, limit={limit}).")
+    else:
+        logger.info(f"Found {len(sync_list)} groups to synchronize.")
+    
+    return sync_list
+
+
+@task
+def sync_single_group(group_info: dict):
+    """
+    Synchronizes a single research group.
+    """
+    logger = get_run_logger()
+    url = group_info["url"]
+    group_id = group_info["id"]
+    group_name = group_info["name"]
+
+    logger.info(f"Synchronizing group: {group_name} ({url})")
+
+    adapter = CnpqCrawlerAdapter()
+    sync_logic = CnpqSyncLogic()
+
+    # 1. Extract data
+    data = adapter.get_group_data(url)
+    if not data:
+        logger.error(f"Failed to extract data for {group_name}")
+        return False
+
+    # 2. Sync group info
+    sync_logic.sync_group(group_id, data)
+
+    # 3. Extract and sync members
+    members = adapter.extract_members(data)
+    logger.info(f"Extracted {len(members)} members for {group_name}")
+    sync_logic.sync_members(group_id, members)
+
+    return True
+
+
+@flow(name="Sync CNPq Research Groups")
+def sync_cnpq_groups_flow(campus_name: Optional[str] = None):
+    """
+    Prefect flow to synchronize research groups with CNPq DGP mirror.
+    """
+    logger = get_run_logger()
+    logger.info(f"Starting CNPq Synchronization Flow (Filter: {campus_name or 'None'})")
+
+    groups = get_groups_to_sync(campus_name=campus_name)
+
+    results = []
+    for g_info in groups:
+        res = sync_single_group(g_info)
+        results.append(res)
+
+    success_count = sum(1 for r in results if r)
+    logger.info(
+        f"Flow finished. Successfully synchronized {success_count}/{len(groups)} groups."
+    )
+
+
+if __name__ == "__main__":
+    sync_cnpq_groups_flow()
