@@ -15,11 +15,12 @@ src/
 │   └── logic/             # Pure Transformations (Mappers/Cleaners)
 │
 ├── adapters/              # The "Infrastructure" (Real World)
-│   ├── sources/           # Implementations (FapesScraper, APIClient)
-│   └── sinks/             # Implementations (SupabaseRepo, S3Bucket)
+│   ├── sources/           # Implementations (FapesScraper, CnpqCrawler)
+│   └── sinks/             # Implementations (SupabaseRepo, JsonSink, S3Bucket)
 │
 └── flows/                 # The Orchestration (Prefect)
-    └── ingest_data.py     # Wires Adapters to Logic
+    └── sync_cnpq_groups.py # Orchestrates CNPq Sync
+    └── export_canonical.py # Orchestrates Data Export
 ```
 
 ## 🚀 Key Features
@@ -28,6 +29,11 @@ src/
 *   **Observability:** Integrated logging and Data Lineage via Prefect Artifacts.
 *   **Auditability:** Raw data storage for debugging and historical replay.
 *   **Extensibility:** Plug-and-play architecture using Ports & Adapters.
+*   **CNPq Synchronization:** 
+    *   Automated extraction of Research Groups from Lattes/CNPq.
+    *   **Research Lines:** Maps CNPq 'linhas_de_pesquisa' to 'Knowledge Areas'.
+    *   **Self-Healing:** Robust researcher recovery and association.
+*   **Canonical Data Export:** Generates standardized JSON dumps for Organizations, Campuses, Knowledge Areas, Researchers, and Research Groups.
 
 ## 🛠 Stack
 
@@ -38,18 +44,31 @@ src/
 
 ## 📦 Getting Started
 
-1.  **Clone the repo:**
-    ```bash
-    git clone https://github.com/ifesserra-lab/horizon_etl.git
-    cd horizon_etl
-    ```
+### 1. Installation
 
-2.  **Install dependencies:**
-    ```bash
-    pip install -e .
-    ```
+```bash
+git clone https://github.com/ifesserra-lab/horizon_etl.git
+cd horizon_etl
+pip install -e .
+```
 
-3.  **Run a Flow:**
-    ```bash
-    python flows/ingest_fapes.py
-    ```
+### 2. Running Flows
+
+**Sync CNPq Research Groups:**
+```bash
+# Sync specific campus (e.g., Serra)
+python app.py cnpq_sync Serra
+```
+
+**Export Canonical Data:**
+```bash
+# Exports to data/exports/
+python app.py export_canonical
+```
+
+## 📜 Version History
+
+*   **v0.5.0**: CNPq Sync Enhanced (Research Lines & Knowledge Areas), Canonical Exports, Fix for Researcher Persistence.
+*   **v0.4.0**: Base CNPq Synchronization.
+*   **v0.3.0**: SigPesq Enhancements & Granular Strategy Pattern.
+*   **v0.2.0**: Research Group Ingestion & Local Infrastructure.
