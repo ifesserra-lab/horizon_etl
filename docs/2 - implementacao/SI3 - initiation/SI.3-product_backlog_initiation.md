@@ -279,7 +279,22 @@ Desenvolver um novo pipeline que extrai URLs de espelho de grupos do banco de da
     - [ ] Sincronização de membros do grupo (inserção de novos, atualização de participações).
 - **Teste (TDD)**:
     - [ ] Teste Unitário: Estratégia de mapeamento dos dados da lib para o domínio `ResearchGroup`.
-    - [ ] Teste de Integração: Mock da `dgp_cnpq_lib` e verificação de UPSERT no DB.
+    - **Tasks**:
+        - Create `CnpqCrawlerAdapter` to connect with `dgp_cnpq_lib`.
+        - Implement `CnpqSyncLogic` for orchestration.
+        - Create Sync Flow.
+
+### US-010: Sincronização de Egressos CNPq
+- **Description**: Como gestor, quero que os ex-membros (egressos) dos grupos de pesquisa sejam sincronizados com suas respectivas datas de saída, para manter o histórico fiel da participação.
+- **Acceptance Criteria**:
+    - Extrair lista de egressos do CNPq.
+    - Identificar pesquisadores/estudantes já existentes ou criar novos.
+    - Atualizar a associação no grupo (TeamMember) preservando a `start_date` e preenchendo a `end_date`.
+    - Garantir que egressos não sejam reativados como membros ativos incorretamente.
+- **Priority**: High
+- **Tasks**:
+    - Atualizar `CnpqCrawlerAdapter` para extrair egressos.
+    - Atualizar `CnpqSyncLogic` para processar egressos.
 - **Deploy**:
     - [ ] Flow `sync_cnpq_groups` registrado e explorável no `app.py`.
 - **Observabilidade**:

@@ -92,6 +92,35 @@ class CnpqCrawlerAdapter:
                         }
                     )
 
+        # Egressos
+        if "egressos" in rh_content:
+            for item in rh_content["egressos"]:
+                name = (
+                    item.get("nome") or 
+                    item.get("nome_do_egresso") or
+                    item.get("egressos")
+                )
+                if name:
+                    # Determine role based on available info or default to generic Egresso
+                    role_suffix = " (Egresso)"
+                    base_role = "Pesquisador" # Default
+                    
+                    # Try to infer original role if possible (some structures might have it)
+                    if item.get("nivel") or "estudante" in str(item).lower():
+                        base_role = "Estudante"
+                    
+                    final_role = f"{base_role}{role_suffix}"
+
+                    members.append(
+                        {
+                            "name": name,
+                            "role": final_role,
+                            "data_inicio": item.get("data_inclusao") or item.get("data_inicio"),
+                            "data_fim": item.get("data_egresso") or item.get("data_fim"),
+                            "nivel": item.get("nivel"),
+                        }
+                    )
+
         return members
 
     def extract_leaders(self, data: Dict[str, Any]) -> List[str]:
