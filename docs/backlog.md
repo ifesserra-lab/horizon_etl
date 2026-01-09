@@ -7,6 +7,8 @@ Tracks the delivery of versions to production (Main Branch).
 
 | Version | Date | Status | Description | PR / Commit |
 |---------|------|--------|-------------|-------------|
+| **v0.5.0** | 2026-01-09 | Released | CNPq Sync Enhanced & Fixes | PR #19, #20 |
+| **v0.4.0** | 2026-01-09 | Released | CNPq Sync Base (US-009) | PR #18 |
 | **v0.3.0** | 2026-01-07 | Released | SigPesq Enhancements, ResearcherID & Granular Strategy Pattern | PR #13 |
 | **v0.2.0** | 2026-01-06 | Released | Research Group Ingestion & Local Infrastructure | Main |
 | **v0.0.0** | 2026-01-01 | Released | Project Initiation | - |
@@ -25,7 +27,7 @@ Reflecting active work from `SI.3 Product Backlog`.
     - [x] US-008 [Exportação JSON Canônico e Grupos] (PR #15 - Merged)
     
 - **Epic 6: Atualização Base CNPq (Release v0.4.0)**
-    - [x] US-009 [Sincronização de Grupos CNPq] (PR #18 - Merged)
+    - [x] US-009 [Sincronização de Grupos CNPq] (PR #18, #19 - Merged)
 
 - **Epic 3: Dados de Execução FAPES (Release 3)**
     - [ ] US-006 [Extração de Editais FAPES (PDF)](https://github.com/ifesserra-lab/horizon_etl/issues/1)
