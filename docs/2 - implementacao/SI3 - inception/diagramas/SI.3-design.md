@@ -42,6 +42,7 @@ flowchart TD
         SigPesq[SigPesq Source]
         Lattes[Lattes Source]
         Fapes[Fapes API Client]
+        Cnpq[CnpqCrawler]
         Supabase[Supabase Sink]
         JsonFile[JSON File Sink]
     end
@@ -58,6 +59,7 @@ flowchart TD
     SigPesq --implements--> PortSource
     Lattes --implements--> PortSource
     Fapes --implements--> PortSource
+    Cnpq --implements--> PortSource
     
     JsonFile --implements--> PortSink
     
