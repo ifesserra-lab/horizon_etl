@@ -22,19 +22,19 @@ Conceitos Chave:
 
 ## 3. Modelagem de Processos (ETL Flow)
 
-### 3.1 Fluxo Geral de Extração
+### 3.2 Fluxo de Atualização CNPq (DGP)
 ```mermaid
-flowchart LR
-    Start([Scheduler/Trigger]) --> Extract[Extração (Raw Data)]
-    Extract -->|Log Success/Fail| Transform[Transformação (Domain Model)]
-    Transform -->|Log Logic| Load{Idempotent Load}
-    Load -->|New Resource| Insert[Insert DB]
-    Load -->|Existing Resource| Update[Update DB]
-    Insert -->|Log Action| End([Fim])
-    Update -->|Log Action| End
+flowchart TD
+    DB[(Database)] -->|Select Group URL| Fetch[Fetch Groups]
+    Fetch -->|For each URL| Crawler[dgp_cnpq_lib]
+    Crawler -->|Extract Data| Parse[Parse Mirror Data]
+    Parse -->|Extract Members| MemberUpdate[Update Members]
+    Parse -->|Extract Group Info| GroupUpdate[Update Group]
+    MemberUpdate --> Save[(Database UPSERT)]
+    GroupUpdate --> Save
 ```
 
-### 3.2 Estratégia de Normalização (Lattes/Scholar)
+### 3. strategy de Normalização (Lattes/Scholar)
 ```mermaid
 flowchart TD
     Raw[Dados Brutos] -->|Parse| Staging[Objeto Temporário]
@@ -95,4 +95,5 @@ erDiagram
 |-----------|----------------------|
 | RF-01 (SigPesq) | Entidade `PROJECT`, Fluxo 3.1 |
 | RF-02 (Lattes) | Entidade `RESEARCHER`, `PUBLICATION`, Fluxo 3.2 |
-| RNF-01 (Idempotência) | Fluxo 3.1 (Load Step), RN-02 |    
+| RF-08 (Canonical JSON) | Fluxo de Exportação (User Req. logic) |
+| RF-09 (CNPq Update) | Fluxo 3.2, dgp_cnpq_lib |
