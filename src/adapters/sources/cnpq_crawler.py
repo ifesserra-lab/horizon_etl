@@ -101,3 +101,12 @@ class CnpqCrawlerAdapter:
         """
         ident_content = data.get("identificacao", {})
         return ident_content.get("lideres_do_grupo", [])
+
+    def extract_research_lines(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Extracts research lines from 'linhas_de_pesquisa' fieldset.
+        Returns a list of dictionaries, usually containing 'nome_da_linha_de_pesquisa'.
+        """
+        # Based on debug output: {'linhas': [{'nome_da_linha_de_pesquisa': '...', ...}]}
+        lp_content = data.get("linhas_de_pesquisa", {})
+        return lp_content.get("linhas", [])

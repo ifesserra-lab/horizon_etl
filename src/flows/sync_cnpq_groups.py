@@ -92,6 +92,11 @@ def sync_single_group(group_info: dict):
     logger.info(f"Extracted {len(members)} members for {group_name}")
     sync_logic.sync_members(group_id, members)
 
+    # 4. Extract and sync Research Lines (Knowledge Areas)
+    lines = adapter.extract_research_lines(data)
+    logger.info(f"Extracted {len(lines)} research lines for {group_name}")
+    sync_logic.sync_knowledge_areas(group_id, lines)
+
     return True
 
 
