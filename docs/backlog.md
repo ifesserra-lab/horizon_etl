@@ -7,6 +7,7 @@ Tracks the delivery of versions to production (Main Branch).
 
 | Version | Date | Status | Description | PR / Commit |
 |---------|------|--------|-------------|-------------|
+| **v0.6.0** | 2026-01-09 | Released | CNPq Egressos Sync (US-010) | PR #21, #22 |
 | **v0.5.0** | 2026-01-09 | Released | CNPq Sync Enhanced & Fixes | PR #19, #20 |
 | **v0.4.0** | 2026-01-09 | Released | CNPq Sync Base (US-009) | PR #18 |
 | **v0.3.0** | 2026-01-07 | Released | SigPesq Enhancements, ResearcherID & Granular Strategy Pattern | PR #13 |

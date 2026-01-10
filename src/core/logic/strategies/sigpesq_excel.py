@@ -89,13 +89,20 @@ class SigPesqResearcherStrategy(ResearcherStrategy):
             logger.error(f"Error fetching researchers: {e}")
 
         try:
+            # Fix: Instantiate Researcher directly to ensure correct entity type
+            from research_domain.domain.entities import Researcher
+            
             emails = [email] if email else []
-            res = researcher_ctrl.create_researcher(
+            res = Researcher(
                 name=name, 
-                emails=emails,
-                identification_id=email
+                # emails=emails, # Removed to avoid ORM Polymorphic Error with PersonEmail
+                identification_id=email if email else None
             )
-            logger.info(f"Researcher created: {name} (ID: {email})")
+            
+            # Use the generic create method from GenericController to persist the specific entity type
+            researcher_ctrl.create(res)
+            
+            logger.info(f"Researcher created: {name} (ID: {res.id})")
             return res
         except Exception as e:
             logger.error(f"Error creating researcher '{name}': {e}")
