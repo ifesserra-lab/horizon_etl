@@ -213,6 +213,7 @@ Gerar um arquivo JSON consolidado que vincula Áreas de Conhecimento aos Grupos 
     - [x] Leitura direta do Banco de Dados via Controllers.
     - [x] Agregação de contagem de grupos por área.
     - [x] Listagem de nomes de campi únicos por área.
+    - [ ] Parametrização de filtro de campus.
 - **Deploy**:
     - [x] Comando `ka_mart` integrado ao `app.py`.
     - [x] Passo final do `full_pipeline`.
