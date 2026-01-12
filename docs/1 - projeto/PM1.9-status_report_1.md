@@ -7,7 +7,7 @@
 ---
 
 ## 1. Resumo Executivo
-O projeto concluiu a **Mecanismo de Ingestão do SigPesq (US-001 e US-007)**, a **Sincronização com CNPq (US-009/US-010)** e o **Research Area Mart (US-012)**. Recentemente, foi implementado o **Filtro de Campus** para exportações canônicas e analíticas (US-011/US-012). O ambiente está estável com Prefect 3, e a versão **v0.7.0** está sendo liberada no branch `main`.
+O projeto concluiu a **Mecanismo de Ingestão do SigPesq (US-001 e US-007)**, a **Sincronização com CNPq (US-009/US-010)** e o **Research Area Mart (US-012)**. Recentemente, foi implementado o **Filtro de Campus** para exportações canônicas e analíticas (US-011/US-012) e corrigida a **Sincronização de Membros CNPq** (faltando pesquisadores ativos). O ambiente está estável com Prefect 3, e a versão **v0.5.0** foi liberada em 12/01/2026.
 
 ---
 
