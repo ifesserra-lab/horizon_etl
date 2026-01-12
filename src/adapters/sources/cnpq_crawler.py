@@ -97,15 +97,18 @@ class CnpqCrawlerAdapter:
             if key in rh_content:
                 logger.debug(f"Processing {key} table...")
                 for item in rh_content[key]:
-                    # Broad check for name keys
+                    # Extremely broad check for name keys to handle mirror variations
                     name = (
-                        item.get(key) or 
                         item.get("nome") or 
                         item.get("pesquisadores") or 
                         item.get("estudantes") or
-                        item.get("nome_do_egresso") or
+                        item.get("tecnicos") or
+                        item.get("egressos") or
                         item.get("nome_do_pesquisador") or
-                        item.get("nome_do_estudante")
+                        item.get("nome_do_estudante") or
+                        item.get("nome_do_tecnico") or
+                        item.get("nome_do_egresso") or
+                        item.get(key) # Fallback to the table key itself
                     )
                     
                     if name:
