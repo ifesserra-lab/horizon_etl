@@ -25,7 +25,8 @@ Reflecting active work from `SI.3 Product Backlog`.
     - [x] T-GranularStrategy [Refatoração Granular Pattern] (PR #12 - Merged)
     - [x] US-005 Observabilidade e Idempotência (Implemented)
     - [x] US-008 [Exportação JSON Canônico e Grupos] (PR #15 - Merged)
-    - [x] US-011 [Pipeline Unificado & Filtro de Campus] (Implemented)
+    - [x] US-011 [Pipeline Unificado & Filtro de Campus] (PR #30 - Merged)
+    - [x] US-012 [Research Area Mart & Filter] (PR #31 - Merged)
     
 - **Epic 6: Atualização Base CNPq (Release v0.4.0)**
     - [x] US-009 [Sincronização de Grupos CNPq] (PR #18, #19 - Merged)
