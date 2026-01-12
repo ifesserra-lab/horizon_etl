@@ -109,7 +109,9 @@ class ResearchGroupExporter:
                             "name": person_name,
                             "role": role_name,
                             "lattes_url": lattes,
-                            "emails": email_list  # Export all emails
+                            "emails": email_list,
+                            "start_date": tm.start_date.strftime('%Y-%m-%d') if tm.start_date else None,
+                            "end_date": tm.end_date.strftime('%Y-%m-%d') if tm.end_date else None
                         }
                         
                         # Deduplicate members list based on person_id
