@@ -40,7 +40,7 @@ O **Horizon ETL** é uma infraestrutura de dados que automatiza a coleta de info
 | **RF-08** | O sistema deve exportar dados canônicos (Organização, Campus, Áreas) para arquivos JSON separados, permitindo filtragem por Campus. | Arquivos `organizations.json`, `campuses.json`, `knowledge_areas.json` gerados. Filtro de Campus suportado. | User Req. |
 | **RF-09** | O sistema deve extrair e atualizar dados de grupos de pesquisa do CNPq DGP (identificação, linhas de pesquisa, membros). | Dados do grupo (espelho), membros e **linhas de pesquisa (mapeadas para Áreas do Conhecimento)** atualizados no banco de dados via `dgp_cnpq_lib`. | User Req. |
 | **RF-10** | O sistema deve identificar e sincronizar membros egressos do CNPq, registrando corretamente as datas de início e fim de participação. | Membros egressos identificados e datas de participação (início/fim) persistidas no Supabase. | User Req. |
-| **RF-11** | O sistema deve gerar um "Mart JSON" que consolida as Áreas de Pesquisa com seus Grupos e Campi vinculados. | Arquivo `knowledge_areas_mart.json` gerado com estatísticas por área. | User Req. |
+| **RF-11** | O sistema deve gerar um "Mart JSON" que consolida as Áreas de Pesquisa com seus Grupos e Campi vinculados, permitindo filtragem por campus. | Arquivo `knowledge_areas_mart.json` gerado com estatísticas por área. Filtro de campus suportado. | User Req. |
 
 ---
 
