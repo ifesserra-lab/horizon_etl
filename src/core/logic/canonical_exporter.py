@@ -1,4 +1,4 @@
-from typing import List, Any
+from typing import List, Any, Optional
 from loguru import logger
 import os
 from src.core.ports.export_sink import IExportSink
@@ -37,8 +37,10 @@ class CanonicalDataExporter:
         data = self.org_ctrl.get_all()
         self._export_entities(data, output_path, "Organizations")
 
-    def export_campuses(self, output_path: str):
+    def export_campuses(self, output_path: str, campus_filter: Optional[str] = None):
         data = self.campus_ctrl.get_all()
+        if campus_filter:
+            data = [c for c in data if c.name.lower() == campus_filter.lower()]
         self._export_entities(data, output_path, "Campuses")
         
     def export_knowledge_areas(self, output_path: str):
