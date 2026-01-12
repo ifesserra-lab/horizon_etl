@@ -140,6 +140,12 @@ class IExportSink(ABC):
     def export(self, data: List[DomainEntity], path: str) -> None:
         """Exporta entidades para um formato de arquivo."""
         pass
+
+class IMartSink(ABC):
+    @abstractmethod
+    def generate_mart(self, sources: Dict[str, str], output: str) -> None:
+        """Processa múltiplos canônicos para gerar um mart analítico."""
+        pass
 ```
 
 ---
@@ -152,6 +158,7 @@ class IExportSink(ABC):
 | **D2** | **Supabase como Sink Único** | Simplificação da infraestrutura e API REST automática. |
 | **D3** | **Flows Separados** | `src/flows` isola o framework de orquestração do Core. |
 | **D4** | **Consolidação no Core** | Todas as regras e interfaces vivem em `src/core` para evitar dependências circulares. |
+| **D5** | **Idempotência Estrita (Do Nothing)** | Adotado o padrão de "Não fazer nada se existir" para Pesquisadores e Grupos na carga SigPesq para evitar efeitos colaterais em dados já curados e resolver conflitos de integridade. | [ADR 001](file:///home/paulossjunior/projects/horizon_project/horizon_etl/docs/2%20-%20implementacao/ADR/001-strict-idempotency-sigpesq.md) |
 
 ---
 

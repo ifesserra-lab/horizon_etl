@@ -37,9 +37,12 @@ class SigPesqAdapter(ISource):
         """
         Ensures necessary environment variables are set for sigpesq_agent.
         """
-        # Support SIGPESQ_USER as alias for SIGPESQ_USERNAME
+        # Support SIGPESQ_USER as alias for SIGPESQ_USERNAME and vice-versa
         if os.getenv("SIGPESQ_USER") and not os.getenv("SIGPESQ_USERNAME"):
             os.environ["SIGPESQ_USERNAME"] = os.getenv("SIGPESQ_USER")
+        
+        if os.getenv("SIGPESQ_USERNAME") and not os.getenv("SIGPESQ_USER"):
+            os.environ["SIGPESQ_USER"] = os.getenv("SIGPESQ_USERNAME")
 
         required_vars = ["SIGPESQ_USERNAME", "SIGPESQ_PASSWORD"]
         missing = [v for v in required_vars if not os.getenv(v)]
@@ -65,13 +68,23 @@ class SigPesqAdapter(ISource):
         # Attempt to import and run the agent
         import asyncio
         from agent_sigpesq.services.reports_service import SigpesqReportService
+        from agent_sigpesq.strategies import ResearchGroupsDownloadStrategy
 
         async def run_agent():
-            service = SigpesqReportService(headless=True, download_dir=self.download_dir)
+            strategies = [ResearchGroupsDownloadStrategy()]
+            service = SigpesqReportService(
+                headless=True, 
+                download_dir=self.download_dir,
+                strategies=strategies
+            )
             return await service.run()
 
         success = asyncio.run(run_agent())
         
         if not success:
-             raise RuntimeError("SigpesqReportService failed to download reports.")
+             # Check if we have at least some files to work with
+             if os.path.exists(os.path.join(self.download_dir, "research_group")):
+                 logger.warning("SigpesqReportService failed to download all reports, but proceeding with existing files.")
+             else:
+                 raise RuntimeError("SigpesqReportService failed to download reports and no fallback data found.")
 

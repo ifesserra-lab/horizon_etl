@@ -13,18 +13,18 @@ from .base import (
 
 class SigPesqOrganizationStrategy(OrganizationStrategy):
     def ensure(self, uni_ctrl) -> int:
-        """Ensures UFSC exists."""
+        """Ensures IFES exists."""
         try:
             all_orgs = uni_ctrl.get_all()
             for org in all_orgs:
-                if org.name == "UFSC":
+                if org.name == "IFES":
                     logger.info(f"Organization found: {org.name} (ID: {org.id})")
                     return org.id
         except Exception as e:
             logger.error(f"Error fetching organizations: {e}")
             
         try:
-            ufsc = uni_ctrl.create_university(name="UFSC", short_name="Federal University")
+            ufsc = uni_ctrl.create_university(name="IFES", short_name="Instituto Federal do Espirito Santo")
             logger.info(f"Organization created: {ufsc.name} (ID: {ufsc.id})")
             return ufsc.id
         except Exception as e:
@@ -79,11 +79,20 @@ class SigPesqKnowledgeAreaStrategy(KnowledgeAreaStrategy):
 
 class SigPesqResearcherStrategy(ResearcherStrategy):
     def ensure(self, researcher_ctrl, name: str, email: str = None):
-        """Ensures a researcher exists."""
+        """Ensures a researcher exists using strict idempotency."""
         try:
             all_res = researcher_ctrl.get_all()
+            # 1. Try to find by identification_id (email) - Primary Key logic for source
+            if email:
+                for res in all_res:
+                    if getattr(res, 'identification_id', None) == email:
+                        logger.debug(f"Researcher found by email: {email}")
+                        return res
+            
+            # 2. Fallback to name
             for res in all_res:
                 if res.name == name:
+                    logger.debug(f"Researcher found by name: {name}")
                     return res
         except Exception as e:
             logger.error(f"Error fetching researchers: {e}")
