@@ -7,7 +7,7 @@
 ---
 
 ## 1. Resumo Executivo
-O projeto concluiu a **Mecanismo de Ingestão do SigPesq (US-001 e US-007)**, a **Sincronização com CNPq (US-009/US-010)** e o **Research Area Mart (US-012)**. Recentemente, foi implementado o **Padrão de Estratégia Granular** e a **Idempotência Estrita (ADR 001)**. O ambiente está estável com Prefect 3, e a versão **v0.7.0** está sendo liberada no branch `main`.
+O projeto concluiu a **Mecanismo de Ingestão do SigPesq (US-001 e US-007)**, a **Sincronização com CNPq (US-009/US-010)** e o **Research Area Mart (US-012)**. Recentemente, foi implementado o **Filtro de Campus** para exportações canônicas e analíticas (US-011/US-012). O ambiente está estável com Prefect 3, e a versão **v0.7.0** está sendo liberada no branch `main`.
 
 ---
 
@@ -17,8 +17,8 @@ O projeto concluiu a **Mecanismo de Ingestão do SigPesq (US-001 e US-007)**, a 
 | **US-001** (Extract SigPesq) | Sim | Sim | Concluído. |
 | **US-007** (Ingestão Grupos Pesquisa) | Sim | Sim | Integrado com Knowledge Areas e cnpq_url. |
 | **US-009** (Sincronização CNPq) | Sim | Sim | Membros e Líderes sincronizados. |
-| **US-011** (Pipeline Unificado) | Sim | Sim | Flow `full_pipeline` disponível. |
-| **US-012** (Research Area Mart) | Sim | Sim | JSON consolidado via Controllers. |
+| **US-011** (Pipeline Unificado) | Sim | Sim | Flow `full_pipeline` disponível com filtro. |
+| **US-012** (Research Area Mart) | Sim | Sim | JSON consolidado e filtrável por Campus. |
 
 ---
 

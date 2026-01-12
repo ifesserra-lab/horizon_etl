@@ -36,7 +36,7 @@ def full_ingestion_pipeline(
     # 4. Generate Knowledge Area Mart
     mart_path = os.path.join(output_dir, "knowledge_areas_mart.json")
     logger.info(f"Step 4/4: Generating Knowledge Area Mart at {mart_path}...")
-    export_knowledge_areas_mart_flow(output_path=mart_path)
+    export_knowledge_areas_mart_flow(output_path=mart_path, campus=campus_name)
 
     logger.info("Unified Ingestion Pipeline completed successfully.")
 

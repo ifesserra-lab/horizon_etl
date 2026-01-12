@@ -32,45 +32,50 @@ class CnpqCrawlerAdapter:
         members = []
         logger.info(f"Available keys in raw data: {list(data.keys())}")
 
-        rh_content = data.get("recursos_humanos") or data.get("recursos_humanos_do_grupo") or {}
+        rh_content = (
+            data.get("recursos_humanos") or data.get("recursos_humanos_do_grupo") or {}
+        )
         logger.info(f"RH content keys: {list(rh_content.keys())}")
 
-        # Researchers table
+        # Active Researchers table
         if "pesquisadores" in rh_content:
+            logger.debug("Processing researchers table...")
             for item in rh_content["pesquisadores"]:
-                # The key can be 'nome', 'nome_do_pesquisador' or even 'pesquisadores'
                 name = (
-                    item.get("nome") or 
-                    item.get("nome_do_pesquisador") or 
                     item.get("pesquisadores")
+                    or item.get("nome")
+                    or item.get("nome_do_pesquisador")
                 )
                 if name:
                     members.append(
                         {
                             "name": name,
                             "role": "Pesquisador",
-                            "data_inicio": item.get("data_inclusao") or item.get("data_inicio"),
-                            "data_fim": item.get("data_egresso") or item.get("data_fim"),
+                            "data_inicio": item.get("data_inicio")
+                            or item.get("data_inclusao"),
+                            "data_fim": item.get("data_fim") or item.get("data_egresso"),
                             "bolsa": item.get("bolsa"),
                         }
                     )
 
-        # Students table
+        # Active Students table
         if "estudantes" in rh_content:
+            logger.debug("Processing students table...")
             for item in rh_content["estudantes"]:
                 name = (
-                    item.get("nome") or 
-                    item.get("nome_do_estudante") or 
                     item.get("estudantes")
+                    or item.get("nome")
+                    or item.get("nome_do_estudante")
                 )
                 if name:
                     members.append(
                         {
                             "name": name,
                             "role": "Estudante",
-                            "data_inicio": item.get("data_inclusao") or item.get("data_inicio"),
-                            "data_fim": item.get("data_egresso") or item.get("data_fim"),
-                            "nivel": item.get("nivel"),
+                            "data_inicio": item.get("data_inicio")
+                            or item.get("data_inclusao"),
+                            "data_fim": item.get("data_fim") or item.get("data_egresso"),
+                            "nivel": item.get("nivel") or item.get("nivel_de_treinamento"),
                         }
                     )
 
@@ -78,48 +83,66 @@ class CnpqCrawlerAdapter:
         if "tecnicos" in rh_content:
             for item in rh_content["tecnicos"]:
                 name = (
-                    item.get("nome") or 
-                    item.get("nome_do_tecnico") or 
-                    item.get("tecnicos")
+                    item.get("nome") or item.get("nome_do_tecnico") or item.get("tecnicos")
                 )
                 if name:
                     members.append(
                         {
                             "name": name,
                             "role": "Técnico",
-                            "data_inicio": item.get("data_inclusao") or item.get("data_inicio"),
+                            "data_inicio": item.get("data_inclusao")
+                            or item.get("data_inicio"),
                             "data_fim": item.get("data_egresso") or item.get("data_fim"),
                         }
                     )
 
         # Egressos
-        if "egressos" in rh_content:
-            for item in rh_content["egressos"]:
-                name = (
-                    item.get("nome") or 
-                    item.get("nome_do_egresso") or
-                    item.get("egressos")
-                )
-                if name:
-                    # Determine role based on available info or default to generic Egresso
-                    role_suffix = " (Egresso)"
-                    base_role = "Pesquisador" # Default
-                    
-                    # Try to infer original role if possible (some structures might have it)
-                    if item.get("nivel") or "estudante" in str(item).lower():
-                        base_role = "Estudante"
-                    
-                    final_role = f"{base_role}{role_suffix}"
+        # Support both generic 'egressos' and specialized keys (supported in v0.5.0)
+        egresso_tables = [
+            ("egressos", "Egresso"),
+            ("egressos_pesquisadores", "Pesquisador (Egresso)"),
+            ("egressos_estudantes", "Estudante (Egresso)"),
+        ]
 
-                    members.append(
-                        {
-                            "name": name,
-                            "role": final_role,
-                            "data_inicio": item.get("data_inclusao") or item.get("data_inicio"),
-                            "data_fim": item.get("data_egresso") or item.get("data_fim"),
-                            "nivel": item.get("nivel"),
-                        }
+        for key, role_name in egresso_tables:
+            if key in rh_content:
+                logger.debug(f"Processing {key} table...")
+                for item in rh_content[key]:
+                    # Extremely broad check for name keys to handle mirror variations
+                    name = (
+                        item.get("nome")
+                        or item.get("pesquisadores")
+                        or item.get("estudantes")
+                        or item.get("tecnicos")
+                        or item.get("egressos")
+                        or item.get("nome_do_pesquisador")
+                        or item.get("nome_do_estudante")
+                        or item.get("nome_do_tecnico")
+                        or item.get("nome_do_egresso")
+                        or item.get(key)  # Fallback to the table key itself
                     )
+
+                    if name:
+                        # Determine base role if generic egresso
+                        final_role = role_name
+                        if key == "egressos":
+                            base_role = "Pesquisador"
+                            if item.get("nivel") or "estudante" in str(item).lower():
+                                base_role = "Estudante"
+                            final_role = f"{base_role} (Egresso)"
+
+                        members.append(
+                            {
+                                "name": name,
+                                "role": final_role,
+                                "data_inicio": item.get("data_inicio")
+                                or item.get("data_inclusao"),
+                                "data_fim": item.get("data_fim")
+                                or item.get("data_egresso"),
+                                "nivel": item.get("nivel")
+                                or item.get("nivel_de_treinamento"),
+                            }
+                        )
 
         return members
 
