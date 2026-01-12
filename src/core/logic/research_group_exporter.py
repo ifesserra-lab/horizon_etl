@@ -12,22 +12,40 @@ class ResearchGroupExporter:
         self.campus_ctrl = CampusController()
         self.org_ctrl = OrganizationController()
 
-    def export_all(self, output_path: str) -> None:
+    def export_all(self, output_path: str, campus_filter: Optional[str] = None) -> None:
         """
         Fetches all Research Groups, enriches them with related entity data,
         and exports them to the specified path.
         
         Args:
+        Args:
             output_path: Destination file path.
+            campus_filter: Optional name of the campus to filter by (case-insensitive).
         """
         logger.info("Fetching all Research Groups from database...")
         try:
             # 1. Fetch main entities
-            groups = self.rg_ctrl.get_all()
+            all_groups = self.rg_ctrl.get_all()
             
-            if not groups:
+            if not all_groups:
                 logger.warning("No Research Groups found to export.")
                 return
+
+            # Filter by Campus if requested
+            groups = all_groups
+            if campus_filter:
+                logger.info(f"Filtering groups for campus: {campus_filter}")
+                # resolve campus id
+                all_campuses_lookup = self.campus_ctrl.get_all()
+                target_campus = next((c for c in all_campuses_lookup if c.name.lower() == campus_filter.lower()), None)
+                
+                if not target_campus:
+                    logger.warning(f"Campus '{campus_filter}' not found. Exporting 0 groups.")
+                    groups = []
+                else:
+                    groups = [g for g in all_groups if g.campus_id == target_campus.id]
+                    logger.info(f"Filtered {len(groups)} groups for campus {target_campus.name}")
+            
 
             logger.info(f"Found {len(groups)} groups. Preparing enrichment maps...")
 
@@ -91,7 +109,9 @@ class ResearchGroupExporter:
                             "name": person_name,
                             "role": role_name,
                             "lattes_url": lattes,
-                            "emails": email_list  # Export all emails
+                            "emails": email_list,
+                            "start_date": tm.start_date.strftime('%Y-%m-%d') if tm.start_date else None,
+                            "end_date": tm.end_date.strftime('%Y-%m-%d') if tm.end_date else None
                         }
                         
                         # Deduplicate members list based on person_id

@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from loguru import logger
 import json
 import os
@@ -10,12 +10,16 @@ class KnowledgeAreaMartGenerator:
         self.rg_ctrl = ResearchGroupController()
         self.campus_ctrl = CampusController()
 
-    def generate(self, output_path: str):
+    def generate(self, output_path: str, campus_filter: Optional[str] = None):
         """
         Generates a Research Area Mart JSON file.
         Associates knowledge areas with research groups and campuses.
+        
+        Args:
+            output_path: Destination JSON file path.
+            campus_filter: Optional campus name to filter groups.
         """
-        logger.info(f"Generating Knowledge Area Mart to {output_path}")
+        logger.info(f"Generating Knowledge Area Mart to {output_path} (Filter: {campus_filter})")
         
         try:
             # 1. Fetch data from DB
@@ -24,6 +28,17 @@ class KnowledgeAreaMartGenerator:
             all_campuses = self.campus_ctrl.get_all()
 
             logger.info(f"Loaded {len(all_areas)} areas, {len(all_groups)} groups, and {len(all_campuses)} campuses.")
+
+            # Filter groups by campus if requested
+            groups_to_process = all_groups
+            if campus_filter:
+                target_campus = next((c for c in all_campuses if c.name.lower() == campus_filter.lower()), None)
+                if not target_campus:
+                    logger.warning(f"Campus '{campus_filter}' not found. Mart will have 0 groups.")
+                    groups_to_process = []
+                else:
+                    groups_to_process = [g for g in all_groups if g.campus_id == target_campus.id]
+                    logger.info(f"Filtered {len(groups_to_process)} groups for campus {target_campus.name}")
 
             # Create campus map for optimization
             campus_map = {c.id: c.name for c in all_campuses}
@@ -40,7 +55,7 @@ class KnowledgeAreaMartGenerator:
                     "campuses": set()
                 }
 
-            for group in all_groups:
+            for group in groups_to_process:
                 campus_name = campus_map.get(group.campus_id, "Unknown")
                 
                 # Check groups knowledge areas
@@ -59,8 +74,9 @@ class KnowledgeAreaMartGenerator:
             mart_list = []
             for area_id in sorted(area_mart.keys()):
                 item = area_mart[area_id]
-                item["campuses"] = sorted(list(item["campuses"]))
-                mart_list.append(item)
+                if item["groups_count"] > 0:
+                    item["campuses"] = sorted(list(item["campuses"]))
+                    mart_list.append(item)
 
             # 4. Save to JSON
             os.makedirs(os.path.dirname(output_path), exist_ok=True)

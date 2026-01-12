@@ -64,6 +64,18 @@ python app.py cnpq_sync Serra
 ```bash
 # Exports to data/exports/
 python app.py export_canonical
+
+# Export with Campus Filter
+python app.py export_canonical data/exports "Serra"
+```
+
+**Generate Knowledge Area Mart:**
+```bash
+# Generate Mart JSON
+python app.py ka_mart
+
+# Generate Mart filtered by Campus
+python app.py ka_mart data/exports/mart.json "Serra"
 ```
 
 ## 📜 Version History

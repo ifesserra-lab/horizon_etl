@@ -89,7 +89,9 @@ def sync_single_group(group_info: dict):
 
     # 3. Extract and sync members
     members = adapter.extract_members(data)
-    logger.info(f"Extracted {len(members)} members for {group_name}")
+    from collections import Counter
+    roles_count = Counter(m.get("role") for m in members)
+    logger.info(f"Extracted {len(members)} members for {group_name}: {dict(roles_count)}")
     sync_logic.sync_members(group_id, members)
 
     # 4. Extract and sync Research Lines (Knowledge Areas)
