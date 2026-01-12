@@ -51,8 +51,9 @@ def main():
 
         if flow_to_run in ["ka_mart", "all"]:
             output_path = sys.argv[2] if len(sys.argv) > 2 and flow_to_run == "ka_mart" else "data/exports/knowledge_areas_mart.json"
-            logger.info(f"Executing Flow: Export Knowledge Area Mart (Output: {output_path})")
-            export_knowledge_areas_mart_flow(output_path=output_path)
+            campus_filter = sys.argv[3] if len(sys.argv) > 3 and flow_to_run == "ka_mart" else None
+            logger.info(f"Executing Flow: Export Knowledge Area Mart (Output: {output_path}, Campus: {campus_filter})")
+            export_knowledge_areas_mart_flow(output_path=output_path, campus=campus_filter)
 
     except Exception as e:
         logger.error(f"Application failed: {e}")
