@@ -74,8 +74,9 @@ class KnowledgeAreaMartGenerator:
             mart_list = []
             for area_id in sorted(area_mart.keys()):
                 item = area_mart[area_id]
-                item["campuses"] = sorted(list(item["campuses"]))
-                mart_list.append(item)
+                if item["groups_count"] > 0:
+                    item["campuses"] = sorted(list(item["campuses"]))
+                    mart_list.append(item)
 
             # 4. Save to JSON
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
