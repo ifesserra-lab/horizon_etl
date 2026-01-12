@@ -149,7 +149,35 @@ Desenvolver a integração com a **API da FAPES** para extrair dados estruturado
 - **Teste (TDD)**:
     - [ ] Teste Unitário: Client HTTP com Mock da API FAPES.
     - [ ] Teste de Contrato: Validação do Schema JSON retornado.
-- **Deploy**:   
+- **Deploy**:  
+---
+
+## Epic 7: Orquestração e Pipelines (Release 1)
+**Objetivo**: Unificar fluxos de dados para facilitar a execução completa.
+
+### US-011 – Pipeline Unificado de Ingestão e Exportação
+```yaml
+id: US-011
+milestone: R1
+prioridade: Alta
+tamanho: 3
+origem: [RNF-01]
+tags: [type:feature, area:core, area:flows]
+dependencias: [US-001, US-009, US-007]
+modulos_afetados: [src/flows, app.py]
+```
+
+#### Descrição
+Criar um flow mestre que orquestra a execução sequencial dos fluxos de SigPesq, CNPq e Exportação Canônica.
+
+#### Critérios de Aceitação
+- **Funcional**:
+    - [ ] Execução sequencial: SigPesq -> CNPq -> Export.
+    - [ ] Parametrização de filtro de campus e diretório de saída.
+- **Deploy**:
+    - [ ] Comando `full_pipeline` disponível no `app.py`.
+- **Observabilidade**:
+    - [ ] Logs do flow pai indicando o status de cada subflow.
     - [ ] Flow `ingest_fapes_api` agendado.
 - **Observabilidade**:
     - [ ] Logs detalhando: "Projetos Encontrados"  , "Novos Baixados", "Falha na Extração".

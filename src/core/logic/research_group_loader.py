@@ -188,11 +188,29 @@ class ResearchGroupLoader:
                         self._try_rollback(self.rg_ctrl)
                         continue
 
-                if group and leaders_data:
+                # Rule: "If research group exist do nothing" (except cnpq_url update)
+                # We only process leaders for NEW groups or if we want to ensure leader existence idempotently
+                # Based on ADR 001, we follow "Do Nothing" for existing entities.
+                if name in existing_groups_map:
+                    logger.debug(f"Skipping leader association for existing group: {name}")
+                elif group and leaders_data:
                     from datetime import date
+                    
+                    # Try to get existing members if possible, to avoid duplicates
+                    existing_member_ids = []
+                    try:
+                        members = self.rg_ctrl._service.get_members(group.id)
+                        existing_member_ids = [m.person_id for m in members]
+                    except:
+                        pass
+
                     for l_name, l_email in leaders_data:
                         researcher = self.ensure_researcher(l_name, l_email)
                         if researcher:
+                            if researcher.id in existing_member_ids:
+                                logger.debug(f"Leader {l_name} already associated to group {name}. Skipping.")
+                                continue
+                                
                             try:
                                 self.rg_ctrl.add_leader(
                                     team_id=group.id,

@@ -20,7 +20,23 @@ Conceitos Chave:
 
 ---
 
-## 3. Modelagem de Processos (ETL Flow)
+## 3. Modelagem de Processos (Prefect Flows)
+
+### 3.1 Fluxo de Ingestão SigPesq
+```mermaid
+flowchart TD
+    Start((Início)) --> Extract[extract_data]
+    Extract --> Transform[transform_data]
+    Transform --> PersistGeneric[persist_data]
+    PersistGeneric --> PersistGroups[persist_research_groups]
+    PersistGroups --> End((Fim))
+
+    subgraph "Persist Groups (Excel)"
+        PersistGroups --> FindLatest[Find Latest .xlsx]
+        FindLatest --> ProcessFile[ResearchGroupLoader]
+        ProcessFile --> Strategies[Strategies: Org, Campus, Area, Researcher]
+    end
+```
 
 ### 3.2 Fluxo de Atualização CNPq (DGP)
 ```mermaid
@@ -45,6 +61,35 @@ flowchart TD
     Create --> Persist
 ```
 
+### 3.4 Fluxo de Exportação Canônica
+```mermaid
+flowchart TD
+    Start((Início)) --> Org[Export Orgs]
+    Start --> Cam[Export Campuses]
+    Start --> KA[Export Knowledge Areas]
+    Start --> Res[Export Researchers]
+    Start --> RG[Export Research Groups]
+    
+    Org & Cam & KA & Res & RG --> End((Fim))
+    
+    subgraph "Output Files"
+        Org -.-> f1["organizations_canonical.json"]
+        Cam -.-> f2["campuses_canonical.json"]
+        KA -.-> f3["knowledge_areas_canonical.json"]
+        Res -.-> f4["researchers_canonical.json"]
+        RG -.-> f5["research_groups_canonical.json"]
+    end
+```
+
+### 3.5 Pipeline Unificado (E2E)
+```mermaid
+flowchart LR
+    Start((Início)) --> S1[SigPesq Flow]
+    S1 --> S2[CNPq Sync Flow]
+    S2 --> S3[Export Flow]
+    S3 --> End((Fim))
+```
+
 ---
 
 ## 4. Modelo Conceitual (ER Diagram)
@@ -57,7 +102,6 @@ erDiagram
     PROJECT ||--o{ FUNDING : "receives"
     AGENCY ||--o{ FUNDING : "provides"
     RESEARCHER ||--o{ PUBLICATION : "authors"
-    
     RESEARCHER {
         uuid id
         string name
@@ -87,6 +131,8 @@ erDiagram
 | **RN-02** | **Desduplicação** | Publicações devem ser desduplicadas por DOI ou Título normalizado. | Load Layer |
 | **RN-03** | **Histórico** | Manter log de quando o dado foi extraído/atualizado (`updated_at`). | Database |
 | **RN-04** | **Observabilidade** | Todas as ações (Start, End, Error) devem ser logadas com Contexto. | System-wide |
+| **RN-05** | **Idempotência Estrita (SigPesq)** | Se um Pesquisador (por email) ou Grupo de Pesquisa (por nome) já existir, o sistema deve ignorar a criação e não realizar atualizações destas entidades base. | Load Layer (Strategies) |
+| **RN-06** | **Geração de Mart** | O Data Mart de Áreas deve ser gerado consultando diretamente o Banco de Dados via Controllers, garantindo dados em tempo real. | Transform Layer |
 
 ---
 
