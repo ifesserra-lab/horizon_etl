@@ -29,12 +29,37 @@ class CnpqSyncLogic:
         return self._leader_role_id
 
     def _parse_date(self, date_str: str) -> date:
-        """Parses date from 'DD/MM/YYYY' format or returns today."""
+        """Parses date from 'DD/MM/YYYY' format or 'Anterior a...' text, or returns today."""
         if not date_str:
             return date.today()
+        
         try:
+            # Standard Format
             return datetime.strptime(date_str, "%d/%m/%Y").date()
-        except Exception:
+        except ValueError:
+            # Handle "Anterior a <month> de <year>"
+            # Example: "Anterior a abril de 2014"
+            lower_str = date_str.lower().strip()
+            if "anterior a" in lower_str:
+                try:
+                    parts = lower_str.replace("anterior a", "").strip().split(" de ")
+                    if len(parts) == 2:
+                        month_str = parts[0]
+                        year_str = parts[1]
+                        
+                        months = {
+                            "janeiro": 1, "fevereiro": 2, "março": 3, "abril": 4, "maio": 5, "junho": 6,
+                            "julho": 7, "agosto": 8, "setembro": 9, "outubro": 10, "novembro": 11, "dezembro": 12
+                        }
+                        
+                        month = months.get(month_str, 1) # Default to Jan if mapping fails
+                        year = int(year_str)
+                        return date(year, month, 1)
+                except Exception as e:
+                    logger.warning(f"Failed to parse 'Anterior a' date: {date_str} - {e}")
+            
+            # Additional format handling or Fallback
+            logger.warning(f"Date parse failed for '{date_str}', defaulting to today.")
             return date.today()
 
     def sync_group(self, group_id: Any, cnpq_data: Dict[str, Any]):
