@@ -193,6 +193,32 @@ Criar um flow mestre que orquestra a execução sequencial dos fluxos de SigPesq
 
 ---
 
+### US-012 – Geração de Data Mart de Áreas de Pesquisa
+```yaml
+id: US-012
+milestone: R2
+prioridade: Alta
+tamanho: 3
+origem: [User Req.]
+tags: [type:feature, area:core, area:mart]
+dependencias: [US-007, US-009]
+modulos_afetados: [src/core/logic/mart_generator.py, src/flows]
+```
+
+#### Descrição
+Gerar um arquivo JSON consolidado que vincula Áreas de Conhecimento aos Grupos de Pesquisa e Campi correspondentes, incluindo contagens agregadas.
+
+#### Critérios de Aceitação
+- **Funcional**:
+    - [x] Leitura direta do Banco de Dados via Controllers.
+    - [x] Agregação de contagem de grupos por área.
+    - [x] Listagem de nomes de campi únicos por área.
+- **Deploy**:
+    - [x] Comando `ka_mart` integrado ao `app.py`.
+    - [x] Passo final do `full_pipeline`.
+
+---
+
 ## Epic 4: Metadados Google Scholar (Release 4)
 **Objetivo**: Métricas de impacto.
 
@@ -338,10 +364,13 @@ Desenvolver um novo pipeline que extrai URLs de espelho de grupos do banco de da
 
 # 4. Backlog Refinado (Release 1)
 
-| ID | Título | Milestone | Status |
-|----|--------|-----------|--------|
-| **US-005** | Observabilidade e Idempotência (Base) | R1 | **Ready** |
-| **US-001** | Extração Projetos SigPesq | R1 | **Ready** |
+| **US-005** | Observabilidade e Idempotência (Base) | R1 | **Concluído** |
+| **US-001** | Extração Projetos SigPesq | R1 | **Concluído** |
+| **US-007** | Ingestão Grupos Pesquisa (Excel) | R1 | **Concluído** |
+| **US-009** | Sincronização CNPq DGP | R2 | **Concluído** |
+| **US-010** | Sincronização Egressos CNPq | R2 | **Concluído** |
+| **US-011** | Pipeline Unificado | R1 | **Concluído** |
+| **US-012** | Research Area Mart | R2 | **Concluído** |
 | **US-006** | Extração Editais FAPES (PDF) | R3 | **Ready** |
 
 

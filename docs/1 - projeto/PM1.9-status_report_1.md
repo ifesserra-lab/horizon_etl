@@ -7,7 +7,7 @@
 ---
 
 ## 1. Resumo Executivo
-O projeto concluiu a **Mecanismo de Ingestão do SigPesq (US-001 e US-007)** e a infraestrutura de orquestração local. Recentemente, foi implementado o **Padrão de Estratégia Granular** para o `ResearchGroupLoader`, melhorando a extensibilidade. O ambiente está estável com Prefect 3 rodando em Docker, e a versão **v0.3.0** foi liberada no branch `main`.
+O projeto concluiu a **Mecanismo de Ingestão do SigPesq (US-001 e US-007)**, a **Sincronização com CNPq (US-009/US-010)** e o **Research Area Mart (US-012)**. Recentemente, foi implementado o **Padrão de Estratégia Granular** e a **Idempotência Estrita (ADR 001)**. O ambiente está estável com Prefect 3, e a versão **v0.7.0** está sendo liberada no branch `main`.
 
 ---
 
@@ -15,44 +15,44 @@ O projeto concluiu a **Mecanismo de Ingestão do SigPesq (US-001 e US-007)** e a
 | Item | Previsto | Concluído | Observações |
 |------|----------|-----------|-------------|
 | **US-001** (Extract SigPesq) | Sim | Sim | Concluído. |
-| **US-007** (Ingestão Grupos Pesquisa) | Sim | Sim | Integrado com Knowledge Areas e cnpq_url (PR #4). |
-| **US-005** (Observability) | Sim | Sim | Logs e estrutura base implementadas. |
-| **US-006** (Fapes API) | Não | Não | Agendado para R3. |
+| **US-007** (Ingestão Grupos Pesquisa) | Sim | Sim | Integrado com Knowledge Areas e cnpq_url. |
+| **US-009** (Sincronização CNPq) | Sim | Sim | Membros e Líderes sincronizados. |
+| **US-011** (Pipeline Unificado) | Sim | Sim | Flow `full_pipeline` disponível. |
+| **US-012** (Research Area Mart) | Sim | Sim | JSON consolidado via Controllers. |
 
 ---
 
 ## 3. Entregáveis desde o Último Relato
-- `src/core/logic/research_group_loader.py`: Ingestão de grupos via Excel.
-- `src/flows/ingest_sigpesq.py`: Pipeline ETL atualizado com US-007.
-- `docs/2 - implementacao/SI.3-design.md`: Arquitetura Hexagonal documentada.
-- `PM1.3 Release Plan`: Atualizado com datas reais.
-- `tests/test_loader_mapping.py`: Testes unitários para mapeamento de grupos.
+- `src/core/logic/mart_generator.py`: Geração do Data Mart analítico.
+- `src/flows/export_knowledge_areas_mart.py`: Novo flow de exportação.
+- `src/flows/unified_pipeline.py`: Integração do passo final do mart.
+- `docs/2 - implementacao/ADR/001-strict-idempotency-sigpesq.md`: Decisão de design para idempotência.
 
 ---
 
 ## 4. Pendências e Impedimentos
 | ID | Descrição | Responsável | Status | Ação Necessária |
 |----|------------|-------------|--------|-----------------|
-| P1 | Validação de Docstrings | Antigravity | **Resolvido** | Code Review (Self). |
-| P2 | Acesso VPN SigPesq | User | Aberto | Confirmar necessidade de VPN. |
+| P2 | Acesso VPN SigPesq | User | Aberto | Confirmar necessidade de VPN para automação total. |
 
 ---
 
 ## 5. Riscos Atualizados
 | ID | Risco | Impacto | Probabilidade | Status | Ação de Mitigação |
 |----|--------|----------|---------------|---------|-------------------|
-| R1 | Mudança no Layout SigPesq | Alto | Média | Controlado | Adaptador isolado para facilitar correções. |
+| R1 | Mudança no Layout SigPesq | Alto | Média | Controlado | Adaptador isolado. |
+| R2 | Limite de Rate do CNPq | Médio | Baixa | Monitorado | Uso de lib dgp_cnpq robusta. |
 
 ---
 
 ## 6. Próximas Ações (Próxima Quinzena)
-- Início da **US-001 (Researcher/Scholarship Ingestion - Pending Part)**.
+- Início da **US-001 (Researcher/Scholarship Ingestion)** para Projetos.
 - Início da **US-002 (Lattes Extraction)**.
-- **Concluído**: Implementação de Líderes e Strategies (v0.3.0).
+- Implementação de **US-006 (Fapes API)**.
 
 ---
 
 ## 7. Aprovação
 | Nome | Cargo | Data |
 |------|--------|------|
-| Antigravity | Senior Lead | 06/01/2026 |
+| Antigravity | Senior Lead | 12/01/2026 |
