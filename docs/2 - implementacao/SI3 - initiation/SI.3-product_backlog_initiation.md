@@ -172,8 +172,8 @@ Criar um flow mestre que orquestra a execução sequencial dos fluxos de SigPesq
 
 #### Critérios de Aceitação
 - **Funcional**:
-    - [ ] Execução sequencial: SigPesq -> CNPq -> Export.
-    - [ ] Parametrização de filtro de campus e diretório de saída.
+    - [x] Execução sequencial: SigPesq -> CNPq -> Export.
+    - [x] Parametrização de filtro de campus e diretório de saída.
 - **Deploy**:
     - [ ] Comando `full_pipeline` disponível no `app.py`.
 - **Observabilidade**:
