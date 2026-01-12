@@ -37,39 +37,32 @@ class CnpqCrawlerAdapter:
 
         # Researchers table
         if "pesquisadores" in rh_content:
+            logger.debug(f"Processing researchers table...")
             for item in rh_content["pesquisadores"]:
-                # The key can be 'nome', 'nome_do_pesquisador' or even 'pesquisadores'
-                name = (
-                    item.get("nome") or 
-                    item.get("nome_do_pesquisador") or 
-                    item.get("pesquisadores")
-                )
+                name = item.get("pesquisadores") or item.get("nome") or item.get("nome_do_pesquisador")
                 if name:
                     members.append(
                         {
                             "name": name,
                             "role": "Pesquisador",
-                            "data_inicio": item.get("data_inclusao") or item.get("data_inicio"),
-                            "data_fim": item.get("data_egresso") or item.get("data_fim"),
+                            "data_inicio": item.get("data_inicio") or item.get("data_inclusao"),
+                            "data_fim": item.get("data_fim") or item.get("data_egresso"),
                             "bolsa": item.get("bolsa"),
                         }
                     )
 
         # Students table
         if "estudantes" in rh_content:
+            logger.debug(f"Processing students table...")
             for item in rh_content["estudantes"]:
-                name = (
-                    item.get("nome") or 
-                    item.get("nome_do_estudante") or 
-                    item.get("estudantes")
-                )
+                name = item.get("estudantes") or item.get("nome") or item.get("nome_do_estudante")
                 if name:
                     members.append(
                         {
                             "name": name,
                             "role": "Estudante",
-                            "data_inicio": item.get("data_inclusao") or item.get("data_inicio"),
-                            "data_fim": item.get("data_egresso") or item.get("data_fim"),
+                            "data_inicio": item.get("data_inicio") or item.get("data_inclusao"),
+                            "data_fim": item.get("data_fim") or item.get("data_egresso"),
                             "nivel": item.get("nivel"),
                         }
                     )
