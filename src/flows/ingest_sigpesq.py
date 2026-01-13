@@ -30,8 +30,17 @@ def extract_data() -> List[dict]:
     """
     logger = get_run_logger()
     logger.info("Starting extraction task...")
+    
+    # Import strategies locally to avoid top-level dependency issues if lib is missing
+    from agent_sigpesq.strategies import ResearchGroupsDownloadStrategy, ProjectsDownloadStrategy
+    
     adapter = SigPesqAdapter()
-    raw_data = adapter.extract()
+    
+    # Download both Groups and Projects
+    raw_data = adapter.extract(download_strategies=[
+        ResearchGroupsDownloadStrategy(),
+        ProjectsDownloadStrategy()
+    ])
     logger.info(f"Extracted {len(raw_data)} items.")
     return raw_data
 
@@ -134,6 +143,38 @@ def persist_research_groups():
     loader.process_file(latest_file)
 
 
+@task
+def persist_projects():
+    """
+    Finds the latest Projects Excel file and loads it into the database as Initiatives.
+    """
+    logger = get_run_logger()
+    import glob
+    import os
+    from src.core.logic.project_loader import ProjectLoader
+    from src.core.logic.strategies.sigpesq_projects import SigPesqProjectMappingStrategy
+    
+    # Find latest file
+    # Assuming 'projects' or similar folder structure from agent_sigpesq
+    # ProjectsDownloadStrategy usually saves to 'research_project' or similar. 
+    # I'll check/search for the folder or use a glob pattern matching expected output.
+    # Default agent_sigpesq strategies: ResearchGroups -> "research_group", Projects -> "research_project"
+    
+    files = glob.glob("data/raw/sigpesq/research_project/*.xlsx")
+    if not files:
+        logger.warning("No Project Excel files found in data/raw/sigpesq/research_project/.")
+        return
+
+    # Sort by mtime
+    latest_file = max(files, key=os.path.getmtime)
+    logger.info(f"Loading Projects from {latest_file}")
+    
+    loader = ProjectLoader(
+        mapping_strategy=SigPesqProjectMappingStrategy()
+    )
+    loader.process_file(latest_file)
+
+
 @flow(name="Ingest SigPesq")
 def ingest_sigpesq_flow() -> None:
     """
@@ -150,6 +191,9 @@ def ingest_sigpesq_flow() -> None:
     
     # Ingest Research Groups from Excel (US-007)
     persist_research_groups()
+    
+    # Ingest Projects from Excel (New Initiative Flow)
+    persist_projects()
 
     logger.info("Flow finished successfully.")
 
