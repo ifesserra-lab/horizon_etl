@@ -19,6 +19,7 @@ O projeto concluiu a **Mecanismo de Ingestão do SigPesq (US-001 e US-007)**, a 
 | **US-009** (Sincronização CNPq) | Sim | Sim | Membros e Líderes sincronizados. |
 | **US-011** (Pipeline Unificado) | Sim | Sim | Flow `full_pipeline` disponível com filtro. |
 | **US-012** (Research Area Mart) | Sim | Sim | JSON consolidado e filtrável por Campus. |
+| **US-013** (Ingestão Projetos SigPesq) | Sim | 90% | Implementado / Validando. |
 
 ---
 
