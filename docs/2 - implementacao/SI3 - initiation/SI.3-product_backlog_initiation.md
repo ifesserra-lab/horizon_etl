@@ -281,6 +281,30 @@ Estender a integração com SigPesq para extrair **Projetos de Pesquisa** e pers
 - **Deploy**:
     - [ ] Task `persist_projects` integrada ao flow `Ingest SigPesq`.
 
+### US-014 – Exportação de Iniciativas e Tipos
+```yaml
+id: US-014
+milestone: R2
+prioridade: Alta
+tamanho: 3
+origem: [User Req.]
+tags: [type:feature, area:backend, area:export]
+dependencias: [US-013]
+modulos_afetados: [src/flows/export_canonical_data.py, src/core/logic/canonical_exporter.py]
+```
+
+#### Descrição
+Estender o fluxo de exportação canônica para incluir **Iniciativas** e **Tipos de Iniciativa**. Isso permite que os dados de Projetos (ingestados na US-013) sejam consumidos por outras ferramentas ou frontend.
+
+#### Critérios de Aceitação
+- **Funcional**:
+    - [ ] Exportação de `initiative_types` para `initiative_types_canonical.json`.
+    - [ ] Exportação de `initiatives` para `initiatives_canonical.json`.
+    - [ ] Enriquecimento leve (ex: incluir nome do tipo na iniciativa) se necessário, ou manter relacional.
+- **Deploy**:
+    - [ ] Tasks integradas ao flow `Export Canonical Data Flow`.
+
+
 ---
 
 ## Epic 5: Ingestão de Grupos de Pesquisa (Excel) (Release 1)
