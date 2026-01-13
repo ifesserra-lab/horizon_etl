@@ -12,7 +12,7 @@ class SigPesqAdapter(ISource):
         self.download_dir = download_dir
         os.makedirs(self.download_dir, exist_ok=True)
 
-    def extract(self) -> List[Dict[str, Any]]:
+    def extract(self, download_strategies: list = None) -> List[Dict[str, Any]]:
         """
         Orchestrates the extraction:
         1. Validate environment (credentials).
@@ -24,7 +24,7 @@ class SigPesqAdapter(ISource):
         self._validate_environment()
 
         # Step 1: Download
-        self._trigger_download()
+        self._trigger_download(download_strategies)
 
         # Step 2: Read
         loader = SigPesqFileLoader(self.download_dir)
@@ -59,7 +59,7 @@ class SigPesqAdapter(ISource):
 
         logger.debug("Environment variables for SigPesq verified.")
 
-    def _trigger_download(self):
+    def _trigger_download(self, download_strategies: list = None):
         """
         Calls the external lib to download files.
         """
@@ -71,7 +71,8 @@ class SigPesqAdapter(ISource):
         from agent_sigpesq.strategies import ResearchGroupsDownloadStrategy
 
         async def run_agent():
-            strategies = [ResearchGroupsDownloadStrategy()]
+            # Default to ResearchGroups if nothing specified, to maintain backward compatibility
+            strategies = download_strategies if download_strategies else [ResearchGroupsDownloadStrategy()]
             service = SigpesqReportService(
                 headless=True, 
                 download_dir=self.download_dir,
