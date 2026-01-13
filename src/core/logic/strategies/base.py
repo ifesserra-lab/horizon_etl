@@ -49,3 +49,20 @@ class ResearchGroupMappingStrategy(ABC):
         Parses a string of leaders into a list of (name, email) tuples.
         """
         pass
+
+class ProjectMappingStrategy(ABC):
+    """Base interface for Project mapping strategies."""
+
+    @abstractmethod
+    def map_row(self, row: dict) -> dict:
+        """
+        Maps a raw row from the source into a standardized format.
+        Expected keys in returned dict:
+            - title (str)
+            - status (str)
+            - start_date (datetime | str)
+            - end_date (datetime | str)
+            - description (str, optional)
+            - metadata (dict, optional)
+        """
+        pass

@@ -3,7 +3,8 @@ from loguru import logger
 import os
 from src.core.ports.export_sink import IExportSink
 from research_domain import CampusController, KnowledgeAreaController, ResearcherController
-from eo_lib.controllers.organization_controller import OrganizationController
+from research_domain import CampusController, KnowledgeAreaController, ResearcherController
+from eo_lib import OrganizationController, InitiativeController
 
 class CanonicalDataExporter:
     def __init__(self, sink: IExportSink):
@@ -12,6 +13,7 @@ class CanonicalDataExporter:
         self.campus_ctrl = CampusController()
         self.ka_ctrl = KnowledgeAreaController()
         self.researcher_ctrl = ResearcherController()
+        self.initiative_ctrl = InitiativeController()
 
     def _export_entities(self, data: List[Any], output_path: str, entity_name: str):
         """
@@ -21,7 +23,9 @@ class CanonicalDataExporter:
         try:
              export_data = []
              for item in data:
-                 if hasattr(item, 'to_dict'):
+                 if isinstance(item, dict):
+                     export_data.append(item)
+                 elif hasattr(item, 'to_dict'):
                      export_data.append(item.to_dict())
                  else:
                      # Fallback for entities without to_dict (should not happen with SerializableMixin)
@@ -51,10 +55,18 @@ class CanonicalDataExporter:
         data = self.researcher_ctrl.get_all()
         self._export_entities(data, output_path, "Researchers")
 
+    def export_initiatives(self, output_path: str):
+        data = self.initiative_ctrl.get_all()
+        self._export_entities(data, output_path, "Initiatives")
+
+    def export_initiative_types(self, output_path: str):
+        data = self.initiative_ctrl.list_initiative_types()
+        self._export_entities(data, output_path, "Initiative Types")
+
     def export_all(self, output_dir: str):
         """
         Exports all canonical data to the specified directory.
-        Generates: organizations_canonical.json, campuses_canonical.json, knowledge_areas_canonical.json, researchers_canonical.json
+        Generates: organizations, campuses, knowledge_areas, researchers, initiatives, initiative_types
         """
         logger.info(f"Starting Canonical Data Export to {output_dir}")
         os.makedirs(output_dir, exist_ok=True)
@@ -63,5 +75,7 @@ class CanonicalDataExporter:
         self.export_campuses(os.path.join(output_dir, "campuses_canonical.json"))
         self.export_knowledge_areas(os.path.join(output_dir, "knowledge_areas_canonical.json"))
         self.export_researchers(os.path.join(output_dir, "researchers_canonical.json"))
+        self.export_initiatives(os.path.join(output_dir, "initiatives_canonical.json"))
+        self.export_initiative_types(os.path.join(output_dir, "initiative_types_canonical.json"))
         
         logger.info("Canonical Data Export completed.")

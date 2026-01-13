@@ -42,6 +42,20 @@ def export_groups_task(output_dir: str, campus: Optional[str] = None):
     exporter = ResearchGroupExporter(sink=sink)
     exporter.export_all(output_path, campus_filter=campus)
 
+@task(name="export_initiatives_task")
+def export_initiatives_task(output_dir: str):
+    logger.info("Starting Initiatives export...")
+    sink = JsonSink()
+    exporter = CanonicalDataExporter(sink=sink)
+    exporter.export_initiatives(os.path.join(output_dir, "initiatives_canonical.json"))
+
+@task(name="export_initiative_types_task")
+def export_initiative_types_task(output_dir: str):
+    logger.info("Starting Initiative Types export...")
+    sink = JsonSink()
+    exporter = CanonicalDataExporter(sink=sink)
+    exporter.export_initiative_types(os.path.join(output_dir, "initiative_types_canonical.json"))
+
 @flow(name="Export Canonical Data Flow")
 def export_canonical_data_flow(output_dir: str = "data/exports", campus: Optional[str] = None):
     """
@@ -64,6 +78,8 @@ def export_canonical_data_flow(output_dir: str = "data/exports", campus: Optiona
     export_knowledge_areas_task(output_dir)
     export_researchers_task(output_dir)
     export_groups_task(output_dir, campus)
+    export_initiatives_task(output_dir)
+    export_initiative_types_task(output_dir)
 
 if __name__ == "__main__":
     export_canonical_data_flow()
