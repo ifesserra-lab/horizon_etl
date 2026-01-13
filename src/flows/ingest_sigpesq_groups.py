@@ -1,0 +1,69 @@
+from prefect import flow, task, get_run_logger
+from dotenv import load_dotenv
+from src.adapters.sources.sigpesq.adapter import SigPesqAdapter
+from src.core.logic.research_group_loader import ResearchGroupLoader
+from src.core.logic.strategies.sigpesq_excel import (
+    SigPesqExcelMappingStrategy,
+    SigPesqOrganizationStrategy,
+    SigPesqCampusStrategy,
+    SigPesqKnowledgeAreaStrategy,
+    SigPesqResearcherStrategy,
+    SigPesqRoleStrategy
+)
+
+load_dotenv()
+
+@task
+def persist_research_groups():
+    """
+    Finds the latest Research Group Excel file and loads it into the database.
+    """
+    logger = get_run_logger()
+    import glob
+    import os
+    
+    # Find latest file
+    files = glob.glob("data/raw/sigpesq/research_group/*.xlsx")
+    if not files:
+        logger.warning("No Research Group Excel files found.")
+        return
+
+    # Sort by mtime
+    latest_file = max(files, key=os.path.getmtime)
+    logger.info(f"Loading Research Groups from {latest_file}")
+    
+    loader = ResearchGroupLoader(
+        mapping_strategy=SigPesqExcelMappingStrategy(),
+        org_strategy=SigPesqOrganizationStrategy(),
+        campus_strategy=SigPesqCampusStrategy(),
+        area_strategy=SigPesqKnowledgeAreaStrategy(),
+        researcher_strategy=SigPesqResearcherStrategy(),
+        role_strategy=SigPesqRoleStrategy()
+    )
+    loader.process_file(latest_file)
+
+@flow(name="Ingest SigPesq Research Groups")
+def ingest_research_groups_flow() -> None:
+    """
+    Flow specifically for ingesting Research Groups.
+    """
+    logger = get_run_logger()
+    logger.info("Initializing SigPesq Research Groups Ingestion Flow")
+    
+    # Import strategies
+    from agent_sigpesq.strategies import ResearchGroupsDownloadStrategy
+    
+    adapter = SigPesqAdapter()
+    
+    # 1. Extract Only Groups
+    logger.info("Extracting Research Groups...")
+    # We ignore the returned raw_data for now as the Loader reads from disk
+    adapter.extract(download_strategies=[ResearchGroupsDownloadStrategy()])
+    
+    # 2. Persist Groups
+    persist_research_groups()
+    
+    logger.info("Research Groups Ingestion finished successfully.")
+
+if __name__ == "__main__":
+    ingest_research_groups_flow()
