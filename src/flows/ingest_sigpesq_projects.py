@@ -16,9 +16,9 @@ def persist_projects():
     import os
     
     # Find latest file
-    files = glob.glob("data/raw/sigpesq/research_project/*.xlsx")
+    files = glob.glob("data/raw/sigpesq/research_projects/*.xlsx")
     if not files:
-        logger.warning("No Project Excel files found in data/raw/sigpesq/research_project/.")
+        logger.warning("No Project Excel files found in data/raw/sigpesq/research_projects/.")
         return
 
     # Sort by mtime
