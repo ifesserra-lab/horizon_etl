@@ -36,7 +36,7 @@ Reflecting active work from `SI.3 Product Backlog`.
     - [ ] US-006 [Extração de Editais FAPES (PDF)](https://github.com/ifesserra-lab/horizon_etl/issues/1)
 
 - **Epic 7: Orquestração e Exportação**
-    - [ ] US-014 [Exportação de Iniciativas e Tipos] (In Progress)
+    - [x] US-014 [Exportação de Iniciativas e Tipos] (PR #39 - Merged)
 
 ## 3. Hierarchical Status
 Mapping Epics -> User Stories -> Tasks status.
