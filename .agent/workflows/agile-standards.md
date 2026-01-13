@@ -2,7 +2,7 @@
 description: Enforce Agile & Project Management Standards for tasks
 ---
 
-Follow this workflow ensuring all work adheres to "The Band Project" standards.
+Follow this workflow ensuring all work adheres to "The Horizon Project" standards.
 
 ## 1. Project Governance (Senior PM Oversight)
 This section enforces the **mandatory** maintenance of the Project Management (PM) documentation layer located in `docs/1 - projeto/`.
@@ -76,7 +76,7 @@ Before moving a task to "In Progress":
             - [ ] **Label**: Must be set (epic, us, task).
             - [ ] **Type**: Must be set (feature, bug, task).
             - [ ] **Milestone**: Must be set.
-            - [ ] **Project**: Must be set to "The Band Project".
+            - [ ] **Project**: Must be set to "The Horizon Project".
             - [ ] **Assignee**: Must be set to the logged-in user.
     - [ ] **Start**: Begin programming ONLY after issue creation. **MANDATORY AND NON-NEGOTIABLE**.
 
