@@ -1,8 +1,7 @@
 import asyncio
 
 from src.flows.export_canonical_data import export_canonical_data_flow
-from src.flows.export_knowledge_areas_mart import \
-    export_knowledge_areas_mart_flow
+from src.flows.export_knowledge_areas_mart import export_knowledge_areas_mart_flow
 from src.flows.sync_cnpq_groups import sync_cnpq_groups_flow
 
 

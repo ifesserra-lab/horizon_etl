@@ -4,9 +4,14 @@ from typing import List, Optional, Tuple
 import pandas as pd
 from loguru import logger
 
-from .base import (CampusStrategy, KnowledgeAreaStrategy, OrganizationStrategy,
-                   ResearcherStrategy, ResearchGroupMappingStrategy,
-                   RoleStrategy)
+from .base import (
+    CampusStrategy,
+    KnowledgeAreaStrategy,
+    OrganizationStrategy,
+    ResearcherStrategy,
+    ResearchGroupMappingStrategy,
+    RoleStrategy,
+)
 
 
 class SigPesqOrganizationStrategy(OrganizationStrategy):

@@ -2,8 +2,12 @@ from datetime import date, datetime
 from typing import Any, Dict, List
 
 from loguru import logger
-from research_domain import (KnowledgeAreaController, ResearcherController,
-                             ResearchGroupController, RoleController)
+from research_domain import (
+    KnowledgeAreaController,
+    ResearcherController,
+    ResearchGroupController,
+    RoleController,
+)
 
 
 class CnpqSyncLogic:
@@ -186,8 +190,7 @@ class CnpqSyncLogic:
                             query, {"iid": name, "nm": name}
                         ).fetchone()
                         if row:
-                            from research_domain.domain.entities import \
-                                Researcher
+                            from research_domain.domain.entities import Researcher
 
                             researcher = Researcher(name=row[1])
                             researcher.id = row[0]

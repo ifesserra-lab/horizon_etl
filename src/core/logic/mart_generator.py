@@ -3,8 +3,11 @@ import os
 from typing import Any, Dict, List, Optional
 
 from loguru import logger
-from research_domain import (CampusController, KnowledgeAreaController,
-                             ResearchGroupController)
+from research_domain import (
+    CampusController,
+    KnowledgeAreaController,
+    ResearchGroupController,
+)
 
 
 class KnowledgeAreaMartGenerator:

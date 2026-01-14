@@ -3,8 +3,7 @@ from prefect import flow, get_run_logger, task
 
 from src.adapters.sources.sigpesq.adapter import SigPesqAdapter
 from src.core.logic.project_loader import ProjectLoader
-from src.core.logic.strategies.sigpesq_projects import \
-    SigPesqProjectMappingStrategy
+from src.core.logic.strategies.sigpesq_projects import SigPesqProjectMappingStrategy
 
 load_dotenv()
 

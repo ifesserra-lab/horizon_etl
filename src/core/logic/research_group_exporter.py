@@ -2,8 +2,7 @@ from typing import List, Optional
 
 from eo_lib.controllers.organization_controller import OrganizationController
 from loguru import logger
-from research_domain import (CampusController, ResearchGroup,
-                             ResearchGroupController)
+from research_domain import CampusController, ResearchGroup, ResearchGroupController
 
 from src.core.ports.export_sink import IExportSink
 

@@ -3,8 +3,11 @@ from typing import Any, List, Optional
 
 from eo_lib import InitiativeController, OrganizationController
 from loguru import logger
-from research_domain import (CampusController, KnowledgeAreaController,
-                             ResearcherController)
+from research_domain import (
+    CampusController,
+    KnowledgeAreaController,
+    ResearcherController,
+)
 
 from src.core.ports.export_sink import IExportSink
 

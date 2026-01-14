@@ -2,8 +2,14 @@ import re
 import unicodedata
 from typing import Any, Dict, List, Optional
 
-from eo_lib import (Initiative, InitiativeController, InitiativeType, Person,
-                    PersonController, TeamController)
+from eo_lib import (
+    Initiative,
+    InitiativeController,
+    InitiativeType,
+    Person,
+    PersonController,
+    TeamController,
+)
 from eo_lib.domain import Role
 from eo_lib.infrastructure.database.postgres_client import PostgresClient
 from loguru import logger

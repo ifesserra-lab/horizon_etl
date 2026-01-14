@@ -5,9 +5,13 @@ import pytest
 
 from src.core.logic.research_group_loader import ResearchGroupLoader
 from src.core.logic.strategies.sigpesq_excel import (
-    SigPesqCampusStrategy, SigPesqExcelMappingStrategy,
-    SigPesqKnowledgeAreaStrategy, SigPesqOrganizationStrategy,
-    SigPesqResearcherStrategy, SigPesqRoleStrategy)
+    SigPesqCampusStrategy,
+    SigPesqExcelMappingStrategy,
+    SigPesqKnowledgeAreaStrategy,
+    SigPesqOrganizationStrategy,
+    SigPesqResearcherStrategy,
+    SigPesqRoleStrategy,
+)
 
 
 def test_research_group_loader_mapping():

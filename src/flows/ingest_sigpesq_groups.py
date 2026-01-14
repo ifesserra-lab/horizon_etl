@@ -4,9 +4,13 @@ from prefect import flow, get_run_logger, task
 from src.adapters.sources.sigpesq.adapter import SigPesqAdapter
 from src.core.logic.research_group_loader import ResearchGroupLoader
 from src.core.logic.strategies.sigpesq_excel import (
-    SigPesqCampusStrategy, SigPesqExcelMappingStrategy,
-    SigPesqKnowledgeAreaStrategy, SigPesqOrganizationStrategy,
-    SigPesqResearcherStrategy, SigPesqRoleStrategy)
+    SigPesqCampusStrategy,
+    SigPesqExcelMappingStrategy,
+    SigPesqKnowledgeAreaStrategy,
+    SigPesqOrganizationStrategy,
+    SigPesqResearcherStrategy,
+    SigPesqRoleStrategy,
+)
 
 load_dotenv()
 

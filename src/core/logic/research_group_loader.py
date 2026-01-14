@@ -1,12 +1,22 @@
 import pandas as pd
 from loguru import logger
-from research_domain import (CampusController, KnowledgeAreaController,
-                             ResearcherController, ResearchGroupController,
-                             RoleController, UniversityController)
+from research_domain import (
+    CampusController,
+    KnowledgeAreaController,
+    ResearcherController,
+    ResearchGroupController,
+    RoleController,
+    UniversityController,
+)
 
-from .strategies.base import (CampusStrategy, KnowledgeAreaStrategy,
-                              OrganizationStrategy, ResearcherStrategy,
-                              ResearchGroupMappingStrategy, RoleStrategy)
+from .strategies.base import (
+    CampusStrategy,
+    KnowledgeAreaStrategy,
+    OrganizationStrategy,
+    ResearcherStrategy,
+    ResearchGroupMappingStrategy,
+    RoleStrategy,
+)
 
 
 class ResearchGroupLoader:

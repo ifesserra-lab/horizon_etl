@@ -13,14 +13,30 @@ except ImportError:
     pass
 
 # Also import eo_lib entities
-from eo_lib.domain.entities import (Organization, OrganizationalUnit, Person,
-                                    PersonEmail, Role, Team, TeamMember)
+from eo_lib.domain.entities import (
+    Organization,
+    OrganizationalUnit,
+    Person,
+    PersonEmail,
+    Role,
+    Team,
+    TeamMember,
+)
+
 # Import all research domain entities
-from research_domain import (Campus, CampusController, KnowledgeArea,
-                             KnowledgeAreaController, Researcher,
-                             ResearcherController, ResearchGroup,
-                             ResearchGroupController, RoleController,
-                             University, UniversityController)
+from research_domain import (
+    Campus,
+    CampusController,
+    KnowledgeArea,
+    KnowledgeAreaController,
+    Researcher,
+    ResearcherController,
+    ResearchGroup,
+    ResearchGroupController,
+    RoleController,
+    University,
+    UniversityController,
+)
 
 
 def setup_database():
