@@ -1,40 +1,27 @@
 import os
-from sqlalchemy import text
-from eo_lib.infrastructure.database.postgres_client import PostgresClient
+
 from eo_lib.domain.base import Base
+from eo_lib.infrastructure.database.postgres_client import PostgresClient
+from sqlalchemy import text
 
 # Try to load .env for local configuration
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     pass
 
-# Import all research domain entities
-from research_domain import (
-    Researcher,
-    University,
-    Campus,
-    ResearchGroup,
-    KnowledgeArea,
-    ResearcherController,
-    UniversityController,
-    CampusController,
-    ResearchGroupController,
-    KnowledgeAreaController,
-    RoleController,
-)
-
 # Also import eo_lib entities
-from eo_lib.domain.entities import (
-    Person,
-    PersonEmail,
-    Team,
-    TeamMember,
-    Role,
-    Organization,
-    OrganizationalUnit,
-)
+from eo_lib.domain.entities import (Organization, OrganizationalUnit, Person,
+                                    PersonEmail, Role, Team, TeamMember)
+# Import all research domain entities
+from research_domain import (Campus, CampusController, KnowledgeArea,
+                             KnowledgeAreaController, Researcher,
+                             ResearcherController, ResearchGroup,
+                             ResearchGroupController, RoleController,
+                             University, UniversityController)
+
 
 def setup_database():
     """Initializes the database by dropping and recreating all tables."""
@@ -45,7 +32,7 @@ def setup_database():
 
     print("Initializing Database Tables...")
     client = PostgresClient()
-    
+
     # Force drop all tables via CASCADE to handle constraints
     try:
         with client._engine.connect() as conn:
@@ -54,11 +41,11 @@ def setup_database():
             # actually, using sqlite://, DROP SCHEMA might fail.
             # But let's try running the user's code first.
             if "sqlite" not in str(client._engine.url):
-                 conn.execute(text("DROP SCHEMA public CASCADE"))
-                 conn.execute(text("CREATE SCHEMA public"))
-                 conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
-                 conn.execute(text("GRANT ALL ON SCHEMA public TO postgres"))
-                 conn.commit()
+                conn.execute(text("DROP SCHEMA public CASCADE"))
+                conn.execute(text("CREATE SCHEMA public"))
+                conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
+                conn.execute(text("GRANT ALL ON SCHEMA public TO postgres"))
+                conn.commit()
             else:
                 print("SQLite detected, skipping schema drop.")
                 # For SQLite, we might want to just drop tables or rely on create_all?
@@ -71,10 +58,11 @@ def setup_database():
     Base.metadata.create_all(client._engine)
     print("Database tables initialized successfully.")
 
+
 def run_demo():
     print("--- Starting ResearchDomain Advanced Demo ---")
     setup_database()
-    
+
     try:
         # 1. Initialize Controllers
         uni_ctrl = UniversityController()
@@ -83,14 +71,18 @@ def run_demo():
         group_ctrl = ResearchGroupController()
         area_ctrl = KnowledgeAreaController()
         role_ctrl = RoleController()
-        
+
         # 2. Create University and Campus
-        ifes = uni_ctrl.create_university(name="Instituto Federal do Espirito Santo", short_name="IFES")
+        ifes = uni_ctrl.create_university(
+            name="Instituto Federal do Espirito Santo", short_name="IFES"
+        )
     except Exception as e:
         print(f"Error during demo execution: {e}")
         import traceback
+
         traceback.print_exc()
-        raise    
+        raise
+
 
 if __name__ == "__main__":
     run_demo()

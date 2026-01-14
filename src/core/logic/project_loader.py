@@ -1,18 +1,13 @@
-import unicodedata
 import re
-from thefuzz import process, fuzz
-from typing import List, Any, Dict, Optional
-from loguru import logger
-from eo_lib import (
-    InitiativeController,
-    Initiative,
-    InitiativeType,
-    PersonController,
-    TeamController,
-    Person,
-)
+import unicodedata
+from typing import Any, Dict, List, Optional
+
+from eo_lib import (Initiative, InitiativeController, InitiativeType, Person,
+                    PersonController, TeamController)
 from eo_lib.domain import Role
 from eo_lib.infrastructure.database.postgres_client import PostgresClient
+from loguru import logger
+from thefuzz import fuzz, process
 
 
 class ProjectLoader:
@@ -82,7 +77,8 @@ class ProjectLoader:
             logger.info(f"Creating Initiative Type: {type_name}")
             try:
                 new_type_result = self.controller.create_initiative_type(
-                    name=type_name, description="Projetos de Pesquisa importados do SigPesq"
+                    name=type_name,
+                    description="Projetos de Pesquisa importados do SigPesq",
                 )
 
                 if isinstance(new_type_result, dict):
@@ -185,9 +181,7 @@ class ProjectLoader:
         role = session.query(Role).filter_by(name=role_name).first()
         return role.id if role else None
 
-    def _create_initiative_team(
-        self, initiative, project_data: Dict[str, Any]
-    ) -> None:
+    def _create_initiative_team(self, initiative, project_data: Dict[str, Any]) -> None:
         """Create team and assign members for an initiative."""
         # 1. Check if initiative already has a team linked
         try:
@@ -206,15 +200,22 @@ class ProjectLoader:
             existing_teams = self.team_controller.list_teams()
             team = None
             for t in existing_teams:
-                t_name = t.name if hasattr(t, "name") else (t.get("name") if isinstance(t, dict) else "")
+                t_name = (
+                    t.name
+                    if hasattr(t, "name")
+                    else (t.get("name") if isinstance(t, dict) else "")
+                )
                 if t_name == team_name:
                     team = t
-                    logger.debug(f"Team already exists for project: {team_name[:50]}...")
+                    logger.debug(
+                        f"Team already exists for project: {team_name[:50]}..."
+                    )
                     break
-            
+
             if not team:
                 team = self.team_controller.create_team(
-                    name=team_name, description=f"Equipe do projeto: {initiative.name[:100]}"
+                    name=team_name,
+                    description=f"Equipe do projeto: {initiative.name[:100]}",
                 )
                 logger.info(f"Created team: {team_name[:50]}...")
         except Exception as e:

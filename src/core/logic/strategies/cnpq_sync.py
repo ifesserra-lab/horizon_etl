@@ -2,12 +2,8 @@ from datetime import date, datetime
 from typing import Any, Dict, List
 
 from loguru import logger
-from research_domain import (
-    ResearcherController,
-    ResearchGroupController,
-    RoleController,
-    KnowledgeAreaController,
-)
+from research_domain import (KnowledgeAreaController, ResearcherController,
+                             ResearchGroupController, RoleController)
 
 
 class CnpqSyncLogic:
@@ -32,11 +28,11 @@ class CnpqSyncLogic:
         """Parses date from 'DD/MM/YYYY' format or 'Anterior a...' text, or returns None if invalid."""
         if not date_str:
             return None
-            
+
         lower_str = date_str.lower().strip()
         if lower_str in ["não informada", "não informado", "n/a", ""]:
             return None
-        
+
         try:
             # Standard Format
             return datetime.strptime(date_str, "%d/%m/%Y").date()
@@ -49,18 +45,32 @@ class CnpqSyncLogic:
                     if len(parts) == 2:
                         month_str = parts[0]
                         year_str = parts[1]
-                        
+
                         months = {
-                            "janeiro": 1, "fevereiro": 2, "março": 3, "abril": 4, "maio": 5, "junho": 6,
-                            "julho": 7, "agosto": 8, "setembro": 9, "outubro": 10, "novembro": 11, "dezembro": 12
+                            "janeiro": 1,
+                            "fevereiro": 2,
+                            "março": 3,
+                            "abril": 4,
+                            "maio": 5,
+                            "junho": 6,
+                            "julho": 7,
+                            "agosto": 8,
+                            "setembro": 9,
+                            "outubro": 10,
+                            "novembro": 11,
+                            "dezembro": 12,
                         }
-                        
-                        month = months.get(month_str, 1) # Default to Jan if mapping fails
+
+                        month = months.get(
+                            month_str, 1
+                        )  # Default to Jan if mapping fails
                         year = int(year_str)
                         return date(year, month, 1)
                 except Exception as e:
-                    logger.warning(f"Failed to parse 'Anterior a' date: {date_str} - {e}")
-            
+                    logger.warning(
+                        f"Failed to parse 'Anterior a' date: {date_str} - {e}"
+                    )
+
             # Additional format handling or Fallback
             logger.warning(f"Date parse failed for '{date_str}', returning None.")
             return None
@@ -72,21 +82,25 @@ class CnpqSyncLogic:
         try:
             # Update fields if present in cnpq_data
             nome_cnpq = cnpq_data.get("nome_grupo")
-            
+
             # Patch: ignore 'CNPq' which is a header branding in some mirrors
             if nome_cnpq and nome_cnpq.upper() != "CNPQ":
                 from sqlalchemy import text
-                
+
                 # Use direct SQL to avoid loading the object and potentially messing up relationships
                 session = self.rg_ctrl._service._repository._session
-                
+
                 # Check current name first to avoid unnecessary updates
                 check_query = text("SELECT name FROM research_groups WHERE id = :gid")
                 current_name = session.execute(check_query, {"gid": group_id}).scalar()
-                
+
                 if current_name != nome_cnpq:
-                    logger.info(f"Updating group name: '{current_name}' -> '{nome_cnpq}'")
-                    update_query = text("UPDATE research_groups SET name = :nm WHERE id = :gid")
+                    logger.info(
+                        f"Updating group name: '{current_name}' -> '{nome_cnpq}'"
+                    )
+                    update_query = text(
+                        "UPDATE research_groups SET name = :nm WHERE id = :gid"
+                    )
                     session.execute(update_query, {"nm": nome_cnpq, "gid": group_id})
                     session.commit()
                     logger.info(f"Group {group_id} name updated successfully.")
@@ -96,8 +110,8 @@ class CnpqSyncLogic:
         except Exception as e:
             logger.error(f"Failed to sync group {group_id}: {e}")
             try:
-                if hasattr(self, 'rg_ctrl'):
-                     self.rg_ctrl._service._repository._session.rollback()
+                if hasattr(self, "rg_ctrl"):
+                    self.rg_ctrl._service._repository._session.rollback()
             except Exception:
                 pass
 
@@ -106,12 +120,14 @@ class CnpqSyncLogic:
         Synchronizes members of a research group.
         """
         import unicodedata
+
         from sqlalchemy import text
-        
+
         def normalize(text):
-            if not text: return ""
+            if not text:
+                return ""
             # NFC normalization + strip + lowercase for robust matching
-            return unicodedata.normalize('NFC', str(text).strip()).lower()
+            return unicodedata.normalize("NFC", str(text).strip()).lower()
 
         # Fetch all once to avoid N+1 and many session calls
         all_res = self.res_ctrl.get_all()
@@ -120,7 +136,7 @@ class CnpqSyncLogic:
         for r in all_res:
             if r.name:
                 res_map[normalize(r.name)] = r
-            if hasattr(r, 'identification_id') and r.identification_id:
+            if hasattr(r, "identification_id") and r.identification_id:
                 res_map[normalize(r.identification_id)] = r
 
         for m_data in members_data:
@@ -134,7 +150,9 @@ class CnpqSyncLogic:
                 researcher = res_map.get(search_name)
 
                 if researcher:
-                    logger.debug(f"Researcher '{name}' already exists (ID: {researcher.id}). Using existing.")
+                    logger.debug(
+                        f"Researcher '{name}' already exists (ID: {researcher.id}). Using existing."
+                    )
                 else:
                     logger.info(f"Creating new researcher: {name}")
                     try:
@@ -145,40 +163,57 @@ class CnpqSyncLogic:
                             researcher = self.res_ctrl.create_researcher(
                                 name=name, identification_id=name
                             )
-                            session.commit() # Commit the savepoint
+                            session.commit()  # Commit the savepoint
                             # Add to map to handle potential duplicates within the SAME group
                             res_map[search_name] = researcher
                         except Exception as e:
-                            session.rollback() # Rollback to savepoint
-                            raise e # Re-raise to be caught by outer except
+                            session.rollback()  # Rollback to savepoint
+                            raise e  # Re-raise to be caught by outer except
                     except Exception:
                         # If creation failed (likely UniqueViolation/IntegrityError), look it up directly
                         # get_all() might have missed it due to limits or race conditions
-                        logger.warning(f"Creation failed for {name}, trying direct DB lookup.")
+                        logger.warning(
+                            f"Creation failed for {name}, trying direct DB lookup."
+                        )
                         from sqlalchemy import text
+
                         session = self.rg_ctrl._service._repository._session
                         # Try to find by identification_id (most reliable for duplicates) or name
-                        query = text("SELECT id, name FROM persons WHERE identification_id = :iid OR name = :nm")
-                        row = session.execute(query, {"iid": name, "nm": name}).fetchone()
+                        query = text(
+                            "SELECT id, name FROM persons WHERE identification_id = :iid OR name = :nm"
+                        )
+                        row = session.execute(
+                            query, {"iid": name, "nm": name}
+                        ).fetchone()
                         if row:
-                            from research_domain.domain.entities import Researcher
+                            from research_domain.domain.entities import \
+                                Researcher
+
                             researcher = Researcher(name=row[1])
                             researcher.id = row[0]
-                            logger.info(f"Recovered existing researcher ID {researcher.id} for {name}")
+                            logger.info(
+                                f"Recovered existing researcher ID {researcher.id} for {name}"
+                            )
                         else:
-                            logger.error(f"Could not create nor find researcher {name}. Skipping.")
+                            logger.error(
+                                f"Could not create nor find researcher {name}. Skipping."
+                            )
                             continue
-                
+
                 # SELF-HEALING: Ensure it exists in 'researchers' table (Joined Inheritance fix)
                 # The library might only be inserting into 'persons' if mapping is partial.
                 try:
                     session = self.rg_ctrl._service._repository._session
                     # Check if exists in researchers
                     chk_res = text("SELECT 1 FROM researchers WHERE id = :rid")
-                    is_researcher = session.execute(chk_res, {"rid": researcher.id}).scalar()
-                    
+                    is_researcher = session.execute(
+                        chk_res, {"rid": researcher.id}
+                    ).scalar()
+
                     if not is_researcher:
-                        logger.info(f"Fixing missing 'researchers' row for ID {researcher.id}")
+                        logger.info(
+                            f"Fixing missing 'researchers' row for ID {researcher.id}"
+                        )
                         # Insert with just ID (other cols are URLs, nullable)
                         ins_res = text("INSERT INTO researchers (id) VALUES (:rid)")
                         session.execute(ins_res, {"rid": researcher.id})
@@ -221,55 +256,71 @@ class CnpqSyncLogic:
                             # For now, let's just skip to avoid duplicates.
                             already_associated = True
                             break
-                    
+
                     if not already_associated:
                         self.rg_ctrl._service.add_member(
                             team_id=group_id,
                             person_id=researcher.id,
                             role_id=role.id,
                             start_date=start_date,
-                            end_date=end_date
+                            end_date=end_date,
                         )
-                        logger.info(f"Member {name} ({role_name}) associated to group {group_id}")
+                        logger.info(
+                            f"Member {name} ({role_name}) associated to group {group_id}"
+                        )
                     else:
                         # UPDATE LOGIC for Egressos
                         # If the member is already associated, check if we need to update the end_date
                         # This handles Active -> Egresso transition
                         try:
                             # We need to find the specific association to check dates
-                            target_member = next((em for em in existing_members if em.person_id == researcher.id), None)
-                            
+                            target_member = next(
+                                (
+                                    em
+                                    for em in existing_members
+                                    if em.person_id == researcher.id
+                                ),
+                                None,
+                            )
+
                             if target_member:
                                 current_end_date = target_member.end_date
                                 # Check if end_date provided by CNPq is 'new' (we have it, DB doesn't)
                                 # or different (CNPq has date, DB has different date)
-                                
+
                                 should_update = False
                                 if end_date and current_end_date != end_date:
                                     should_update = True
-                                
+
                                 if should_update:
-                                    logger.info(f"Updating member {name} dates: End {current_end_date} -> {end_date}")
-                                    
+                                    logger.info(
+                                        f"Updating member {name} dates: End {current_end_date} -> {end_date}"
+                                    )
+
                                     # Use direct SQL update for safety and to avoid ORM complexity with composite keys/relationships
-                                    upd_query = text("""
+                                    upd_query = text(
+                                        """
                                         UPDATE team_members 
                                         SET end_date = :end_dt 
                                         WHERE team_id = :gid AND person_id = :pid
-                                    """)
+                                    """
+                                    )
                                     session = self.rg_ctrl._service._repository._session
-                                    session.execute(upd_query, {
-                                        "end_dt": end_date,
-                                        "gid": group_id,
-                                        "pid": researcher.id
-                                    })
+                                    session.execute(
+                                        upd_query,
+                                        {
+                                            "end_dt": end_date,
+                                            "gid": group_id,
+                                            "pid": researcher.id,
+                                        },
+                                    )
                                     session.commit()
                                 else:
                                     logger.debug(f"Member {name} up to date.")
 
                         except Exception as inner_e:
                             logger.warning(f"Failed to update member {name}: {inner_e}")
-                        
+
                 except Exception as e:
                     logger.warning(f"Could not associate member {name}: {e}")
                     # Rollback for this specific association failure
@@ -296,11 +347,13 @@ class CnpqSyncLogic:
         Syncs research lines as Knowledge Areas and associates them to the group.
         """
         import unicodedata
+
         from sqlalchemy import text
 
         def normalize(text):
-            if not text: return ""
-            return unicodedata.normalize('NFC', str(text).strip())
+            if not text:
+                return ""
+            return unicodedata.normalize("NFC", str(text).strip())
 
         if not lines_data:
             return
@@ -318,16 +371,16 @@ class CnpqSyncLogic:
                 raw_name = line.get("nome_da_linha_de_pesquisa")
                 if not raw_name:
                     continue
-                
+
                 norm_name = normalize(raw_name)
                 key = norm_name.lower()
-                
+
                 ka = ka_map.get(key)
                 if not ka:
                     logger.info(f"Creating new Knowledge Area: {norm_name}")
                     try:
                         ka = self.ka_ctrl.create_knowledge_area(name=norm_name)
-                        ka_map[key] = ka # Update map
+                        ka_map[key] = ka  # Update map
                     except Exception as e:
                         logger.error(f"Failed to create KA {norm_name}: {e}")
                         continue
@@ -339,23 +392,33 @@ class CnpqSyncLogic:
 
             # 2. Associate with Group (Direct SQL for safety/performance)
             session = self.rg_ctrl._service._repository._session
-            
+
             for ka in processed_kas:
                 try:
                     # Check existence
-                    check_query = text("SELECT 1 FROM group_knowledge_areas WHERE group_id = :gid AND area_id = :aid")
-                    exists = session.execute(check_query, {"gid": group_id, "aid": ka.id}).fetchone()
-                    
+                    check_query = text(
+                        "SELECT 1 FROM group_knowledge_areas WHERE group_id = :gid AND area_id = :aid"
+                    )
+                    exists = session.execute(
+                        check_query, {"gid": group_id, "aid": ka.id}
+                    ).fetchone()
+
                     if not exists:
                         logger.info(f"Associating KA '{ka.name}' to Group {group_id}")
-                        ins_query = text("INSERT INTO group_knowledge_areas (group_id, area_id) VALUES (:gid, :aid)")
+                        ins_query = text(
+                            "INSERT INTO group_knowledge_areas (group_id, area_id) VALUES (:gid, :aid)"
+                        )
                         session.execute(ins_query, {"gid": group_id, "aid": ka.id})
                     else:
-                        logger.debug(f"KA '{ka.name}' already associated to Group {group_id}")
-                
+                        logger.debug(
+                            f"KA '{ka.name}' already associated to Group {group_id}"
+                        )
+
                 except Exception as e:
-                    logger.error(f"Failed to associate KA {ka.id} to Group {group_id}: {e}")
-                    # Don't rollback whole transaction, just skip this association? 
+                    logger.error(
+                        f"Failed to associate KA {ka.id} to Group {group_id}: {e}"
+                    )
+                    # Don't rollback whole transaction, just skip this association?
                     # Actually, if auto-commit isn't on, we might need to rollback sub-transaction if using Postgres
                     # But here likely wrapping inside outer transaction or session management.
                     # Safe pattern:
@@ -363,9 +426,11 @@ class CnpqSyncLogic:
                         session.rollback()
                     except:
                         pass
-            
+
             session.commit()
-            logger.info(f"Synced {len(processed_kas)} research lines/KAs for group {group_id}")
+            logger.info(
+                f"Synced {len(processed_kas)} research lines/KAs for group {group_id}"
+            )
 
         except Exception as e:
             logger.error(f"Failed to sync knowledge areas for {group_id}: {e}")

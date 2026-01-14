@@ -1,6 +1,8 @@
 from typing import Any, Dict, List
+
 import pandas as pd
 from loguru import logger
+
 from .base import ProjectMappingStrategy
 
 
@@ -31,27 +33,21 @@ class SigPesqProjectMappingStrategy(ProjectMappingStrategy):
         """Helper to parse dates from various formats."""
         if pd.isna(date_val) or not date_val:
             return None
-        
+
         from datetime import datetime
-        
+
         # If already datetime
         if isinstance(date_val, datetime):
             return date_val
-            
+
         str_val = str(date_val).strip()
-        formats = [
-            "%d/%m/%Y", 
-            "%d-%m-%Y", 
-            "%Y-%m-%d", 
-            "%d/%m/%y", 
-            "%d-%m-%y"
-        ]
-        
+        formats = ["%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d", "%d/%m/%y", "%d-%m-%y"]
+
         for fmt in formats:
             try:
                 return datetime.strptime(str_val, fmt)
             except ValueError:
                 continue
-        
+
         logger.warning(f"Could not parse date: {str_val}")
         return None

@@ -40,7 +40,7 @@ class SigPesqAdapter(ISource):
         # Support SIGPESQ_USER as alias for SIGPESQ_USERNAME and vice-versa
         if os.getenv("SIGPESQ_USER") and not os.getenv("SIGPESQ_USERNAME"):
             os.environ["SIGPESQ_USERNAME"] = os.getenv("SIGPESQ_USER")
-        
+
         if os.getenv("SIGPESQ_USERNAME") and not os.getenv("SIGPESQ_USER"):
             os.environ["SIGPESQ_USER"] = os.getenv("SIGPESQ_USERNAME")
 
@@ -67,25 +67,31 @@ class SigPesqAdapter(ISource):
 
         # Attempt to import and run the agent
         import asyncio
+
         from agent_sigpesq.services.reports_service import SigpesqReportService
         from agent_sigpesq.strategies import ResearchGroupsDownloadStrategy
 
         async def run_agent():
             # Default to ResearchGroups if nothing specified, to maintain backward compatibility
-            strategies = download_strategies if download_strategies else [ResearchGroupsDownloadStrategy()]
+            strategies = (
+                download_strategies
+                if download_strategies
+                else [ResearchGroupsDownloadStrategy()]
+            )
             service = SigpesqReportService(
-                headless=True, 
-                download_dir=self.download_dir,
-                strategies=strategies
+                headless=True, download_dir=self.download_dir, strategies=strategies
             )
             return await service.run()
 
         success = asyncio.run(run_agent())
-        
-        if not success:
-             # Check if we have at least some files to work with
-             if os.path.exists(os.path.join(self.download_dir, "research_group")):
-                 logger.warning("SigpesqReportService failed to download all reports, but proceeding with existing files.")
-             else:
-                 raise RuntimeError("SigpesqReportService failed to download reports and no fallback data found.")
 
+        if not success:
+            # Check if we have at least some files to work with
+            if os.path.exists(os.path.join(self.download_dir, "research_group")):
+                logger.warning(
+                    "SigpesqReportService failed to download all reports, but proceeding with existing files."
+                )
+            else:
+                raise RuntimeError(
+                    "SigpesqReportService failed to download reports and no fallback data found."
+                )

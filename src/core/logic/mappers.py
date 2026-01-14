@@ -8,8 +8,11 @@ try:
     from research_domain import Researcher, ResearchGroup
 except ImportError:
     # Fallback if lib is missing
-    logger.warning("research_domain not found. Using Mock entities for Researcher/ResearchGroup.")
+    logger.warning(
+        "research_domain not found. Using Mock entities for Researcher/ResearchGroup."
+    )
     import uuid
+
     from pydantic import BaseModel, Field
 
     class Entity(BaseModel):
@@ -27,17 +30,20 @@ except ImportError:
         role: str
         metadata: Dict[str, Any] = {}
 
+
 # Project might not be in the lib yet, verify/define locally
 try:
     from research_domain import Project
 except ImportError:
     # logger.warning("Project entity not found in research_domain. Using local definition.")
     import uuid
+
     from pydantic import BaseModel, Field
-    
+
     # Base Entity if not imported above
-    if 'Entity' not in locals():
-         class Entity(BaseModel):
+    if "Entity" not in locals():
+
+        class Entity(BaseModel):
             id: uuid.UUID = Field(default_factory=uuid.uuid4)
 
     class Project(Entity):
