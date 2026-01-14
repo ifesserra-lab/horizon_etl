@@ -413,6 +413,36 @@ Desenvolver um novo pipeline que extrai URLs de espelho de grupos do banco de da
 
 ---
 
+### US-015 – Gestão Automática de Equipes em Projetos SigPesq
+```yaml
+id: US-015
+milestone: R2
+prioridade: Alta
+tamanho: 5
+origem: [User Req., RF-12]
+tags: [type:feature, area:backend, source:sigpesq]
+dependencias: [US-013]
+modulos_afetados: [src/core/logic/project_loader.py]
+```
+
+#### Descrição
+Criar automaticamente equipes (Teams) com seus membros durante a ingestão de projetos do SigPesq, extraindo dados das colunas `Coordenador`, `Pesquisadores` e `Estudantes` do Excel. A identificação de pessoas deve usar Normalização e Fuzzy Matching para evitar duplicatas.
+
+#### Critérios de Aceitação
+- **Funcional**:
+    - [x] Parsing de nomes sepados por `;`.
+    - [x] Normalização de nomes (Uppercase, No accents, No special chars).
+    - [x] Identificação de `Person` via Fuzzy Matching (Threshold 90%).
+    - [x] Criação de `Team` com nome do projeto (idempotente).
+    - [x] Adição de `TeamMember` com roles corretos.
+- **Teste (TDD)**:
+    - [ ] Testes unitários para a lógica de match.
+    - [ ] Testes de integração para a carga.
+- **Observabilidade**:
+    - [x] Logs detalhados de matches e criação.
+
+---
+
 # 4. Backlog Refinado (Release 1)
 
 | **US-005** | Observabilidade e Idempotência (Base) | R1 | **Concluído** |

@@ -1,15 +1,17 @@
 import os
 from typing import Optional
+
 from prefect import flow, get_run_logger
-from .ingest_sigpesq import ingest_sigpesq_flow
-from .sync_cnpq_groups import sync_cnpq_groups_flow
+
 from .export_canonical_data import export_canonical_data_flow
 from .export_knowledge_areas_mart import export_knowledge_areas_mart_flow
+from .ingest_sigpesq import ingest_sigpesq_flow
+from .sync_cnpq_groups import sync_cnpq_groups_flow
+
 
 @flow(name="Horizon Full Pipeline")
 def full_ingestion_pipeline(
-    campus_name: Optional[str] = None, 
-    output_dir: str = "data/exports"
+    campus_name: Optional[str] = None, output_dir: str = "data/exports"
 ):
     """
     Orchestrates the complete data pipeline:
@@ -32,13 +34,14 @@ def full_ingestion_pipeline(
     # 3. Export Canonical Data
     logger.info(f"Step 3/4: Exporting canonical data to {output_dir}...")
     export_canonical_data_flow(output_dir=output_dir)
-    
+
     # 4. Generate Knowledge Area Mart
     mart_path = os.path.join(output_dir, "knowledge_areas_mart.json")
     logger.info(f"Step 4/4: Generating Knowledge Area Mart at {mart_path}...")
     export_knowledge_areas_mart_flow(output_path=mart_path, campus=campus_name)
 
     logger.info("Unified Ingestion Pipeline completed successfully.")
+
 
 if __name__ == "__main__":
     full_ingestion_pipeline()
