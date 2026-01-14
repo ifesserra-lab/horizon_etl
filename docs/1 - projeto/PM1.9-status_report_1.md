@@ -22,6 +22,7 @@ O projeto concluiu a **Mecanismo de Ingestão do SigPesq (US-001 e US-007)**, a 
 | **US-013** (Ingestão Projetos SigPesq) | Sim | 90% | Implementado / Validando. |
 | **US-014** (Export Canonical Init.) | Não | Sim | Concluído (PR #39). |
 | **US-015** (Gestão de Equipes) | Não | Sim | Concluído (PR #41). |
+| **US-016** (Enrich Export Init.) | Não | 0% | Planejamento inicial. |
 
 ---
 

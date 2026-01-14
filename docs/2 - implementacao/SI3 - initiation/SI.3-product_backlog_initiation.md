@@ -304,6 +304,33 @@ Estender o fluxo de exportação canônica para incluir **Iniciativas** e **Tipo
 - **Deploy**:
     - [ ] Tasks integradas ao flow `Export Canonical Data Flow`.
 
+---
+
+### US-016 – Enriquecimento da Exportação de Iniciativas
+```yaml
+id: US-016
+milestone: R2
+prioridade: Média
+tamanho: 3
+origem: [User Req.]
+tags: [type:feature, area:backend, area:export]
+dependencias: [US-014, US-015]
+modulos_afetados: [src/core/logic/canonical_exporter.py]
+```
+
+#### Descrição
+Enriquecer o arquivo `initiatives_canonical.json` com informações detalhadas de **Equipe** (membros e papéis), **Organização** (nome e sigla) e **Tipo de Iniciativa** (nome e descrição). Atualmente, o arquivo contém apenas os IDs relacionados.
+
+#### Critérios de Aceitação
+- **Funcional**:
+    - [ ] Campo `team` incluído com lista de membros (`person_name`, `role`).
+    - [ ] Campo `organization` incluído com `name` e `short_name`.
+    - [ ] Campo `initiative_type` incluído com `name` e `description`.
+- **Teste (TDD)**:
+    - [ ] Atualizar `tests/test_export_initiatives.py` para validar os novos campos.
+- **Deploy**:
+    - [ ] Exportação validada no flow `Export Canonical Data Flow`.
+
 
 ---
 

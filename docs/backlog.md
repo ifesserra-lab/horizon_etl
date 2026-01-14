@@ -38,6 +38,7 @@ Reflecting active work from `SI.3 Product Backlog`.
 
 - **Epic 7: Orquestração e Exportação**
     - [x] US-014 [Exportação de Iniciativas e Tipos] (PR #39 - Merged)
+    - [ ] US-016 [Enriquecimento da Exportação de Iniciativas] (Planning)
 
 ## 3. Hierarchical Status
 Mapping Epics -> User Stories -> Tasks status.

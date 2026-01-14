@@ -67,10 +67,68 @@ class CanonicalDataExporter:
         self._export_entities(data, output_path, "Researchers")
 
     def export_initiatives(self, output_path: str):
-        data = self.initiative_ctrl.get_all()
-        # Manual serialization for Initiative entities (they don't have to_dict)
+        from eo_lib import TeamController
+
+        team_ctrl = TeamController()
+        initiatives = self.initiative_ctrl.get_all()
+        types = {t.id: t for t in self.initiative_ctrl.list_initiative_types()}
+        orgs = {o.id: o for o in self.org_ctrl.get_all()}
+
         serialized_data = []
-        for item in data:
+        for item in initiatives:
+            # Enriched Initiative Type
+            init_type = types.get(item.initiative_type_id)
+            type_data = (
+                {
+                    "id": init_type.id,
+                    "name": init_type.name,
+                    "description": getattr(init_type, "description", None),
+                }
+                if init_type
+                else None
+            )
+
+            # Enriched Organization
+            org = orgs.get(item.organization_id)
+            org_data = (
+                {
+                    "id": org.id,
+                    "name": org.name,
+                    "short_name": getattr(org, "short_name", None),
+                }
+                if org
+                else None
+            )
+
+            # Enriched Team
+            team_list = []
+            try:
+                teams = self.initiative_ctrl.get_teams(item.id)
+                for t_dict in teams:
+                    t_id = t_dict.get("id")
+                    if t_id:
+                        members = team_ctrl.get_members(t_id)
+                        for m in members:
+                            team_list.append(
+                                {
+                                    "person_id": m.person_id,
+                                    "person_name": (
+                                        m.person.name if m.person else "Unknown"
+                                    ),
+                                    "role": m.role.name if m.role else "Member",
+                                    "start_date": (
+                                        m.start_date.isoformat()
+                                        if m.start_date
+                                        else None
+                                    ),
+                                    "end_date": (
+                                        m.end_date.isoformat() if m.end_date else None
+                                    ),
+                                }
+                            )
+            except Exception as e:
+                logger.warning(f"Could not fetch teams for initiative {item.id}: {e}")
+
             serialized_data.append(
                 {
                     "id": item.id,
@@ -82,13 +140,17 @@ class CanonicalDataExporter:
                     ),
                     "end_date": item.end_date.isoformat() if item.end_date else None,
                     "initiative_type_id": item.initiative_type_id,
+                    "initiative_type": type_data,
                     "organization_id": item.organization_id,
+                    "organization": org_data,
                     "parent_id": item.parent_id,
+                    "team": team_list,
                 }
             )
-        logger.info(f"Exporting {len(serialized_data)} Initiatives...")
+
+        logger.info(f"Exporting {len(serialized_data)} enriched Initiatives...")
         self.sink.export(serialized_data, output_path)
-        logger.info(f"Successfully exported Initiatives to {output_path}")
+        logger.info(f"Successfully exported enriched Initiatives to {output_path}")
 
     def export_initiative_types(self, output_path: str):
         data = self.initiative_ctrl.list_initiative_types()
