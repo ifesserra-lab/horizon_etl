@@ -24,6 +24,7 @@ Reflecting active work from `SI.3 Product Backlog`.
     - [x] T-StrategyPattern [Refatoração Strategy Pattern] (PR #11 - Merged)
     - [x] T-GranularStrategy [Refatoração Granular Pattern] (PR #12 - Merged)
     - [x] US-005 Observabilidade e Idempotência (Implemented)
+    - [x] US-015 [Gestão de Equipes SigPesq] (PR #41 - Review)
     - [x] US-008 [Exportação JSON Canônico e Grupos] (PR #15 - Merged)
     - [x] US-011 [Pipeline Unificado & Filtro de Campus] (PR #30 - Merged)
     - [x] US-012 [Research Area Mart & Filter] (PR #31 - Merged)
@@ -45,6 +46,7 @@ Mapping Epics -> User Stories -> Tasks status.
 - **US-001**: Done (Merged)
 - **US-007**: Done (Merged)
 - **US-005**: Done (Implemented)
+- **US-015**: Done (PR #41)
 
 ### R3 - SigFapes
 - **US-006**: Ready
