@@ -53,7 +53,8 @@ class CnpqCrawlerAdapter:
                             "role": "Pesquisador",
                             "data_inicio": item.get("data_inicio")
                             or item.get("data_inclusao"),
-                            "data_fim": item.get("data_fim") or item.get("data_egresso"),
+                            "data_fim": item.get("data_fim")
+                            or item.get("data_egresso"),
                             "bolsa": item.get("bolsa"),
                         }
                     )
@@ -74,8 +75,10 @@ class CnpqCrawlerAdapter:
                             "role": "Estudante",
                             "data_inicio": item.get("data_inicio")
                             or item.get("data_inclusao"),
-                            "data_fim": item.get("data_fim") or item.get("data_egresso"),
-                            "nivel": item.get("nivel") or item.get("nivel_de_treinamento"),
+                            "data_fim": item.get("data_fim")
+                            or item.get("data_egresso"),
+                            "nivel": item.get("nivel")
+                            or item.get("nivel_de_treinamento"),
                         }
                     )
 
@@ -83,7 +86,9 @@ class CnpqCrawlerAdapter:
         if "tecnicos" in rh_content:
             for item in rh_content["tecnicos"]:
                 name = (
-                    item.get("nome") or item.get("nome_do_tecnico") or item.get("tecnicos")
+                    item.get("nome")
+                    or item.get("nome_do_tecnico")
+                    or item.get("tecnicos")
                 )
                 if name:
                     members.append(
@@ -92,7 +97,8 @@ class CnpqCrawlerAdapter:
                             "role": "Técnico",
                             "data_inicio": item.get("data_inclusao")
                             or item.get("data_inicio"),
-                            "data_fim": item.get("data_egresso") or item.get("data_fim"),
+                            "data_fim": item.get("data_egresso")
+                            or item.get("data_fim"),
                         }
                     )
 

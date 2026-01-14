@@ -1,11 +1,12 @@
-from prefect import flow, get_run_logger
 from dotenv import load_dotenv
+from prefect import flow, get_run_logger
 
 # Import the specific flows
 from src.flows.ingest_sigpesq_groups import ingest_research_groups_flow
 from src.flows.ingest_sigpesq_projects import ingest_projects_flow
 
 load_dotenv()
+
 
 @flow(name="Ingest SigPesq Full")
 def ingest_sigpesq_flow() -> None:
@@ -25,7 +26,7 @@ def ingest_sigpesq_flow() -> None:
 
 if __name__ == "__main__":
     import sys
-    
+
     if len(sys.argv) > 1:
         command = sys.argv[1]
         if command == "projects":
@@ -36,5 +37,7 @@ if __name__ == "__main__":
             print(f"Unknown command: {command}. Running Full Flow.")
             ingest_sigpesq_flow()
     else:
-        print("Running Full Flow (Default). usage: python ingest_sigpesq.py [projects|groups]")
+        print(
+            "Running Full Flow (Default). usage: python ingest_sigpesq.py [projects|groups]"
+        )
         ingest_sigpesq_flow()

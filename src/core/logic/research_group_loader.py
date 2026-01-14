@@ -1,25 +1,33 @@
 import pandas as pd
 from loguru import logger
-from research_domain import UniversityController, CampusController, ResearchGroupController, KnowledgeAreaController, ResearcherController, RoleController
+from research_domain import (
+    CampusController,
+    KnowledgeAreaController,
+    ResearcherController,
+    ResearchGroupController,
+    RoleController,
+    UniversityController,
+)
 
 from .strategies.base import (
-    ResearchGroupMappingStrategy,
-    OrganizationStrategy,
     CampusStrategy,
     KnowledgeAreaStrategy,
+    OrganizationStrategy,
     ResearcherStrategy,
-    RoleStrategy
+    ResearchGroupMappingStrategy,
+    RoleStrategy,
 )
+
 
 class ResearchGroupLoader:
     def __init__(
-        self, 
+        self,
         mapping_strategy: ResearchGroupMappingStrategy,
         org_strategy: OrganizationStrategy,
         campus_strategy: CampusStrategy,
         area_strategy: KnowledgeAreaStrategy,
         researcher_strategy: ResearcherStrategy,
-        role_strategy: RoleStrategy
+        role_strategy: RoleStrategy,
     ):
         self.mapping_strategy = mapping_strategy
         self.org_strategy = org_strategy
@@ -27,14 +35,14 @@ class ResearchGroupLoader:
         self.area_strategy = area_strategy
         self.researcher_strategy = researcher_strategy
         self.role_strategy = role_strategy
-        
+
         self.uni_ctrl = UniversityController()
         self.campus_ctrl = CampusController()
         self.rg_ctrl = ResearchGroupController()
         self.area_ctrl = KnowledgeAreaController()
         self.researcher_ctrl = ResearcherController()
         self.role_ctrl = RoleController()
-        
+
         # Cache to avoid repeated DB hits
         self._org_id = None
         self._campus_cache = {}
@@ -46,7 +54,7 @@ class ResearchGroupLoader:
         """Ensures organization exists using strategy."""
         if self._org_id:
             return self._org_id
-        
+
         self._org_id = self.org_strategy.ensure(self.uni_ctrl)
         return self._org_id
 
@@ -59,11 +67,15 @@ class ResearchGroupLoader:
         if campus_id:
             self._campus_cache[campus_name] = campus_id
         return campus_id
-    
+
     def _try_rollback(self, controller):
         """Attempts to rollback session via private attributes."""
         try:
-            if hasattr(controller, '_service') and hasattr(controller._service, '_repository') and hasattr(controller._service._repository, '_session'):
+            if (
+                hasattr(controller, "_service")
+                and hasattr(controller._service, "_repository")
+                and hasattr(controller._service._repository, "_session")
+            ):
                 controller._service._repository._session.rollback()
                 logger.debug("Session rolled back successfully.")
         except:
@@ -73,7 +85,7 @@ class ResearchGroupLoader:
         """Ensures the Leader role exists using strategy."""
         if "leader" in self._role_cache:
             return self._role_cache["leader"]
-        
+
         role = self.role_strategy.ensure_leader(self.role_ctrl)
         if role:
             self._role_cache["leader"] = role
@@ -94,7 +106,7 @@ class ResearchGroupLoader:
         """Ensures Knowledge Area exists."""
         if not area_name or pd.isna(area_name):
             return None
-            
+
         if area_name in self._area_cache:
             return self._area_cache[area_name]
 
@@ -105,7 +117,7 @@ class ResearchGroupLoader:
 
     def process_file(self, file_path: str):
         logger.info(f"Processing Research Groups from: {file_path}")
-        
+
         try:
             df = pd.read_excel(file_path)
         except Exception as e:
@@ -117,16 +129,16 @@ class ResearchGroupLoader:
         if not org_id:
             logger.error("Organization ID not available. Aborting.")
             return
-            
+
         existing_groups_map = {}
         try:
-             all_groups = self.rg_ctrl.get_all()
-             for g in all_groups:
-                 if g.name:
-                     existing_groups_map[g.name] = g
-             logger.info(f"Pre-fetched {len(existing_groups_map)} existing groups.")
+            all_groups = self.rg_ctrl.get_all()
+            for g in all_groups:
+                if g.name:
+                    existing_groups_map[g.name] = g
+            logger.info(f"Pre-fetched {len(existing_groups_map)} existing groups.")
         except Exception as e:
-             logger.warning(f"Could not pre-fetch groups: {e}")
+            logger.warning(f"Could not pre-fetch groups: {e}")
 
         count = 0
         updated = 0
@@ -135,30 +147,33 @@ class ResearchGroupLoader:
             try:
                 # Delegate mapping to strategy
                 data = self.mapping_strategy.map_row(row_raw.to_dict())
-                
-                name = data.get('name')
-                sigla = data.get('short_name')
-                unidade = data.get('campus_name')
-                area_name = data.get('area_name')
-                site_url = data.get('site_url')
-                leaders_raw = data.get('leaders_raw')
-                
+
+                name = data.get("name")
+                sigla = data.get("short_name")
+                unidade = data.get("campus_name")
+                area_name = data.get("area_name")
+                site_url = data.get("site_url")
+                leaders_raw = data.get("leaders_raw")
+
                 if pd.isna(name):
                     continue
-                
+
                 area_ids = []
                 if pd.notna(area_name):
                     aid = self.ensure_knowledge_area(str(area_name).strip())
                     if aid:
                         area_ids.append(aid)
-                
+
                 # Delegate parsing to strategy
                 leaders_data = self.mapping_strategy.parse_leaders(leaders_raw)
-                
+
                 group = None
                 if name in existing_groups_map:
                     group = existing_groups_map[name]
-                    if pd.notna(site_url) and getattr(group, 'cnpq_url', None) != site_url:
+                    if (
+                        pd.notna(site_url)
+                        and getattr(group, "cnpq_url", None) != site_url
+                    ):
                         group.cnpq_url = site_url
                         try:
                             self.rg_ctrl.update(group)
@@ -166,10 +181,12 @@ class ResearchGroupLoader:
                         except Exception as e:
                             logger.warning(f"Failed to update group {name}: {e}")
                     skipped += 1
-                else:    
-                    campus_name = unidade if pd.notna(unidade) else "Campus Desconhecido"
+                else:
+                    campus_name = (
+                        unidade if pd.notna(unidade) else "Campus Desconhecido"
+                    )
                     campus_id = self.ensure_campus(campus_name, org_id)
-                    
+
                     if not campus_id:
                         continue
 
@@ -180,7 +197,7 @@ class ResearchGroupLoader:
                             organization_id=org_id,
                             short_name=sigla if pd.notna(sigla) else None,
                             cnpq_url=site_url if pd.notna(site_url) else None,
-                            knowledge_area_ids=area_ids if area_ids else None
+                            knowledge_area_ids=area_ids if area_ids else None,
                         )
                         count += 1
                     except Exception as e:
@@ -192,10 +209,12 @@ class ResearchGroupLoader:
                 # We only process leaders for NEW groups or if we want to ensure leader existence idempotently
                 # Based on ADR 001, we follow "Do Nothing" for existing entities.
                 if name in existing_groups_map:
-                    logger.debug(f"Skipping leader association for existing group: {name}")
+                    logger.debug(
+                        f"Skipping leader association for existing group: {name}"
+                    )
                 elif group and leaders_data:
                     from datetime import date
-                    
+
                     # Try to get existing members if possible, to avoid duplicates
                     existing_member_ids = []
                     try:
@@ -208,22 +227,30 @@ class ResearchGroupLoader:
                         researcher = self.ensure_researcher(l_name, l_email)
                         if researcher:
                             if researcher.id in existing_member_ids:
-                                logger.debug(f"Leader {l_name} already associated to group {name}. Skipping.")
+                                logger.debug(
+                                    f"Leader {l_name} already associated to group {name}. Skipping."
+                                )
                                 continue
-                                
+
                             try:
                                 self.rg_ctrl.add_leader(
                                     team_id=group.id,
                                     person_id=researcher.id,
-                                    start_date=date.today()
+                                    start_date=date.today(),
                                 )
-                                logger.debug(f"Leader {l_name} associated to group {name}")
+                                logger.debug(
+                                    f"Leader {l_name} associated to group {name}"
+                                )
                             except Exception as e:
-                                logger.warning(f"Failed to associate leader {l_name} to unit {name}: {e}")
+                                logger.warning(
+                                    f"Failed to associate leader {l_name} to unit {name}: {e}"
+                                )
                                 self._try_rollback(self.rg_ctrl)
 
             except Exception as e:
                 logger.error(f"Error processing row: {e}")
                 self._try_rollback(self.rg_ctrl)
-                
-        logger.info(f"Loaded {count} New Research Groups. Skipped {skipped} existing (Updated {updated}).")
+
+        logger.info(
+            f"Loaded {count} New Research Groups. Skipped {skipped} existing (Updated {updated})."
+        )

@@ -1,7 +1,8 @@
-from dotenv import load_dotenv
 from typing import Optional
+
+from dotenv import load_dotenv
 from prefect import flow, get_run_logger, task
-from research_domain import ResearchGroupController, CampusController
+from research_domain import CampusController, ResearchGroupController
 
 from src.adapters.sources.cnpq_crawler import CnpqCrawlerAdapter
 from src.core.logic.strategies.cnpq_sync import CnpqSyncLogic
@@ -18,48 +19,52 @@ def get_groups_to_sync(
     """
     logger = get_run_logger()
     logger.info("Fetching research groups with CNPq URLs...")
-    
+
     rg_ctrl = ResearchGroupController()
     all_groups = rg_ctrl.get_all()
-    
+
     # Campus filtering if requested
     campus_id = None
     if campus_name:
         logger.info(f"Filtering by campus matching: '{campus_name}'")
         campus_ctrl = CampusController()
         campuses = campus_ctrl.get_all()
-        matching_campuses = [c for c in campuses if campus_name.lower() in c.name.lower()]
-        
+        matching_campuses = [
+            c for c in campuses if campus_name.lower() in c.name.lower()
+        ]
+
         if not matching_campuses:
-            logger.warning(f"No campus found matching '{campus_name}'. Proceeding with no results.")
+            logger.warning(
+                f"No campus found matching '{campus_name}'. Proceeding with no results."
+            )
             return []
-        
+
         if len(matching_campuses) > 1:
-            logger.warning(f"Multiple campuses match '{campus_name}': {[c.name for c in matching_campuses]}. Using the first one: {matching_campuses[0].name}")
-        
+            logger.warning(
+                f"Multiple campuses match '{campus_name}': {[c.name for c in matching_campuses]}. Using the first one: {matching_campuses[0].name}"
+            )
+
         campus_id = matching_campuses[0].id
         logger.info(f"Using Campus ID {campus_id} for filtering.")
 
     sync_list = []
     for g in all_groups:
-        if getattr(g, 'cnpq_url', None):
+        if getattr(g, "cnpq_url", None):
             # Check campus filter
-            if campus_id and getattr(g, 'campus_id', None) != campus_id:
+            if campus_id and getattr(g, "campus_id", None) != campus_id:
                 continue
-                
-            sync_list.append({
-                "id": g.id,
-                "name": g.name,
-                "url": g.cnpq_url
-            })
-    
+
+            sync_list.append({"id": g.id, "name": g.name, "url": g.cnpq_url})
+
     # Simple slicing for limit/offset
     if limit is not None:
         sync_list = sync_list[offset : offset + limit]
-        logger.info(f"Batched {len(sync_list)} groups (offset={offset}, limit={limit}).")
+        logger.info(
+            f"Batched {len(sync_list)} groups (offset={offset}, limit={limit})."
+        )
     else:
         logger.info(f"Found {len(sync_list)} groups to synchronize.")
-    
+
     return sync_list
 
 
@@ -90,8 +95,11 @@ def sync_single_group(group_info: dict):
     # 3. Extract and sync members
     members = adapter.extract_members(data)
     from collections import Counter
+
     roles_count = Counter(m.get("role") for m in members)
-    logger.info(f"Extracted {len(members)} members for {group_name}: {dict(roles_count)}")
+    logger.info(
+        f"Extracted {len(members)} members for {group_name}: {dict(roles_count)}"
+    )
     sync_logic.sync_members(group_id, members)
 
     # 4. Extract and sync Research Lines (Knowledge Areas)
