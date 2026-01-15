@@ -257,6 +257,56 @@ tamanho: 5
 origem: [RNF-01, RNF-06]
 tags: [type:arch, area:core]
 
+### US-013 – Ingestão de Projetos SigPesq como Iniciativas
+```yaml
+id: US-013
+milestone: R2
+prioridade: Alta
+tamanho: 5
+origem: [User Req, Issue #38]
+tags: [type:feature, area:backend, source:sigpesq]
+dependencias: [US-001]
+modulos_afetados: [src/flows/ingest_sigpesq.py, src/core/logic/project_loader.py]
+```
+
+#### Descrição
+Estender a integração com SigPesq para extrair **Projetos de Pesquisa** e persistí-los como Iniciativas no banco de dados. Deve utilizar a lib `agent_sigpesq` para download.
+
+#### Critérios de Aceitação
+- **Funcional**:
+    - [ ] Extração de relatórios de Projetos via `agent_sigpesq`.
+    - [ ] Mapeamento de Título, Situação, Datas e Coordenador.
+    - [ ] Persistência na entidade `Project` (metadata `type: Research Project`).
+    - [ ] Idempotência na carga (evitar duplicatas).
+- **Deploy**:
+    - [ ] Task `persist_projects` integrada ao flow `Ingest SigPesq`.
+
+### US-014 – Exportação de Iniciativas e Tipos
+```yaml
+id: US-014
+milestone: R2
+prioridade: Alta
+tamanho: 3
+origem: [User Req.]
+tags: [type:feature, area:backend, area:export]
+dependencias: [US-013]
+modulos_afetados: [src/flows/export_canonical_data.py, src/core/logic/canonical_exporter.py]
+```
+
+#### Descrição
+Estender o fluxo de exportação canônica para incluir **Iniciativas** e **Tipos de Iniciativa**. Isso permite que os dados de Projetos (ingestados na US-013) sejam consumidos por outras ferramentas ou frontend.
+
+#### Critérios de Aceitação
+- **Funcional**:
+    - [ ] Exportação de `initiative_types` para `initiative_types_canonical.json`.
+    - [ ] Exportação de `initiatives` para `initiatives_canonical.json`.
+    - [ ] Enriquecimento leve (ex: incluir nome do tipo na iniciativa) se necessário, ou manter relacional.
+- **Deploy**:
+    - [ ] Tasks integradas ao flow `Export Canonical Data Flow`.
+
+
+---
+
 ## Epic 5: Ingestão de Grupos de Pesquisa (Excel) (Release 1)
 **Objetivo**: Processar planilhas extraídas do SigPesq e popular o domínio de Grupos de Pesquisa.
 
@@ -360,6 +410,36 @@ Desenvolver um novo pipeline que extrai URLs de espelho de grupos do banco de da
     - *Critério*: Mapear `dict` retornado pela lib para as entidades do domínio.
 2.  **T-013 [Ops]**: Criar Flow Prefect `sync_cnpq_groups`.
     - *Critério*: Flow orquestra: Seleção -> Crawler -> Persistência.
+
+---
+
+### US-015 – Gestão Automática de Equipes em Projetos SigPesq
+```yaml
+id: US-015
+milestone: R2
+prioridade: Alta
+tamanho: 5
+origem: [User Req., RF-12]
+tags: [type:feature, area:backend, source:sigpesq]
+dependencias: [US-013]
+modulos_afetados: [src/core/logic/project_loader.py]
+```
+
+#### Descrição
+Criar automaticamente equipes (Teams) com seus membros durante a ingestão de projetos do SigPesq, extraindo dados das colunas `Coordenador`, `Pesquisadores` e `Estudantes` do Excel. A identificação de pessoas deve usar Normalização e Fuzzy Matching para evitar duplicatas.
+
+#### Critérios de Aceitação
+- **Funcional**:
+    - [x] Parsing de nomes sepados por `;`.
+    - [x] Normalização de nomes (Uppercase, No accents, No special chars).
+    - [x] Identificação de `Person` via Fuzzy Matching (Threshold 90%).
+    - [x] Criação de `Team` com nome do projeto (idempotente).
+    - [x] Adição de `TeamMember` com roles corretos.
+- **Teste (TDD)**:
+    - [ ] Testes unitários para a lógica de match.
+    - [ ] Testes de integração para a carga.
+- **Observabilidade**:
+    - [x] Logs detalhados de matches e criação.
 
 ---
 

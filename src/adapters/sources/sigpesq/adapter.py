@@ -12,7 +12,7 @@ class SigPesqAdapter(ISource):
         self.download_dir = download_dir
         os.makedirs(self.download_dir, exist_ok=True)
 
-    def extract(self) -> List[Dict[str, Any]]:
+    def extract(self, download_strategies: list = None) -> List[Dict[str, Any]]:
         """
         Orchestrates the extraction:
         1. Validate environment (credentials).
@@ -24,7 +24,7 @@ class SigPesqAdapter(ISource):
         self._validate_environment()
 
         # Step 1: Download
-        self._trigger_download()
+        self._trigger_download(download_strategies)
 
         # Step 2: Read
         loader = SigPesqFileLoader(self.download_dir)
@@ -40,7 +40,7 @@ class SigPesqAdapter(ISource):
         # Support SIGPESQ_USER as alias for SIGPESQ_USERNAME and vice-versa
         if os.getenv("SIGPESQ_USER") and not os.getenv("SIGPESQ_USERNAME"):
             os.environ["SIGPESQ_USERNAME"] = os.getenv("SIGPESQ_USER")
-        
+
         if os.getenv("SIGPESQ_USERNAME") and not os.getenv("SIGPESQ_USER"):
             os.environ["SIGPESQ_USER"] = os.getenv("SIGPESQ_USERNAME")
 
@@ -59,7 +59,7 @@ class SigPesqAdapter(ISource):
 
         logger.debug("Environment variables for SigPesq verified.")
 
-    def _trigger_download(self):
+    def _trigger_download(self, download_strategies: list = None):
         """
         Calls the external lib to download files.
         """
@@ -67,24 +67,31 @@ class SigPesqAdapter(ISource):
 
         # Attempt to import and run the agent
         import asyncio
+
         from agent_sigpesq.services.reports_service import SigpesqReportService
         from agent_sigpesq.strategies import ResearchGroupsDownloadStrategy
 
         async def run_agent():
-            strategies = [ResearchGroupsDownloadStrategy()]
+            # Default to ResearchGroups if nothing specified, to maintain backward compatibility
+            strategies = (
+                download_strategies
+                if download_strategies
+                else [ResearchGroupsDownloadStrategy()]
+            )
             service = SigpesqReportService(
-                headless=True, 
-                download_dir=self.download_dir,
-                strategies=strategies
+                headless=True, download_dir=self.download_dir, strategies=strategies
             )
             return await service.run()
 
         success = asyncio.run(run_agent())
-        
-        if not success:
-             # Check if we have at least some files to work with
-             if os.path.exists(os.path.join(self.download_dir, "research_group")):
-                 logger.warning("SigpesqReportService failed to download all reports, but proceeding with existing files.")
-             else:
-                 raise RuntimeError("SigpesqReportService failed to download reports and no fallback data found.")
 
+        if not success:
+            # Check if we have at least some files to work with
+            if os.path.exists(os.path.join(self.download_dir, "research_group")):
+                logger.warning(
+                    "SigpesqReportService failed to download all reports, but proceeding with existing files."
+                )
+            else:
+                raise RuntimeError(
+                    "SigpesqReportService failed to download reports and no fallback data found."
+                )

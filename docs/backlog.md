@@ -7,6 +7,7 @@ Tracks the delivery of versions to production (Main Branch).
 
 | Version | Date | Status | Description | PR / Commit |
 |---------|------|--------|-------------|-------------|
+| **v0.5.1** | 2026-01-15 | Released | Team Ingestion Refactoring & Synchronization Fix | PR #45 |
 | **v0.5.0** | 2026-01-12 | Released | CNPq Sync Enhanced (Missing Researchers Fix) | PR #37 |
 | **v0.4.0** | 2026-01-09 | Released | CNPq Sync Base (US-009) | PR #18 |
 | **v0.3.0** | 2026-01-07 | Released | SigPesq Enhancements, ResearcherID & Granular Strategy Pattern | PR #13 |
@@ -24,6 +25,7 @@ Reflecting active work from `SI.3 Product Backlog`.
     - [x] T-StrategyPattern [Refatoração Strategy Pattern] (PR #11 - Merged)
     - [x] T-GranularStrategy [Refatoração Granular Pattern] (PR #12 - Merged)
     - [x] US-005 Observabilidade e Idempotência (Implemented)
+    - [x] US-015 [Gestão de Equipes SigPesq] (PR #41 - Review)
     - [x] US-008 [Exportação JSON Canônico e Grupos] (PR #15 - Merged)
     - [x] US-011 [Pipeline Unificado & Filtro de Campus] (PR #30 - Merged)
     - [x] US-012 [Research Area Mart & Filter] (PR #31 - Merged)
@@ -35,6 +37,9 @@ Reflecting active work from `SI.3 Product Backlog`.
 - **Epic 3: Dados de Execução FAPES (Release 3)**
     - [ ] US-006 [Extração de Editais FAPES (PDF)](https://github.com/ifesserra-lab/horizon_etl/issues/1)
 
+- **Epic 7: Orquestração e Exportação**
+    - [x] US-014 [Exportação de Iniciativas e Tipos] (PR #39 - Merged)
+
 ## 3. Hierarchical Status
 Mapping Epics -> User Stories -> Tasks status.
 
@@ -42,6 +47,7 @@ Mapping Epics -> User Stories -> Tasks status.
 - **US-001**: Done (Merged)
 - **US-007**: Done (Merged)
 - **US-005**: Done (Implemented)
+- **US-015**: Done (PR #41)
 
 ### R3 - SigFapes
 - **US-006**: Ready
