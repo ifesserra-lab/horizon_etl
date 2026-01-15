@@ -20,7 +20,7 @@ This interaction focused on resolving a critical bug in the SigPesq project team
 
 ### GitHub Stats
 - **Issues Closed:** #44
-- **Pull Request:** [PR #XX](https://github.com/ifesserra-lab/horizon_etl/pull/XX) (To be updated after creation)
+- **Pull Request:** [PR #45](https://github.com/ifesserra-lab/horizon_etl/pull/45)
 - **Branch merged:** `fix/sigpesq-team-ingestion`
 
 ## 3. Technical Accomplishments
@@ -28,6 +28,7 @@ This interaction focused on resolving a critical bug in the SigPesq project team
 - **Strict Matching**: Integrated `strict_match` policy for SigPesq members to prevent incorrect person identification.
 - **Architectural Cleanup**: Decoupled `ProjectLoader` by extracting logic into `PersonMatcher` and `TeamSynchronizer` service classes.
 - **Enhanced Observability**: Added comprehensive logging and documentation to all major business logic components.
+- **Global Verification**: Developed a validation script that verified data integrity across all 67 projects, confirming zero obsolete members in the final canonical output.
 
 ## 4. Risks & Issues
 - None identified in this interaction.
