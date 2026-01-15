@@ -1,15 +1,18 @@
 from unittest.mock import MagicMock
+
 import pandas as pd
 import pytest
+
 from src.core.logic.research_group_loader import ResearchGroupLoader
 from src.core.logic.strategies.sigpesq_excel import (
-    SigPesqExcelMappingStrategy,
-    SigPesqOrganizationStrategy,
     SigPesqCampusStrategy,
+    SigPesqExcelMappingStrategy,
     SigPesqKnowledgeAreaStrategy,
+    SigPesqOrganizationStrategy,
     SigPesqResearcherStrategy,
-    SigPesqRoleStrategy
+    SigPesqRoleStrategy,
 )
+
 
 def test_research_group_loader_mapping():
     # Setup
@@ -19,7 +22,7 @@ def test_research_group_loader_mapping():
         campus_strategy=SigPesqCampusStrategy(),
         area_strategy=SigPesqKnowledgeAreaStrategy(),
         researcher_strategy=SigPesqResearcherStrategy(),
-        role_strategy=SigPesqRoleStrategy()
+        role_strategy=SigPesqRoleStrategy(),
     )
     loader.uni_ctrl = MagicMock()
     loader.campus_ctrl = MagicMock()
@@ -27,17 +30,17 @@ def test_research_group_loader_mapping():
     loader.area_ctrl = MagicMock()
     loader.researcher_ctrl = MagicMock()
     loader.role_ctrl = MagicMock()
-    
+
     # Mock return values
     loader.ensure_organization = MagicMock(return_value=1)
     loader.ensure_campus = MagicMock(return_value=1)
     loader.ensure_knowledge_area = MagicMock(return_value=1)
-    
+
     mock_research_group = MagicMock()
     mock_research_group.id = 100
-    mock_research_group.name = 'Grupo Teste'
+    mock_research_group.name = "Grupo Teste"
     loader.rg_ctrl.create_research_group.return_value = mock_research_group
-    
+
     loader.researcher_ctrl.get_all.return_value = []
     mock_researcher = MagicMock()
     mock_researcher.id = 50
@@ -45,42 +48,44 @@ def test_research_group_loader_mapping():
 
     # Create invalid/dummy dataframe
     data = {
-        'Nome': ['Grupo Teste'],
-        'Sigla': ['GT'],
-        'Unidade': ['Campus X'],
-        'AreaConhecimento': ['Area Y'],
-        'Column1': ['http://cnpq.br/grupo'],
-        'Lideres': ['Carlos Campos (carlos@ifes.edu.br)']
+        "Nome": ["Grupo Teste"],
+        "Sigla": ["GT"],
+        "Unidade": ["Campus X"],
+        "AreaConhecimento": ["Area Y"],
+        "Column1": ["http://cnpq.br/grupo"],
+        "Lideres": ["Carlos Campos (carlos@ifes.edu.br)"],
     }
     df = pd.DataFrame(data)
-    
+
     # Save to tmp excel
     tmp_path = "test_mapping.xlsx"
     df.to_excel(tmp_path, index=False)
-    
+
     # Execute
     loader.process_file(tmp_path)
-    
+
     # Verify
     loader.rg_ctrl.create_research_group.assert_called_with(
-        name='Grupo Teste',
+        name="Grupo Teste",
         campus_id=1,
         organization_id=1,
-        short_name='GT',
-        cnpq_url='http://cnpq.br/grupo',
-        knowledge_area_ids=[1]
+        short_name="GT",
+        cnpq_url="http://cnpq.br/grupo",
+        knowledge_area_ids=[1],
     )
-    
+
     loader.researcher_ctrl.create_researcher.assert_called_with(
-        name='Carlos Campos', 
-        emails=['carlos@ifes.edu.br'],
-        identification_id='carlos@ifes.edu.br'
+        name="Carlos Campos",
+        emails=["carlos@ifes.edu.br"],
+        identification_id="carlos@ifes.edu.br",
     )
     loader.rg_ctrl.add_leader.assert_called()
-    
+
     import os
+
     if os.path.exists(tmp_path):
         os.remove(tmp_path)
+
 
 if __name__ == "__main__":
     test_research_group_loader_mapping()

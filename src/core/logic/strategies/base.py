@@ -1,30 +1,36 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
+
 
 class OrganizationStrategy(ABC):
     @abstractmethod
     def ensure(self, uni_ctrl) -> int:
         pass
 
+
 class CampusStrategy(ABC):
     @abstractmethod
     def ensure(self, campus_ctrl, campus_name: str, org_id: int) -> int:
         pass
+
 
 class KnowledgeAreaStrategy(ABC):
     @abstractmethod
     def ensure(self, area_ctrl, area_name: str) -> Optional[int]:
         pass
 
+
 class ResearcherStrategy(ABC):
     @abstractmethod
     def ensure(self, researcher_ctrl, name: str, email: str = None):
         pass
 
+
 class RoleStrategy(ABC):
     @abstractmethod
     def ensure_leader(self, role_ctrl):
         pass
+
 
 class ResearchGroupMappingStrategy(ABC):
     """Base interface for Research Group mapping strategies."""
@@ -47,5 +53,23 @@ class ResearchGroupMappingStrategy(ABC):
     def parse_leaders(self, leaders_str: str) -> List[Tuple[str, Optional[str]]]:
         """
         Parses a string of leaders into a list of (name, email) tuples.
+        """
+        pass
+
+
+class ProjectMappingStrategy(ABC):
+    """Base interface for Project mapping strategies."""
+
+    @abstractmethod
+    def map_row(self, row: dict) -> dict:
+        """
+        Maps a raw row from the source into a standardized format.
+        Expected keys in returned dict:
+            - title (str)
+            - status (str)
+            - start_date (datetime | str)
+            - end_date (datetime | str)
+            - description (str, optional)
+            - metadata (dict, optional)
         """
         pass
