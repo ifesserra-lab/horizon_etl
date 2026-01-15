@@ -1,11 +1,10 @@
 import re
 import unicodedata
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from eo_lib import (
     Initiative,
     InitiativeController,
-    InitiativeType,
     Person,
     PersonController,
     TeamController,
@@ -13,53 +12,131 @@ from eo_lib import (
 from eo_lib.domain import Role
 from eo_lib.infrastructure.database.postgres_client import PostgresClient
 from loguru import logger
-from thefuzz import fuzz, process
+
+from src.core.logic.person_matcher import PersonMatcher
+from src.core.logic.team_synchronizer import TeamSynchronizer
 
 
 class ProjectLoader:
     """
-    Loads Project (Initiative) entities into the database.
-
-    This class is responsible for:
-    1. Parsing the Excel file using a Strategy.
-    2. Instantiating Initiative entities.
-    3. Creating Team with Persons (Coordinator, Researchers, Students).
-    4. Persisting them using Controllers.
+    Orchestrates the loading of project initiatives from external sources (e.g., Excel).
+    
+    This class manages the end-to-end ingestion flow, including ensuring necessary
+    domain entities (Organization, Roles, InitiativeTypes) exist, and delegating
+    the heavy lifting of person matching and team synchronization to specialized services.
+    
+    Attributes:
+        mapping_strategy (BaseMappingStrategy): The strategy for parsing source columns.
+        db_client (PostgresClient): Client for database interactions.
+        controller (InitiativeController): Controller for managing projects.
+        person_controller (PersonController): Controller for managing persons.
+        team_controller (TeamController): Controller for managing teams.
+        person_matcher (PersonMatcher): Service for person identification.
+        team_synchronizer (TeamSynchronizer): Service for team and membership management.
     """
 
     ROLES = ["Coordinator", "Researcher", "Student"]
 
     def __init__(self, mapping_strategy):
+        """
+        Initializes the ProjectLoader with a specific mapping strategy.
+
+        Args:
+            mapping_strategy (BaseMappingStrategy): The strategy to use for data mapping.
+        """
         self.mapping_strategy = mapping_strategy
         self.controller = InitiativeController()
         self.person_controller = PersonController()
         self.team_controller = TeamController()
 
-        # Cache for persons by name (for idempotency)
-        self._persons_cache: Dict[str, Person] = {}
+        # Service Classes
+        self.person_matcher = PersonMatcher(self.person_controller)
+        self._roles_cache: Dict[str, Role] = {}
+        self._ensure_roles_exist() # Populates _roles_cache
 
-        # Ensure roles exist
-        self._ensure_roles_exist()
+        self.team_synchronizer = TeamSynchronizer(self.team_controller, self._roles_cache)
 
         # Ensure "Research Project" type exists
         self.initiative_type = self._ensure_initiative_type_exists()
 
+        # Ensure IFES Organization exists
+        self.org_id = self._ensure_organization_exists()
+
+    def _ensure_organization_exists(self) -> Optional[int]:
+        """Ensure IFES organization exists."""
+        from research_domain import UniversityController
+
+        uni_ctrl = UniversityController()
+        try:
+            orgs = uni_ctrl.get_all()
+            for o in orgs:
+                name = o.name if hasattr(o, "name") else o.get("name")
+                if "IFES" in name.upper():
+                    return o.id if hasattr(o, "id") else o.get("id")
+
+            # If not found, create one (Basic)
+            logger.info("Creating IFES Organization...")
+            ifes = uni_ctrl.create_university(
+                name="Instituto Federal do Espírito Santo", short_name="IFES"
+            )
+            return ifes.id if hasattr(ifes, "id") else ifes.get("id")
+        except Exception as e:
+            logger.warning(f"Failed to ensure organization: {e}")
+            return None
+
     def _ensure_roles_exist(self) -> None:
-        """Create Coordinator, Researcher, Student roles if they don't exist."""
-        client = PostgresClient()
-        session = client.get_session()
+        """Create Coordinator, Researcher, Student roles if they don't exist and populate cache."""
+        from research_domain import RoleController
 
-        for role_name in self.ROLES:
-            existing = session.query(Role).filter_by(name=role_name).first()
-            if not existing:
-                new_role = Role(name=role_name, description=f"Role: {role_name}")
-                session.add(new_role)
-                logger.info(f"Created role: {role_name}")
+        role_ctrl = RoleController()
+        try:
+            existing_roles = role_ctrl.get_all()
 
-        session.commit()
+            # Map existing roles by name
+            db_roles = {}
+            for r in existing_roles:
+                r_name = r.name if hasattr(r, "name") else r.get("name")
+                if r_name:
+                    db_roles[r_name] = r
+
+            for role_name in self.ROLES:
+                if role_name not in db_roles:
+                    logger.info(f"Creating role: {role_name}")
+                    new_role = role_ctrl.create_role(
+                        name=role_name, description=f"Role: {role_name}"
+                    )
+                    self._roles_cache[role_name] = new_role
+                else:
+                    logger.debug(f"Role already exists: {role_name}")
+                    self._roles_cache[role_name] = db_roles[role_name]
+        except Exception as e:
+            logger.warning(f"Error ensuring roles exist: {e}")
+            # Fallback to direct DB access
+            try:
+                client = PostgresClient()
+                session = client.get_session()
+                for role_name in self.ROLES:
+                    existing = session.query(Role).filter_by(name=role_name).first()
+                    if not existing:
+                        new_role = Role(
+                            name=role_name, description=f"Role: {role_name}"
+                        )
+                        session.add(new_role)
+                        session.commit()
+                        logger.info(f"Created role: {role_name}")
+                        self._roles_cache[role_name] = new_role
+                    else:
+                        self._roles_cache[role_name] = existing
+            except Exception as e2:
+                logger.error(f"Critical failure ensuring roles: {e2}")
 
     def _ensure_initiative_type_exists(self):
-        """Ensure 'Research Project' initiative type exists."""
+        """
+        Ensures that the 'Research Project' initiative type exists in the database.
+
+        Returns:
+            Any: The InitiativeType object from the database.
+        """
         type_name = "Research Project"
         initiative_type = None
 
@@ -104,184 +181,57 @@ class ProjectLoader:
 
         return initiative_type
 
-    def _normalize_name(self, name: str) -> str:
-        """
-        Normalizes person name for consistent identification:
-        - Removes accents
-        - Removes special characters (keeps only letters and spaces)
-        - Converts to uppercase
-        - Removes extra spaces
-        """
-        if not name:
-            return ""
-
-        # 1. Normalize Unicode (NFD) and remove accents
-        name_str = "".join(
-            c
-            for c in unicodedata.normalize("NFD", name)
-            if unicodedata.category(c) != "Mn"
-        )
-
-        # 2. Replace special characters with spaces and Uppercase
-        name_str = re.sub(r"[^A-Z\s]", " ", name_str.upper())
-
-        # 3. Trim and remove double spaces
-        return " ".join(name_str.split())
-
-    def _get_or_create_person(self, name: str) -> Optional[Person]:
-        """Find person by name using Normalization and Fuzzy Matching or create if not exists."""
-        if not name or not name.strip():
-            return None
-
-        name = name.strip()
-        normalized_input = self._normalize_name(name)
-
-        # 1. Exact Match in Cache (Normalized)
-        # Check if normalized input matches any normalized name in cache
-        for cached_name, person in self._persons_cache.items():
-            if self._normalize_name(cached_name) == normalized_input:
-                # Add this variation to cache for faster exact lookup next time
-                self._persons_cache[name] = person
-                return person
-
-        # 2. Fuzzy Matching in Cache
-        # If no exact match, try fuzzy matching against cached names
-        names_in_cache = list(self._persons_cache.keys())
-        if names_in_cache:
-            # Create a mapping of normalized names to original names for the cache
-            normalized_to_original = {
-                self._normalize_name(n): n for n in names_in_cache
-            }
-            normalized_list = list(normalized_to_original.keys())
-
-            # extractOne returns (match, score)
-            best_norm_match, score = process.extractOne(
-                normalized_input, normalized_list, scorer=fuzz.token_sort_ratio
-            )
-
-            # Threshold of 90% for considering it the same person
-            if score >= 90:
-                original_name = normalized_to_original[best_norm_match]
-                logger.info(
-                    f"Fuzzy match found: '{name}' matches '{original_name}' (score: {score})"
-                )
-                person = self._persons_cache[original_name]
-                # Add this variation to cache
-                self._persons_cache[name] = person
-                return person
-
-        # 3. Create new person (if no match found)
-        try:
-            person = self.person_controller.create_person(name=name)
-            self._persons_cache[name] = person
-            logger.debug(f"Created person: {name}")
-            return person
-        except Exception as e:
-            logger.warning(f"Failed to create person '{name}': {e}")
-            return None
-
-    def _get_role_id(self, role_name: str) -> Optional[int]:
-        """Get role ID by name."""
-        client = PostgresClient()
-        session = client.get_session()
-        role = session.query(Role).filter_by(name=role_name).first()
-        return role.id if role else None
-
     def _create_initiative_team(self, initiative, project_data: Dict[str, Any]) -> None:
-        """Create team and assign members for an initiative."""
-        # 1. Check if initiative already has a team linked
-        try:
-            # We can check via the controller if the initiative has a team
-            # Based on the Initiative schema, it might have a team_id or similar
-            # For now, we list teams and check name, which is what we have.
-            pass
-        except Exception:
-            pass
+        """
+        Creates a team for the given initiative and synchronizes its members based on data.
 
-        # Create team with same name as project
-        team_name = initiative.name[:200]  # Limit name length
+        This method identifies the team name (usually the initiative name), ensures its existence,
+        and then identifies coordinators, researchers, and students to be members.
+        It utilizes TeamSynchronizer for member tracking and synchronization.
 
-        try:
-            # Check if team already exists
-            existing_teams = self.team_controller.list_teams()
-            team = None
-            for t in existing_teams:
-                t_name = (
-                    t.name
-                    if hasattr(t, "name")
-                    else (t.get("name") if isinstance(t, dict) else "")
-                )
-                if t_name == team_name:
-                    team = t
-                    logger.debug(
-                        f"Team already exists for project: {team_name[:50]}..."
-                    )
-                    break
-
-            if not team:
-                team = self.team_controller.create_team(
-                    name=team_name,
-                    description=f"Equipe do projeto: {initiative.name[:100]}",
-                )
-                logger.info(f"Created team: {team_name[:50]}...")
-        except Exception as e:
-            logger.warning(f"Failed to manage team for '{team_name[:50]}': {e}")
+        Args:
+            initiative (Any): The Initiative entity.
+            project_data (Dict[str, Any]): Dictionary containing project member names.
+        """
+        team_name = initiative.name[:200]
+        team = self.team_synchronizer.ensure_team(
+            team_name=team_name,
+            description=f"Equipe do projeto: {initiative.name[:100]}"
+        )
+        
+        if not team:
             return
 
-        persons_added = 0
+        members_to_sync = []
+        strict = True # SigPesq requirement
+        start_date = project_data.get("start_date")
 
-        # Add coordinator
+        # 1. Map Names to Person objects using PersonMatcher
+        # Coordinator
         coord_name = project_data.get("coordinator_name")
         if coord_name:
-            person = self._get_or_create_person(coord_name)
-            if person:
-                try:
-                    self.team_controller.add_member(
-                        team_id=team.id,
-                        person_id=person.id,
-                        role="Coordinator",
-                        start_date=project_data.get("start_date"),
-                    )
-                    persons_added += 1
-                except Exception as e:
-                    logger.warning(f"Failed to add coordinator: {e}")
+            p = self.person_matcher.match_or_create(coord_name, strict_match=strict)
+            if p: members_to_sync.append((p, "Coordinator", start_date))
 
-        # Add researchers
+        # Researchers
         for name in project_data.get("researcher_names", []):
-            person = self._get_or_create_person(name)
-            if person:
-                try:
-                    self.team_controller.add_member(
-                        team_id=team.id,
-                        person_id=person.id,
-                        role="Researcher",
-                        start_date=project_data.get("start_date"),
-                    )
-                    persons_added += 1
-                except Exception as e:
-                    logger.warning(f"Failed to add researcher '{name}': {e}")
+            p = self.person_matcher.match_or_create(name, strict_match=strict)
+            if p: members_to_sync.append((p, "Researcher", start_date))
 
-        # Add students
+        # Students
         for name in project_data.get("student_names", []):
-            person = self._get_or_create_person(name)
-            if person:
-                try:
-                    self.team_controller.add_member(
-                        team_id=team.id,
-                        person_id=person.id,
-                        role="Student",
-                        start_date=project_data.get("start_date"),
-                    )
-                    persons_added += 1
-                except Exception as e:
-                    logger.warning(f"Failed to add student '{name}': {e}")
+            p = self.person_matcher.match_or_create(name, strict_match=strict)
+            if p: members_to_sync.append((p, "Student", start_date))
 
-        # Link team to initiative
+        # 2. Delegate synchronization to TeamSynchronizer
+        self.team_synchronizer.synchronize_members(team.id, members_to_sync)
+
+        # 3. Link team to initiative (remain in controller)
         try:
             self.controller.assign_team(initiative.id, team.id)
-            logger.debug(f"Assigned team to initiative (added {persons_added} members)")
         except Exception as e:
             logger.warning(f"Failed to assign team to initiative: {e}")
+
 
     def process_file(self, file_path: str) -> None:
         """
@@ -307,16 +257,13 @@ class ProjectLoader:
         logger.info(f"Found {len(existing_by_name)} existing initiatives in database")
 
         # Pre-load persons cache
-        logger.info("Loading persons cache...")
-        all_persons = self.person_controller.get_all()
-        self._persons_cache = {p.name: p for p in all_persons}
-        logger.info(f"Loaded {len(self._persons_cache)} persons into cache")
+        self.person_matcher.preload_cache()
+        initial_persons_count = len(self.person_matcher._persons_cache)
 
         created_count = 0
         updated_count = 0
         skipped_count = 0
         teams_created = 0
-        persons_created_count = len(self._persons_cache)
 
         for _, row in df.iterrows():
             row_dict = row.to_dict()
@@ -326,7 +273,7 @@ class ProjectLoader:
 
                 # 2. Check strict fields
                 if not project_data.get("title"):
-                    logger.warning(f"Skipping row due to missing 'title'")
+                    logger.warning("Skipping row due to missing 'title'")
                     skipped_count += 1
                     continue
 
@@ -348,6 +295,13 @@ class ProjectLoader:
                         end_date=project_data.get("end_date"),
                         initiative_type_name=self.initiative_type.name,
                     )
+                    # Force organization update
+                    try:
+                        initiative.organization_id = self.org_id
+                        self.controller.update(initiative)
+                    except Exception:
+                        pass
+
                     updated_count += 1
                 else:
                     # CREATE new initiative
@@ -360,6 +314,7 @@ class ProjectLoader:
                         end_date=project_data.get("end_date"),
                         description=project_data.get("description"),
                         initiative_type_id=self.initiative_type.id,
+                        organization_id=self.org_id,
                     )
 
                     if "metadata" in project_data:
@@ -378,7 +333,7 @@ class ProjectLoader:
                 skipped_count += 1
                 continue
 
-        new_persons_count = len(self._persons_cache) - persons_created_count
+        new_persons_count = len(self.person_matcher._persons_cache) - initial_persons_count
 
         logger.info(
             f"Project ingestion complete: "
