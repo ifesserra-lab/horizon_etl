@@ -7,10 +7,23 @@ from .base import ProjectMappingStrategy
 
 
 class SigPesqProjectMappingStrategy(ProjectMappingStrategy):
-    """Strategy for mapping SigPesq Project Excel data."""
+    """
+    Strategy for mapping SigPesq Project Excel data to canonical domain models.
+    
+    This strategy handles the specific column names and formats found in the SigPesq
+    research project exports, including multi-value name parsing and date handling.
+    """
 
     def map_row(self, row: dict) -> Dict[str, Any]:
-        """Maps SigPesq Excel columns to standardized keys for Project."""
+        """
+        Maps a Single SigPesq Excel row to a standardized dictionary of initiative attributes.
+
+        Args:
+            row (dict): A dictionary representing a row from the Excel file.
+
+        Returns:
+            Dict[str, Any]: Standardized project data with keys like 'title', 'coordinator_name', etc.
+        """
         return {
             "title": row.get("Titulo", row.get("Título")),
             "status": row.get("Situacao", row.get("Situação")),
@@ -24,13 +37,29 @@ class SigPesqProjectMappingStrategy(ProjectMappingStrategy):
         }
 
     def _parse_names(self, names_str: Any) -> List[str]:
-        """Parse semicolon-separated names into a list."""
+        """
+        Parses a semicolon-separated string of names into a trimmed list.
+
+        Args:
+            names_str (Any): The input string or NaN value.
+
+        Returns:
+            List[str]: A list of non-empty name strings.
+        """
         if not names_str or pd.isna(names_str):
             return []
         return [name.strip() for name in str(names_str).split(";") if name.strip()]
 
     def _parse_date(self, date_val: Any):
-        """Helper to parse dates from various formats."""
+        """
+        Attempts to parse a date from various types and string formats.
+
+        Args:
+            date_val (Any): Input date value (datetime, string, or NaN).
+
+        Returns:
+            Optional[datetime]: The parsed datetime object, or None if parsing fails.
+        """
         if pd.isna(date_val) or not date_val:
             return None
 

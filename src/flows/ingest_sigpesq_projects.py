@@ -11,7 +11,11 @@ load_dotenv()
 @task
 def persist_projects():
     """
-    Finds the latest Projects Excel file and loads it into the database as Initiatives.
+    Finds the latest Projects Excel file and loads it into the database.
+    
+    This task identifies the most recent file in the raw SigPesq data directory,
+    initializes a ProjectLoader with the SigPesq mapping strategy, and processes
+     the file to persist initiatives and their respective teams.
     """
     logger = get_run_logger()
     import glob
@@ -36,7 +40,11 @@ def persist_projects():
 @flow(name="Ingest SigPesq Projects")
 def ingest_projects_flow() -> None:
     """
-    Flow specifically for ingesting Research Projects (Initiatives).
+    Prefect flow for ingesting Research Projects (Initiatives) from SigPesq.
+    
+    This flow performs the extraction of project data from the SigPesq data source
+    using an adapter and then triggers the persist_projects task to load the 
+    extracted data into the canonical database.
     """
     logger = get_run_logger()
     logger.info("Initializing SigPesq Projects Ingestion Flow")
