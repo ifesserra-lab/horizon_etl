@@ -304,6 +304,32 @@ Estender o fluxo de exportação canônica para incluir **Iniciativas** e **Tipo
 - **Deploy**:
     - [ ] Tasks integradas ao flow `Export Canonical Data Flow`.
 
+### US-016 – Analytics de Iniciativas (Mart)
+```yaml
+id: US-016
+milestone: R2
+prioridade: Alta
+tamanho: 3
+origem: [User Req, RF-13]
+tags: [type:feature, area:core, area:mart]
+dependencias: [US-013, US-015]
+modulos_afetados: [src/core/logic/mart_generator.py, src/flows]
+```
+
+#### Descrição
+Desenvolver a lógica de agregação para gerar o JSON de estatísticas de nível organizacional, incluindo totais de projetos, evolução temporal (entradas/saídas por ano) e composição demográfica das equipes (Pesquisadores vs Estudantes).
+
+#### Critérios de Aceitação
+- **Funcional**:
+    - [ ] `total_projects`: Contagem total de iniciativas.
+    - [ ] `active_projects`: Iniciativas com status que indique atividade (ou sem data de fim).
+    - [ ] `total_participants`: Contagem única de pessoas vinculadas a equipes.
+    - [ ] `evolution`: Lista por ano com contagem de `start` e `end`.
+    - [ ] `team_composition`: Contagem segmentada por roles (Researcher, Student).
+- **Deploy**:
+    - [ ] Comando `analytics_mart` integrado ao `app.py`.
+    - [ ] Arquivo salvo em `src/data/marts/initiatives_analytics_mart.json`.
+
 
 ---
 

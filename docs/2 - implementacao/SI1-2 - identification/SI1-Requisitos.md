@@ -42,6 +42,7 @@ O **Horizon ETL** é uma infraestrutura de dados que automatiza a coleta de info
 | **RF-10** | O sistema deve identificar e sincronizar membros egressos do CNPq, registrando corretamente as datas de início e fim de participação. | Membros egressos identificados e datas de participação (início/fim) persistidas no Supabase. | User Req. |
 | **RF-11** | O sistema deve gerar um "Mart JSON" que consolida as Áreas de Pesquisa com seus Grupos e Campi vinculados, permitindo filtragem por campus. | Arquivo `knowledge_areas_mart.json` gerado com estatísticas por área. Filtro de campus suportado. | User Req. |
 | **RF-12** | O sistema deve criar equipes automaticamente durante a ingestão de projetos SigPesq, extraindo coordenadores, pesquisadores e estudantes das colunas do Excel. | Equipes criadas com membros associados aos respectivos roles (Coordinator, Researcher, Student). Persons criadas ou reutilizadas (idempotente com Fuzzy Matching). | User Req. |
+| **RF-13** | O sistema deve gerar um "Mart JSON" de estatísticas de iniciativa, consolidando totais, evolução anual e composição de equipes. | Arquivo `initiatives_analytics_mart.json` gerado com dados de resumo, evolução e composição. | User Req. |
 
 ---
 

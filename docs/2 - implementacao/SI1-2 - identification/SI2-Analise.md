@@ -79,6 +79,17 @@ flowchart TD
         Res -.-> f4["researchers_canonical.json"]
         RG -.-> f5["research_groups_canonical.json"]
     end
+
+### 3.6 Fluxo de Geração de Mart de Analytics
+```mermaid
+flowchart TD
+    DB[(Database)] --> Initiatives[Fetch Initiatives]
+    DB --> TeamMembers[Fetch Team Members]
+    Initiatives --> Summary[Calculate Totals/Active]
+    Initiatives --> Evolution[Analyze Start/End Dates by Year]
+    TeamMembers --> Composition[Count by Role: Researcher/Student]
+    Summary & Evolution & Composition --> SaveMart[Save initiatives_analytics_mart.json]
+```
 ```
 
 ### 3.5 Pipeline Unificado (E2E)
@@ -143,3 +154,5 @@ erDiagram
 | RF-02 (Lattes) | Entidade `RESEARCHER`, `PUBLICATION`, Fluxo 3.2 |
 | RF-08 (Canonical JSON) | Fluxo de Exportação (User Req. logic) |
 | RF-09 (CNPq Update) | Fluxo 3.2, dgp_cnpq_lib |
+| RF-11 (KA Mart) | Fluxo de Geração de Mart (RN-06) |
+| RF-13 (Analytics Mart) | Fluxo 3.6, Geração de Mart |
