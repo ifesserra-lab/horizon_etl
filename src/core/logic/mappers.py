@@ -101,10 +101,8 @@ class SigPesqMapper:
 
             return ResearchGroup(
                 name=name,
-                leader=leader,
-                area=area,
-                certified=certified,
-                metadata={"original_source": "sigpesq"},
+                # metadata mapping removed as it is not supported in v0.4.0 entities
+                # keeping variables for checking if needed later: leader, area, certified
             )
         except Exception as e:
             logger.error(f"Error mapping research group: {e}")
@@ -119,7 +117,9 @@ class SigPesqMapper:
             ).strip()  # e.g. Bolsista, Coordenador
 
             return Researcher(
-                name=name, role=role, metadata={"original_source": "sigpesq"}
+                name=name,
+                # metadata mapping removed as it is not supported in v0.4.0 entities
+                # keeping variables for checking if needed later: role
             )
         except Exception as e:
             logger.error(f"Error mapping researcher: {e}")
