@@ -12,6 +12,7 @@ from eo_lib import (
 from eo_lib.domain import Role
 from eo_lib.infrastructure.database.postgres_client import PostgresClient
 from loguru import logger
+from research_domain import ResearchGroupController, CampusController
 
 from src.core.logic.person_matcher import PersonMatcher
 from src.core.logic.team_synchronizer import TeamSynchronizer
@@ -48,6 +49,8 @@ class ProjectLoader:
         self.controller = InitiativeController()
         self.person_controller = PersonController()
         self.team_controller = TeamController()
+        self.rg_controller = ResearchGroupController()
+        self.campus_controller = CampusController()
 
         # Service Classes
         self.person_matcher = PersonMatcher(self.person_controller)
@@ -331,6 +334,13 @@ class ProjectLoader:
                 if initiative:
                     self._create_initiative_team(initiative, project_data)
                     teams_created += 1
+                    
+                    # 5. Link to Research Group
+                    rg_name = project_data.get("research_group_name")
+                    campus_name = project_data.get("campus_name")
+                    
+                    if rg_name and isinstance(rg_name, str) and rg_name.strip():
+                         self._link_research_group(initiative, rg_name, campus_name)
 
             except Exception as e:
                 logger.warning(f"Skipping project row due to error: {e}")
@@ -346,3 +356,132 @@ class ProjectLoader:
             f"{created_count} created, {updated_count} updated, {skipped_count} skipped | "
             f"{teams_created} teams created, {new_persons_count} new persons"
         )
+    
+    def _resolve_campus(self, campus_name: Optional[str]) -> Optional[int]:
+        """
+        Resolves a campus name to an ID. If not found or name is empty, tries to find 'Reitoria' or returns None.
+        """
+        if not campus_name or not isinstance(campus_name, str):
+            # Default to Reitoria or just pick the first one associated with IFES
+            campus_name = "Reitoria"
+            
+        try:
+            campuses = self.campus_controller.get_all()
+            
+            # 1. Exact/Normalized match
+            def normalize(s):
+                return unicodedata.normalize("NFD", s).encode("ascii", "ignore").decode("utf-8").upper().strip()
+                
+            target_norm = normalize(campus_name)
+            
+            for c in campuses:
+                c_name = c.name if hasattr(c, "name") else c.get("name")
+                if c_name and normalize(c_name) == target_norm:
+                    return c.id if hasattr(c, "id") else c.get("id")
+                    
+            # 2. If not found, create? Or return None?
+            # Better to create if it looks like a valid name
+            if len(campus_name) > 3:
+                logger.info(f"Creating missing Campus: {campus_name}")
+                new_campus = self.campus_controller.create_campus(
+                     name=campus_name,
+                     organization_id=self.org_id
+                )
+                return new_campus.id if hasattr(new_campus, "id") else new_campus.get("id")
+                
+        except Exception as e:
+            logger.warning(f"Error resolving campus '{campus_name}': {e}")
+            
+        return None
+
+    def _link_research_group(self, initiative, rg_name: str, campus_name: Optional[str] = None) -> None:
+        """
+        Links an initiative to a Research Group by name. Creates it if missing using campus_name.
+        """
+        try:
+            # Simple linear search for now as get_by_name might not exist or be efficient
+            # In a production scenario with many groups, we should cache this mapping.
+            # But since we have few groups (ingested in US-007), fetching all might be fine.
+            
+            # TODO: Improve efficiency with a cache if needed
+            all_groups = self.rg_controller.get_all()
+            target_group = None
+            
+            # Normalize for comparison
+            def normalize(s):
+                return unicodedata.normalize("NFD", s).encode("ascii", "ignore").decode("utf-8").upper().strip()
+
+            target_norm = normalize(rg_name)
+            
+            for group in all_groups:
+                g_name = group.name if hasattr(group, "name") else group.get("name")
+                if g_name and normalize(g_name) == target_norm:
+                    target_group = group
+                    break
+            
+            if not target_group:
+                logger.info(f"Research Group '{rg_name}' not found. Creating new group...")
+                
+                campus_id = self._resolve_campus(campus_name)
+                
+                if not campus_id:
+                     logger.warning(f"Could not resolve campus for RG '{rg_name}'. Cannot create.")
+                     return
+
+                try:
+                    # Create new Research Group
+                    target_group = self.rg_controller.create_research_group(
+                        name=rg_name,
+                        description=f"Grupo de Pesquisa importado do SigPesq: {rg_name}",
+                        organization_id=self.org_id,
+                        campus_id=campus_id
+                    )
+                    logger.info(f"Created new Research Group: {rg_name} (Campus ID: {campus_id})")
+                except Exception as e_create:
+                    logger.error(f"Failed to create Research Group '{rg_name}': {e_create}")
+                    return
+
+            if target_group:
+                # WORKAROUND: eo_lib.Team is not configured for polymorphism with ResearchGroup.
+                # So we cannot add a ResearchGroup object to Initiative.teams (which expects Team).
+                # However, ResearchGroup inherits from Team (Joined Inheritance likely), so they share keys.
+                # We fetch the underlying Team object by ID and link that instead.
+                
+                try:
+                     # Access ID safely whether it's an object or dict (if controller returns dict)
+                     tg_id = target_group.id if hasattr(target_group, "id") else target_group.get("id")
+                     
+                     team_proxy = self.team_controller.get_by_id(tg_id)
+                     if team_proxy:
+                         
+                         # Check if already linked
+                         is_linked = False
+                         # We can check existing initiatives on the team proxy
+                         # Note: relationship might be named 'initiatives' on Team too.
+                         # Let's check the inspect output: Team has backref 'initiatives' from Initiative.teams
+                         
+                         if hasattr(team_proxy, "initiatives"):
+                             for init in team_proxy.initiatives:
+                                 if init.id == initiative.id:
+                                     is_linked = True
+                                     break
+                         
+                         if not is_linked:
+                             if hasattr(team_proxy, "initiatives"):
+                                 team_proxy.initiatives.append(initiative)
+                                 self.team_controller.update(team_proxy)
+                                 logger.info(f"Linked Initiative '{initiative.name[:30]}...' to Research Group '{rg_name}' (via Team {tg_id})")
+                             else:
+                                  # Fallback: try adding team to initiative
+                                  initiative.teams.append(team_proxy)
+                                  self.controller.update(initiative)
+                                  logger.info(f"Linked Initiative '{initiative.name[:30]}...' to Research Group '{rg_name}' (via Initiative.teams)")
+
+                     else:
+                         logger.warning(f"Could not find base Team for Research Group {tg_id}")
+                         
+                except Exception as e_link:
+                     logger.warning(f"Failed to link Team proxy for RG: {e_link}")
+                
+        except Exception as e:
+            logger.warning(f"Failed to link Research Group '{rg_name}': {e}")

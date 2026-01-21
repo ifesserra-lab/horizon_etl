@@ -34,6 +34,13 @@ class SigPesqProjectMappingStrategy(ProjectMappingStrategy):
             "coordinator_name": row.get("Coordenador"),
             "researcher_names": self._parse_names(row.get("Pesquisadores")),
             "student_names": self._parse_names(row.get("Estudantes")),
+            "research_group_name": row.get("GrupoPesquisa"),
+            "metadata": {
+                "external_partner": row.get("ParceiroDemandante"),
+                "knowledge_area": row.get("AreaConhecimento"),
+                "keywords": row.get("PalavraChave"),
+            },
+            "campus_name": row.get("CampusExecucao"),
         }
 
     def _parse_names(self, names_str: Any) -> List[str]:
