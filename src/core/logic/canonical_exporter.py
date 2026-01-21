@@ -7,6 +7,7 @@ from research_domain import (
     CampusController,
     KnowledgeAreaController,
     ResearcherController,
+    ResearchGroupController,
 )
 
 from src.core.ports.export_sink import IExportSink
@@ -127,6 +128,18 @@ class CanonicalDataExporter:
 
         team_ctrl = TeamController()
         initiatives = self.initiative_ctrl.get_all()
+        rg_ctrl = ResearchGroupController()
+        # Pre-fetch all Research Groups for finding matches
+        # Map <team_id> -> <ResearchGroup>
+        rgs_by_team_id = {}
+        try:
+            all_rgs = rg_ctrl.get_all()
+            for rg in all_rgs:
+                 rg_id = getattr(rg, "id", None)
+                 if rg_id:
+                     rgs_by_team_id[rg_id] = rg
+        except Exception as e:
+            logger.warning(f"Failed to fetch Research Groups for export mapping: {e}")
 
         # Normalize types and orgs to handle both dicts and objects
         raw_types = self.initiative_ctrl.list_initiative_types()
@@ -193,11 +206,23 @@ class CanonicalDataExporter:
 
             # Enriched Team
             team_list = []
+            
+            # Identify Research Group
+            research_group_data = None
+            
             try:
                 teams = self.initiative_ctrl.get_teams(item.id)
                 for t_dict in teams:
                     t_id = t_dict.get("id")
                     if t_id:
+                        # Check if this team is a Research Group
+                        if t_id in rgs_by_team_id and not research_group_data:
+                            rg_obj = rgs_by_team_id[t_id]
+                            research_group_data = {
+                                "id": getattr(rg_obj, "id", None),
+                                "name": getattr(rg_obj, "name", "Unknown"),
+                            }
+                        
                         members = team_ctrl.get_members(t_id)
 
                         # Aggregate roles by person
@@ -250,6 +275,7 @@ class CanonicalDataExporter:
                     "organization": org_data,
                     "parent_id": item.parent_id,
                     "team": team_list,
+                    "research_group": research_group_data,
                 }
             )
 
