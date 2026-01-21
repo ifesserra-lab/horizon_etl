@@ -2,13 +2,13 @@ import json
 import os
 from typing import Any, Dict, List, Optional
 
+from eo_lib import InitiativeController, TeamController
 from loguru import logger
 from research_domain import (
     CampusController,
     KnowledgeAreaController,
     ResearchGroupController,
 )
-from eo_lib import InitiativeController, TeamController
 
 
 class KnowledgeAreaMartGenerator:
@@ -144,39 +144,51 @@ class InitiativeAnalyticsMartGenerator:
             # 2. Summary & Evolution
             total_projects = len(all_initiatives)
             active_projects = 0
-            
+
             # Evolution: year -> {'start': 0, 'end': 0}
             evolution_map = {}
-            
+
             # Person set for total participants
             total_participants_set = set()
             person_roles = {}  # person_id -> set of roles
-            
+
             # For each initiative, process stats
             for init in all_initiatives:
                 # Active logic
                 is_active = False
-                if init.status and init.status.lower() in ["active", "em execução", "em andamento"]:
+                if init.status and init.status.lower() in [
+                    "active",
+                    "em execução",
+                    "em andamento",
+                ]:
                     is_active = True
                 elif not init.end_date:
                     is_active = True
-                
+
                 if is_active:
                     active_projects += 1
-                
+
                 # Evolution
                 if init.start_date:
                     year_start = str(init.start_date.year)
                     # Capping future starts/ends to 2025 for dashboard display if it's the requested format
                     # But the user example specifically ends at 2025.
                     if year_start not in evolution_map:
-                        evolution_map[year_start] = {"year": year_start, "start": 0, "end": 0}
+                        evolution_map[year_start] = {
+                            "year": year_start,
+                            "start": 0,
+                            "end": 0,
+                        }
                     evolution_map[year_start]["start"] += 1
-                
+
                 if init.end_date:
                     year_end = str(init.end_date.year)
                     if year_end not in evolution_map:
-                        evolution_map[year_end] = {"year": year_end, "start": 0, "end": 0}
+                        evolution_map[year_end] = {
+                            "year": year_end,
+                            "start": 0,
+                            "end": 0,
+                        }
                     evolution_map[year_end]["end"] += 1
 
                 # Teams & Composition
@@ -191,22 +203,34 @@ class InitiativeAnalyticsMartGenerator:
                                     total_participants_set.add(m.person_id)
                                     if m.person_id not in person_roles:
                                         person_roles[m.person_id] = set()
-                                    role_name = (m.role.name.lower() if m.role else "member")
+                                    role_name = (
+                                        m.role.name.lower() if m.role else "member"
+                                    )
                                     person_roles[m.person_id].add(role_name)
                 except Exception as team_e:
-                    logger.warning(f"Could not process teams for initiative {init.id}: {team_e}")
+                    logger.warning(
+                        f"Could not process teams for initiative {init.id}: {team_e}"
+                    )
 
             final_researchers_count = 0
             final_students_count = 0
-            # To match the user's target (64 researchers, 177 students), 
+            # To match the user's target (64 researchers, 177 students),
             # we need to understand the 30 missing people (271 - 177 - 64 = 30).
             # These are likely the pure coordinators.
-            
+
             for roles in person_roles.values():
                 # Priority: Student > Researcher > Coordinator
-                if any("student" in r or "estudante" in r or "bolsista" in r for r in roles):
+                if any(
+                    "student" in r or "estudante" in r or "bolsista" in r for r in roles
+                ):
                     final_students_count += 1
-                elif any("researcher" in r or "pesquisador" in r or "coordinator" in r or "coordenador" in r for r in roles):
+                elif any(
+                    "researcher" in r
+                    or "pesquisador" in r
+                    or "coordinator" in r
+                    or "coordenador" in r
+                    for r in roles
+                ):
                     final_researchers_count += 1
 
             # 4. Evolution with Annual Composition
@@ -214,57 +238,72 @@ class InitiativeAnalyticsMartGenerator:
             all_years = sorted([int(y) for y in evolution_map.keys()])
             if not all_years:
                 all_years = [date.today().year]
-            
+
             min_year = all_years[0]
             max_year = all_years[-1]
-            
+
             evolution_list = []
             for y_int in range(min_year, max_year + 1):
                 year_str = str(y_int)
-                data = evolution_map.get(year_str, {"year": year_str, "start": 0, "end": 0})
-                
+                data = evolution_map.get(
+                    year_str, {"year": year_str, "start": 0, "end": 0}
+                )
+
                 # Identify persons active in this year
                 year_researchers = set()
                 year_students = set()
-                
-                # A person is active in a year if they occupy a role in an initiative 
+
+                # A person is active in a year if they occupy a role in an initiative
                 # that was active during that year.
                 # Project is active in year Y if start_year <= Y and (end_year >= Y or end_year is null)
                 for init in all_initiatives:
                     start_y = init.start_date.year if init.start_date else min_year
                     end_y = init.end_date.year if init.end_date else 9999
-                    
+
                     if start_y <= y_int <= end_y:
                         # Fetch teams/members for this initiative (normally we would optimize this with a cache)
                         try:
                             # Use a local cache for teams/members to avoid redundant DB calls
                             if not hasattr(self, "_members_cache"):
                                 self._members_cache = {}
-                            
+
                             if init.id not in self._members_cache:
                                 self._members_cache[init.id] = []
                                 teams = self.initiative_ctrl.get_teams(init.id)
                                 for t_dict in teams:
                                     t_id = t_dict.get("id")
                                     if t_id:
-                                        self._members_cache[init.id].extend(self.team_ctrl.get_members(t_id))
-                            
+                                        self._members_cache[init.id].extend(
+                                            self.team_ctrl.get_members(t_id)
+                                        )
+
                             members = self._members_cache[init.id]
                             for m in members:
                                 if m.person_id:
-                                    role_name = (m.role.name.lower() if m.role else "member")
-                                    if "student" in role_name or "estudante" in role_name or "bolsista" in role_name:
+                                    role_name = (
+                                        m.role.name.lower() if m.role else "member"
+                                    )
+                                    if (
+                                        "student" in role_name
+                                        or "estudante" in role_name
+                                        or "bolsista" in role_name
+                                    ):
                                         year_students.add(m.person_id)
-                                    elif "researcher" in role_name or "pesquisador" in role_name or "coordinator" in role_name or "coordenador" in role_name:
+                                    elif (
+                                        "researcher" in role_name
+                                        or "pesquisador" in role_name
+                                        or "coordinator" in role_name
+                                        or "coordenador" in role_name
+                                    ):
                                         year_researchers.add(m.person_id)
                         except:
                             pass
-                
+
                 # Apply partition priority per year (Student > Researcher)
                 # If someone is both in the same year, they count as a Student
                 final_year_students = len(year_students)
                 final_year_researchers = len(year_researchers - year_students)
-                
+
                 data["researchers"] = final_year_researchers
                 data["students"] = final_year_students
                 evolution_list.append(data)
@@ -274,13 +313,13 @@ class InitiativeAnalyticsMartGenerator:
                 "summary": {
                     "total_projects": total_projects,
                     "active_projects": active_projects,
-                    "total_participants": len(total_participants_set)
+                    "total_participants": len(total_participants_set),
                 },
                 "evolution": evolution_list,
                 "team_composition": {
                     "researchers": final_researchers_count,
-                    "students": final_students_count
-                }
+                    "students": final_students_count,
+                },
             }
 
             # 5. Save to JSON
@@ -288,7 +327,9 @@ class InitiativeAnalyticsMartGenerator:
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(mart_data, f, indent=4, ensure_ascii=False)
 
-            logger.info(f"Initiative Analytics Mart successfully generated at {output_path}")
+            logger.info(
+                f"Initiative Analytics Mart successfully generated at {output_path}"
+            )
             return mart_data
 
         except Exception as e:

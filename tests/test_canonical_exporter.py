@@ -55,8 +55,8 @@ def test_export_all_orchestrates_exports():
             mock_makedirs.assert_called_once()
 
             # Verify Sink Calls
-            # Should be called 4 times
-            assert mock_sink.export.call_count == 4
+            # Should be called 6 times (Org, Campus, KA, Researcher, Initiatives, InitiativeTypes)
+            assert mock_sink.export.call_count == 6
 
             # Check call args to verify content
             calls = mock_sink.export.call_args_list

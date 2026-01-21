@@ -1,14 +1,16 @@
 import re
 import unicodedata
 from typing import Dict, Optional
+
+from eo_lib import Person, PersonController
 from loguru import logger
 from thefuzz import fuzz, process
-from eo_lib import Person, PersonController
+
 
 class PersonMatcher:
     """
     Service responsible for matching incoming names with existing Person records.
-    
+
     This class handles name normalization, fuzzy matching, and caching to ensure
     idempotency and efficiency when identifying or creating persons during ingestion.
     """
@@ -26,7 +28,7 @@ class PersonMatcher:
     def preload_cache(self):
         """
         Preloads the internal persons cache from the database.
-        
+
         Fetches all persons and populates _persons_cache using their names.
         """
         logger.info("Pre-loading persons cache...")
@@ -67,7 +69,9 @@ class PersonMatcher:
         # 3. Trim and remove double spaces
         return " ".join(name_str.split())
 
-    def match_or_create(self, name: str, strict_match: bool = False) -> Optional[Person]:
+    def match_or_create(
+        self, name: str, strict_match: bool = False
+    ) -> Optional[Person]:
         """
         Finds a person by name using normalization and (optionally) fuzzy matching.
         Creates a new Person if no match is found.
@@ -95,9 +99,7 @@ class PersonMatcher:
         # 2. Fuzzy Matching in Cache
         names_in_cache = list(self._persons_cache.keys())
         if names_in_cache:
-            normalized_to_original = {
-                self.normalize_name(n): n for n in names_in_cache
-            }
+            normalized_to_original = {self.normalize_name(n): n for n in names_in_cache}
             normalized_list = list(normalized_to_original.keys())
 
             best_norm_match, score = process.extractOne(
@@ -108,10 +110,14 @@ class PersonMatcher:
             if score >= 90:
                 # If strict match is enabled, we only accept 100% score (same tokens)
                 if strict_match and score < 100:
-                    logger.debug(f"Fuzzy match '{best_norm_match}' ignored due to strict matching policy (score: {score})")
+                    logger.debug(
+                        f"Fuzzy match '{best_norm_match}' ignored due to strict matching policy (score: {score})"
+                    )
                 else:
                     original_name = normalized_to_original[best_norm_match]
-                    logger.info(f"Fuzzy match found: '{name}' matches '{original_name}' (score: {score})")
+                    logger.info(
+                        f"Fuzzy match found: '{name}' matches '{original_name}' (score: {score})"
+                    )
                     person = self._persons_cache[original_name]
                     self._persons_cache[name] = person
                     return person

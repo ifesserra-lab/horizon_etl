@@ -20,11 +20,11 @@ from src.core.logic.team_synchronizer import TeamSynchronizer
 class ProjectLoader:
     """
     Orchestrates the loading of project initiatives from external sources (e.g., Excel).
-    
+
     This class manages the end-to-end ingestion flow, including ensuring necessary
     domain entities (Organization, Roles, InitiativeTypes) exist, and delegating
     the heavy lifting of person matching and team synchronization to specialized services.
-    
+
     Attributes:
         mapping_strategy (BaseMappingStrategy): The strategy for parsing source columns.
         db_client (PostgresClient): Client for database interactions.
@@ -52,9 +52,11 @@ class ProjectLoader:
         # Service Classes
         self.person_matcher = PersonMatcher(self.person_controller)
         self._roles_cache: Dict[str, Role] = {}
-        self._ensure_roles_exist() # Populates _roles_cache
+        self._ensure_roles_exist()  # Populates _roles_cache
 
-        self.team_synchronizer = TeamSynchronizer(self.team_controller, self._roles_cache)
+        self.team_synchronizer = TeamSynchronizer(
+            self.team_controller, self._roles_cache
+        )
 
         # Ensure "Research Project" type exists
         self.initiative_type = self._ensure_initiative_type_exists()
@@ -88,8 +90,8 @@ class ProjectLoader:
         """Create Coordinator, Researcher, Student roles if they don't exist and populate cache."""
         from research_domain import RoleController
 
-        role_ctrl = RoleController()
         try:
+            role_ctrl = RoleController()
             existing_roles = role_ctrl.get_all()
 
             # Map existing roles by name
@@ -196,14 +198,14 @@ class ProjectLoader:
         team_name = initiative.name[:200]
         team = self.team_synchronizer.ensure_team(
             team_name=team_name,
-            description=f"Equipe do projeto: {initiative.name[:100]}"
+            description=f"Equipe do projeto: {initiative.name[:100]}",
         )
-        
+
         if not team:
             return
 
         members_to_sync = []
-        strict = True # SigPesq requirement
+        strict = True  # SigPesq requirement
         start_date = project_data.get("start_date")
 
         # 1. Map Names to Person objects using PersonMatcher
@@ -211,17 +213,20 @@ class ProjectLoader:
         coord_name = project_data.get("coordinator_name")
         if coord_name:
             p = self.person_matcher.match_or_create(coord_name, strict_match=strict)
-            if p: members_to_sync.append((p, "Coordinator", start_date))
+            if p:
+                members_to_sync.append((p, "Coordinator", start_date))
 
         # Researchers
         for name in project_data.get("researcher_names", []):
             p = self.person_matcher.match_or_create(name, strict_match=strict)
-            if p: members_to_sync.append((p, "Researcher", start_date))
+            if p:
+                members_to_sync.append((p, "Researcher", start_date))
 
         # Students
         for name in project_data.get("student_names", []):
             p = self.person_matcher.match_or_create(name, strict_match=strict)
-            if p: members_to_sync.append((p, "Student", start_date))
+            if p:
+                members_to_sync.append((p, "Student", start_date))
 
         # 2. Delegate synchronization to TeamSynchronizer
         self.team_synchronizer.synchronize_members(team.id, members_to_sync)
@@ -231,7 +236,6 @@ class ProjectLoader:
             self.controller.assign_team(initiative.id, team.id)
         except Exception as e:
             logger.warning(f"Failed to assign team to initiative: {e}")
-
 
     def process_file(self, file_path: str) -> None:
         """
@@ -333,7 +337,9 @@ class ProjectLoader:
                 skipped_count += 1
                 continue
 
-        new_persons_count = len(self.person_matcher._persons_cache) - initial_persons_count
+        new_persons_count = (
+            len(self.person_matcher._persons_cache) - initial_persons_count
+        )
 
         logger.info(
             f"Project ingestion complete: "

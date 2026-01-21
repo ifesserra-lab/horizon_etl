@@ -15,11 +15,11 @@ from src.core.ports.export_sink import IExportSink
 class CanonicalDataExporter:
     """
     Exports domain entities from the database to canonical JSON files.
-    
+
     This class orchestrates the extraction of various entities (Organizations, Campuses,
     Knowledge Areas, Researchers, Initiatives) using their respective controllers
     and serializes them into a standardized format for external consumption.
-    
+
     Attributes:
         sink (IExportSink): The destination for the exported data (e.g., File, S3).
         org_ctrl (OrganizationController): Controller for organizations.
@@ -116,7 +116,7 @@ class CanonicalDataExporter:
     def export_initiatives(self, output_path: str):
         """
         Exports enriched initiatives (with types, organizations, and team members) to a JSON file.
-        
+
         This method aggregates data from multiple controllers to provide a complete
         view of each initiative, including its team structure with roles.
 
@@ -242,7 +242,7 @@ class CanonicalDataExporter:
                     "description": item.description,
                     "start_date": (
                         item.start_date.isoformat() if item.start_date else None
-                     ),
+                    ),
                     "end_date": item.end_date.isoformat() if item.end_date else None,
                     "initiative_type_id": item.initiative_type_id,
                     "initiative_type": type_data,

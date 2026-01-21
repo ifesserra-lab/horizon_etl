@@ -9,7 +9,7 @@ from .base import ProjectMappingStrategy
 class SigPesqProjectMappingStrategy(ProjectMappingStrategy):
     """
     Strategy for mapping SigPesq Project Excel data to canonical domain models.
-    
+
     This strategy handles the specific column names and formats found in the SigPesq
     research project exports, including multi-value name parsing and date handling.
     """

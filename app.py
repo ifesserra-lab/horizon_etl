@@ -4,10 +4,12 @@ from dotenv import load_dotenv
 from loguru import logger
 
 from src.flows.export_canonical_data import export_canonical_data_flow
+from src.flows.export_initiatives_analytics_mart import (
+    export_initiatives_analytics_mart_flow,
+)
 from src.flows.export_knowledge_areas_mart import export_knowledge_areas_mart_flow
 from src.flows.ingest_sigpesq import ingest_sigpesq_flow
 from src.flows.sync_cnpq_groups import sync_cnpq_groups_flow
-from src.flows.export_initiatives_analytics_mart import export_initiatives_analytics_mart_flow
 from src.flows.unified_pipeline import full_ingestion_pipeline
 
 # Load environment variables
