@@ -276,6 +276,14 @@ class CanonicalDataExporter:
                     "parent_id": item.parent_id,
                     "team": team_list,
                     "research_group": research_group_data,
+                    "external_partner": (
+                        item.metadata.get("external_partner") if item.metadata else None
+                    ),
+                    "external_research_group": (
+                        item.metadata.get("external_research_group")
+                        if item.metadata
+                        else None
+                    ),
                 }
             )
 

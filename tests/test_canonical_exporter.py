@@ -70,7 +70,12 @@ def test_export_all_orchestrates_exports():
         mock_init.organization_id = 1
         mock_init.parent_id = None
         mock_init.status = "active"
+        mock_init.status = "active"
         mock_init.description = "desc"
+        mock_init.metadata = {
+            "external_partner": "Partner A",
+            "external_research_group": "Group B",
+        }
         
         mock_init_instance.get_all.return_value = [mock_init]
         mock_init_instance.list_initiative_types.return_value = [{"id": 1, "name": "Type1"}]
