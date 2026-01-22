@@ -37,6 +37,7 @@ class SigPesqProjectMappingStrategy(ProjectMappingStrategy):
             "research_group_name": row.get("GrupoPesquisa"),
             "metadata": {
                 "external_partner": row.get("ParceiroDemandante"),
+                "external_research_group": row.get("GrupoPesquisaExterno"),
                 "knowledge_area": row.get("AreaConhecimento"),
                 "keywords": row.get("PalavraChave"),
             },
