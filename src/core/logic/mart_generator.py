@@ -141,6 +141,31 @@ class InitiativeAnalyticsMartGenerator:
             all_initiatives = self.initiative_ctrl.get_all()
             logger.info(f"Loaded {len(all_initiatives)} initiatives.")
 
+            # Pre-fetch Knowledge Areas mapping for Initiatives (Optimization)
+            initiative_kas_map = {}
+            try:
+                from sqlalchemy import text
+                # Access the session from the repo inside the service inside the controller
+                # This is a bit internal-dependent but necessary without eager loading support in generic controller
+                session = self.initiative_ctrl._service._repository._session
+                
+                i_query = text("""
+                    SELECT ika.initiative_id, ka.id, ka.name
+                    FROM initiative_knowledge_areas ika
+                    JOIN knowledge_areas ka ON ika.area_id = ka.id
+                """)
+                # Execute inside a transaction block or connection if needed, but session.execute should work
+                i_result = session.execute(i_query).fetchall()
+                for row in i_result:
+                     iid = row[0]
+                     if iid not in initiative_kas_map: 
+                         initiative_kas_map[iid] = []
+                     initiative_kas_map[iid].append({"id": row[1], "name": row[2]})
+                
+                logger.info(f"Pre-fetched KAs for {len(initiative_kas_map)} initiatives.")
+            except Exception as e:
+                logger.warning(f"Failed to fetch Knowledge Area mappings for analytics: {e}")
+
             # 2. Summary & Evolution
             total_projects = len(all_initiatives)
             active_projects = 0
@@ -151,6 +176,7 @@ class InitiativeAnalyticsMartGenerator:
             # Person set for total participants
             total_participants_set = set()
             person_roles = {}  # person_id -> set of roles
+            ka_stats = {}  # knowledge_area_name -> count
 
             # For each initiative, process stats
             for init in all_initiatives:
@@ -211,6 +237,17 @@ class InitiativeAnalyticsMartGenerator:
                     logger.warning(
                         f"Could not process teams for initiative {init.id}: {team_e}"
                     )
+
+                # Knowledge Areas Stats - Manual Fetching using Logic similar to Canonical Exporter
+                # The InitiativeController object doesn't include KAs by default.
+                # We need to map Initiative -> KAs using the join table.
+                
+                # Fetch KAs for this initiative from the pre-fetched map
+                if init.id in initiative_kas_map:
+                    for ka in initiative_kas_map[init.id]:
+                        ka_name = ka.get("name")
+                        if ka_name:
+                            ka_stats[ka_name] = ka_stats.get(ka_name, 0) + 1
 
             final_researchers_count = 0
             final_students_count = 0
@@ -320,6 +357,15 @@ class InitiativeAnalyticsMartGenerator:
                     "researchers": final_researchers_count,
                     "students": final_students_count,
                 },
+                "knowledge_areas": sorted(
+                    [
+                        {"name": k, "count": v}
+                        for k, v in ka_stats.items()
+                        if k  # Filter out None/empty names
+                    ],
+                    key=lambda x: x["count"],
+                    reverse=True,
+                ),
             }
 
             # 5. Save to JSON

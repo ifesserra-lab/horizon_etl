@@ -70,7 +70,11 @@ flowchart TD
     Start --> Res[Export Researchers]
     Start --> RG[Export Research Groups]
     
-    Org & Cam & KA & Res & RG --> End((Fim))
+    Start --> Res[Export Researchers]
+    Start --> RG[Export Research Groups]
+    
+    Org & Cam & KA & RG --> End((Fim))
+    Res --> Enrichment[Enrich with Groups/KAs/Initiatives] --> End
     
     subgraph "Output Files"
         Org -.-> f1["organizations_canonical.json"]

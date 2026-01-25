@@ -81,35 +81,57 @@ class CnpqSyncLogic:
 
     def sync_group(self, group_id: Any, cnpq_data: Dict[str, Any]):
         """
-        Updates group basic info from CNPq data using direct SQL to avoid ORM side effects.
+        Updates group basic info (name, description, start_date) from CNPq data.
         """
         try:
-            # Update fields if present in cnpq_data
+            from sqlalchemy import text
+            session = self.rg_ctrl._service._repository._session
+
+            # 1. Update Name and Description in 'teams' table
             nome_cnpq = cnpq_data.get("nome_grupo")
-
+            repercussoes = cnpq_data.get("repercussoes")
+            
             # Patch: ignore 'CNPq' which is a header branding in some mirrors
-            if nome_cnpq and nome_cnpq.upper() != "CNPQ":
-                from sqlalchemy import text
+            if nome_cnpq and nome_cnpq.upper() == "CNPQ":
+                nome_cnpq = None
 
-                # Use direct SQL to avoid loading the object and potentially messing up relationships
-                session = self.rg_ctrl._service._repository._session
+            # Check and Update Teams table
+            if nome_cnpq or repercussoes:
+                check_query = text("SELECT name, description FROM teams WHERE id = :gid")
+                current = session.execute(check_query, {"gid": group_id}).fetchone()
+                
+                if current:
+                    curr_name, curr_desc = current[0], current[1]
+                    updates = {}
+                    if nome_cnpq and curr_name != nome_cnpq:
+                        updates["name"] = nome_cnpq
+                    if repercussoes and curr_desc != repercussoes:
+                        updates["description"] = repercussoes
+                    
+                    if updates:
+                        logger.info(f"Updating team {group_id} metadata: {list(updates.keys())}")
+                        set_clause = ", ".join([f"{k} = :{k}" for k in updates])
+                        updates["gid"] = group_id
+                        upd_query = text(f"UPDATE teams SET {set_clause} WHERE id = :gid")
+                        session.execute(upd_query, updates)
+                        session.commit()
 
-                # Check current name first to avoid unnecessary updates
-                check_query = text("SELECT name FROM research_groups WHERE id = :gid")
-                current_name = session.execute(check_query, {"gid": group_id}).scalar()
-
-                if current_name != nome_cnpq:
-                    logger.info(
-                        f"Updating group name: '{current_name}' -> '{nome_cnpq}'"
-                    )
-                    update_query = text(
-                        "UPDATE research_groups SET name = :nm WHERE id = :gid"
-                    )
-                    session.execute(update_query, {"nm": nome_cnpq, "gid": group_id})
-                    session.commit()
-                    logger.info(f"Group {group_id} name updated successfully.")
+            # 2. Update Start Date in 'research_groups' table
+            ident = cnpq_data.get("identificacao", {})
+            ano_formacao = ident.get("ano_de_formacao") or ident.get("data_de_formacao")
+            
+            if ano_formacao:
+                # Handle year only or full date
+                if isinstance(ano_formacao, str) and len(ano_formacao) == 4 and ano_formacao.isdigit():
+                    start_date = date(int(ano_formacao), 1, 1)
                 else:
-                    logger.debug(f"Group {group_id} name is already up to date.")
+                    start_date = self._parse_date(str(ano_formacao))
+                
+                if start_date:
+                    logger.info(f"Updating group {group_id} start_date: {start_date}")
+                    upd_rg = text("UPDATE research_groups SET start_date = :sd WHERE id = :gid")
+                    session.execute(upd_rg, {"sd": start_date, "gid": group_id})
+                    session.commit()
 
         except Exception as e:
             logger.error(f"Failed to sync group {group_id}: {e}")
