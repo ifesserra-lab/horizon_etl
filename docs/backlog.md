@@ -7,6 +7,7 @@ Tracks the delivery of versions to production (Main Branch).
 
 | Version | Date | Status | Description | PR / Commit |
 |---------|------|--------|-------------|-------------|
+| **v0.8.0** | 2026-01-25 | Released | Research Group Auto-population & Canonical Export Fixes | PR #51 |
 | **v0.5.1** | 2026-01-15 | Released | Team Ingestion Refactoring & Synchronization Fix | PR #45 |
 | **v0.5.0** | 2026-01-12 | Released | CNPq Sync Enhanced (Missing Researchers Fix) | PR #37 |
 | **v0.4.0** | 2026-01-09 | Released | CNPq Sync Base (US-009) | PR #18 |
