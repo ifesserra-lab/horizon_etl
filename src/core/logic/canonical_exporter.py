@@ -7,19 +7,21 @@ from research_domain import (
     CampusController,
     KnowledgeAreaController,
     ResearcherController,
+    ResearchGroupController,
 )
 
 from src.core.ports.export_sink import IExportSink
+from sqlalchemy import text
 
 
 class CanonicalDataExporter:
     """
     Exports domain entities from the database to canonical JSON files.
-    
+
     This class orchestrates the extraction of various entities (Organizations, Campuses,
     Knowledge Areas, Researchers, Initiatives) using their respective controllers
     and serializes them into a standardized format for external consumption.
-    
+
     Attributes:
         sink (IExportSink): The destination for the exported data (e.g., File, S3).
         org_ctrl (OrganizationController): Controller for organizations.
@@ -110,13 +112,174 @@ class CanonicalDataExporter:
         Args:
             output_path (str): The destination file path.
         """
-        data = self.researcher_ctrl.get_all()
-        self._export_entities(data, output_path, "Researchers")
+        # Fetch raw list
+        researchers = self.researcher_ctrl.get_all()
+        
+        # Enrichment Data
+        # 1. Initiatives (Researcher -> [Initiatives])
+        # We need to scan all initiatives' teams/members to map person_id -> initiative list
+        # This is expensive but necessary without direct person->initiative DB queries available in current controllers
+        person_initiatives_map = {}
+        try:
+            initiatives = self.initiative_ctrl.get_all()
+            from eo_lib import TeamController
+            team_ctrl = TeamController()
+            
+            # Pre-fetch all Research Group IDs to identify "Group Teams" (non-project teams)
+            rg_ids = {getattr(g, "id", None) for g in self.researcher_ctrl._service._repository._session.execute(text("SELECT id FROM research_groups")).fetchall()}
+            
+            for init in initiatives:
+                try:
+                    teams = self.initiative_ctrl.get_teams(init.id)
+                    for t in teams:
+                        t_id = getattr(t, "id", t.get("id") if isinstance(t, dict) else None)
+                        
+                        # FILTER: If the team is a Research Group, memberships in this team 
+                        # should not count as being PART OF the initiative in the Researchers canonical export.
+                        if t_id in rg_ids:
+                            continue
+                            
+                        if t_id:
+                            members = team_ctrl.get_members(t_id)
+                            for m in members:
+                                p_id = m.person_id
+                                if p_id:
+                                    if p_id not in person_initiatives_map:
+                                        person_initiatives_map[p_id] = []
+                                    
+                                    # Consolidate roles if person is in multiple teams (unlikely now with filter, but safe)
+                                    existing = next((i for i in person_initiatives_map[p_id] if i["id"] == init.id), None)
+                                    role_name = m.role.name if m.role else "Member"
+                                    
+                                    if not existing:
+                                        person_initiatives_map[p_id].append({
+                                            "id": init.id,
+                                            "name": init.name,
+                                            "status": init.status,
+                                            "roles": [role_name]
+                                        })
+                                    else:
+                                        if role_name not in existing["roles"]:
+                                            existing["roles"].append(role_name)
+                except Exception:
+                    continue
+        except Exception as e:
+            logger.warning(f"Failed to fetch initiatives for researcher enrichment: {e}")
+
+        # 2. Research Groups (Researcher -> [Groups])
+        # We can reuse the same logic if we know which teams are groups
+        # OR we can use the Group members if exposed. 
+        # ResearchGroupController usually exposes `get_members`? No, it exposes `get_all` groups.
+        # But groups are Teams.
+        person_groups_map = {}
+        try:
+            rg_ctrl = ResearchGroupController()
+            all_rgs = rg_ctrl.get_all()
+            
+            # Pre-fetch group IDs
+            rg_ids = {getattr(g, "id", None): getattr(g, "name", "Unknown") for g in all_rgs}
+            
+            # Since RGs are teams, we might have already processed them in initiatives if they are linked there?
+            # No, RGs are distinct entities in the domain lib, but they implement Team interface or are wrapped.
+            # Usually RG has a mirrored Team.
+            # If we don't have a direct "get members of group" in the controller, we rely on the DB or dgp_cnpq_lib.
+            # Checking `ResearchGroupController` in `research_domain`... 
+            # Assuming we can access the underlying team or members.
+            # If not easy, we might skip or do a best effort.
+            # Strategy: Access the database session again to query group_members tables directly for speed.
+            
+            session = rg_ctrl._service._repository._session
+            
+            # Query group members (person_id -> group info)
+            # Schema: research_groups.id matches teams.id (joined inheritance or logical link)
+            # Members are in team_members table.
+            # Query group members (person_id -> group info)
+            # Schema: research_groups.id matches teams.id (joined inheritance or logical link)
+            # Members are in team_members table.
+            
+            # Correct Query with 3-way join
+            g_query = text("""
+                SELECT tm.person_id, rg.id, t.name
+                FROM team_members tm
+                JOIN research_groups rg ON tm.team_id = rg.id
+                JOIN teams t ON rg.id = t.id
+            """)
+            g_result = session.execute(g_query).fetchall()
+            for row in g_result:
+                pid, gid, gname = row[0], row[1], row[2]
+                if pid not in person_groups_map: person_groups_map[pid] = []
+                person_groups_map[pid].append({"id": gid, "name": gname})
+                
+        except Exception as e:
+            logger.warning(f"Failed to fetch research groups for researcher enrichment: {e}")
+
+        # 3. Knowledge Areas (Researcher -> [KAs])
+        person_kas_map = {}
+        try:
+            # Query researcher_knowledge_areas
+            # uses researcher_id (which should map to person_id/researcher.id)
+            k_query = text("""
+                SELECT rka.researcher_id, ka.id, ka.name
+                FROM researcher_knowledge_areas rka
+                JOIN knowledge_areas ka ON rka.area_id = ka.id
+            """)
+            k_result = session.execute(k_query).fetchall()
+            for row in k_result:
+                pid, kid, kname = row[0], row[1], row[2]
+                if pid not in person_kas_map: person_kas_map[pid] = []
+                person_kas_map[pid].append({"id": kid, "name": kname})
+
+        except Exception as e:
+            logger.warning(f"Failed to fetch KAs for researcher enrichment: {e}")
+
+
+        # Enrich and Export
+        export_data = []
+        for r in researchers:
+            r_dict = r.to_dict() if hasattr(r, "to_dict") else {
+                "id": getattr(r, "id", None),
+                "name": getattr(r, "name", "Unknown"),
+                "lattes_id": getattr(r, "lattes_id", None),
+                "email": getattr(r, "email", None),
+            }
+            
+            p_id = r_dict.get("id")
+            
+            # Attach details
+            initiatives_data = []
+            for init in person_initiatives_map.get(p_id, []):
+                # Standardize roles to English and pick primary if single string preferred
+                # User previously had a single string, but let's provide the first one found 
+                # or join them if we want to be thorough. 
+                # To match previous structure but with correct data:
+                role_map = {
+                    "Coordenador": "Coordinator",
+                    "Pesquisador": "Researcher",
+                    "Estudante": "Student",
+                    "Líder": "Leader",
+                    "Membro": "Member"
+                }
+                translated_roles = [role_map.get(r, r) for r in init["roles"]]
+                
+                init_export = init.copy()
+                init_export["role"] = translated_roles[0] # Primary role
+                del init_export["roles"]
+                initiatives_data.append(init_export)
+
+            r_dict["initiatives"] = initiatives_data
+            r_dict["research_groups"] = person_groups_map.get(p_id, [])
+            r_dict["knowledge_areas"] = person_kas_map.get(p_id, [])
+            
+            export_data.append(r_dict)
+
+        logger.info(f"Exporting {len(export_data)} Researchers...")
+        self.sink.export(export_data, output_path)
+        logger.info(f"Successfully exported enriched Researchers to {output_path}")
 
     def export_initiatives(self, output_path: str):
         """
         Exports enriched initiatives (with types, organizations, and team members) to a JSON file.
-        
+
         This method aggregates data from multiple controllers to provide a complete
         view of each initiative, including its team structure with roles.
 
@@ -127,6 +290,54 @@ class CanonicalDataExporter:
 
         team_ctrl = TeamController()
         initiatives = self.initiative_ctrl.get_all()
+        rg_ctrl = ResearchGroupController()
+        # Pre-fetch all Research Groups for finding matches
+        # Map <team_id> -> <ResearchGroup>
+        rgs_by_team_id = {}
+        try:
+            all_rgs = rg_ctrl.get_all()
+            for rg in all_rgs:
+                 rg_id = getattr(rg, "id", None)
+                 if rg_id:
+                     rgs_by_team_id[rg_id] = rg
+        except Exception as e:
+            logger.warning(f"Failed to fetch Research Groups for export mapping: {e}")
+
+        # Fetch Knowledge Areas mapping for Groups (Not used in Initiatives anymore, but keep if needed for other methods)
+        group_kas_map = {}
+        # Fetch Knowledge Areas mapping for Initiatives
+        initiative_kas_map = {}
+
+        try:
+             from sqlalchemy import text
+             session = rg_ctrl._service._repository._session
+             
+             # Group KAs (Optional enrichment if needed elsewhere)
+             g_query = text("""
+                SELECT gka.group_id, ka.id, ka.name
+                FROM group_knowledge_areas gka
+                JOIN knowledge_areas ka ON gka.area_id = ka.id
+             """)
+             g_result = session.execute(g_query).fetchall()
+             for row in g_result:
+                 gid = row[0]
+                 if gid not in group_kas_map: group_kas_map[gid] = []
+                 group_kas_map[gid].append({"id": row[1], "name": row[2]})
+
+             # Initiative KAs
+             i_query = text("""
+                SELECT ika.initiative_id, ka.id, ka.name
+                FROM initiative_knowledge_areas ika
+                JOIN knowledge_areas ka ON ika.area_id = ka.id
+             """)
+             i_result = session.execute(i_query).fetchall()
+             for row in i_result:
+                 iid = row[0]
+                 if iid not in initiative_kas_map: initiative_kas_map[iid] = []
+                 initiative_kas_map[iid].append({"id": row[1], "name": row[2]})
+                 
+        except Exception as e:
+            logger.warning(f"Failed to fetch Knowledge Area mappings: {e}")
 
         # Normalize types and orgs to handle both dicts and objects
         raw_types = self.initiative_ctrl.list_initiative_types()
@@ -193,11 +404,30 @@ class CanonicalDataExporter:
 
             # Enriched Team
             team_list = []
+            
+            # Identify Research Group
+            research_group_data = None
+            
             try:
                 teams = self.initiative_ctrl.get_teams(item.id)
                 for t_dict in teams:
                     t_id = t_dict.get("id")
                     if t_id:
+                        # Check if this team is a Research Group
+                        if t_id in rgs_by_team_id and not research_group_data:
+                            rg_obj = rgs_by_team_id[t_id]
+                            rg_id_val = getattr(rg_obj, "id", None)
+                            research_group_data = {
+                                "id": rg_id_val,
+                                "name": getattr(rg_obj, "name", "Unknown")
+                            }
+                        
+                        # FILTER: Skip adding members if the team is a Research Group
+                        # These members are reported in the group's own context,
+                        # not as direct initiative participants.
+                        if t_id in rgs_by_team_id:
+                            continue
+
                         members = team_ctrl.get_members(t_id)
 
                         # Aggregate roles by person
@@ -227,9 +457,6 @@ class CanonicalDataExporter:
 
                         # Add aggregated members to team_list
                         for p_data in person_map.values():
-                            # For backward compatibility or if single role is preferred string,
-                            # we can join roles, but let's use a list as requested/implied.
-                            # The user said "a person has one or more roles, but it appears only once".
                             team_list.append(p_data)
             except Exception as e:
                 logger.warning(f"Could not fetch teams for initiative {item.id}: {e}")
@@ -242,7 +469,7 @@ class CanonicalDataExporter:
                     "description": item.description,
                     "start_date": (
                         item.start_date.isoformat() if item.start_date else None
-                     ),
+                    ),
                     "end_date": item.end_date.isoformat() if item.end_date else None,
                     "initiative_type_id": item.initiative_type_id,
                     "initiative_type": type_data,
@@ -250,6 +477,22 @@ class CanonicalDataExporter:
                     "organization": org_data,
                     "parent_id": item.parent_id,
                     "team": team_list,
+                    "research_group": research_group_data,
+                    "knowledge_areas": initiative_kas_map.get(item.id, []),
+                    "external_partner": (
+                        item.metadata.get("external_partner")
+                        if item.metadata and isinstance(item.metadata, dict)
+                        else getattr(item.metadata, "external_partner", None)
+                        if item.metadata
+                        else None
+                    ),
+                    "external_research_group": (
+                        item.metadata.get("external_research_group")
+                        if item.metadata and isinstance(item.metadata, dict)
+                        else getattr(item.metadata, "external_research_group", None)
+                        if item.metadata
+                        else None
+                    ),
                 }
             )
 

@@ -42,6 +42,9 @@ O **Horizon ETL** é uma infraestrutura de dados que automatiza a coleta de info
 | **RF-10** | O sistema deve identificar e sincronizar membros egressos do CNPq, registrando corretamente as datas de início e fim de participação. | Membros egressos identificados e datas de participação (início/fim) persistidas no Supabase. | User Req. |
 | **RF-11** | O sistema deve gerar um "Mart JSON" que consolida as Áreas de Pesquisa com seus Grupos e Campi vinculados, permitindo filtragem por campus. | Arquivo `knowledge_areas_mart.json` gerado com estatísticas por área. Filtro de campus suportado. | User Req. |
 | **RF-12** | O sistema deve criar equipes automaticamente durante a ingestão de projetos SigPesq, extraindo coordenadores, pesquisadores e estudantes das colunas do Excel. | Equipes criadas com membros associados aos respectivos roles (Coordinator, Researcher, Student). Persons criadas ou reutilizadas (idempotente com Fuzzy Matching). | User Req. |
+| **RF-13** | O sistema deve gerar um "Mart JSON" de estatísticas de iniciativa, consolidando totais, evolução anual e composição de equipes. | Arquivo `initiatives_analytics_mart.json` gerado com dados de resumo, evolução e composição. | User Req. |
+| **RF-14** | O sistema deve associar palavras-chave de projetos como Áreas de Conhecimento ao Grupo de Pesquisa e Pesquisadores vinculados. | Palavras-chave extraídas e persistidas como `KnowledgeArea`. Vínculos criados nas tabelas `group_knowledge_areas` e `researcher_knowledge_areas`. | User Req. |
+| **RF-15** | O sistema deve popular automaticamente Grupos de Pesquisa recém-criados (via ingestão de projetos) com os membros do projeto (Pesquisadores e Estudantes). | Ao criar um Grupo de Pesquisa inexistente, Coordenador/Pesquisadores do projeto são adicionados como "Pesquisador" do grupo, e Alunos como "Estudante". | User Req. |
 
 ---
 

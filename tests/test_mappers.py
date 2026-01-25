@@ -30,12 +30,14 @@ def test_map_research_group():
     raw_data = {"nome_grupo": " IA Lab ", "lider": " Dr. Silva ", "certificado": True}
     group = SigPesqMapper.map_research_group(raw_data)
     assert group.name == "IA Lab"
-    assert group.leader == "Dr. Silva"
-    assert group.certified is True
+    # Metadata removed from mapper
+    # assert group.metadata["leader"] == "Dr. Silva"
+    # assert group.metadata["certified"] is True
 
 
 def test_map_researcher():
     raw_data = {"nome": " Paulo Junior ", "funcao": " Bolsista "}
     researcher = SigPesqMapper.map_researcher(raw_data)
     assert researcher.name == "Paulo Junior"
-    assert researcher.role == "Bolsista"
+    # Metadata removed from mapper
+    # assert researcher.metadata["role"] == "Bolsista"

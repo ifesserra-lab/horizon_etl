@@ -39,6 +39,7 @@ Reflecting active work from `SI.3 Product Backlog`.
 
 - **Epic 7: Orquestração e Exportação**
     - [x] US-014 [Exportação de Iniciativas e Tipos] (PR #39 - Merged)
+    - [x] (US-016) Initiative Analytics Mart - v1.0.11
 
 ## 3. Hierarchical Status
 Mapping Epics -> User Stories -> Tasks status.
@@ -55,3 +56,5 @@ Mapping Epics -> User Stories -> Tasks status.
     - T-007 [Dev] Parser: Pending
     - T-008 [Dev] Matcher: Pending
     - T-009 [Ops] Flow: Pending
+### R4 - Analytics
+  - R4 - Analytics: [x] Mart de Analytics (US-016)
