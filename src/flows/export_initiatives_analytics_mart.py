@@ -9,7 +9,9 @@ from src.core.logic.mart_generator import InitiativeAnalyticsMartGenerator
 @task(name="generate_initiative_analytics_mart_task")
 def generate_initiative_analytics_mart_task(output_path: str):
     logger = get_run_logger()
-    logger.info(f"Starting Initiative Analytics Mart generation task to {output_path}...")
+    logger.info(
+        f"Starting Initiative Analytics Mart generation task to {output_path}..."
+    )
 
     generator = InitiativeAnalyticsMartGenerator()
     generator.generate(output_path)

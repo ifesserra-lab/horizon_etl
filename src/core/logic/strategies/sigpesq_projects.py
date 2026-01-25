@@ -9,7 +9,7 @@ from .base import ProjectMappingStrategy
 class SigPesqProjectMappingStrategy(ProjectMappingStrategy):
     """
     Strategy for mapping SigPesq Project Excel data to canonical domain models.
-    
+
     This strategy handles the specific column names and formats found in the SigPesq
     research project exports, including multi-value name parsing and date handling.
     """
@@ -34,6 +34,14 @@ class SigPesqProjectMappingStrategy(ProjectMappingStrategy):
             "coordinator_name": row.get("Coordenador"),
             "researcher_names": self._parse_names(row.get("Pesquisadores")),
             "student_names": self._parse_names(row.get("Estudantes")),
+            "research_group_name": row.get("GrupoPesquisa"),
+            "metadata": {
+                "external_partner": row.get("ParceiroDemandante"),
+                "external_research_group": row.get("GrupoPesquisaExterno"),
+                "knowledge_area": row.get("AreaConhecimento"),
+                "keywords": row.get("PalavraChave"),
+            },
+            "campus_name": row.get("CampusExecucao"),
         }
 
     def _parse_names(self, names_str: Any) -> List[str]:

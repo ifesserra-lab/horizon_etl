@@ -330,6 +330,52 @@ Desenvolver a lógica de agregação para gerar o JSON de estatísticas de níve
     - [ ] Comando `analytics_mart` integrado ao `app.py`.
     - [ ] Arquivo salvo em `src/data/marts/initiatives_analytics_mart.json`.
 
+    - [ ] Arquivo salvo em `src/data/marts/initiatives_analytics_mart.json`.
+
+### US-017 – Associação de Palavras-Chave como Áreas de Conhecimento
+```yaml
+id: US-017
+milestone: R2
+prioridade: Média
+tamanho: 3
+origem: [User Req, RF-14]
+tags: [type:feature, area:backend, source:sigpesq]
+dependencias: [US-013, US-015]
+modulos_afetados: [src/core/logic/project_loader.py]
+```
+
+#### Descrição
+Extrair palavras-chave dos metadados de Projetos SigPesq e associá-las como **Áreas de Conhecimento** ao **Grupo de Pesquisa** (se houver) e aos **Pesquisadores** (Coordenador e Membros) envolvidos no projeto.
+
+#### Critérios de Aceitação
+- **Funcional**:
+    - [ ] Extração de `keywords` do metadata do projeto.
+    - [ ] Normalização e criação (se não existir) de `KnowledgeArea`.
+    - [ ] Associação da `KnowledgeArea` ao `ResearchGroup` via tabela `group_knowledge_areas`.
+    - [ ] Associação da `KnowledgeArea` aos `Researcher` (Team Members) via tabela `researcher_knowledge_areas`.
+- **Teste**:
+    - [ ] Teste de Integração verificando a persistência dos relacionamentos.
+
+### US-018 – Atualização de Metadados de Grupos (CNPq)
+```yaml
+id: US-018
+milestone: R2
+prioridade: Média
+tamanho: 3
+origem: [User Req.]
+tags: [type:feature, area:backend, source:cnpq]
+dependencias: [US-009]
+modulos_afetados: [src/core/logic/strategies/cnpq_sync.py]
+```
+
+#### Descrição
+Sincronizar a data de fundação (start_date) e o texto de repercussões (description) do CNPq DGP Mirror para a entidade `ResearchGroup` no banco de dados local.
+
+#### Critérios de Aceitação
+- [ ] Extração de `data_de_formacao` (ou ano) da seção `identificacao`.
+- [ ] Extração de `repercussoes` da seção principal.
+- [ ] Atualização automática no banco de dados durante o sync do grupo.
+- [ ] Persistência da data no formato ISO compatível com `start_date`.
 
 ---
 
