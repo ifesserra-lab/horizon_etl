@@ -22,6 +22,7 @@ O projeto concluiu a **Mecanismo de Ingestão do SigPesq (US-001 e US-007)**, a 
 | **US-013** (Ingestão Projetos SigPesq) | Sim | 90% | Implementado / Validando. |
 | **US-014** (Export Canonical Init.) | Não | Sim | Concluído (PR #39). |
 | **US-015** (Gestão de Equipes) | Não | Sim | Concluído (PR #41). |
+| **US-016** (Analytics Mart) | Não | Sim | Concluído (v1.0.11). |
 
 ---
 
@@ -29,6 +30,8 @@ O projeto concluiu a **Mecanismo de Ingestão do SigPesq (US-001 e US-007)**, a 
 - `src/core/logic/mart_generator.py`: Geração do Data Mart analítico.
 - `src/flows/export_knowledge_areas_mart.py`: Novo flow de exportação.
 - `src/flows/unified_pipeline.py`: Integração do passo final do mart.
+- `src/flows/export_initiatives_analytics_mart.py`: Novo flow analítico (US-016).
+- `data/exports/initiatives_analytics_mart.json`: JSON consolidado de analytics.
 - `docs/2 - implementacao/ADR/001-strict-idempotency-sigpesq.md`: Decisão de design para idempotência.
 
 ---

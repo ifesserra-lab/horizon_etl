@@ -63,6 +63,14 @@ def test_exporter_fetches_and_exports_enriched_data():
         mock_member.role.name = "Researcher"
         mock_member.person.lattes_url = "http://lattes/alice"
 
+        mock_start_date = MagicMock()
+        mock_start_date.strftime.return_value = "2026-01-01"
+        mock_end_date = MagicMock()
+        mock_end_date.strftime.return_value = "2026-12-31"
+
+        mock_member.start_date = mock_start_date
+        mock_member.end_date = mock_end_date
+
         # Mock Emails for Alice
         mock_email = MagicMock()
         mock_email.email = "alice@example.com"
@@ -73,6 +81,8 @@ def test_exporter_fetches_and_exports_enriched_data():
         mock_leader.person.name = "Bob"
         mock_leader.role.name = "Líder"
         mock_leader.person.lattes_url = "http://lattes/bob"
+        mock_leader.start_date = mock_start_date
+        mock_leader.end_date = mock_end_date
 
         # Mock Emails for Bob
         mock_leader_email = MagicMock()
@@ -110,6 +120,8 @@ def test_exporter_fetches_and_exports_enriched_data():
                         "role": "Researcher",
                         "lattes_url": "http://lattes/alice",
                         "emails": ["alice@example.com"],
+                        "start_date": "2026-01-01",
+                        "end_date": "2026-12-31",
                     },
                     {
                         "id": 102,
@@ -117,6 +129,8 @@ def test_exporter_fetches_and_exports_enriched_data():
                         "role": "Líder",
                         "lattes_url": "http://lattes/bob",
                         "emails": ["bob@example.com"],
+                        "start_date": "2026-01-01",
+                        "end_date": "2026-12-31",
                     },
                 ],
                 "leaders": [
@@ -126,6 +140,8 @@ def test_exporter_fetches_and_exports_enriched_data():
                         "role": "Líder",
                         "lattes_url": "http://lattes/bob",
                         "emails": ["bob@example.com"],
+                        "start_date": "2026-01-01",
+                        "end_date": "2026-12-31",
                     }
                 ],
             }

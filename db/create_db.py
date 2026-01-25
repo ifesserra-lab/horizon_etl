@@ -23,7 +23,6 @@ from eo_lib.domain.entities import (
     TeamMember,
 )
 
-# Import all research domain entities
 from research_domain import (
     Campus,
     CampusController,
@@ -36,6 +35,19 @@ from research_domain import (
     RoleController,
     University,
     UniversityController,
+)
+from sqlalchemy import Table, Column, Integer, ForeignKey, DateTime
+
+# Extension: Add start_date to ResearchGroup for fundamental metadata
+if not hasattr(ResearchGroup, "start_date"):
+    ResearchGroup.start_date = Column(DateTime, nullable=True)
+
+# Manually define missing junction table for Research Domain extension
+initiative_knowledge_areas = Table(
+    "initiative_knowledge_areas",
+    Base.metadata,
+    Column("initiative_id", Integer, ForeignKey("initiatives.id"), primary_key=True),
+    Column("area_id", Integer, ForeignKey("knowledge_areas.id"), primary_key=True),
 )
 
 

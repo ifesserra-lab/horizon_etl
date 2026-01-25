@@ -4,6 +4,9 @@ from dotenv import load_dotenv
 from loguru import logger
 
 from src.flows.export_canonical_data import export_canonical_data_flow
+from src.flows.export_initiatives_analytics_mart import (
+    export_initiatives_analytics_mart_flow,
+)
 from src.flows.export_knowledge_areas_mart import export_knowledge_areas_mart_flow
 from src.flows.ingest_sigpesq import ingest_sigpesq_flow
 from src.flows.sync_cnpq_groups import sync_cnpq_groups_flow
@@ -84,6 +87,17 @@ def main():
             export_knowledge_areas_mart_flow(
                 output_path=output_path, campus=campus_filter
             )
+
+        if flow_to_run in ["analytics_mart", "all"]:
+            output_path = (
+                sys.argv[2]
+                if len(sys.argv) > 2 and flow_to_run == "analytics_mart"
+                else "data/exports/initiatives_analytics_mart.json"
+            )
+            logger.info(
+                f"Executing Flow: Export Initiative Analytics Mart (Output: {output_path})"
+            )
+            export_initiatives_analytics_mart_flow(output_path=output_path)
 
     except Exception as e:
         logger.error(f"Application failed: {e}")
