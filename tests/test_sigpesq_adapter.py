@@ -19,10 +19,21 @@ def mock_data_dir():
 
 def test_sigpesq_adapter_extract(mock_data_dir):
     # Arrange
+    from unittest.mock import patch
+    
     adapter = SigPesqAdapter(download_dir=mock_data_dir)
+    
+    # Create a dummy file in the 'report' directory
+    report_dir = os.path.join(mock_data_dir, "report")
+    os.makedirs(report_dir, exist_ok=True)
+    dummy_file = os.path.join(report_dir, "mock_project_001.json")
+    with open(dummy_file, "w") as f:
+        f.write('{"id": 1, "title": "Mock Project"}')
 
     # Act
-    results = adapter.extract()
+    with patch.object(SigPesqAdapter, "_validate_environment"), \
+         patch.object(SigPesqAdapter, "_trigger_download"):
+        results = adapter.extract()
 
     # Assert
     assert len(results) > 0

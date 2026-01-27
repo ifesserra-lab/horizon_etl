@@ -9,6 +9,7 @@ from research_domain import (
     ResearcherController,
     ResearchGroupController,
 )
+from research_domain.domain.entities import Advisorship, Fellowship
 
 from src.core.ports.export_sink import IExportSink
 from sqlalchemy import text
@@ -530,5 +531,74 @@ class CanonicalDataExporter:
         self.export_initiative_types(
             os.path.join(output_dir, "initiative_types_canonical.json")
         )
+        self.export_advisorships(
+            os.path.join(output_dir, "advisorships_canonical.json")
+        )
+        self.export_fellowships(
+            os.path.join(output_dir, "fellowships_canonical.json")
+        )
 
         logger.info("Canonical Data Export completed.")
+
+    def export_advisorships(self, output_path: str):
+        """
+        Exports all advisorships to a JSON file.
+        """
+        session = self.initiative_ctrl._service._repository._session
+        query = text("""
+            SELECT 
+                a.id, i.name, i.status, i.description, i.start_date, i.end_date,
+                a.student_id, p_std.name as student_name,
+                a.supervisor_id, p_sup.name as supervisor_name,
+                a.fellowship_id
+            FROM advisorships a
+            JOIN initiatives i ON a.id = i.id
+            LEFT JOIN persons p_std ON a.student_id = p_std.id
+            LEFT JOIN persons p_sup ON a.supervisor_id = p_sup.id
+        """)
+        result = session.execute(query).fetchall()
+        data = []
+        for row in result:
+            data.append({
+                "id": row.id,
+                "name": row.name,
+                "status": row.status,
+                "description": row.description,
+                "start_date": (
+                    row.start_date.isoformat() 
+                    if hasattr(row.start_date, "isoformat") 
+                    else str(row.start_date) if row.start_date else None
+                ),
+                "end_date": (
+                     row.end_date.isoformat()
+                     if hasattr(row.end_date, "isoformat")
+                     else str(row.end_date) if row.end_date else None
+                ),
+                "student_id": row.student_id,
+                "student_name": row.student_name,
+                "supervisor_id": row.supervisor_id,
+                "supervisor_name": row.supervisor_name,
+                "fellowship_id": row.fellowship_id
+            })
+        
+        self.sink.export(data, output_path)
+        logger.info(f"Successfully exported {len(data)} Advisorships to {output_path}")
+
+    def export_fellowships(self, output_path: str):
+        """
+        Exports all fellowships to a JSON file.
+        """
+        session = self.initiative_ctrl._service._repository._session
+        query = text("SELECT * FROM fellowships")
+        result = session.execute(query).fetchall()
+        data = []
+        for row in result:
+            data.append({
+                "id": row.id,
+                "name": row.name,
+                "description": row.description,
+                "value": row.value
+            })
+        
+        self.sink.export(data, output_path)
+        logger.info(f"Successfully exported {len(data)} Fellowships to {output_path}")

@@ -106,8 +106,8 @@ def test_export_all_orchestrates_exports():
             mock_makedirs.assert_called_once()
 
             # Verify Sink Calls
-            # Should be called 6 times (Org, Campus, KA, Researcher, Initiatives, InitiativeTypes)
-            assert mock_sink.export.call_count == 6
+            # Should be called 8 times (Org, Campus, KA, Researcher, Initiatives, InitiativeTypes, Advisorships, Fellowships)
+            assert mock_sink.export.call_count == 8
 
             # Check call args to verify content
             calls = mock_sink.export.call_args_list
@@ -129,5 +129,13 @@ def test_export_all_orchestrates_exports():
 
             # Researcher export
             args, _ = calls[3]
-            assert args[0] == [{"id": 1000, "name": "Researcher1"}]
+            assert args[0] == [
+                {
+                    "id": 1000,
+                    "name": "Researcher1",
+                    "initiatives": [],
+                    "research_groups": [],
+                    "knowledge_areas": [],
+                }
+            ]
             assert "researchers_canonical.json" in args[1]

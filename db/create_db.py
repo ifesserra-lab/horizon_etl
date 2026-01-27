@@ -2,7 +2,7 @@ import os
 
 from eo_lib.domain.base import Base
 from eo_lib.infrastructure.database.postgres_client import PostgresClient
-from sqlalchemy import text
+from sqlalchemy import text, Table, Column, Integer, ForeignKey, DateTime
 
 # Try to load .env for local configuration
 try:
@@ -35,20 +35,25 @@ from research_domain import (
     RoleController,
     University,
     UniversityController,
+    AdvisorshipController, # Import new controllers
+    FellowshipController
 )
-from sqlalchemy import Table, Column, Integer, ForeignKey, DateTime
+
+from research_domain.domain.entities import Advisorship, Fellowship # Import new entities
 
 # Extension: Add start_date to ResearchGroup for fundamental metadata
 if not hasattr(ResearchGroup, "start_date"):
     ResearchGroup.start_date = Column(DateTime, nullable=True)
 
 # Manually define missing junction table for Research Domain extension
-initiative_knowledge_areas = Table(
-    "initiative_knowledge_areas",
-    Base.metadata,
-    Column("initiative_id", Integer, ForeignKey("initiatives.id"), primary_key=True),
-    Column("area_id", Integer, ForeignKey("knowledge_areas.id"), primary_key=True),
-)
+# Only define if not already present in metadata
+if "initiative_knowledge_areas" not in Base.metadata.tables:
+    initiative_knowledge_areas = Table(
+        "initiative_knowledge_areas",
+        Base.metadata,
+        Column("initiative_id", Integer, ForeignKey("initiatives.id"), primary_key=True),
+        Column("area_id", Integer, ForeignKey("knowledge_areas.id"), primary_key=True),
+    )
 
 
 def setup_database():
@@ -63,32 +68,29 @@ def setup_database():
 
     # Force drop all tables via CASCADE to handle constraints
     try:
-        with client._engine.connect() as conn:
-            print("Performing forced cleanup (DROP SCHEMA public CASCADE)...")
-            # For SQLite, DROP SCHEMA isn't supported the same way, but let's see how PostgresClient handles it or if we need to adjust.
-            # actually, using sqlite://, DROP SCHEMA might fail.
-            # But let's try running the user's code first.
-            if "sqlite" not in str(client._engine.url):
+        if "sqlite" not in str(client._engine.url):
+            with client._engine.connect() as conn:
+                print("Performing forced cleanup (DROP SCHEMA public CASCADE)...")
                 conn.execute(text("DROP SCHEMA public CASCADE"))
                 conn.execute(text("CREATE SCHEMA public"))
                 conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
                 conn.execute(text("GRANT ALL ON SCHEMA public TO postgres"))
                 conn.commit()
-            else:
-                print("SQLite detected, skipping schema drop.")
-                # For SQLite, we might want to just drop tables or rely on create_all?
-                # create_all doesn't drop.
-                # But let's verify if the file runs as is.
+        else:
+            print("SQLite detected, dropping all tables via metadata...")
+            Base.metadata.drop_all(client._engine)
+
     except Exception as e:
         print(f"Note: Error during forced cleanup (ignored): {e}")
 
     print("Recreating all tables via Base.metadata...")
+    # This will create tables for all models registered with Base (including Advisorship/Fellowship if imported)
     Base.metadata.create_all(client._engine)
     print("Database tables initialized successfully.")
 
 
 def run_demo():
-    print("--- Starting ResearchDomain Advanced Demo ---")
+    print("--- Starting Database Initialization ---")
     setup_database()
 
     try:
@@ -99,13 +101,17 @@ def run_demo():
         group_ctrl = ResearchGroupController()
         area_ctrl = KnowledgeAreaController()
         role_ctrl = RoleController()
+        adv_ctrl = AdvisorshipController()
+        fel_ctrl = FellowshipController()
 
         # 2. Create University and Campus
         ifes = uni_ctrl.create_university(
             name="Instituto Federal do Espirito Santo", short_name="IFES"
         )
+        print(f"Created University: {ifes.name}")
+
     except Exception as e:
-        print(f"Error during demo execution: {e}")
+        print(f"Error during initialization: {e}")
         import traceback
 
         traceback.print_exc()

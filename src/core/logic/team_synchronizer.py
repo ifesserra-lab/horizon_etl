@@ -165,9 +165,11 @@ class TeamSynchronizer:
                         f"Removing obsolete member (Person ID: {m_person_id}, Role ID: {m_role_id}) from team {team_id}"
                     )
                     try:
-                        self.team_controller.remove_member(
-                            team_id=team_id, person_id=m_person_id, role_id=m_role_id
-                        )
+                        m_id = getattr(m, "id", None)
+                        if m_id:
+                            self.team_controller.remove_member(m_id)
+                        else:
+                            logger.warning(f"Could not find member ID for obsolete membership (Person {m_person_id})")
                     except Exception as e:
                         logger.warning(f"Failed to remove obsolete member: {e}")
         except Exception as e:
