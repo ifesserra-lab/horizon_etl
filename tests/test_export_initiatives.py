@@ -17,6 +17,7 @@ class MockInitiative:
         self.end_date = None
         self.organization_id = None
         self.parent_id = None
+        self.metadata = None
 
     def to_dict(self):
         return {

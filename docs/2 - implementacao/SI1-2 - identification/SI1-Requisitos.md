@@ -45,6 +45,8 @@ O **Horizon ETL** é uma infraestrutura de dados que automatiza a coleta de info
 | **RF-13** | O sistema deve gerar um "Mart JSON" de estatísticas de iniciativa, consolidando totais, evolução anual e composição de equipes. | Arquivo `initiatives_analytics_mart.json` gerado com dados de resumo, evolução e composição. | User Req. |
 | **RF-14** | O sistema deve associar palavras-chave de projetos como Áreas de Conhecimento ao Grupo de Pesquisa e Pesquisadores vinculados. | Palavras-chave extraídas e persistidas como `KnowledgeArea`. Vínculos criados nas tabelas `group_knowledge_areas` e `researcher_knowledge_areas`. | User Req. |
 | **RF-15** | O sistema deve popular automaticamente Grupos de Pesquisa recém-criados (via ingestão de projetos) com os membros do projeto (Pesquisadores e Estudantes). | Ao criar um Grupo de Pesquisa inexistente, Coordenador/Pesquisadores do projeto são adicionados como "Pesquisador" do grupo, e Alunos como "Estudante". | User Req. |
+| **RF-16** | O sistema deve extrair dados de bolsistas (orientações/bolsas) do SigPesq mapeando: TituloPT (Name), Inicio (StartDate), Fim (EndDate), Orientado (Student) e Orientador (Supervisor). A identificação de pessoas deve usar Nome e E-mail (OrientadoEmail/OrientadorEmail) para evitar duplicatas. | Bolsistas persistidos no Supabase e vinculados aos seus projetos/orientadores com campos corretos. | User Req. |
+| **RF-17** | O sistema deve extrair dados de bolsas (Fellowships) mapeando: Programa (Name) e Valor (Value). | Fellowships persistidAs com nome do programa e valor financeiro. | User Req. |
 
 ---
 
