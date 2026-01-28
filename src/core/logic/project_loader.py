@@ -268,8 +268,12 @@ class ProjectLoader:
 
         if not existing:
             stats["created"] += 1
+            if initiative: 
+                existing_by_name[title] = initiative
         else:
             stats["updated"] += 1
+            if initiative:
+                existing_by_name[title] = initiative
 
         # 3.5 Link Advisorship members to Parent Project
         if parent_id and parent_initiative:

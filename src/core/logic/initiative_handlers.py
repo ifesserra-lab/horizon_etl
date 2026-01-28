@@ -164,16 +164,18 @@ class AdvisorshipHandler(BaseInitiativeHandler):
 
         # 1. Student
         student_name = project_data.get("student_names", [None])[0]
-        if student_name:
-            p = self.person_matcher.match_or_create(student_name, strict_match=strict)
+        student_email = project_data.get("student_emails", [None])[0]
+        if student_name or student_email:
+            p = self.person_matcher.match_or_create(student_name, email=student_email, strict_match=strict)
             if p:
                 initiative.student_id = p.id
                 initiative.student = p
 
         # 2. Supervisor
         supervisor_name = project_data.get("coordinator_name")
-        if supervisor_name:
-            p = self.person_matcher.match_or_create(supervisor_name, strict_match=strict)
+        supervisor_email = project_data.get("coordinator_email")
+        if supervisor_name or supervisor_email:
+            p = self.person_matcher.match_or_create(supervisor_name, email=supervisor_email, strict_match=strict)
             if p:
                 initiative.supervisor_id = p.id
                 initiative.supervisor = p

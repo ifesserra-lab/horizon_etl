@@ -217,19 +217,25 @@ class InitiativeLinker:
             strict = True
 
             # 1. Coordinator & Researchers -> Role: Researcher
-            names_researcher = []
+            res_names = []
+            res_emails = []
             if project_data.get("coordinator_name"):
-                names_researcher.append(project_data.get("coordinator_name"))
-            names_researcher.extend(project_data.get("researcher_names", []))
+                res_names.append(project_data.get("coordinator_name"))
+                res_emails.append(project_data.get("coordinator_email"))
+            
+            res_names.extend(project_data.get("researcher_names", []))
+            res_emails.extend(project_data.get("researcher_emails", [None] * len(project_data.get("researcher_names", []))))
 
-            for name in names_researcher:
-                p = self.person_matcher.match_or_create(name, strict_match=strict)
+            for name, email in zip(res_names, res_emails):
+                p = self.person_matcher.match_or_create(name, email=email, strict_match=strict)
                 if p:
                     members_to_sync.append((p, "Researcher", start_date))
 
             # 2. Students -> Role: Student
-            for name in project_data.get("student_names", []):
-                p = self.person_matcher.match_or_create(name, strict_match=strict)
+            stu_names = project_data.get("student_names", [])
+            stu_emails = project_data.get("student_emails", [None] * len(stu_names))
+            for name, email in zip(stu_names, stu_emails):
+                p = self.person_matcher.match_or_create(name, email=email, strict_match=strict)
                 if p:
                     members_to_sync.append((p, "Student", start_date))
 
