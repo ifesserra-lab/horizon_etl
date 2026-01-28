@@ -4,6 +4,7 @@ from prefect import flow, get_run_logger
 # Import the specific flows
 from src.flows.ingest_sigpesq_groups import ingest_research_groups_flow
 from src.flows.ingest_sigpesq_projects import ingest_projects_flow
+from src.flows.ingest_sigpesq_advisorships import ingest_advisorships_flow
 
 load_dotenv()
 
@@ -12,7 +13,7 @@ load_dotenv()
 def ingest_sigpesq_flow() -> None:
     """
     Main Prefect Flow for ingesting ALL SigPesq data.
-    Orchestrates the independent flows for Research Groups and Projects.
+    Orchestrates the independent flows for Research Groups, Projects and Advisorships.
     """
     logger = get_run_logger()
     logger.info("Initializing SigPesq Full Ingestion Flow")
@@ -20,6 +21,7 @@ def ingest_sigpesq_flow() -> None:
     # Run sub-flows
     ingest_research_groups_flow()
     ingest_projects_flow()
+    ingest_advisorships_flow()
 
     logger.info("Flow finished successfully.")
 
@@ -33,6 +35,8 @@ if __name__ == "__main__":
             ingest_projects_flow()
         elif command == "groups":
             ingest_research_groups_flow()
+        elif command == "advisorships":
+            ingest_advisorships_flow()
         else:
             print(f"Unknown command: {command}. Running Full Flow.")
             ingest_sigpesq_flow()

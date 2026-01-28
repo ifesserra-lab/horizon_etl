@@ -557,6 +557,7 @@ class CanonicalDataExporter:
                 f.name as fellowship_name,
                 f.description as fellowship_description,
                 f.value as fellowship_value,
+                o.name as sponsor_name,
                 i.parent_id, 
                 p_init.name as parent_name,
                 p_init.status as parent_status,
@@ -569,6 +570,7 @@ class CanonicalDataExporter:
             LEFT JOIN persons p_sup ON a.supervisor_id = p_sup.id
             LEFT JOIN initiatives p_init ON i.parent_id = p_init.id
             LEFT JOIN fellowships f ON a.fellowship_id = f.id
+            LEFT JOIN organizations o ON f.sponsor_id = o.id
         """)
         result = session.execute(query).fetchall()
         
@@ -599,7 +601,8 @@ class CanonicalDataExporter:
                     "id": row.fellowship_id,
                     "name": row.fellowship_name,
                     "description": row.fellowship_description,
-                    "value": row.fellowship_value
+                    "value": row.fellowship_value,
+                    "sponsor_name": row.sponsor_name
                 } if row.fellowship_id else None
             }
             
@@ -721,6 +724,7 @@ class CanonicalDataExporter:
             "total_monthly_investment": 0.0,
             "program_distribution": Counter(),
             "investment_per_program": Counter(),
+            "volunteer_count": 0,
         }
 
         supervisors_counter = Counter()
@@ -766,6 +770,9 @@ class CanonicalDataExporter:
                     global_stats["program_distribution"][prog_name] += 1
                     global_stats["investment_per_program"][prog_name] += val
 
+                if not fell or fell.get("value", 0.0) == 0.0:
+                    global_stats["volunteer_count"] += 1
+
                 # Supervisor Stats
                 sup_name = adv.get("supervisor_name")
                 if sup_name:
@@ -778,9 +785,14 @@ class CanonicalDataExporter:
                 mart_projects.append(p_metrics)
 
         # Finalizing global stats
-        avg_students = (
+        participation_ratio = (
             global_stats["total_advisorships"] / global_stats["total_projects"]
             if global_stats["total_projects"] > 0
+            else 0
+        )
+        volunteer_percentage = (
+            (global_stats["volunteer_count"] / global_stats["total_advisorships"]) * 100
+            if global_stats["total_advisorships"] > 0
             else 0
         )
 
@@ -788,7 +800,8 @@ class CanonicalDataExporter:
             {
                 "program_distribution": dict(global_stats["program_distribution"]),
                 "investment_per_program": dict(global_stats["investment_per_program"]),
-                "avg_students_per_project": round(avg_students, 2),
+                "participation_ratio": round(participation_ratio, 2),
+                "volunteer_percentage": round(volunteer_percentage, 2),
                 "total_monthly_investment": round(
                     global_stats["total_monthly_investment"], 2
                 ),

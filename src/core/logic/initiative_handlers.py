@@ -6,6 +6,14 @@ from eo_lib import (
     InitiativeController,
 )
 from research_domain import (
+    CampusController,
+    KnowledgeAreaController,
+    ResearchGroupController,
+    ResearcherController,
+    UniversityController,
+)
+# Workaround: Import directly from controllers module since not exported in __init__
+from research_domain.controllers.controllers import (
     AdvisorshipController,
     FellowshipController,
 )
@@ -73,11 +81,17 @@ class StandardProjectHandler(BaseInitiativeHandler):
 class AdvisorshipHandler(BaseInitiativeHandler):
     """Handler for Advisorships and Fellowships."""
 
-    def __init__(self, initiative_controller: InitiativeController, person_matcher):
+    def __init__(
+        self,
+        initiative_controller: InitiativeController,
+        person_matcher,
+        entity_manager,
+    ):
         super().__init__(initiative_controller)
         self.adv_controller = AdvisorshipController()
         self.fel_controller = FellowshipController()
         self.person_matcher = person_matcher
+        self.entity_manager = entity_manager
         self._fellowships_cache: Dict[str, Fellowship] = {}
         self._preload_fellowships()
 
@@ -164,16 +178,18 @@ class AdvisorshipHandler(BaseInitiativeHandler):
 
         # 1. Student
         student_name = project_data.get("student_names", [None])[0]
-        if student_name:
-            p = self.person_matcher.match_or_create(student_name, strict_match=strict)
+        student_email = project_data.get("student_emails", [None])[0]
+        if student_name or student_email:
+            p = self.person_matcher.match_or_create(student_name, email=student_email, strict_match=strict)
             if p:
                 initiative.student_id = p.id
                 initiative.student = p
 
         # 2. Supervisor
         supervisor_name = project_data.get("coordinator_name")
-        if supervisor_name:
-            p = self.person_matcher.match_or_create(supervisor_name, strict_match=strict)
+        supervisor_email = project_data.get("coordinator_email")
+        if supervisor_name or supervisor_email:
+            p = self.person_matcher.match_or_create(supervisor_name, email=supervisor_email, strict_match=strict)
             if p:
                 initiative.supervisor_id = p.id
                 initiative.supervisor = p
@@ -185,13 +201,28 @@ class AdvisorshipHandler(BaseInitiativeHandler):
             fellowship = self._fellowships_cache.get(f_name)
             
             if not fellowship:
+                sponsor_name = fellowship_data.get("sponsor_name")
+                sponsor_id = None
+                if sponsor_name:
+                    sponsor_id = self.entity_manager.ensure_organization(name=sponsor_name)
+
                 fellowship = Fellowship(
                     name=f_name,
                     value=fellowship_data.get("value", 0.0),
+                    sponsor_id=sponsor_id,
                     description=fellowship_data.get("description"),
                 )
                 self.fel_controller.create(fellowship)
                 self._fellowships_cache[f_name] = fellowship
+            else:
+                # Check if we can enrich the existing fellowship with a sponsor
+                sponsor_name = fellowship_data.get("sponsor_name")
+                if sponsor_name and not fellowship.sponsor_id:
+                    sponsor_id = self.entity_manager.ensure_organization(name=sponsor_name)
+                    if sponsor_id:
+                        fellowship.sponsor_id = sponsor_id
+                        self.fel_controller.update(fellowship)
+                        self._fellowships_cache[f_name] = fellowship # Update cache
             
             initiative.fellowship = fellowship
             initiative.fellowship_id = fellowship.id
