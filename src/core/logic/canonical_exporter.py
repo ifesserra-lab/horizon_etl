@@ -550,16 +550,30 @@ class CanonicalDataExporter:
                 a.id, i.name, i.status, i.description, i.start_date, i.end_date,
                 a.student_id, p_std.name as student_name,
                 a.supervisor_id, p_sup.name as supervisor_name,
-                a.fellowship_id
+                a.fellowship_id,
+                f.name as fellowship_name,
+                f.description as fellowship_description,
+                f.value as fellowship_value,
+                i.parent_id, 
+                p_init.name as parent_name,
+                p_init.status as parent_status,
+                p_init.description as parent_description,
+                p_init.start_date as parent_start_date,
+                p_init.end_date as parent_end_date
             FROM advisorships a
             JOIN initiatives i ON a.id = i.id
             LEFT JOIN persons p_std ON a.student_id = p_std.id
             LEFT JOIN persons p_sup ON a.supervisor_id = p_sup.id
+            LEFT JOIN initiatives p_init ON i.parent_id = p_init.id
+            LEFT JOIN fellowships f ON a.fellowship_id = f.id
         """)
         result = session.execute(query).fetchall()
-        data = []
+        
+        projects_map = {}
+        orphans = []
+        
         for row in result:
-            data.append({
+            adv_data = {
                 "id": row.id,
                 "name": row.name,
                 "status": row.status,
@@ -578,11 +592,91 @@ class CanonicalDataExporter:
                 "student_name": row.student_name,
                 "supervisor_id": row.supervisor_id,
                 "supervisor_name": row.supervisor_name,
-                "fellowship_id": row.fellowship_id
+                "fellowship": {
+                    "id": row.fellowship_id,
+                    "name": row.fellowship_name,
+                    "description": row.fellowship_description,
+                    "value": row.fellowship_value
+                } if row.fellowship_id else None
+            }
+            
+            if row.parent_id:
+                if row.parent_id not in projects_map:
+                    projects_map[row.parent_id] = {
+                        "id": row.parent_id,
+                        "name": row.parent_name,
+                        "status": row.parent_status,
+                        "description": row.parent_description,
+                        "start_date": (
+                            row.parent_start_date.isoformat() 
+                            if hasattr(row.parent_start_date, "isoformat") 
+                            else str(row.parent_start_date) if row.parent_start_date else None
+                        ),
+                        "end_date": (
+                             row.parent_end_date.isoformat()
+                             if hasattr(row.parent_end_date, "isoformat")
+                             else str(row.parent_end_date) if row.parent_end_date else None
+                        ),
+                        "advisorships": []
+                    }
+                projects_map[row.parent_id]["advisorships"].append(adv_data)
+            else:
+                orphans.append(adv_data)
+        
+        # 3. Fetch Team Members for all parent projects
+        parent_ids = [pid for pid in projects_map.keys() if pid is not None]
+        if parent_ids:
+            # Format IDs for raw SQL IN clause
+            ids_str = ",".join(str(pid) for pid in parent_ids)
+            members_query = text(f"""
+                SELECT 
+                    it.initiative_id,
+                    p.name as person_name,
+                    r.name as role_name
+                FROM initiative_teams it
+                JOIN team_members tm ON it.team_id = tm.team_id
+                JOIN persons p ON tm.person_id = p.id
+                JOIN roles r ON tm.role_id = r.id
+                WHERE it.initiative_id IN ({ids_str})
+            """)
+            try:
+                members_result = session.execute(members_query).fetchall()
+                
+                logger.info(f"Team fetch: Identified {len(parent_ids)} parents. Found {len(members_result)} members total.")
+                
+                for m_row in members_result:
+                    pid = m_row[0]  # initiative_id
+                    if pid in projects_map:
+                        if "team" not in projects_map[pid]:
+                            projects_map[pid]["team"] = []
+                        projects_map[pid]["team"].append({
+                            "name": m_row[1], # person_name
+                            "role": m_row[2]  # role_name
+                        })
+            except Exception as e:
+                logger.warning(f"Failed to fetch team members for parent projects: {e}")
+        
+        # Ensure 'team' and 'advisorships' fields exist for all (even if empty)
+        for p in projects_map.values():
+            if "team" not in p:
+                p["team"] = []
+            if "advisorships" not in p:
+                p["advisorships"] = []
+
+        # Combine grouped projects and orphans
+        final_data = list(projects_map.values())
+        if orphans:
+            final_data.append({
+                "id": None,
+                "name": "Sem Projeto Associado",
+                "status": "N/A",
+                "team": [],
+                "description": "Bolsistas sem vínculo direto com um projeto de pesquisa estruturado no SigPesq.",
+                "advisorships": orphans
             })
         
-        self.sink.export(data, output_path)
-        logger.info(f"Successfully exported {len(data)} Advisorships to {output_path}")
+        self.sink.export(final_data, output_path)
+        logger.info(f"Successfully exported {len(final_data)} parent projects with advisorships to {output_path}")
 
     def export_fellowships(self, output_path: str):
         """

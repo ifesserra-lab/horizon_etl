@@ -78,6 +78,47 @@ class InitiativeLinker:
         except Exception as e:
             logger.warning(f"Failed to assign team to initiative: {e}")
 
+    def add_members_to_initiative_team(self, initiative: Any, project_data: Dict[str, Any]) -> None:
+        """Adds members (Supervisor/Student) to the initiative's team without removing existing ones."""
+        team_name = initiative.name[:200]
+        team = self.team_synchronizer.ensure_team(
+            team_name=team_name,
+            description=f"Equipe do projeto: {initiative.name[:100]}",
+        )
+
+        if not team:
+            return
+
+        members_to_add = []
+        strict = True
+        start_date = project_data.get("start_date")
+
+        # 1. Supervisor (Coordinator in project_data) -> Role: Researcher
+        # We add them as Researcher to the parent project to avoid multiple Coordinators.
+        coord_name = project_data.get("coordinator_name")
+        coord_email = project_data.get("coordinator_email")
+        if coord_name or coord_email:
+            p = self.person_matcher.match_or_create(coord_name, email=coord_email, strict_match=strict)
+            if p:
+                members_to_add.append((p, "Researcher", start_date))
+
+        # 2. Student -> Role: Student
+        stu_names = project_data.get("student_names", [])
+        stu_emails = project_data.get("student_emails", [None] * len(stu_names))
+        for name, email in zip(stu_names, stu_emails):
+            p = self.person_matcher.match_or_create(name, email=email, strict_match=strict)
+            if p:
+                members_to_add.append((p, "Student", start_date))
+
+        # 3. Add members (Additive)
+        self.team_synchronizer.add_members(team.id, members_to_add)
+
+        # 4. Link team to initiative (Ensure assigned)
+        try:
+            self.initiative_controller.assign_team(initiative.id, team.id)
+        except Exception as e:
+            logger.warning(f"Failed to assign team to parent initiative: {e}")
+
     def link_research_group(
         self,
         initiative: Any,

@@ -60,14 +60,6 @@ class TeamSynchronizer:
     ):
         """
         Synchronizes team members: adds new ones and removes obsolete ones.
-
-        This method compares the current members in the database with the provided
-        source list and performs the necessary additions and deletions to match.
-
-        Args:
-            team_id (int): The ID of the team to synchronize.
-            members_to_sync (List[Tuple[Any, str, Optional[Any]]]):
-                List of (Person, RoleName, StartDate) tuples to be synchronized.
         """
         current_source_memberships: Set[Tuple[int, int]] = set()
 
@@ -90,6 +82,27 @@ class TeamSynchronizer:
 
         # Remove obsolete members
         self._remove_obsolete_members(team_id, current_source_memberships)
+
+    def add_members(
+        self, team_id: int, members_to_add: List[Tuple[Any, str, Optional[Any]]]
+    ):
+        """
+        Adds members to the team without removing existing ones.
+        Idempotent: only adds if (person, role, start_date) is missing.
+        """
+        for person, role_name, start_date in members_to_add:
+            if not person:
+                continue
+
+            role_obj = self.roles_cache.get(role_name)
+            role_id = getattr(role_obj, "id", None) or (
+                role_obj.get("id") if isinstance(role_obj, dict) else None
+            )
+
+            # Add member with idempotency check
+            self._add_member_if_new(
+                team_id, person, role_obj, role_name, role_id, start_date
+            )
 
     def _add_member_if_new(
         self, team_id, person, role_obj, role_name, role_id, start_date

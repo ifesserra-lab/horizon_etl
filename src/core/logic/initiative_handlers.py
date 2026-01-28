@@ -20,7 +20,7 @@ class BaseInitiativeHandler(ABC):
         self.initiative_controller = initiative_controller
 
     @abstractmethod
-    def create_or_update(self, project_data: Dict[str, Any], existing_initiative: Optional[Any], initiative_type_name: str, initiative_type_id: int, organization_id: Optional[int]) -> Any:
+    def create_or_update(self, project_data: Dict[str, Any], existing_initiative: Optional[Any], initiative_type_name: str, initiative_type_id: int, organization_id: Optional[int], parent_id: Optional[int] = None) -> Any:
         """Creates or updates the initiative entity."""
         pass
 
@@ -28,7 +28,7 @@ class BaseInitiativeHandler(ABC):
 class StandardProjectHandler(BaseInitiativeHandler):
     """Handler for standard research projects."""
 
-    def create_or_update(self, project_data: Dict[str, Any], existing_initiative: Optional[Any], initiative_type_name: str, initiative_type_id: int, organization_id: Optional[int]) -> Any:
+    def create_or_update(self, project_data: Dict[str, Any], existing_initiative: Optional[Any], initiative_type_name: str, initiative_type_id: int, organization_id: Optional[int], parent_id: Optional[int] = None) -> Any:
         title = project_data["title"]
         
         if existing_initiative:
@@ -42,9 +42,11 @@ class StandardProjectHandler(BaseInitiativeHandler):
                 end_date=project_data.get("end_date"),
                 initiative_type_name=initiative_type_name,
             )
-            # Force organization update update if possible
+            # Force organization and parent update if possible
             try:
                 existing_initiative.organization_id = organization_id
+                if parent_id is not None:
+                    existing_initiative.parent_id = parent_id
                 self.initiative_controller.update(existing_initiative)
             except Exception:
                 pass
@@ -59,6 +61,7 @@ class StandardProjectHandler(BaseInitiativeHandler):
                 description=project_data.get("description"),
                 initiative_type_id=initiative_type_id,
                 organization_id=organization_id,
+                parent_id=parent_id,
             )
             if "metadata" in project_data:
                 initiative.metadata = project_data["metadata"]
@@ -89,7 +92,7 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         except Exception as e:
             logger.warning(f"Failed to preload fellowships: {e}")
 
-    def create_or_update(self, project_data: Dict[str, Any], existing_initiative: Optional[Any], initiative_type_name: str, initiative_type_id: int, organization_id: Optional[int]) -> Any:
+    def create_or_update(self, project_data: Dict[str, Any], existing_initiative: Optional[Any], initiative_type_name: str, initiative_type_id: int, organization_id: Optional[int], parent_id: Optional[int] = None) -> Any:
         title = project_data["title"]
         
         if existing_initiative:
@@ -104,19 +107,38 @@ class AdvisorshipHandler(BaseInitiativeHandler):
                 end_date=project_data.get("end_date"),
                 initiative_type_name=initiative_type_name,
             )
-            # Force organization update update if possible
+            # Force organization and parent update if possible
             try:
                 existing_initiative.organization_id = organization_id
+                if parent_id is not None:
+                    existing_initiative.parent_id = parent_id
                 self.initiative_controller.update(existing_initiative)
             except Exception:
                 pass
             
-            # Update specialized fields if it's an Advisorship object
-            if isinstance(existing_initiative, Advisorship):
-                self._handle_advisorship_details(existing_initiative, project_data)
-                self.adv_controller.update(existing_initiative)
+            # Update specialized fields
+            # If it's a base Initiative, we MUST fetch it as Advisorship to access specialized fields
+            target_adv = existing_initiative
+            if not isinstance(existing_initiative, Advisorship):
+                try:
+                    # Fetch specialized record by ID
+                    actual_adv = self.adv_controller.get_by_id(existing_initiative.id)
+                    if actual_adv:
+                        target_adv = actual_adv
+                    else:
+                        logger.warning(f"Initiative {existing_initiative.id} is not an Advisorship in the DB.")
+                        return existing_initiative
+                except Exception as e:
+                    logger.warning(f"Failed to fetch Advisorship detail for {existing_initiative.id}: {e}")
+                    return existing_initiative
+
+            try:
+                self._handle_advisorship_details(target_adv, project_data)
+                self.adv_controller.update(target_adv)
+            except Exception as e:
+                logger.warning(f"Could not update advisorship-specific details for {title}: {e}")
                 
-            return existing_initiative
+            return target_adv
         else:
             logger.debug(f"Creating new advisorship: {title[:50]}...")
             initiative = Advisorship(
@@ -127,6 +149,7 @@ class AdvisorshipHandler(BaseInitiativeHandler):
                 description=project_data.get("description"),
                 initiative_type_id=initiative_type_id,
                 organization_id=organization_id,
+                parent_id=parent_id,
             )
             if "metadata" in project_data:
                 initiative.metadata = project_data["metadata"]

@@ -117,6 +117,30 @@ class ProjectLoader:
         model_class = project_data.get("model_class", Initiative)
         handler = self.handlers.get(model_class, self.handlers[Initiative])
 
+        # 2.5 Parent Initiative Handling
+        parent_id = None
+        parent_initiative = None
+        parent_title = project_data.get("parent_title")
+        if parent_title:
+            parent_initiative = existing_by_name.get(parent_title)
+            if not parent_initiative:
+                # Create parent via Standard Handler
+                logger.info(f"Creating parent Research Project: {parent_title}")
+                
+                # Ensure we have the "Research Project" type for the parent
+                res_proj_type = self.entity_manager.ensure_initiative_type("Research Project")
+                
+                parent_initiative = self.handlers[Initiative].create_or_update(
+                    project_data={"title": parent_title},
+                    existing_initiative=None,
+                    initiative_type_name="Research Project",
+                    initiative_type_id=res_proj_type.id,
+                    organization_id=self.org_id
+                )
+                existing_by_name[parent_title] = parent_initiative
+            
+            parent_id = parent_initiative.id
+
         # 3. UPSERT Initiative
         existing = existing_by_name.get(title)
         initiative = handler.create_or_update(
@@ -124,13 +148,18 @@ class ProjectLoader:
             existing_initiative=existing,
             initiative_type_name=self.initiative_type.name,
             initiative_type_id=self.initiative_type.id,
-            organization_id=self.org_id
+            organization_id=self.org_id,
+            parent_id=parent_id
         )
 
         if not existing:
             stats["created"] += 1
         else:
             stats["updated"] += 1
+
+        # 3.5 Link Advisorship members to Parent Project
+        if parent_id and parent_initiative:
+            self.linker.add_members_to_initiative_team(parent_initiative, project_data)
 
         # 4. Linkages
         if initiative:

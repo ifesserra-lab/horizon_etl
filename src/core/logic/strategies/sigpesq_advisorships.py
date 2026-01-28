@@ -42,20 +42,14 @@ class SigPesqAdvisorshipMappingStrategy(ProjectMappingStrategy):
 
         fellowship_data = None
         if programa:
-            # Handle Portuguese decimal separator (comma)
-            processed_valor = 0.0
-            if valor:
-                try:
-                    if isinstance(valor, str):
-                        processed_valor = float(valor.replace(".", "").replace(",", "."))
-                    else:
-                        processed_valor = float(valor)
-                except (ValueError, TypeError):
-                    logger.warning(f"Could not convert value '{valor}' to float. Using 0.0")
-                    processed_valor = 0.0
+            # Simple float conversion
+            try:
+                processed_valor = float(str(valor).replace(",", ".")) if valor else 0.0
+            except (ValueError, TypeError):
+                processed_valor = 0.0
 
             fellowship_data = {
-                "name": str(programa).strip(),
+                "name": str(programa).strip().upper(),
                 "value": processed_valor,
                 "description": f"Programa: {programa}",
                 "sigpesq_id": row_id,
@@ -63,6 +57,7 @@ class SigPesqAdvisorshipMappingStrategy(ProjectMappingStrategy):
 
         return {
             "title": project_title,
+            "parent_title": str(row.get("TituloPJ", "")).strip(),
             "status": row.get("Situacao", row.get("Situação", "Active")),
             "start_date": start_date,
             "end_date": end_date,
@@ -80,6 +75,7 @@ class SigPesqAdvisorshipMappingStrategy(ProjectMappingStrategy):
                 "orientador_name": orientador,
                 "orientador_email": orientador_email,
                 "project_title": project_title,
+                "parent_project_title": str(row.get("TituloPJ", "")).strip(),
                 "programa": programa,
                 "valor": valor,
                 "sigpesq_id": row_id,

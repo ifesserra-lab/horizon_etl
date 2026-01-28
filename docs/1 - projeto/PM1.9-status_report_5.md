@@ -15,24 +15,27 @@ This interaction focuses on the structural improvement of the ETL core. We have 
 | ID | Description | Status | Version |
 |---|---|---|---|
 | #54 | Refactor ProjectLoader for Modularity and Strategy Pattern | Released | v0.9.1 |
-| RF-17 | Implementation of Initiative Strategy Pattern | Completed | v0.9.1 |
-| RF-18 | Extraction of EntityManager and InitiativeLinker | Completed | v0.9.1 |
+| RF-19 | Hierarchical Advisorship Export (Grouped by Project) | Completed | v0.9.2 |
+| RF-20 | Member Sync to Parent Project (Additive Teams) | Completed | v0.9.2 |
+| RF-21 | Enhanced Export with Project Teams | Completed | v0.9.2 |
+| RF-22 | Fellowship Expansion in Advisorship Export | Completed | v0.9.2 |
 
 ### GitHub Stats
-- **Issues in progress:** #54
+- **Issues in progress:** None
 - **Branch:** `feat/divide-project-loader`
 - **Target Release:** R1 SigPesq (Stabilization)
 
 ## 3. Technical Accomplishments
 - **Strategy Pattern Implementation**: Extracted initiative-specific logic into `StandardProjectHandler` and `AdvisorshipHandler`.
-- **Modular Architecture**: Created `EntityManager` for domain entity preservation and `InitiativeLinker` for complex relationship management.
-- **Code Reduction**: Reduced `ProjectLoader.py` from 900+ lines to ~150 lines of orchestration logic.
-- **Test Suite Pass**: Verified all 28 project tests, including fixes for pre-existing regressions in `PersonMatcher` and `CanonicalExporter`.
+- **Modular Architecture**: Created `EntityManager` and `InitiativeLinker` for relationship management.
+- **Hierarchy Support**: Implemented parent-child links between Advisorships and Research Projects.
+- **Team Synchronization**: Added non-destructive member syncing to aggregate all advisorship participants in the parent project.
+- **Advanced Exporting**: Refactored `CanonicalExporter` to produce hierarchical JSON with enriched fellowship and team data.
+- **Code Optimization**: Reduced `ProjectLoader.py` size while adding complex hierarchical features.
 
 ## 4. Risks & Issues
-- **Environment Dependencies**: Successful execution of the pipeline depends on the availability of SigPesq mock data or valid credentials for the auto-downloader.
+- None.
 
 ## 5. Planned for Next Steps
-- Execute and verify `run_serra_pipeline.py`.
 - Merge `feat/divide-project-loader` to `developing`.
-- Finalize Release R1 preparation.
+- Release `v1.0.0` to `main`.
