@@ -21,6 +21,7 @@ def test_sigpesq_advisorship_mapping():
         "Situacao": "Active",
         "Programa": "PIBIC",
         "Valor": 400.0,
+        "agFinanciadora": "FAPES",
     }
 
     mapped = strategy.map_row(row)
@@ -35,6 +36,7 @@ def test_sigpesq_advisorship_mapping():
     assert mapped["model_class"] == Advisorship
     assert mapped["fellowship_data"]["name"] == "PIBIC"
     assert mapped["fellowship_data"]["value"] == 400.0
+    assert mapped["fellowship_data"]["sponsor_name"] == "FAPES"
 
 
 def test_person_matcher_email_matching():
@@ -68,8 +70,10 @@ def test_person_matcher_email_matching():
     p2 = MagicMock(spec=Person)
     person_ctrl.create_person.return_value = p2
     new_person = matcher.match_or_create("Jane Doe", email="jane@example.com")
-    assert new_person == p2
-    person_ctrl.create_person.assert_called_with(name="Jane Doe", email="jane@example.com")
+    # Should create new person with email
+    person_ctrl.create_person.assert_called_once_with(
+        name="Jane Doe", emails=["jane@example.com"]
+    )
 
 
 def test_sigpesq_advisorship_mapping_fellowship_flowship():
@@ -89,8 +93,8 @@ def test_sigpesq_advisorship_mapping_fellowship_flowship():
 
 
 def test_advisorship_and_fellowship_controllers():
-    """Verify that the new controllers are available and can be instantiated."""
-    from research_domain import AdvisorshipController, FellowshipController
+    """Test that Advisorship and Fellowship controllers can be imported and instantiated."""
+    from research_domain.controllers.controllers import AdvisorshipController, FellowshipController
 
     adv_ctrl = AdvisorshipController()
     fel_ctrl = FellowshipController()

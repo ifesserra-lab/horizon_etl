@@ -20,21 +20,21 @@ I have refactored the `ProjectLoader` class to improve its modularity, maintaina
 - **[sigpesq_advisorships.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/strategies/sigpesq_advisorships.py)**: Updated to extract `TituloPJ` as `parent_title`.
 - **[initiative_handlers.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/initiative_handlers.py)**: Added support for `parent_id` in `create_or_update`.
 - **[project_loader.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/project_loader.py)**: Added logic to create and link parent "Research Project" initiatives during advisorship ingestion.
-- **[canonical_exporter.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/canonical_exporter.py)**: Updated `export_advisorships` to group results by parent project, handle orphans, include parent team members, and expand fellowship details. **Added `generate_advisorship_mart` to produce an analytical summary with KPIs and rankings.**
-- **[export_canonical_data.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/flows/export_canonical_data.py)**: Added task to trigger the Analytics Mart generation.
+- [canonical_exporter.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/canonical_exporter.py): Updated `export_advisorships` to group results by parent project, handle orphans, include parent team members, and expand fellowship details. **Added `generate_advisorship_mart` to produce an analytical summary with KPIs and rankings.**
+- [tests/test_advisorship_mart.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/tests/test_advisorship_mart.py): Added automated tests to verify the KPIs and ranking logic.
 
 ### 5. Parent Project Team Synchronization
-- **[team_synchronizer.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/team_synchronizer.py)**: Added `add_members` method for idempotent, additive membership updates.
-- **[initiative_linker.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/initiative_linker.py)**: Added `add_members_to_initiative_team` to merge supervisors and students into the parent project.
-- **[project_loader.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/project_loader.py)**: Updated orchestration to sync advisorship members to the parent Research Project during ingestion.
+- [team_synchronizer.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/team_synchronizer.py): Added `add_members` method for idempotent, additive membership updates.
+- [initiative_linker.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/initiative_linker.py): Added `add_members_to_initiative_team` to merge supervisors and students into the parent project.
+- [project_loader.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/project_loader.py): Updated orchestration to sync advisorship members to the parent Research Project during ingestion.
 
 ## Verification Results
 
 ### Automated Tests
-I ran the full test suite in the project's virtual environment. All **28 tests passed**.
+I ran the full test suite in the project's virtual environment. All **29 tests passed** (including the new `test_advisorship_mart.py`).
 
 ```bash
-./.venv/bin/python -m pytest tests/
+PYTHONPATH=. pytest tests/
 ```
 
 | Component | Status | Note |
@@ -42,20 +42,24 @@ I ran the full test suite in the project's virtual environment. All **28 tests p
 | Team Management | ✅ Pass | Adjusted to new modular patches |
 | Person Matcher | ✅ Pass | Fixed robustness issue in cache loading |
 | Canonical Exporter | ✅ Pass | Updated to expect 8 exports and enriched data |
+| Advisorship Analytics Mart | ✅ Pass | Verified KPI calculations, program distribution, and rankings |
 | SigPesq Adapter | ✅ Pass | Mocked environment and download for unit testing |
 | Advisorship Mapping | ✅ Pass | Verified mapping logic and fixed float parsing for commas |
 
 ### Manual Verification
 - **Database Linking**: Verified that `parent_id` is correctly populated for advisorships in the database.
 - **Canonical Export**: Confirmed that `advisorships_canonical.json` now includes `parent_id` and `parent_name` fields.
+- **Analytics Mart**: Verified `advisorship_analytics.json` contains:
+    - Global stats: `total_projects`, `total_advisorships`, `total_monthly_investment`.
+    - Rankings: Top 10 supervisors by count and Top 10 projects by investment.
+    - Project-level KPIs: `total_students`, `active_students`, `monthly_investment`, `main_program`.
 
 ## Pipeline Verification
-I successfully executed the full `src/flows/run_serra_pipeline.py` script. The pipeline completed with **Exit code 0**.
+I successfully executed the full `src/flows/run_serra_pipeline.py` script and the mart generation via `src/flows/export_canonical_data.py`.
 
 ### Internal Bug Fixes during Verification:
 1. **Portuguese Decimal Parsing**: Fixed `SigPesqAdvisorshipMappingStrategy` to correctly interpret fellowship values with commas (e.g., "700,00").
 2. **TeamController API Sync**: Corrected `TeamSynchronizer` to use the standardized `remove_member(member_id)` signature required by `eo_lib`.
-
 3. **Database Cleanup**: Executed `scripts/cleanup_legacy_fellowships.py` to remove legacy "Voluntário" and "Bolsista" records and re-link orphans to the correct program names.
 
 ## Next Steps
