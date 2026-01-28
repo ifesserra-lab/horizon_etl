@@ -54,6 +54,7 @@ O **Horizon ETL** é uma infraestrutura de dados que automatiza a coleta de info
 | **RF-22** | O arquivo `advisorships_canonical.json` deve expandir o campo `fellowship_id` para um objeto `fellowship` contendo todos os detalhes da bolsa (ID, Nome, Descrição, Valor). | Em vez de exportar apenas o ID da bolsa, o sistema deve realizar um join com a tabela de bolsas e exportar o objeto completo. | User Req. |
 | **RF-23** | O sistema deve gerar um Data Mart de indicadores (`advisorship_analytics.json`) a partir do canônico agrupado. | O mart deve consolidar métricas por projeto (investimento total, contagem de alunos) e globais (distribuição por modalidade de bolsa). | User Req. |
 | **RF-24** | O Data Mart deve incluir resumos estatísticos e rankings de orientadores e programas de fomento. | Automatizar a geração de indicadores de performance e rankings para dashboards. | User Req. |
+| **RF-25** | O status de uma Advisorship deve ser determinado automaticamente com base na data de término (`Fim`). Se a data de término for maior que a data atual, o status é "Active"; caso contrário, é "Concluded". | Implementar lógica de validação temporal durante a ingestão de dados do SigPesq. | User Req. |
 
 ---
 
