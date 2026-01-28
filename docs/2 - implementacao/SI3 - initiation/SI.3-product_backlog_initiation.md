@@ -322,10 +322,35 @@ Desenvolver a lógica de agregação para gerar o JSON de estatísticas de níve
 #### Critérios de Aceitação
 - **Funcional**:
     - [ ] `total_projects`: Contagem total de iniciativas.
-    - [ ] `active_projects`: Iniciativas com status que indique atividade (ou sem data de fim).
+- [ ] `active_projects`: Iniciativas com status que indique atividade (ou sem data de fim).
     - [ ] `total_participants`: Contagem única de pessoas vinculadas a equipes.
-    - [ ] `evolution`: Lista por ano com contagem de `start` e `end`.
-    - [ ] `team_composition`: Contagem segmentada por roles (Researcher, Student).
+- [ ] `evolution`: Lista por ano com contagem de `start` e `end`.
+- [ ] `team_composition`: Contagem segmentada por roles (Researcher, Student).
+
+### US-032 – Ingestão de Bolsistas SigPesq (Advisorships)
+```yaml
+id: US-032
+milestone: R5
+prioridade: Alta
+tamanho: 5
+origem: [RF-16]
+tags: [type:feature, area:backend, source:sigpesq]
+dependencias: [US-001]
+modulos_afetados: [src/flows/ingest_sigpesq_advisorships.py, src/core/logic/strategies/sigpesq_advisorships.py]
+```
+
+#### Descrição
+Desenvolver o pipeline de ingestão de **Bolsistas** (Orientações/Bolsas) do SigPesq. Deve utilizar a estratégia `AdvisorshipsDownloadStrategy` da lib `agent_sigpesq` e persistir os dados no banco de dados.
+
+#### Critérios de Aceitação
+- **Funcional**:
+    - [ ] Extração de relatórios de Bolsistas via `agent_sigpesq`.
+    - [ ] Mapeamento de Bolsista, Orientador, Datas e Vínculo.
+    - [ ] Persistência no banco de dados.
+- **TDD**:
+    - [ ] Testes de mapeamento e lógica de persistência.
+- **Deploy**:
+    - [ ] Flow `ingest_sigpesq_advisorships.py` executável.
 - **Deploy**:
     - [ ] Comando `analytics_mart` integrado ao `app.py`.
     - [ ] Arquivo salvo em `src/data/marts/initiatives_analytics_mart.json`.
@@ -525,6 +550,7 @@ Criar automaticamente equipes (Teams) com seus membros durante a ingestão de pr
 | **US-011** | Pipeline Unificado | R1 | **Concluído** |
 | **US-012** | Research Area Mart | R2 | **Concluído** |
 | **US-006** | Extração Editais FAPES (PDF) | R3 | **Ready** |
+| **US-032** | Ingestão Bolsistas SigPesq | R5 | **Concluído** |
 
 
 ---

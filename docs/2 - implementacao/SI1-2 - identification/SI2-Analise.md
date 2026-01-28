@@ -160,3 +160,4 @@ erDiagram
 | RF-09 (CNPq Update) | Fluxo 3.2, dgp_cnpq_lib |
 | RF-11 (KA Mart) | Fluxo de Geração de Mart (RN-06) |
 | RF-13 (Analytics Mart) | Fluxo 3.6, Geração de Mart |
+| RF-16 (SigPesq Advisorships) | Fluxo de Ingestão SigPesq (Advisorships) |
