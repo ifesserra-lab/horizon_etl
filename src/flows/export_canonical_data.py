@@ -76,6 +76,32 @@ def export_initiative_types_task(output_dir: str):
     )
 
 
+@task(name="export_advisorships_task")
+def export_advisorships_task(output_dir: str):
+    logger.info("Starting Advisorships export...")
+    sink = JsonSink()
+    exporter = CanonicalDataExporter(sink=sink)
+    exporter.export_advisorships(os.path.join(output_dir, "advisorships_canonical.json"))
+
+
+@task(name="export_fellowships_task")
+def export_fellowships_task(output_dir: str):
+    logger.info("Starting Fellowships export...")
+    sink = JsonSink()
+    exporter = CanonicalDataExporter(sink=sink)
+    exporter.export_fellowships(os.path.join(output_dir, "fellowships_canonical.json"))
+
+
+@task(name="export_advisorship_analytics_task")
+def export_advisorship_analytics_task(output_dir: str):
+    logger.info("Starting Advisorship Analytics Mart generation...")
+    sink = JsonSink()
+    exporter = CanonicalDataExporter(sink=sink)
+    input_path = os.path.join(output_dir, "advisorships_canonical.json")
+    output_path = os.path.join(output_dir, "advisorship_analytics.json")
+    exporter.generate_advisorship_mart(input_path, output_path)
+
+
 @flow(name="Export Canonical Data Flow")
 def export_canonical_data_flow(
     output_dir: str = "data/exports", campus: Optional[str] = None
@@ -102,6 +128,9 @@ def export_canonical_data_flow(
     export_groups_task(output_dir, campus)
     export_initiatives_task(output_dir)
     export_initiative_types_task(output_dir)
+    export_advisorships_task(output_dir)
+    export_fellowships_task(output_dir)
+    export_advisorship_analytics_task(output_dir)
 
 
 if __name__ == "__main__":

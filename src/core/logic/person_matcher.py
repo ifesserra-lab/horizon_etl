@@ -24,18 +24,32 @@ class PersonMatcher:
         """
         self.person_controller = person_controller
         self._persons_cache: Dict[str, Person] = {}
+        self._emails_cache: Dict[str, Person] = {}
 
     def preload_cache(self):
         """
         Preloads the internal persons cache from the database.
 
-        Fetches all persons and populates _persons_cache using their names.
+        Fetches all persons and populates _persons_cache using their names
+        and _emails_cache using their emails.
         """
         logger.info("Pre-loading persons cache...")
         try:
             all_persons = self.person_controller.get_all()
-            self._persons_cache = {p.name: p for p in all_persons}
-            logger.info(f"Loaded {len(self._persons_cache)} persons into cache")
+            self._persons_cache = {}
+            self._emails_cache = {}
+            for p in all_persons:
+                if isinstance(p, dict):
+                    name = p.get("name")
+                    email = p.get("email")
+                else:
+                    name = getattr(p, "name", None)
+                    email = getattr(p, "email", None)
+                if name:
+                    self._persons_cache[name] = p
+                if email:
+                    self._emails_cache[email.lower()] = p
+            logger.info(f"Loaded {len(self._persons_cache)} persons and {len(self._emails_cache)} emails into cache")
         except Exception as e:
             logger.warning(f"Failed to preload persons cache: {e}")
 
@@ -70,35 +84,49 @@ class PersonMatcher:
         return " ".join(name_str.split())
 
     def match_or_create(
-        self, name: str, strict_match: bool = False
+        self, name: str, email: Optional[str] = None, strict_match: bool = False
     ) -> Optional[Person]:
         """
-        Finds a person by name using normalization and (optionally) fuzzy matching.
+        Finds a person by email or name.
+        Uses normalization and (optionally) fuzzy matching for names.
         Creates a new Person if no match is found.
 
         Args:
             name (str): The name of the person to match or create.
-            strict_match (bool): If True, only exact normalized matches (score 100) are accepted.
-                                 If False, fuzzy matches with score >= 90 are accepted.
+            email (Optional[str]): The email of the person to match.
+            strict_match (bool): If True, only exact normalized matches (score 100) are accepted for name.
 
         Returns:
             Optional[Person]: The matched or newly created Person object, or None if creation fails.
         """
         if not name or not name.strip():
-            return None
+            # If name is missing but email is provided, maybe we can find by email anyway?
+            # User requirement says Student and Supervisor are people and we should use name OR email.
+            if not email:
+                return None
 
-        name = name.strip()
+        # 1. Match by Email first (highest priority)
+        if email:
+            email_key = email.strip().lower()
+            if email_key in self._emails_cache:
+                logger.debug(f"Match found by email: {email_key}")
+                return self._emails_cache[email_key]
+
+        name = name.strip() if name else ""
         normalized_input = self.normalize_name(name)
 
-        # 1. Exact Match in Cache (Normalized)
+        # 2. Exact Match in Cache (Normalized)
         for cached_name, person in self._persons_cache.items():
-            if self.normalize_name(cached_name) == normalized_input:
+            norm_cached = self.normalize_name(cached_name)
+            if norm_cached == normalized_input:
                 self._persons_cache[name] = person
+                if email:
+                    self._emails_cache[email.strip().lower()] = person
                 return person
 
-        # 2. Fuzzy Matching in Cache
+        # 3. Fuzzy Matching in Cache
         names_in_cache = list(self._persons_cache.keys())
-        if names_in_cache:
+        if names_in_cache and normalized_input:
             normalized_to_original = {self.normalize_name(n): n for n in names_in_cache}
             normalized_list = list(normalized_to_original.keys())
 
@@ -120,13 +148,17 @@ class PersonMatcher:
                     )
                     person = self._persons_cache[original_name]
                     self._persons_cache[name] = person
+                    if email:
+                        self._emails_cache[email.strip().lower()] = person
                     return person
 
-        # 3. Create new person (if no match found)
+        # 4. Create new person (if no match found)
         try:
-            person = self.person_controller.create_person(name=name)
+            person = self.person_controller.create_person(name=name, email=email)
             self._persons_cache[name] = person
-            logger.debug(f"Created person: {name}")
+            if email:
+                self._emails_cache[email.strip().lower()] = person
+            logger.debug(f"Created person: {name} (email: {email})")
             return person
         except Exception as e:
             logger.warning(f"Failed to create person '{name}': {e}")

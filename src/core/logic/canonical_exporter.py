@@ -1,4 +1,7 @@
 import os
+import json
+from datetime import datetime
+from collections import Counter
 from typing import Any, List, Optional
 
 from eo_lib import InitiativeController, OrganizationController
@@ -9,6 +12,7 @@ from research_domain import (
     ResearcherController,
     ResearchGroupController,
 )
+from research_domain.domain.entities import Advisorship, Fellowship
 
 from src.core.ports.export_sink import IExportSink
 from sqlalchemy import text
@@ -530,5 +534,289 @@ class CanonicalDataExporter:
         self.export_initiative_types(
             os.path.join(output_dir, "initiative_types_canonical.json")
         )
+        self.export_advisorships(
+            os.path.join(output_dir, "advisorships_canonical.json")
+        )
+        self.export_fellowships(
+            os.path.join(output_dir, "fellowships_canonical.json")
+        )
 
         logger.info("Canonical Data Export completed.")
+
+    def export_advisorships(self, output_path: str):
+        """
+        Exports all advisorships to a JSON file.
+        """
+        session = self.initiative_ctrl._service._repository._session
+        query = text("""
+            SELECT 
+                a.id, i.name, i.status, i.description, i.start_date, i.end_date,
+                a.student_id, p_std.name as student_name,
+                a.supervisor_id, p_sup.name as supervisor_name,
+                a.fellowship_id,
+                f.name as fellowship_name,
+                f.description as fellowship_description,
+                f.value as fellowship_value,
+                i.parent_id, 
+                p_init.name as parent_name,
+                p_init.status as parent_status,
+                p_init.description as parent_description,
+                p_init.start_date as parent_start_date,
+                p_init.end_date as parent_end_date
+            FROM advisorships a
+            JOIN initiatives i ON a.id = i.id
+            LEFT JOIN persons p_std ON a.student_id = p_std.id
+            LEFT JOIN persons p_sup ON a.supervisor_id = p_sup.id
+            LEFT JOIN initiatives p_init ON i.parent_id = p_init.id
+            LEFT JOIN fellowships f ON a.fellowship_id = f.id
+        """)
+        result = session.execute(query).fetchall()
+        
+        projects_map = {}
+        orphans = []
+        
+        for row in result:
+            adv_data = {
+                "id": row.id,
+                "name": row.name,
+                "status": row.status,
+                "description": row.description,
+                "start_date": (
+                    row.start_date.isoformat() 
+                    if hasattr(row.start_date, "isoformat") 
+                    else str(row.start_date) if row.start_date else None
+                ),
+                "end_date": (
+                     row.end_date.isoformat()
+                     if hasattr(row.end_date, "isoformat")
+                     else str(row.end_date) if row.end_date else None
+                ),
+                "student_id": row.student_id,
+                "student_name": row.student_name,
+                "supervisor_id": row.supervisor_id,
+                "supervisor_name": row.supervisor_name,
+                "fellowship": {
+                    "id": row.fellowship_id,
+                    "name": row.fellowship_name,
+                    "description": row.fellowship_description,
+                    "value": row.fellowship_value
+                } if row.fellowship_id else None
+            }
+            
+            if row.parent_id:
+                if row.parent_id not in projects_map:
+                    projects_map[row.parent_id] = {
+                        "id": row.parent_id,
+                        "name": row.parent_name,
+                        "status": row.parent_status,
+                        "description": row.parent_description,
+                        "start_date": (
+                            row.parent_start_date.isoformat() 
+                            if hasattr(row.parent_start_date, "isoformat") 
+                            else str(row.parent_start_date) if row.parent_start_date else None
+                        ),
+                        "end_date": (
+                             row.parent_end_date.isoformat()
+                             if hasattr(row.parent_end_date, "isoformat")
+                             else str(row.parent_end_date) if row.parent_end_date else None
+                        ),
+                        "advisorships": []
+                    }
+                projects_map[row.parent_id]["advisorships"].append(adv_data)
+            else:
+                orphans.append(adv_data)
+        
+        # 3. Fetch Team Members for all parent projects
+        parent_ids = [pid for pid in projects_map.keys() if pid is not None]
+        if parent_ids:
+            # Format IDs for raw SQL IN clause
+            ids_str = ",".join(str(pid) for pid in parent_ids)
+            members_query = text(f"""
+                SELECT 
+                    it.initiative_id,
+                    p.name as person_name,
+                    r.name as role_name
+                FROM initiative_teams it
+                JOIN team_members tm ON it.team_id = tm.team_id
+                JOIN persons p ON tm.person_id = p.id
+                JOIN roles r ON tm.role_id = r.id
+                WHERE it.initiative_id IN ({ids_str})
+            """)
+            try:
+                members_result = session.execute(members_query).fetchall()
+                
+                logger.info(f"Team fetch: Identified {len(parent_ids)} parents. Found {len(members_result)} members total.")
+                
+                for m_row in members_result:
+                    pid = m_row[0]  # initiative_id
+                    if pid in projects_map:
+                        if "team" not in projects_map[pid]:
+                            projects_map[pid]["team"] = []
+                        projects_map[pid]["team"].append({
+                            "name": m_row[1], # person_name
+                            "role": m_row[2]  # role_name
+                        })
+            except Exception as e:
+                logger.warning(f"Failed to fetch team members for parent projects: {e}")
+        
+        # Ensure 'team' and 'advisorships' fields exist for all (even if empty)
+        for p in projects_map.values():
+            if "team" not in p:
+                p["team"] = []
+            if "advisorships" not in p:
+                p["advisorships"] = []
+
+        # Combine grouped projects and orphans
+        final_data = list(projects_map.values())
+        if orphans:
+            final_data.append({
+                "id": None,
+                "name": "Sem Projeto Associado",
+                "status": "N/A",
+                "team": [],
+                "description": "Bolsistas sem vínculo direto com um projeto de pesquisa estruturado no SigPesq.",
+                "advisorships": orphans
+            })
+        
+        self.sink.export(final_data, output_path)
+        logger.info(f"Successfully exported {len(final_data)} parent projects with advisorships to {output_path}")
+
+    def export_fellowships(self, output_path: str):
+        """
+        Exports all fellowships to a JSON file.
+        """
+        session = self.initiative_ctrl._service._repository._session
+        query = text("SELECT * FROM fellowships")
+        result = session.execute(query).fetchall()
+        data = []
+        for row in result:
+            data.append({
+                "id": row.id,
+                "name": row.name,
+                "description": row.description,
+                "value": row.value
+            })
+        
+        self.sink.export(data, output_path)
+        logger.info(f"Successfully exported {len(data)} Fellowships to {output_path}")
+
+    def generate_advisorship_mart(self, input_path: str, output_path: str):
+        """
+        Generates an analytical data mart from the hierarchical advisorship JSON.
+        """
+        try:
+            with open(input_path, "r", encoding="utf-8") as f:
+                projects = json.load(f)
+        except Exception as e:
+            logger.error(f"Failed to load canonical advisorships for mart: {e}")
+            return
+
+        mart_projects = []
+        global_stats = {
+            "total_projects": 0,
+            "total_advisorships": 0,
+            "total_active_advisorships": 0,
+            "total_monthly_investment": 0.0,
+            "program_distribution": Counter(),
+            "investment_per_program": Counter(),
+        }
+
+        supervisors_counter = Counter()
+
+        for p in projects:
+            # We also process "Sem Projeto Associado" if it has advisorships
+            if not p.get("advisorships"):
+                continue
+
+            if p.get("id"):  # Real projects
+                global_stats["total_projects"] += 1
+
+            p_metrics = {
+                "id": p.get("id"),
+                "name": p.get("name"),
+                "total_students": len(p["advisorships"]),
+                "active_students": 0,
+                "monthly_investment": 0.0,
+                "main_program": "N/A",
+                "team_size": len(p.get("team", [])),
+            }
+
+            p_programs = Counter()
+
+            for adv in p["advisorships"]:
+                global_stats["total_advisorships"] += 1
+
+                # Active Status
+                if adv.get("status") == "Active":
+                    p_metrics["active_students"] += 1
+                    global_stats["total_active_advisorships"] += 1
+
+                # Fellowship Info
+                fell = adv.get("fellowship")
+                if fell:
+                    prog_name = fell.get("name", "Unknown")
+                    val = fell.get("value", 0.0)
+
+                    p_metrics["monthly_investment"] += val
+                    global_stats["total_monthly_investment"] += val
+
+                    p_programs[prog_name] += 1
+                    global_stats["program_distribution"][prog_name] += 1
+                    global_stats["investment_per_program"][prog_name] += val
+
+                # Supervisor Stats
+                sup_name = adv.get("supervisor_name")
+                if sup_name:
+                    supervisors_counter[sup_name] += 1
+
+            if p_programs:
+                p_metrics["main_program"] = p_programs.most_common(1)[0][0]
+
+            if p.get("id"):
+                mart_projects.append(p_metrics)
+
+        # Finalizing global stats
+        avg_students = (
+            global_stats["total_advisorships"] / global_stats["total_projects"]
+            if global_stats["total_projects"] > 0
+            else 0
+        )
+
+        global_stats.update(
+            {
+                "program_distribution": dict(global_stats["program_distribution"]),
+                "investment_per_program": dict(global_stats["investment_per_program"]),
+                "avg_students_per_project": round(avg_students, 2),
+                "total_monthly_investment": round(
+                    global_stats["total_monthly_investment"], 2
+                ),
+            }
+        )
+
+        # Rankings
+        rankings = {
+            "top_supervisors": [
+                {"name": name, "count": count}
+                for name, count in supervisors_counter.most_common(10)
+            ],
+            "top_projects_by_investment": sorted(
+                [
+                    {"name": p["name"], "value": round(p["monthly_investment"], 2)}
+                    for p in mart_projects
+                ],
+                key=lambda x: x["value"],
+                reverse=True,
+            )[:10],
+        }
+
+        final_mart = {
+            "projects": mart_projects,
+            "global_stats": global_stats,
+            "rankings": rankings,
+            "generated_at": datetime.now().isoformat(),
+        }
+
+        self.sink.export([final_mart], output_path)
+        logger.info(
+            f"Successfully generated Advisorship Analytics Mart to {output_path}"
+        )

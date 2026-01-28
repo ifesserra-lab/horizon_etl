@@ -23,10 +23,15 @@ class MockTeam:
 @pytest.fixture
 def project_loader():
     with (
-        patch("src.core.logic.project_loader.PostgresClient"),
+        patch("src.core.logic.entity_manager.PostgresClient"),
         patch("src.core.logic.project_loader.InitiativeController"),
         patch("src.core.logic.project_loader.TeamController"),
         patch("src.core.logic.project_loader.PersonController"),
+        patch("src.core.logic.initiative_handlers.AdvisorshipController"),
+        patch("src.core.logic.initiative_handlers.FellowshipController"),
+        patch("src.core.logic.entity_manager.RoleController"),
+        patch("src.core.logic.entity_manager.UniversityController"),
+        patch("src.core.logic.initiative_linker.ResearchGroupController"),
     ):
 
         # Mock the mapping strategy
@@ -45,10 +50,10 @@ def test_create_initiative_team_idempotent(project_loader):
     initiative.id = 10
 
     existing_team = MockTeam(5, "Projeto Teste")
-    # ProjectLoader.team_synchronizer.ensure_team uses get_all()
+    # ProjectLoader.linker.team_synchronizer.ensure_team uses get_all()
     project_loader.team_controller.get_all.return_value = [existing_team]
 
-    project_loader._create_initiative_team(initiative, {"coordinator_name": None})
+    project_loader.linker.create_initiative_team(initiative, {"coordinator_name": None})
 
     # Should not call create_team if it exists
     project_loader.team_controller.create_team.assert_not_called()
@@ -56,20 +61,20 @@ def test_create_initiative_team_idempotent(project_loader):
     project_loader.controller.assign_team.assert_called_with(10, 5)
 
 
-@patch("src.core.logic.project_loader.PostgresClient")
-@patch("research_domain.RoleController")
+@patch("src.core.logic.entity_manager.PostgresClient")
+@patch("src.core.logic.entity_manager.RoleController")
 def test_ensure_roles_exist(mock_role_ctrl, mock_pg_client, project_loader):
     """Test that mandatory roles are ensured to exist."""
     session = MagicMock()
     mock_pg_client.return_value.get_session.return_value = session
 
-    # Force failure in RoleController to trigger fallback
-    mock_role_ctrl.side_effect = Exception("DB Connection Failed")
+    # Force failure in RoleController instance to trigger fallback
+    project_loader.entity_manager.role_controller.get_all.side_effect = Exception("DB Connection Failed")
 
     # Mock no roles exist in fallback query
     session.query.return_value.filter_by.return_value.first.return_value = None
 
-    project_loader._ensure_roles_exist()
+    project_loader.entity_manager.ensure_roles()
 
     assert session.add.call_count == 3  # Coordinator, Researcher, Student
     session.commit.assert_called()
