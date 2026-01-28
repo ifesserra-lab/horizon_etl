@@ -20,7 +20,8 @@ I have refactored the `ProjectLoader` class to improve its modularity, maintaina
 - **[sigpesq_advisorships.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/strategies/sigpesq_advisorships.py)**: Updated to extract `TituloPJ` as `parent_title`.
 - **[initiative_handlers.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/initiative_handlers.py)**: Added support for `parent_id` in `create_or_update`.
 - **[project_loader.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/project_loader.py)**: Added logic to create and link parent "Research Project" initiatives during advisorship ingestion.
-- **[canonical_exporter.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/canonical_exporter.py)**: Updated `export_advisorships` to group results by parent project, handle orphans, include parent team members, and **expand fellowship IDs into full objects with name, description, and value.**
+- **[canonical_exporter.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/canonical_exporter.py)**: Updated `export_advisorships` to group results by parent project, handle orphans, include parent team members, and expand fellowship details. **Added `generate_advisorship_mart` to produce an analytical summary with KPIs and rankings.**
+- **[export_canonical_data.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/flows/export_canonical_data.py)**: Added task to trigger the Analytics Mart generation.
 
 ### 5. Parent Project Team Synchronization
 - **[team_synchronizer.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/team_synchronizer.py)**: Added `add_members` method for idempotent, additive membership updates.
