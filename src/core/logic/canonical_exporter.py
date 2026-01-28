@@ -1,4 +1,7 @@
 import os
+import json
+from datetime import datetime
+from collections import Counter
 from typing import Any, List, Optional
 
 from eo_lib import InitiativeController, OrganizationController
@@ -696,3 +699,124 @@ class CanonicalDataExporter:
         
         self.sink.export(data, output_path)
         logger.info(f"Successfully exported {len(data)} Fellowships to {output_path}")
+
+    def generate_advisorship_mart(self, input_path: str, output_path: str):
+        """
+        Generates an analytical data mart from the hierarchical advisorship JSON.
+        """
+        try:
+            with open(input_path, "r", encoding="utf-8") as f:
+                projects = json.load(f)
+        except Exception as e:
+            logger.error(f"Failed to load canonical advisorships for mart: {e}")
+            return
+
+        mart_projects = []
+        global_stats = {
+            "total_projects": 0,
+            "total_advisorships": 0,
+            "total_active_advisorships": 0,
+            "total_monthly_investment": 0.0,
+            "program_distribution": Counter(),
+            "investment_per_program": Counter(),
+        }
+
+        supervisors_counter = Counter()
+
+        for p in projects:
+            # We also process "Sem Projeto Associado" if it has advisorships
+            if not p.get("advisorships"):
+                continue
+
+            if p.get("id"):  # Real projects
+                global_stats["total_projects"] += 1
+
+            p_metrics = {
+                "id": p.get("id"),
+                "name": p.get("name"),
+                "total_students": len(p["advisorships"]),
+                "active_students": 0,
+                "monthly_investment": 0.0,
+                "main_program": "N/A",
+                "team_size": len(p.get("team", [])),
+            }
+
+            p_programs = Counter()
+
+            for adv in p["advisorships"]:
+                global_stats["total_advisorships"] += 1
+
+                # Active Status
+                if adv.get("status") == "Active":
+                    p_metrics["active_students"] += 1
+                    global_stats["total_active_advisorships"] += 1
+
+                # Fellowship Info
+                fell = adv.get("fellowship")
+                if fell:
+                    prog_name = fell.get("name", "Unknown")
+                    val = fell.get("value", 0.0)
+
+                    p_metrics["monthly_investment"] += val
+                    global_stats["total_monthly_investment"] += val
+
+                    p_programs[prog_name] += 1
+                    global_stats["program_distribution"][prog_name] += 1
+                    global_stats["investment_per_program"][prog_name] += val
+
+                # Supervisor Stats
+                sup_name = adv.get("supervisor_name")
+                if sup_name:
+                    supervisors_counter[sup_name] += 1
+
+            if p_programs:
+                p_metrics["main_program"] = p_programs.most_common(1)[0][0]
+
+            if p.get("id"):
+                mart_projects.append(p_metrics)
+
+        # Finalizing global stats
+        avg_students = (
+            global_stats["total_advisorships"] / global_stats["total_projects"]
+            if global_stats["total_projects"] > 0
+            else 0
+        )
+
+        global_stats.update(
+            {
+                "program_distribution": dict(global_stats["program_distribution"]),
+                "investment_per_program": dict(global_stats["investment_per_program"]),
+                "avg_students_per_project": round(avg_students, 2),
+                "total_monthly_investment": round(
+                    global_stats["total_monthly_investment"], 2
+                ),
+            }
+        )
+
+        # Rankings
+        rankings = {
+            "top_supervisors": [
+                {"name": name, "count": count}
+                for name, count in supervisors_counter.most_common(10)
+            ],
+            "top_projects_by_investment": sorted(
+                [
+                    {"name": p["name"], "value": round(p["monthly_investment"], 2)}
+                    for p in mart_projects
+                ],
+                key=lambda x: x["value"],
+                reverse=True,
+            )[:10],
+        }
+
+        final_mart = {
+            "projects": mart_projects,
+            "global_stats": global_stats,
+            "rankings": rankings,
+            "generated_at": datetime.now().isoformat(),
+        }
+
+        self.sink.export([final_mart], output_path)
+        logger.info(
+            f"Successfully generated Advisorship Analytics Mart to {output_path}"
+        )

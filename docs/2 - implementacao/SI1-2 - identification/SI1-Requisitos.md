@@ -52,6 +52,8 @@ O **Horizon ETL** é uma infraestrutura de dados que automatiza a coleta de info
 | **RF-20** | O sistema deve garantir que o orientador (Supervisor) e o bolsista (Student) de uma Advisorship sejam adicionados como membros da equipe do Projeto de Pesquisa pai correspondente. | A identificação de pessoas deve ser idempotente (usando `PersonMatcher`). O orientador deve ser adicionado ao projeto pai com o papel de "Coordinator" (ou membro da equipe) e o estudante com o papel de "Student". | User Req. |
 | **RF-21** | O arquivo `advisorships_canonical.json` deve incluir a lista de membros da equipe (Team) de cada Projeto de Pesquisa (Parent Project), detalhando nome e papel (Role). | Para cada projeto no JSON, deve haver um campo `team` contendo a lista de membros e seus respectivos papéis no projeto pai. | User Req. |
 | **RF-22** | O arquivo `advisorships_canonical.json` deve expandir o campo `fellowship_id` para um objeto `fellowship` contendo todos os detalhes da bolsa (ID, Nome, Descrição, Valor). | Em vez de exportar apenas o ID da bolsa, o sistema deve realizar um join com a tabela de bolsas e exportar o objeto completo. | User Req. |
+| **RF-23** | O sistema deve gerar um Data Mart de indicadores (`advisorship_analytics.json`) a partir do canônico agrupado. | O mart deve consolidar métricas por projeto (investimento total, contagem de alunos) e globais (distribuição por modalidade de bolsa). | User Req. |
+| **RF-24** | O Data Mart deve incluir resumos estatísticos e rankings de orientadores e programas de fomento. | Automatizar a geração de indicadores de performance e rankings para dashboards. | User Req. |
 
 ---
 
