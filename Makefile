@@ -6,6 +6,9 @@
 # Python interpreter
 PYTHON := .venv/bin/python3
 
+# Campus configuration (default: Serra)
+CAMPUS ?= Serra
+
 # Default target
 .DEFAULT_GOAL := help
 
@@ -29,16 +32,23 @@ reset-db: clean-db init-db ## Clean and reinitialize the database
 	@echo "✅ Database reset complete"
 
 # Pipeline Execution
-pipeline: ## Run the full Serra campus pipeline
-	@echo "🚀 Running Serra pipeline..."
+pipeline: ## Run the full campus pipeline (default: Serra, use CAMPUS=Name to override)
+	@echo "🚀 Running $(CAMPUS) campus pipeline..."
+	@$(PYTHON) src/flows/run_serra_pipeline.py
+
+pipeline-serra: ## Run the Serra campus pipeline explicitly
+	@echo "🚀 Running Serra campus pipeline..."
 	@$(PYTHON) src/flows/run_serra_pipeline.py
 
 pipeline-log: ## Run pipeline with timestamped log output
-	@echo "🚀 Running Serra pipeline with logging..."
-	@$(PYTHON) src/flows/run_serra_pipeline.py 2>&1 | tee logs/pipeline_$$(date +%Y%m%d_%H%M%S).log
+	@echo "🚀 Running $(CAMPUS) campus pipeline with logging..."
+	@$(PYTHON) src/flows/run_serra_pipeline.py 2>&1 | tee logs/pipeline_$(CAMPUS)_$$(date +%Y%m%d_%H%M%S).log
 
 full-refresh: reset-db pipeline ## Complete refresh: clean DB + run full pipeline
-	@echo "✅ Full refresh complete"
+	@echo "✅ Full refresh complete for $(CAMPUS)"
+
+full-refresh-serra: reset-db pipeline-serra ## Complete refresh for Serra campus explicitly
+	@echo "✅ Full Serra refresh complete"
 
 # Individual Flow Execution
 ingest-groups: ## Ingest SigPesq research groups only
@@ -53,13 +63,21 @@ ingest-advisorships: ## Ingest SigPesq advisorships only
 	@echo "📥 Ingesting advisorships..."
 	@$(PYTHON) src/flows/ingest_sigpesq_advisorships.py
 
-sync-cnpq: ## Sync CNPq data for Serra campus
-	@echo "🔄 Syncing CNPq data..."
+sync-cnpq: ## Sync CNPq data for configured campus (default: Serra)
+	@echo "🔄 Syncing CNPq data for $(CAMPUS)..."
+	@$(PYTHON) -c "from src.flows.sync_cnpq_groups import sync_cnpq_groups_flow; sync_cnpq_groups_flow(campus_name='$(CAMPUS)')"
+
+sync-cnpq-serra: ## Sync CNPq data for Serra campus explicitly
+	@echo "🔄 Syncing CNPq data for Serra..."
 	@$(PYTHON) -c "from src.flows.sync_cnpq_groups import sync_cnpq_groups_flow; sync_cnpq_groups_flow(campus_name='Serra')"
 
 # Export Operations
-export: ## Export all canonical data
-	@echo "📤 Exporting canonical data..."
+export: ## Export all canonical data for configured campus
+	@echo "📤 Exporting canonical data for $(CAMPUS)..."
+	@$(PYTHON) src/flows/export_canonical_data.py --campus $(CAMPUS)
+
+export-serra: ## Export all canonical data for Serra campus explicitly
+	@echo "📤 Exporting canonical data for Serra..."
 	@$(PYTHON) src/flows/export_canonical_data.py --campus Serra
 
 export-advisorships: ## Export advisorships canonical data only
