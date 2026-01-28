@@ -35,8 +35,11 @@ from research_domain import (
     RoleController,
     University,
     UniversityController,
-    AdvisorshipController, # Import new controllers
-    FellowshipController
+)
+# Workaround: Import directly from controllers module since not exported in __init__
+from research_domain.controllers.controllers import (
+    AdvisorshipController,
+    FellowshipController,
 )
 
 from research_domain.domain.entities import Advisorship, Fellowship # Import new entities

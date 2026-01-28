@@ -38,28 +38,55 @@ class EntityManager:
 
         self._roles_cache: Dict[str, Role] = {}
 
-    def ensure_organization(self) -> Optional[int]:
-        """Ensure IFES organization exists and return its ID."""
+    def ensure_organization(
+        self, name: str = "Instituto Federal do Espírito Santo", short_name: str = None
+    ) -> Optional[int]:
+        """Ensure an organization exists and return its ID."""
+        if not name:
+            return None
+        
+        # If using the default name and short_name is not provided, default it to IFES
+        if name == "Instituto Federal do Espírito Santo" and short_name is None:
+            short_name = "IFES"
+
         try:
+
+            def normalize(s):
+                if not s:
+                    return ""
+                return (
+                    unicodedata.normalize("NFD", s)
+                    .encode("ascii", "ignore")
+                    .decode("utf-8")
+                    .upper()
+                    .strip()
+                )
+
+            target_norm = normalize(name)
+            target_short_norm = normalize(short_name) if short_name else ""
+
             orgs = self.uni_controller.get_all()
             for o in orgs:
-                name = o.name if hasattr(o, "name") else o.get("name", "")
-                short_name = (
+                o_name = o.name if hasattr(o, "name") else o.get("name", "")
+                o_short_name = (
                     o.short_name
                     if hasattr(o, "short_name")
                     else o.get("short_name", "")
                 )
-                if "IFES" in name.upper() or "IFES" in short_name.upper():
+
+                if normalize(o_name) == target_norm or (
+                    target_short_norm and normalize(o_short_name) == target_short_norm
+                ):
                     return o.id if hasattr(o, "id") else o.get("id")
 
             # If not found, create one
-            logger.info("Creating IFES Organization...")
-            ifes = self.uni_controller.create_university(
-                name="Instituto Federal do Espírito Santo", short_name="IFES"
+            logger.info(f"Creating Organization: {name}...")
+            new_org = self.uni_controller.create_university(
+                name=name, short_name=short_name
             )
-            return ifes.id if hasattr(ifes, "id") else ifes.get("id")
+            return new_org.id if hasattr(new_org, "id") else new_org.get("id")
         except Exception as e:
-            logger.warning(f"Failed to ensure organization: {e}")
+            logger.warning(f"Failed to ensure organization '{name}': {e}")
             return None
 
     def ensure_roles(self) -> Dict[str, Role]:
