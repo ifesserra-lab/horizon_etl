@@ -56,6 +56,7 @@ O **Horizon ETL** é uma infraestrutura de dados que automatiza a coleta de info
 | **RF-24** | O Data Mart deve incluir resumos estatísticos e rankings de orientadores e programas de fomento. | Automatizar a geração de indicadores de performance e rankings para dashboards. | User Req. |
 | **RF-25** | O status de uma Advisorship deve ser determinado automaticamente com base na data de término (`Fim`). Se a data de término for maior que a data atual, o status é "Active"; caso contrário, é "Concluded". | Implementar lógica de validação temporal durante a ingestão de dados do SigPesq. | User Req. |
 | **RF-26** | O sistema deve calcular automaticamente as datas de início e término dos Projetos de Pesquisa (TituloPJ) com base nas datas das orientações filhas associadas. O `start_date` do projeto deve ser a data mais antiga entre todas as orientações. O `end_date` deve ser a data mais recente. O `status` é calculado automaticamente: "Concluded" se `end_date` < hoje, caso contrário "Active". | Projetos de Pesquisa criados devem ter: (1) `start_date` = MIN(orientações.start_date), (2) `end_date` = MAX(orientações.end_date), (3) `status` calculado conforme regra. Nenhum projeto deve ter status "Unknown" quando possui orientações. | User Req. |
+| **RF-27** | O sistema deve capturar a agência financiadora (Sponsor) da bolsa SigPesq a partir da coluna `agFinanciadora`. | Campo `sponsor` populado na entidade Fellowship. | User Req. |
 
 ---
 
