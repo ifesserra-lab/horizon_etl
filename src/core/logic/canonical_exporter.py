@@ -666,8 +666,9 @@ class CanonicalDataExporter:
             if "advisorships" not in p:
                 p["advisorships"] = []
 
-        # Combine grouped projects and orphans
-        final_data = list(projects_map.values())
+        # Combine grouped projects, filtering out projects without advisorships
+        final_data = [p for p in projects_map.values() if p.get("advisorships")]
+        
         if orphans:
             final_data.append({
                 "id": None,
@@ -678,6 +679,7 @@ class CanonicalDataExporter:
                 "advisorships": orphans
             })
         
+        logger.info(f"Filtered export: {len(final_data)} parent projects with advisorships (excluded {len(projects_map) - len([p for p in projects_map.values() if p.get('advisorships')])} projects without advisorships)")
         self.sink.export(final_data, output_path)
         logger.info(f"Successfully exported {len(final_data)} parent projects with advisorships to {output_path}")
 
