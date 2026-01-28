@@ -36,6 +36,13 @@ class SigPesqAdvisorshipMappingStrategy(ProjectMappingStrategy):
         start_date = self._parse_date(row.get("Inicio"))
         end_date = self._parse_date(row.get("Fim"))
 
+        # Determine status based on end_date
+        from datetime import datetime
+        status = "Active"
+        if end_date:
+            if end_date < datetime.now():
+                status = "Concluded"
+
         # Fellowship/Flowship data
         programa = row.get("Programa")
         valor = row.get("Valor", 0.0)
@@ -58,7 +65,7 @@ class SigPesqAdvisorshipMappingStrategy(ProjectMappingStrategy):
         return {
             "title": project_title,
             "parent_title": str(row.get("TituloPJ", "")).strip(),
-            "status": row.get("Situacao", row.get("Situação", "Active")),
+            "status": status,
             "start_date": start_date,
             "end_date": end_date,
             "description": f"Programa: {programa or 'N/A'}",
