@@ -154,11 +154,12 @@ class PersonMatcher:
 
         # 4. Create new person (if no match found)
         try:
-            person = self.person_controller.create_person(name=name)
+            emails = [email] if email else []
+            person = self.person_controller.create_person(name=name, emails=emails)
             self._persons_cache[name] = person
             if email:
                 self._emails_cache[email.strip().lower()] = person
-            logger.debug(f"Created person: {name} (email: {email})")
+            logger.debug(f"Created person: {name} (emails: {emails})")
             return person
         except Exception as e:
             logger.warning(f"Failed to create person '{name}': {e}")
