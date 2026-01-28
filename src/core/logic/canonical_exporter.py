@@ -557,6 +557,7 @@ class CanonicalDataExporter:
                 f.name as fellowship_name,
                 f.description as fellowship_description,
                 f.value as fellowship_value,
+                o.name as sponsor_name,
                 i.parent_id, 
                 p_init.name as parent_name,
                 p_init.status as parent_status,
@@ -569,6 +570,7 @@ class CanonicalDataExporter:
             LEFT JOIN persons p_sup ON a.supervisor_id = p_sup.id
             LEFT JOIN initiatives p_init ON i.parent_id = p_init.id
             LEFT JOIN fellowships f ON a.fellowship_id = f.id
+            LEFT JOIN organizations o ON f.sponsor_id = o.id
         """)
         result = session.execute(query).fetchall()
         
@@ -599,7 +601,8 @@ class CanonicalDataExporter:
                     "id": row.fellowship_id,
                     "name": row.fellowship_name,
                     "description": row.fellowship_description,
-                    "value": row.fellowship_value
+                    "value": row.fellowship_value,
+                    "sponsor_name": row.sponsor_name
                 } if row.fellowship_id else None
             }
             

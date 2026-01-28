@@ -9,11 +9,14 @@ from eo_lib import (
     TeamController,
 )
 from research_domain import (
-    AdvisorshipController,
     CampusController,
-    FellowshipController,
     KnowledgeAreaController,
     ResearchGroupController,
+)
+# Workaround: Import directly from controllers module since not exported in __init__
+from research_domain.controllers.controllers import (
+    AdvisorshipController,
+    FellowshipController,
 )
 from research_domain.domain.entities import Advisorship
 
@@ -61,7 +64,9 @@ class ProjectLoader:
         # Handlers registry
         self.handlers = {
             Initiative: StandardProjectHandler(self.controller),
-            Advisorship: AdvisorshipHandler(self.controller, self.person_matcher)
+            Advisorship: AdvisorshipHandler(
+                self.controller, self.person_matcher, self.entity_manager
+            ),
         }
         
         # Ensure base environment
