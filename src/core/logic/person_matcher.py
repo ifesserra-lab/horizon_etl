@@ -154,7 +154,7 @@ class PersonMatcher:
 
         # 4. Create new person (if no match found)
         try:
-            person = self.person_controller.create_person(name=name, email=email)
+            person = self.person_controller.create_person(name=name)
             self._persons_cache[name] = person
             if email:
                 self._emails_cache[email.strip().lower()] = person
