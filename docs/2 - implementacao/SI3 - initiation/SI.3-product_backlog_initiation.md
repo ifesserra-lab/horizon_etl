@@ -244,6 +244,61 @@ Busca de perfil e métricas (H-Index) via Scraper.
 - **Deploy**:
     - [ ] Uso de Proxies configurados no Deploy (Env Vars).
 
+### US-033 – Download de Currículos Lattes via scriptLattes
+```yaml
+id: US-033
+milestone: R2
+prioridade: Alta
+tamanho: 8
+origem: [RF-28]
+tags: [type:feature, area:backend, source:lattes]
+dependencias: [US-001]
+modulos_afetados: [src/flows/download_lattes.py, src/core/logic/lattes_utils.py]
+```
+
+#### Descrição
+Implementar um fluxo para baixar os currículos Lattes dos pesquisadores utilizando a biblioteca `scriptLattes`. O sistema deve gerar automaticamente o arquivo de configuração e a lista de pesquisadores (Lattes ID) baseando-se nos pesquisadores já cadastrados no banco de dados. O arquivo JSON gerado pela biblioteca deve ser salvo no diretório `data`.
+
+#### Critérios de Aceitação
+- **Funcional**:
+    - [ ] Geração dinâmica do arquivo de configuração (`.config`) baseado em template.
+    - [ ] Geração dinâmica do arquivo de lista (`.list`) com os IDs Lattes e nomes dos pesquisadores.
+    - [ ] Execução da lib `scriptLattes` (mockada para desenvolvimento) consumindo os arquivos gerados.
+    - [ ] Salvamento do arquivo JSON de saída no diretório configurado (`data`).
+- **Teste**:
+    - [ ] Teste unitário da geração de arquivos de config e lista.
+    - [ ] Teste de fluxo com mock da lib `scriptLattes`.
+- **Artefatos**:
+    - [ ] `LattesConfigGenerator`.
+    - [ ] `LattesListGenerator`.
+    - [ ] `LattesDownloadFlow`.
+
+### US-034 – Ingestão de Projetos Lattes (Research, Extension, Development)
+```yaml
+id: US-034
+milestone: R2
+prioridade: Alta
+tamanho: 5
+origem: [RF-29]
+tags: [type:feature, area:backend, source:lattes]
+dependencias: [US-033]
+modulos_afetados: [src/flows/ingest_lattes_projects.py, src/adapters/sources/lattes_parser.py]
+```
+
+#### Descrição
+Implementar o pipeline de ingestão de projetos presentes nos arquivos JSON do Lattes. O sistema deve processar as seções `projetos_pesquisa`, `projetos_extensao` e `projetos_desenvolvimento`, criando as respectivas Iniciativas e vinculando-as ao Pesquisador (Lattes ID).
+
+#### Critérios de Aceitação
+- **Funcional**:
+    - [ ] Parsing das seções de projetos do JSON Lattes.
+    - [ ] Identificação correta do Tipo de Iniciativa (Pesquisa, Extensão, Desenvolvimento).
+    - [ ] Persistência da Iniciativa com: Nome, Descrição, Data Início, Data Fim (ou status).
+    - [ ] Vínculo do Pesquisador à Iniciativa (Role: Researcher ou Coordinator).
+    - [ ] Manipulação de Membros da Equipe (se possível parsear).
+- **Deploy**:
+    - [ ] Flow `ingest_lattes_projects` integrado e executável via `app.py`.
+
+
 ---
 
 ## Cross-Cutting (Arquitetura)
@@ -551,6 +606,8 @@ Criar automaticamente equipes (Teams) com seus membros durante a ingestão de pr
 | **US-012** | Research Area Mart | R2 | **Concluído** |
 | **US-006** | Extração Editais FAPES (PDF) | R3 | **Ready** |
 | **US-032** | Ingestão Bolsistas SigPesq | R5 | **Concluído** |
+| **US-034** | Ingestão Projetos Lattes | R2 | **Ready** |
+
 
 
 ---

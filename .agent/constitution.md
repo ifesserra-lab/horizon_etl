@@ -19,6 +19,11 @@ This document defines the fundamental rules and standards that any AI Agent work
 - **Idempotency**: All ETL loaders must be idempotent. Use "ensure" methods (e.g., `ensure_organization`) that check if a record exists before creating it.
 - **Transactional Integrity**: Ensure that partial failures do not leave the system in an inconsistent state.
 
+### 1.4 Documentation Standards (Senior ETL Specialist)
+- **MANDATORY**: Follow the `etl_documentation` skill standards.
+- **Data Mapping**: All business logic for data transformations MUST be documented in tables.
+- **Lineage**: Significant data paths must be visualized using Mermaid diagrams in architectural documents.
+
 ---
 
 ## 2. Testing Rules (Senior QA)
