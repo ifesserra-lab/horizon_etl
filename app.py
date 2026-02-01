@@ -11,6 +11,8 @@ from src.flows.export_knowledge_areas_mart import export_knowledge_areas_mart_fl
 from src.flows.ingest_sigpesq import ingest_sigpesq_flow
 from src.flows.sync_cnpq_groups import sync_cnpq_groups_flow
 from src.flows.unified_pipeline import full_ingestion_pipeline
+from src.flows.ingest_lattes_projects import ingest_lattes_projects_flow
+from src.flows.lattes_complete_flow import lattes_complete_flow
 
 # Load environment variables
 load_dotenv()
@@ -98,6 +100,14 @@ def main():
                 f"Executing Flow: Export Initiative Analytics Mart (Output: {output_path})"
             )
             export_initiatives_analytics_mart_flow(output_path=output_path)
+
+        if flow_to_run in ["ingest_lattes_projects", "all"]:
+             logger.info("Executing Flow: Ingest Lattes Projects")
+             ingest_lattes_projects_flow()
+
+        if flow_to_run == "lattes_full":
+             logger.info("Executing Flow: Lattes Complete Pipeline")
+             lattes_complete_flow()
 
     except Exception as e:
         logger.error(f"Application failed: {e}")
