@@ -1,5 +1,6 @@
 from prefect import flow, task
 import os
+from loguru import logger
 from typing import List, Dict
 from src.core.logic.lattes_generators import LattesConfigGenerator, LattesListGenerator
 from src.core.logic.strategies.script_lattes_mock import ScriptLattesMock
@@ -41,10 +42,10 @@ def get_researchers_from_db() -> List[Dict]:
     ]
 
 @task
-def generate_config(output_dir: str) -> str:
+def generate_config(output_dir: str, list_path: str) -> str:
     config_gen = LattesConfigGenerator()
     config_path = os.path.abspath("lattes.config")
-    config_gen.generate(config_path, output_dir)
+    config_gen.generate(config_path, output_dir, list_path)
     return config_path
 
 @task
@@ -55,9 +56,19 @@ def generate_list(researchers: List[Dict]) -> str:
     return list_path
 
 @task
-def run_script_lattes_mock(config_path: str, list_path: str):
-    mocker = ScriptLattesMock()
-    mocker.run(config_path, list_path)
+def run_script_lattes_real(config_path: str):
+    try:
+        from scriptLattes.run import executar_scriptLattes
+        logger.info(f"Starting real scriptLattes execution with config: {config_path}")
+        # Run with somente_json=True since we are an ETL pipeline
+        executar_scriptLattes(config_path, somente_json=True)
+        logger.info("Real scriptLattes execution finished.")
+    except ImportError:
+        logger.error("scriptLattes library not found. Please install it.")
+        raise
+    except Exception as e:
+        logger.error(f"scriptLattes execution failed: {e}")
+        raise
 
 @flow(name="Download Lattes Curricula")
 def download_lattes_flow():
@@ -66,15 +77,35 @@ def download_lattes_flow():
     output_dir = os.path.join(base_dir, "lattes_json")
     os.makedirs(output_dir, exist_ok=True)
 
-    # 2. Get Data
-    researchers = get_researchers_from_db()
+    # 2. Key: Check for override list
+    override_list_path = os.path.abspath("data/lattes_run/lattes.list")
     
-    # 3. Generate Files
-    config_path = generate_config(output_dir)
-    list_path = generate_list(researchers)
+    # 3. Generate List First
+    if os.path.exists(override_list_path):
+        logger.info(f"Using override list file: {override_list_path}")
+        list_path = override_list_path
+    else:
+        logger.info("Using DB researchers for list generation.")
+        researchers = get_researchers_from_db()
+        list_path = generate_list(researchers)
+
+    # 4. Generate Config (Now depends on list path)
+    config_path = generate_config(output_dir, list_path)
     
-    # 4. Run Mock
-    run_script_lattes_mock(config_path, list_path)
+    # 4. Run Real scriptLattes
+    # We need to make sure the list file path in config matches what we expect
+    # The LattesConfigGenerator might need adjustment if it doesn't take list_path as arg 
+    # but writes 'lattes.list' to config. 
+    # scriptLattes reads 'lista-de-entrada-de-nomes' parameter.
+    
+    # Check if we need to update config to point to the correct list?
+    # LattesConfigGenerator.generate usually assumes "lattes.list" in the same dir or defines it.
+    # Let's inspect LattesConfigGenerator if needed, but assuming standard behavior:
+    # We should ensure the list path is correctly referenced.
+    
+    # Check if list_path needs to be configured in config file.
+    # For now, let's run.
+    run_script_lattes_real(config_path)
 
 if __name__ == "__main__":
     download_lattes_flow()

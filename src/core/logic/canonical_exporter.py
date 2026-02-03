@@ -236,6 +236,78 @@ class CanonicalDataExporter:
         except Exception as e:
             logger.warning(f"Failed to fetch KAs for researcher enrichment: {e}")
 
+        # 4. Academic Education (Researcher -> [Education])
+        person_education_map = {}
+        try:
+            # Query academic_educations with Joins for localized names
+            # researcher_id, institution_name, degree_name, course_title, start, end, thesis_title, advisor_name
+            # Note: We need to join organizations and education_types
+            ae_query = text("""
+                SELECT 
+                    ae.researcher_id, 
+                    org.name as institution, 
+                    et.name as degree, 
+                    ae.title as course_name, 
+                    ae.start_year, 
+                    ae.end_year, 
+                    ae.thesis_title,
+                    p_adv.name as advisor_name,
+                    p_co.name as co_advisor_name
+                FROM academic_educations ae
+                LEFT JOIN organizations org ON ae.institution_id = org.id
+                LEFT JOIN education_types et ON ae.education_type_id = et.id
+                LEFT JOIN researchers adv ON ae.advisor_id = adv.id
+                LEFT JOIN persons p_adv ON adv.id = p_adv.id
+                LEFT JOIN researchers co ON ae.co_advisor_id = co.id
+                LEFT JOIN persons p_co ON co.id = p_co.id
+            """)
+            
+            try:
+                ae_result = session.execute(ae_query).fetchall()
+                for row in ae_result:
+                    rid = row[0]
+                    edu_item = {
+                        "institution": row[1],
+                        "degree": row[2],
+                        "course_name": row[3], # Mapped to title
+                        "start_year": row[4],
+                        "end_year": row[5],
+                        "thesis_title": row[6],
+                        "advisor_name": row[7],
+                        "co_advisor_name": row[8]
+                    }
+                    if rid not in person_education_map: person_education_map[rid] = []
+                    
+                    # Deduplication: Check if item already exists in the list
+                    # Using a subset of keys for uniqueness check
+                    is_duplicate = False
+                    duplicate_index = -1
+                    
+                    for idx, existing in enumerate(person_education_map[rid]):
+                         if (existing.get("institution") == edu_item.get("institution") and
+                             existing.get("degree") == edu_item.get("degree") and
+                             existing.get("course_name") == edu_item.get("course_name") and
+                             existing.get("start_year") == edu_item.get("start_year")):
+                             is_duplicate = True
+                             duplicate_index = idx
+                             break
+                    
+                    if not is_duplicate:
+                        person_education_map[rid].append(edu_item)
+                    else:
+                        # If duplicate, assume the one with MORE info is better
+                        existing = person_education_map[rid][duplicate_index]
+                        
+                        better_advisor = (not existing.get("advisor_name") and edu_item.get("advisor_name"))
+                        better_co_advisor = (not existing.get("co_advisor_name") and edu_item.get("co_advisor_name"))
+                        
+                        if better_advisor or better_co_advisor:
+                             person_education_map[rid][duplicate_index] = edu_item
+            except Exception as e:
+                logger.warning(f"Failed to export Education data (Schema mismatch?): {e}")
+        except Exception as e:
+             logger.warning(f"Failed to fetch Academic Education for researcher enrichment: {e}")
+
 
         # Enrich and Export
         export_data = []
@@ -248,10 +320,26 @@ class CanonicalDataExporter:
             }
             
             p_id = r_dict.get("id")
+            if "Paulo Sergio" in r_dict.get("name", ""):
+                 logger.info(f"DEBUG: Processing Paulo Sergio. ID: {p_id} (Type: {type(p_id)})")
+                 p_id_int = int(p_id) if p_id is not None else None
+                 logger.info(f"DEBUG: Lookup key: {p_id_int}. In Map? {p_id_int in person_education_map}")
             
+            # Type safety for lookups (Maps use integer keys from DB)
+            p_id_int = int(p_id) if p_id is not None else None
+
             # Attach details
             initiatives_data = []
-            for init in person_initiatives_map.get(p_id, []):
+            # Use p_id directly if map keys are consistent, but map keys are definitely INT from SQL
+            # p_id from to_dict() might be int or str depending on source model.
+            
+            # Lookup with p_id_int
+            init_list = person_initiatives_map.get(p_id_int, []) if p_id_int is not None else []
+            if not init_list and p_id_int:
+                 # Fallback to origin p_id if mismatch
+                 init_list = person_initiatives_map.get(p_id, [])
+
+            for init in init_list:
                 # Standardize roles to English and pick primary if single string preferred
                 # User previously had a single string, but let's provide the first one found 
                 # or join them if we want to be thorough. 
@@ -271,8 +359,12 @@ class CanonicalDataExporter:
                 initiatives_data.append(init_export)
 
             r_dict["initiatives"] = initiatives_data
-            r_dict["research_groups"] = person_groups_map.get(p_id, [])
-            r_dict["knowledge_areas"] = person_kas_map.get(p_id, [])
+            r_dict["initiatives"] = initiatives_data
+            
+            # Use Type-Safe lookups
+            r_dict["research_groups"] = person_groups_map.get(p_id_int, []) if p_id_int else person_groups_map.get(p_id, [])
+            r_dict["knowledge_areas"] = person_kas_map.get(p_id_int, []) if p_id_int else person_kas_map.get(p_id, [])
+            r_dict["academic_education"] = person_education_map.get(p_id_int, []) if p_id_int else person_education_map.get(p_id, [])
             
             export_data.append(r_dict)
 
