@@ -62,7 +62,23 @@ I successfully executed the full `src/flows/run_serra_pipeline.py` script and th
 2. **TeamController API Sync**: Corrected `TeamSynchronizer` to use the standardized `remove_member(member_id)` signature required by `eo_lib`.
 3. **Database Cleanup**: Executed `scripts/cleanup_legacy_fellowships.py` to remove legacy "Voluntário" and "Bolsista" records and re-link orphans to the correct program names.
 
+## v0.12.8 - Core Domain Alignment & Enrichment
+
+This release focused on upgrading the core domain library and improving metadata extraction from Lattes JSON files.
+
+### 1. Dependency Upgrade
+- **research-domain**: Upgraded to **v0.12.7**.
+- Migrated local `AcademicEducation` and `EducationType` entities to use the library's official models.
+
+### 2. Enhanced Ingestion
+- **CNPq URL**: Now extracting and persisting the official Lattes profile URL.
+- **Citation Names**: Parsing and saving list of bibliographic citation names.
+- **Academic Education (v0.12.9 Prep)**: Initial logic for ingesting PhD/Master degrees with advisor matching.
+
+### 3. Stability Fixes
+- **Transaction Management**: Fixed `PendingRollbackError` in `ingest_lattes_projects_flow` by implementing robust session rollbacks in `ingest_file_task`.
+
 ## Next Steps
-1. Review the changes in the `feat/divide-project-loader` branch.
-2. Approve and merge the Pull Request to `developing`.
-3. Proceed with the release flow according to `@agile-standards`.
+1. Finalize and verify `AcademicEducation` full history ingestion.
+2. Refactor `Advisorship` ingestion to improve performance and data quality.
+3. Integrate Automated Regression Tests for Export Schema.

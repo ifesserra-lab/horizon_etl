@@ -9,6 +9,7 @@ def mock_entity_manager():
     # Mock ensure methods if needed, though mostly used for projects
     manager.ensure_initiative_type.return_value = MagicMock(id=1)
     manager.ensure_organization.return_value = 1
+    manager.ensure_education_type.return_value = 1
     manager.ensure_roles.return_value = {"Researcher": MagicMock(id=1)}
     return manager
 
@@ -31,6 +32,9 @@ def test_ingest_academic_education(mock_entity_manager, mock_researcher_controll
     # Setup Mocks
     mock_edu_ctrl_instance = mock_education_controller.return_value
     mock_parser_instance = mock_lattes_parser.return_value
+    
+    # Link mocks
+    mock_entity_manager.academic_edu_controller = mock_edu_ctrl_instance
     
     # Mock Researcher
     mock_researcher = MagicMock()
@@ -67,13 +71,12 @@ def test_ingest_academic_education(mock_entity_manager, mock_researcher_controll
             # Check if parse_academic_education was called
             mock_parser_instance.parse_academic_education.assert_called_once()
             
-            # Check if create was called on controller
-            assert mock_edu_ctrl_instance.create.call_count == 1
-            created_edu = mock_edu_ctrl_instance.create.call_args[0][0]
+            # Check if create_academic_education was called on controller
+            assert mock_edu_ctrl_instance.create_academic_education.call_count == 1
+            call_args = mock_edu_ctrl_instance.create_academic_education.call_args[1]
             
-            assert isinstance(created_edu, AcademicEducation)
-            assert created_edu.researcher_id == 123
-            assert created_edu.title == "Ciência da Computação"
-            assert created_edu.institution_id == 1
-            assert created_edu.start_year == 2018
-            assert created_edu.end_year == 2022
+            assert call_args["researcher_id"] == 123
+            assert call_args["title"] == "Ciência da Computação"
+            assert call_args["institution_id"] == 1
+            assert call_args["start_year"] == 2018
+            assert call_args["end_year"] == 2022
