@@ -81,6 +81,17 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
             except Exception as e:
                 logger.warning(f"Failed to update citation names for {lattes_id}: {e}")
 
+        # Update CNPq URL if available
+        # User requested to use 'url' field for cnpq_url
+        cnpq_url = data.get("informacoes_pessoais", {}).get("url")
+        if cnpq_url:
+            try:
+                target_researcher.cnpq_url = cnpq_url
+                researcher_ctrl.update(target_researcher)
+                logger.info(f"Updated CNPq URL for {json_name}")
+            except Exception as e:
+                logger.warning(f"Failed to update CNPq URL for {lattes_id}: {e}")
+
         # Parse Projects
         parser = LattesParser()
         projects = []
