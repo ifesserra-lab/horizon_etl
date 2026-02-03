@@ -62,38 +62,34 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
         if not target_researcher:
             logger.warning(f"Researcher with lattes_id {lattes_id} not found in DB and Name match failed. Skipping projects for {filename}.")
             return
-
-        person_id = getattr(target_researcher, "id", None)
-        if not person_id:
-             logger.warning(f"Researcher {target_researcher} has no ID.")
-             return
         
-        # Update Citation Names if available
-        info = data.get("informacoes_pessoais", {})
-        citation_names = info.get("nome_citacoes")
-        if citation_names:
+        # Parse Personal Info
+        parser = LattesParser()
+        personal_info = parser.parse_personal_info(data)
+        
+        # Update Researcher Details (Citation Names, CNPq URL, Resume)
+        needs_update = False
+        
+        if personal_info.get("citation_names"):
+            target_researcher.citation_names = personal_info["citation_names"]
+            needs_update = True
+            
+        if personal_info.get("cnpq_url"):
+            target_researcher.cnpq_url = personal_info["cnpq_url"]
+            needs_update = True
+            
+        if personal_info.get("resume"):
+            target_researcher.resume = personal_info["resume"]
+            needs_update = True
+            
+        if needs_update:
             try:
-                # Update local object
-                target_researcher.citation_names = citation_names
-                # Persist to DB
                 researcher_ctrl.update(target_researcher)
-                logger.info(f"Updated citation names for {json_name}")
+                logger.info(f"Updated researcher data (Resume/Citation/URL) for {json_name}")
             except Exception as e:
-                logger.warning(f"Failed to update citation names for {lattes_id}: {e}")
-
-        # Update CNPq URL if available
-        # User requested to use 'url' field for cnpq_url
-        cnpq_url = data.get("informacoes_pessoais", {}).get("url")
-        if cnpq_url:
-            try:
-                target_researcher.cnpq_url = cnpq_url
-                researcher_ctrl.update(target_researcher)
-                logger.info(f"Updated CNPq URL for {json_name}")
-            except Exception as e:
-                logger.warning(f"Failed to update CNPq URL for {lattes_id}: {e}")
+                logger.warning(f"Failed to update researcher data for {lattes_id}: {e}")
 
         # Parse Projects
-        parser = LattesParser()
         projects = []
         projects.extend(parser.parse_research_projects(data))
         projects.extend(parser.parse_extension_projects(data))
@@ -185,6 +181,7 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
                      init_id = getattr(new_init, "id", None)
                 
                 # Add Researcher as Coordinator/Member
+                person_id = getattr(target_researcher, "id", None)
                 if init_id and person_id:
                     role_name = "Researcher" # Default
                     role = entity_manager.ensure_roles().get(role_name)

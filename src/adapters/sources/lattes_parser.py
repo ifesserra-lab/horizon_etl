@@ -35,6 +35,19 @@ class LattesParser:
         return self._parse_generic_projects(
             json_data, "projetos_desenvolvimento", "Development Project"
         )
+    
+    def parse_personal_info(self, data: Dict) -> Dict[str, Any]:
+        """
+        Extracts personal info (name, resume, etc) from JSON.
+        """
+        info = data.get("informacoes_pessoais", {})
+        return {
+            "name": info.get("nome_completo") or data.get("nome") or data.get("name"),
+            "resume": info.get("texto_resumo"),
+            "lattes_id": info.get("id_lattes"),
+            "citation_names": info.get("nome_citacoes"),
+            "cnpq_url": info.get("url")
+        }
 
     def parse_academic_education(self, json_data: dict) -> List[Dict[str, Any]]:
         """Parses 'formacao_academica' from JSON."""
