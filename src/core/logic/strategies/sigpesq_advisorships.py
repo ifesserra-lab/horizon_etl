@@ -1,7 +1,7 @@
-from typing import Any, Dict, List
+from datetime import datetime
+from typing import Any, Dict
 
-import pandas as pd
-from loguru import logger
+from research_domain.domain.entities import Advisorship
 
 from .base import ProjectMappingStrategy
 
@@ -14,10 +14,8 @@ class SigPesqAdvisorshipMappingStrategy(ProjectMappingStrategy):
     def map_row(self, row: dict) -> Dict[str, Any]:
         """
         Maps a Single SigPesq Advisorship Excel row to a standardized dictionary.
-        Returns data compatible with ProjectLoader, using research_domain entities.
+        Returns data compatible with ProjectLoader.
         """
-        from research_domain.domain.entities import Advisorship
-
         # Student Mapping
         bolsista = str(row.get("Orientado", "")).strip()
         bolsista_email = str(row.get("OrientadoEmail", "")).strip()
@@ -37,30 +35,22 @@ class SigPesqAdvisorshipMappingStrategy(ProjectMappingStrategy):
         end_date = self._parse_date(row.get("Fim"))
 
         # Determine status based on end_date
-        from datetime import datetime
         status = "Active"
-        if end_date:
-            if end_date < datetime.now():
-                status = "Concluded"
+        if end_date and end_date < datetime.now():
+            status = "Concluded"
 
-        # Fellowship/Flowship data
+        # Fellowship data
         programa = row.get("Programa")
-        valor = row.get("Valor", 0.0)
-
         fellowship_data = None
         if programa:
-            # Simple float conversion
-            try:
-                processed_valor = float(str(valor).replace(",", ".")) if valor else 0.0
-            except (ValueError, TypeError):
-                processed_valor = 0.0
-
             fellowship_data = {
                 "name": str(programa).strip().upper(),
-                "value": processed_valor,
+                "value": self.parse_currency(row.get("Valor")),
                 "description": f"Programa: {programa}",
                 "sigpesq_id": row_id,
-                "sponsor_name": str(row.get("AgFinanciadora", row.get("agFinanciadora", ""))).strip(),
+                "sponsor_name": str(
+                    row.get("AgFinanciadora", row.get("agFinanciadora", ""))
+                ).strip(),
             }
 
         return {
@@ -78,41 +68,9 @@ class SigPesqAdvisorshipMappingStrategy(ProjectMappingStrategy):
             "model_class": Advisorship,
             "fellowship_data": fellowship_data,
             "metadata": {
-                "bolsista_name": bolsista,
-                "bolsista_email": bolsista_email,
-                "orientador_name": orientador,
-                "orientador_email": orientador_email,
-                "project_title": project_title,
-                "parent_project_title": str(row.get("TituloPJ", "")).strip(),
-                "programa": programa,
-                "valor": valor,
                 "sigpesq_id": row_id,
+                "original_program": programa,
+                "parent_project_title": str(row.get("TituloPJ", "")).strip(),
             },
             "campus_name": row.get("CampusExecucao", row.get("Campus")),
         }
-
-    def _parse_names(self, names_str: Any) -> List[str]:
-        if not names_str or pd.isna(names_str):
-            return []
-        return [name.strip() for name in str(names_str).split(";") if name.strip()]
-
-    def _parse_date(self, date_val: Any):
-        if pd.isna(date_val) or not date_val:
-            return None
-
-        from datetime import datetime
-
-        if isinstance(date_val, datetime):
-            return date_val
-
-        str_val = str(date_val).strip()
-        formats = ["%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d", "%d/%m/%y", "%d-%m-%y"]
-
-        for fmt in formats:
-            try:
-                return datetime.strptime(str_val, fmt)
-            except ValueError:
-                continue
-
-        logger.warning(f"Could not parse date: {str_val}")
-        return None
