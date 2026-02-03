@@ -24,11 +24,23 @@ class SigPesqProjectMappingStrategy(ProjectMappingStrategy):
         Returns:
             Dict[str, Any]: Standardized project data with keys like 'title', 'coordinator_name', etc.
         """
+        # Calculate status based on ParecerDiretoria and dates
+        parecer = row.get("ParecerDiretoria", "Unknown")
+        end_date = self._parse_date(row.get("Fim"))
+        
+        status = parecer
+        if parecer == "Aprovado":
+            from datetime import datetime
+            if end_date and end_date < datetime.now():
+                status = "Concluded"
+            else:
+                status = "Active"
+        
         return {
             "title": row.get("Titulo", row.get("Título")),
-            "status": row.get("Situacao", row.get("Situação")),
+            "status": status,
             "start_date": self._parse_date(row.get("Inicio")),
-            "end_date": self._parse_date(row.get("Fim")),
+            "end_date": end_date,
             "description": row.get("Resumo"),
             "value": row.get("Valor Aprovado"),
             "coordinator_name": row.get("Coordenador"),
