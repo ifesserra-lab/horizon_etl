@@ -6,6 +6,7 @@ from prefect import flow, get_run_logger
 from .export_canonical_data import export_canonical_data_flow
 from .export_knowledge_areas_mart import export_knowledge_areas_mart_flow
 from .ingest_sigpesq import ingest_sigpesq_flow
+from .ingest_lattes_projects import ingest_lattes_projects_flow
 from .sync_cnpq_groups import sync_cnpq_groups_flow
 
 
@@ -26,6 +27,10 @@ def full_ingestion_pipeline(
     # 1. Ingest from SigPesq
     logger.info("Step 1/4: Ingesting SigPesq data...")
     ingest_sigpesq_flow()
+
+    # 1.5 Ingest Lattes Projects
+    logger.info("Step 1.5: Ingesting Lattes Projects (Research, Extension, Development)...")
+    ingest_lattes_projects_flow()
 
     # 2. Sync with CNPq
     logger.info(f"Step 2/4: Syncing CNPq groups (Filter: {campus_name or 'None'})...")

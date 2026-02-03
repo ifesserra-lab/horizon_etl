@@ -8,12 +8,15 @@ from eo_lib import (
 from eo_lib.domain import Role
 from eo_lib.infrastructure.database.postgres_client import PostgresClient
 from loguru import logger
-from research_domain import (
+from research_domain.controllers import (
+    UniversityController,
+    EducationTypeController,
+    AcademicEducationController,
     CampusController,
     KnowledgeAreaController,
-    RoleController,
-    UniversityController,
+    RoleController
 )
+from research_domain.domain.entities.academic_education import EducationType
 
 
 class EntityManager:
@@ -35,6 +38,8 @@ class EntityManager:
         self.ka_controller = KnowledgeAreaController()
         self.role_controller = RoleController()
         self.uni_controller = UniversityController()
+        self.edu_type_controller = EducationTypeController()
+        self.academic_edu_controller = AcademicEducationController()
 
         self._roles_cache: Dict[str, Role] = {}
 
@@ -256,4 +261,28 @@ class EntityManager:
 
         except Exception as e:
             logger.warning(f"Failed to ensure Knowledge Area '{name}': {e}")
+            return None
+
+    def ensure_education_type(self, name: str) -> Optional[int]:
+        """Ensure Education Type exists and return its ID."""
+        if not name:
+            return None
+
+        try:
+            # Check existing
+            all_types = self.edu_type_controller.get_all()
+            for t in all_types:
+                t_name = t.name if hasattr(t, "name") else t.get("name")
+                if t_name == name:
+                    return t.id if hasattr(t, "id") else t.get("id")
+
+            # Create
+            logger.info(f"Creating Education Type: {name}")
+            new_type = self.edu_type_controller.create_education_type(name=name)
+            
+            # The controller returns the object or a dict depending on implementation
+            # In v0.12.7 it returns the object directly
+            return new_type.id if hasattr(new_type, "id") else new_type.get("id")
+        except Exception as e:
+            logger.error(f"Failed to ensure Education Type '{name}': {e}")
             return None

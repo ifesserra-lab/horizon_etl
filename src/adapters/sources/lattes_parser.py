@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from datetime import date
 from dataclasses import dataclass
 
@@ -22,24 +22,103 @@ class LattesParser:
 
     def parse_research_projects(self, data: Dict) -> List[Dict]:
         return self._parse_generic_projects(
-            data.get("projetos_pesquisa", []), 
-            "Research Project"
+            data, "projetos_pesquisa", "Research Project"
         )
 
     def parse_extension_projects(self, data: Dict) -> List[Dict]:
         return self._parse_generic_projects(
-            data.get("projetos_extensao", []), 
-            "Extension Project"
+            data, "projetos_extensao", "Extension Project"
         )
 
-    def parse_development_projects(self, data: Dict) -> List[Dict]:
+    def parse_development_projects(self, json_data: dict) -> List[Dict[str, Any]]:
+        """Parses 'projetos_desenvolvimento' from JSON."""
         return self._parse_generic_projects(
-            data.get("projetos_desenvolvimento", []), 
-            "Development Project"
+            json_data, "projetos_desenvolvimento", "Development Project"
         )
 
-    def _parse_generic_projects(self, projects_list: List[Dict], type_name: str) -> List[Dict]:
+    def parse_academic_education(self, json_data: dict) -> List[Dict[str, Any]]:
+        """Parses 'formacao_academica' from JSON."""
+        items = json_data.get("formacao_academica", [])
+        if not items:
+            return []
+
+        parsed_items = []
+        for item in items:
+            try:
+                # Extract degree code/name
+                # Some JSONs have 'tipo': 'Doutorado em Informática'
+                # Others might have 'nome_pt' or 'degree'
+                degree = item.get("nome_pt") or item.get("degree")
+                course_name = item.get("nome_curso_ingles")
+
+                if not degree:
+                     tipo = item.get("tipo", "")
+                     if " em " in tipo:
+                         parts = tipo.split(" em ", 1)
+                         degree = parts[0]
+                         course_name = parts[1] if not course_name else course_name
+                     else:
+                         degree = tipo or "Unknown"
+
+                # Extract years
+                start_year = None
+                if item.get("ano_inicio"):
+                     try:
+                         start_year = int(item["ano_inicio"])
+                     except ValueError:
+                         pass
+
+                end_year = None
+                if item.get("ano_conclusao") or item.get("ano_fim"):
+                     val = item.get("ano_conclusao") or item.get("ano_fim")
+                     try:
+                         end_year = int(val)
+                     except ValueError:
+                         pass
+                
+                # Extract institution
+                institution = item.get("nome_instituicao") or item.get("institution")
+
+                # Fallback course name
+                if not course_name:
+                    course_name = degree
+
+                # Extract Description and Thesis Title
+                description = item.get("descricao")
+                thesis_title = None
+                
+                if description:
+                    # Description is sometimes a list in legacy formats, but usually a string in JSON
+                    # If it's a list, join it? The sample shows it as string inside list in other fields, 
+                    # but for `formacao_academica` strict schema isn't fully clear. 
+                    # Assuming string as per recent observation 
+                    # "descricao": "Título: From Continuous ... , Ano..."
+                    
+                    # Regex to find title
+                    # Pattern: Título: (.*?)(,|Ano de|$)
+                    # Adjust regex to capture until comma or known delimeters
+                    match = re.search(r"Título:\s*(.+?)(?:, Ano|,\s*Orientador|\.|$)", description, re.IGNORECASE)
+                    if match:
+                        thesis_title = match.group(1).strip()
+
+                parsed_items.append({
+                    "degree": degree,
+                    "institution": institution,
+                    "course_name": course_name,
+                    "start_year": start_year,
+                    "end_year": end_year,
+                    "description": description,
+                    "thesis_title": thesis_title
+                })
+            except Exception as e:
+                logger.warning(f"Error parsing education item: {e}")
+                continue
+        
+        return parsed_items
+
+    def _parse_generic_projects(self, data: Dict, projects_key: str, type_name: str) -> List[Dict]:
         parsed_projects = []
+        projects_list = data.get(projects_key, [])
         
         for p in projects_list:
             name = p.get("name") or p.get("nome")

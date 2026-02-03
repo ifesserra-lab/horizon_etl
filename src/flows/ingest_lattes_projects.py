@@ -10,7 +10,12 @@ from loguru import logger
 from src.adapters.sources.lattes_parser import LattesParser
 from src.core.logic.entity_manager import EntityManager
 from eo_lib import Initiative, InitiativeController, PersonController, TeamController
-from research_domain import ResearcherController
+from research_domain.controllers import (
+    ResearcherController,
+    AcademicEducationController
+)
+from research_domain.domain.entities.academic_education import AcademicEducation, EducationType, academic_education_knowledge_areas
+from research_domain.domain.entities.researcher import Researcher
 
 from prefect.cache_policies import NO_CACHE
 
@@ -34,7 +39,11 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
             logger.error(f"Failed to load JSON {file_path}: {e}")
             return
             
+        # Try to get name from root or informacoes_pessoais
         json_name = data.get("nome") or data.get("name")
+        if not json_name:
+            info = data.get("informacoes_pessoais", {})
+            json_name = info.get("nome_completo")
 
         # Find Researcher
         researcher_ctrl = ResearcherController()
@@ -58,6 +67,30 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
         if not person_id:
              logger.warning(f"Researcher {target_researcher} has no ID.")
              return
+        
+        # Update Citation Names if available
+        info = data.get("informacoes_pessoais", {})
+        citation_names = info.get("nome_citacoes")
+        if citation_names:
+            try:
+                # Update local object
+                target_researcher.citation_names = citation_names
+                # Persist to DB
+                researcher_ctrl.update(target_researcher)
+                logger.info(f"Updated citation names for {json_name}")
+            except Exception as e:
+                logger.warning(f"Failed to update citation names for {lattes_id}: {e}")
+
+        # Update CNPq URL if available
+        # User requested to use 'url' field for cnpq_url
+        cnpq_url = data.get("informacoes_pessoais", {}).get("url")
+        if cnpq_url:
+            try:
+                target_researcher.cnpq_url = cnpq_url
+                researcher_ctrl.update(target_researcher)
+                logger.info(f"Updated CNPq URL for {json_name}")
+            except Exception as e:
+                logger.warning(f"Failed to update CNPq URL for {lattes_id}: {e}")
 
         # Parse Projects
         parser = LattesParser()
@@ -68,9 +101,12 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
 
         if not projects:
             logger.info(f"No projects found for {filename}.")
-            return
+        else:
+            logger.info(f"Found {len(projects)} projects for {lattes_id}.")
 
-        logger.info(f"Found {len(projects)} projects for {lattes_id}.")
+        # Parse Academic Education
+        education_list = parser.parse_academic_education(data)
+        logger.info(f"Found {len(education_list)} education entries for {lattes_id}.")
 
         # Ingest Projects
         initiative_ctrl = InitiativeController()
@@ -86,108 +122,75 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
         # Ensure Organization (IFES)
         org_id = entity_manager.ensure_organization()
 
+        # Deduplicate projects by name in-memory to avoid batch conflicts
+        seen_names = set()
+        unique_projects = []
         for p in projects:
-            p_type = types_map.get(p["initiative_type_name"])
-            type_id = getattr(p_type, "id", None)
+            p_name = (p.get("name") or "").strip()
+            if p_name and p_name not in seen_names:
+                p["name"] = p_name # Normalize
+                unique_projects.append(p)
+                seen_names.add(p_name)
+        
+        logger.info(f"deduplicated from {len(projects)} to {len(unique_projects)} projects.")
 
-            # Check if exists (Idempotency)
-            # We assume name + start_year + type is unique enough for now?
-            # Or assume we update if name matches exactly?
-            # Ideally we would query by name.
-            # initiative_ctrl.get_all() is too heavy?
-            # Let's just create for now or assume UPSERT in lib if ID provided.
-            # Since we don't have ID, we might create duplicates if we run multiple times without checking.
-            # Mitigation: Check if initiative with same name exists for this person? 
-            # Complex without direct SQL. 
-            # Let's implemented "Create if not exists" logic by checking all initiatives of this type?
-            # It might be slow. 
-            # For this task, we will just proceed with creation/update if we can find it.
-            
-            # Simple Idempotency: skip if name exists in DB (Global check - simpler)
-            # This is not perfect but avoids massive duplication in dev.
-            # Better: fetch all initiatives and filter in memory for this run.
-            
-            # Create Initiative
-            # Mapping Start/End Dates
-            start_date = None
-            if p["start_year"]:
-                try:
-                    start_date = datetime.strptime(f"{p['start_year']}-01-01", "%Y-%m-%d")
-                except ValueError:
-                    start_date = None
-            
-            end_date = None
-            if p["end_year"]:
-                try:
-                     end_date = datetime.strptime(f"{p['end_year']}-12-31", "%Y-%m-%d")
-                except ValueError:
-                     end_date = None
+        from eo_lib.infrastructure.database.postgres_client import PostgresClient
+        db_client = PostgresClient()
+        db_session = db_client.get_session()
 
-            # Create
-            # Note: We need to see if create_initiative supports all fields or if we need to update
-            # data = {
-            #     "name": p["name"],
-            #     "description": p["description"],
-            #     "start_date": start_date,
-            #     "end_date": end_date,
-            #     "status": p["status"],
-            #     "initiative_type_id": type_id,
-            #     "organization_id": org_id
-            # }
-            
-            # We'll use a try/except block to handle potential creation errors
+        for p in unique_projects:
             try:
-                # Check for existing initiatives with same name to update instead of create
-                # This requires a controller method we might not have, so let's try to create
-                # and if it fails due to constraint, we ignore. 
-                # But typically IDs are needed for updates.
+                p_type = types_map.get(p["initiative_type_name"])
+                type_id = getattr(p_type, "id", None)
+
+                # Check if exists (Idempotency)
+                from sqlalchemy import text
                 
-                # Create Initiative Object
-                new_init = Initiative(
-                    name=p["name"],
-                    description=p["description"],
-                    start_date=start_date,
-                    end_date=end_date,
-                    status=p["status"],
-                    initiative_type_id=type_id,
-                    organization_id=org_id
-                )
+                init_id = None
+                # Check by name constraint using robust query
+                chk_sql = text("SELECT id FROM initiatives WHERE LOWER(name) = LOWER(:name) LIMIT 1")
+                res = db_session.execute(chk_sql, {"name": p["name"]}).fetchone()
+                if res:
+                        init_id = res[0]
+                        logger.info(f"Skipping creation, Initiative exists: {p['name']} (ID: {init_id})")
+
+                # Create Mapping Start/End Dates
+                start_date = None
+                if p["start_year"]:
+                    try:
+                        start_date = datetime.strptime(f"{p['start_year']}-01-01", "%Y-%m-%d")
+                    except ValueError:
+                        start_date = None
                 
-                initiative_ctrl.create(new_init)
-                init_id = getattr(new_init, "id", None)
+                end_date = None
+                if p["end_year"]:
+                    try:
+                         end_date = datetime.strptime(f"{p['end_year']}-12-31", "%Y-%m-%d")
+                    except ValueError:
+                         end_date = None
+
+                if not init_id:
+                     # Create Initiative Object
+                     new_init = Initiative(
+                         name=p["name"],
+                         description=p["description"],
+                         start_date=start_date,
+                         end_date=end_date,
+                         status=p["status"],
+                         initiative_type_id=type_id,
+                         organization_id=org_id
+                     )
+                     
+                     initiative_ctrl.create(new_init)
+                     init_id = getattr(new_init, "id", None)
                 
                 # Add Researcher as Coordinator/Member
                 if init_id and person_id:
-                    # Role: Coordinator or Member?
-                    # The parser doesn't extract role yet (defaulted to Member in my thought process, but let's try Coordinator if not specified)
-                    # Let's default to "Researcher" or "Coordinator" based on parsing?
-                    # For Lattes "Projetos", the owner is usually a key member.
-                    
                     role_name = "Researcher" # Default
                     role = entity_manager.ensure_roles().get(role_name)
                     role_id = getattr(role, "id", None)
                     
                     if role_id:
-                        # Add to Team
-                        # team_ctrl.add_member(team_id=init_id (Initiative is a Team?), person_id, role_id, start_date, end_date)
-                        # In many systems Initiative HAS-A Team. 
-                        # initiative_ctrl.get_teams(init_id) -> returns teams.
-                        # Usually an initiative has a "Default Team".
-                        
-                        # Let's try adding member directly to initiative if supported, or creates a team.
-                        # If initiative extends Team, we accept members. 
-                        # If not, we need to find the team.
-                        
-                        # From `canonical_exporter`:
-                        # `teams = self.initiative_ctrl.get_teams(item.id)`
-                        # valid teams are returned. If empty, maybe we need to create one?
-                        # Or maybe `create_initiative` creates a default team.
-                        
-                        # Let's assume we can add directly via `initiative_controller` or `team_controller` on the initiative ID 
-                        # if the ID matches the team ID (common pattern).
-                        # Safe bet: `initiative_ctrl.add_member(init_id, person_id, role_id, ...)` ?
-                        # If that doesn't exist, we might need `team_ctrl.add_member(init_id, ...)`
-                        
                         try:
                             team_ctrl.add_member(
                                 team_id=init_id,
@@ -198,7 +201,8 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
                             )
                         except Exception as e:
                             # It might be that we need to create a Team first, or the Initiative ID != Team ID.
-                            logger.warning(f"Could not add member to project {init_id}: {e}")
+                            # Also handle duplicates if already member
+                            pass
                 
                  # Process Other Members (Equipe)
                 raw_members = p.get("raw_members", [])
@@ -260,9 +264,95 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
                 except Exception as team_err:
                     logger.warning(f"Failed to process team for initiative {init_id}: {team_err}")
 
-                            
             except Exception as e:
                 logger.error(f"Error creating project {p['name']}: {e}")
+                # Important: Rollback session to clear error state for next iterations
+                if db_session:
+                    try:
+                        db_session.rollback()
+                        logger.info("Session rolled back after error.")
+                    except Exception as rb_err:
+                         logger.error(f"Failed to rollback: {rb_err}")
+
+        # Ingest Academic Education
+        if education_list:
+            for edu_data in education_list:
+                try:
+                    # 1. Organization (Institution) - MANDATORY
+                    inst_name = edu_data.get("institution") or "Unknown Institution"
+                    org_id = entity_manager.ensure_organization(name=inst_name)
+                    if not org_id:
+                        logger.warning(f"Skipping Education: Could not resolve organization for {inst_name}")
+                        continue
+
+                    # 2. Education Type - MANDATORY
+                    type_name = edu_data.get("degree") or "Unknown"
+                    type_id = entity_manager.ensure_education_type(name=type_name)
+                    if not type_id:
+                         logger.warning(f"Skipping Education: Could not resolve type {type_name}")
+                         continue
+
+                    # 3. Advisor Lookup (Optional)
+                    advisor_id = None
+                    co_advisor_id = None
+                    description = edu_data.get("description", "")
+                    
+                    if description:
+                        import re
+                        # Advisor Parser
+                        adv_match = re.search(r"Orientador:\s*([^.;)]+)", description, re.IGNORECASE)
+                        if adv_match:
+                            adv_name = adv_match.group(1).strip()
+                            adv_res = next((r for r in all_researchers if getattr(r, "name", "").lower() == adv_name.lower()), None)
+                            if adv_res:
+                                advisor_id = getattr(adv_res, "id")
+                            else:
+                                # Create Stub Researcher
+                                logger.info(f"Creating Stub Researcher for Advisor: {adv_name}")
+                                try:
+                                    new_adv = Researcher(name=adv_name)
+                                    researcher_ctrl.create(new_adv)
+                                    advisor_id = getattr(new_adv, "id")
+                                    # Add to cache to avoid re-creation in same run
+                                    all_researchers.append(new_adv)
+                                except Exception as e:
+                                    logger.warning(f"Failed to create stub advisor {adv_name}: {e}")
+
+                        # Co-Advisor Parser
+                        co_match = re.search(r"Co-?orientador:\s*([^.;)]+)", description, re.IGNORECASE)
+                        if co_match:
+                            co_name = co_match.group(1).strip()
+                            co_res = next((r for r in all_researchers if getattr(r, "name", "").lower() == co_name.lower()), None)
+                            if co_res:
+                                co_advisor_id = getattr(co_res, "id")
+                            else:
+                                # Create Stub Researcher
+                                logger.info(f"Creating Stub Researcher for Co-Advisor: {co_name}")
+                                try:
+                                    new_co = Researcher(name=co_name)
+                                    researcher_ctrl.create(new_co)
+                                    co_advisor_id = getattr(new_co, "id")
+                                    all_researchers.append(new_co)
+                                except Exception as e:
+                                    logger.warning(f"Failed to create stub co-advisor {co_name}: {e}")
+
+                    # 4. Create Entity via Controller
+                    start_val = edu_data.get("start_year")
+                    if start_val is None: start_val = 0
+                    
+                    entity_manager.academic_edu_controller.create_academic_education(
+                        researcher_id=person_id,
+                        education_type_id=type_id,
+                        title=edu_data.get("course_name") or "Untitled",
+                        institution_id=org_id,
+                        start_year=start_val,
+                        end_year=edu_data.get("end_year"),
+                        thesis_title=edu_data.get("thesis_title"),
+                        advisor_id=advisor_id,
+                        co_advisor_id=co_advisor_id
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to ingest education item for {lattes_id}: {e}")
 
     except Exception as e:
         logger.error(f"Failed to process file {file_path}: {e}")
@@ -290,6 +380,37 @@ def ingest_lattes_projects_flow():
     person_ctrl = PersonController()
     entity_manager = EntityManager(init_ctrl, person_ctrl)
     
+    # Ensure AcademicEducation table exists
+    # This is a temporary fix for local entity support
+    try:
+        from eo_lib.domain.base import Base
+        from research_domain.domain.entities.academic_education import AcademicEducation
+        # Get engine from one of the controllers or client
+        engine = init_ctrl.client.engine if hasattr(init_ctrl, 'client') else None
+        if not engine:
+             # Fallback
+             from eo_lib.infrastructure.database.postgres_client import PostgresClient
+             repo = PostgresClient()
+             engine = repo.engine
+        
+             repo = PostgresClient()
+             engine = repo.engine
+        
+        # Dev: Drop table to ensure schema update
+        try:
+             # Check if we should drop - useful for dev iterations
+             AcademicEducation.__table__.drop(engine, checkfirst=True)
+             academic_education_knowledge_areas.drop(engine, checkfirst=True)
+             EducationType.__table__.drop(engine, checkfirst=True)
+             logger.warning("Dropped academic tables for schema update.")
+        except Exception as drop_err:
+             logger.warning(f"Failed to drop table: {drop_err}")
+
+        Base.metadata.create_all(engine)
+        logger.info("Ensured AcademicEducation table exists.")
+    except Exception as e:
+        logger.warning(f"Could not ensure table creation: {e}")
+
     # Run Tasks
     for json_file in json_files:
         ingest_file_task(json_file, entity_manager)

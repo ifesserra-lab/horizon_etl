@@ -57,6 +57,24 @@ class ScriptLattesMock:
                 {"titulo": "Artigo Mock 1", "ano": "2024"},
                 {"titulo": "Artigo Mock 2", "ano": "2023"}
             ],
+            "formacao_academica": [
+                {
+                    "nome_pt": "Doutorado em Ciência da Computação",
+                    "ano_inicio": "2018",
+                    "ano_fim": "2022",
+                    "nome_instituicao": "Universidade Federal do Espírito Santo",
+                    "id_curso": "1",
+                    "nome_curso_ingles": "PhD in Computer Science"
+                },
+                {
+                    "nome_pt": "Mestrado em Informática",
+                    "ano_inicio": "2016",
+                    "ano_fim": "2018",
+                    "nome_instituicao": "Universidade Federal do Espírito Santo",
+                    "id_curso": "2",
+                    "nome_curso_ingles": "MSc in Informatics"
+                }
+            ],
             "projetos_pesquisa": [
                 {
                     "nome": f"Projeto de Pesquisa Mock {lattes_id}",
