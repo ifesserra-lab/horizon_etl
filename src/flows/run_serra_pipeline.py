@@ -11,6 +11,7 @@ from src.flows.sync_cnpq_groups import sync_cnpq_groups_flow
 from src.flows.ingest_sigpesq_groups import ingest_research_groups_flow
 from src.flows.ingest_sigpesq_projects import ingest_projects_flow
 from src.flows.ingest_sigpesq_advisorships import ingest_advisorships_flow
+from src.flows.lattes_complete import lattes_complete_flow
 
 def run_pipeline():
     campus = "Serra"
@@ -27,17 +28,17 @@ def run_pipeline():
     print(f"\n>>> 3.5. Running SigPesq Advisorships Ingestion")
     ingest_advisorships_flow()
 
-    print(f"\n>>> 4. Running Canonical Export for campus: {campus}")
+    print(f"\n>>> 4. Running Lattes Complete Pipeline (Download + Ingest)")
+    lattes_complete_flow()
+
+    print(f"\n>>> 5. Running Canonical Export for campus: {campus}")
     export_canonical_data_flow(campus=campus)
 
-    print(f"\n>>> 5. Running Knowledge Areas Mart for campus: {campus}")
+    print(f"\n>>> 6. Running Knowledge Areas Mart for campus: {campus}")
     export_knowledge_areas_mart_flow(campus=campus)
 
-    print(f"\n>>> 6. Running Initiative Analytics Mart (Global)")
+    print(f"\n>>> 7. Running Initiative Analytics Mart (Global)")
     export_initiatives_analytics_mart_flow()
-
-    print(f"\n>>> 7. Running Lattes Complete Pipeline (Download + Ingest)")
-    lattes_complete_flow()
 
     print("\n>>> Pipeline execution completed.")
 

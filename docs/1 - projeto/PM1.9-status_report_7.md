@@ -14,8 +14,9 @@ This interaction focuses on technical debt reduction and core library alignment.
 ### User Stories / Tasks
 | ID | Description | Status | Version |
 |---|---|---|---|
-| TD-01 | Upgrade research-domain library to 0.12.6 | In Progress | - |
-| TD-02 | Refactor core to use research-domain 0.12.6 (Delete local controllers/domain) | In Progress | - |
+| TD-01 | Upgrade research-domain library to 0.12.7 | Completed | - |
+| TD-02 | Refactor core to use research-domain 0.12.7 | Completed | - |
+| TD-03 | Add Co-Advisor to Academic Education Export | Completed | - |
 
 ### GitHub Stats
 - **Issues in progress:** TD-01 (Planned)
@@ -23,13 +24,14 @@ This interaction focuses on technical debt reduction and core library alignment.
 - **Target Release:** R2 FAPES Integration
 
 ## 3. Technical Accomplishments
-- **Dependency Audit**: Identified the need for `research-domain` upgrade from v0.11.0 to v0.12.6.
-- **Planning**: Completed implementation plan and task breakdown adhering to Agile standards.
+- **Dependency Audit**: Identified the need for `research-domain` upgrade from v0.11.0 to v0.12.7.
+- **Refactoring**: Successfully migrated all local `AcademicEducation` and `EducationType` logic to `research-domain` v0.12.7.
+- **Pipeline Stabilization**: Fixed critical bugs in `PendingRollbackError` (Lattes Ingestion) and `Type Mismatch` (Canonical Export).
+- **Data Integrity**: Verified correct export of Academic Education data for researchers.
 
 ## 4. Risks & Issues
-- **Breaking Changes**: Potential breaking changes in the domain models of `research-domain` 0.12.x compared to 0.11.x. Mitigation: TDD and regression testing.
+- **Resolved**: Schema mismatch in `canonical_exporter` caused by `researchers` table structure (fixed by joining `persons`).
 
 ## 5. Planned for Next Steps
-- Implement the upgrade in a feature branch.
-- Run the full test suite.
-- Create PR and release.
+- Implement automated regression tests for export schema.
+- Create PR and release v0.10.1.
