@@ -15,7 +15,7 @@ from research_domain import (
     RoleController,
     UniversityController,
 )
-from src.core.domain.education_type import EducationType
+from research_domain.domain.entities.academic_education import EducationType
 
 
 class EntityManager:

@@ -12,8 +12,8 @@ from eo_lib.domain.base import Base
 # Import all models to register them
 from research_domain.domain.entities.academic_education import AcademicEducation, EducationType, academic_education_knowledge_areas
 # Import others if needed?
-from research_domain.domain.researcher import Researcher
-from eo_lib.domain.organization import Organization
+from research_domain.domain.entities.researcher import Researcher
+from eo_lib.domain.entities.organization import Organization
 
 def debug_metadata():
     logger.info("Debugging Metadata...")
