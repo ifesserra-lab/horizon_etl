@@ -36,6 +36,9 @@ def run_pipeline():
     print(f"\n>>> 6. Running Initiative Analytics Mart (Global)")
     export_initiatives_analytics_mart_flow()
 
+    print(f"\n>>> 7. Running Lattes Complete Pipeline (Download + Ingest)")
+    lattes_complete_flow()
+
     print("\n>>> Pipeline execution completed.")
 
 

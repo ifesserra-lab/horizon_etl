@@ -12,8 +12,10 @@ from research_domain import (
     CampusController,
     KnowledgeAreaController,
     RoleController,
+    RoleController,
     UniversityController,
 )
+from src.core.domain.education_type import EducationType
 
 
 class EntityManager:
@@ -256,4 +258,31 @@ class EntityManager:
 
         except Exception as e:
             logger.warning(f"Failed to ensure Knowledge Area '{name}': {e}")
+            return None
+
+    def ensure_education_type(self, name: str) -> Optional[int]:
+        """Ensure Education Type exists and return its ID."""
+        if not name:
+            return None
+            
+        # Normalize name for consistency?
+        # e.g. "Doutorado em Informática" -> "Doutorado" might happen in caller, 
+        # but here we expect the Type name itself.
+        
+        try:
+             client = PostgresClient() # Or pass controller if created
+             session = client.get_session()
+             
+             existing = session.query(EducationType).filter(EducationType.name == name).first()
+             if existing:
+                 return existing.id
+             
+             # Create
+             logger.info(f"Creating Education Type: {name}")
+             new_type = EducationType(name=name)
+             session.add(new_type)
+             session.commit()
+             return new_type.id
+        except Exception as e:
+            logger.error(f"Failed to ensure Education Type '{name}': {e}")
             return None

@@ -236,6 +236,48 @@ class CanonicalDataExporter:
         except Exception as e:
             logger.warning(f"Failed to fetch KAs for researcher enrichment: {e}")
 
+        # 4. Academic Education (Researcher -> [Education])
+        person_education_map = {}
+        try:
+            # Query academic_educations with Joins for localized names
+            # researcher_id, institution_name, degree_name, course_title, start, end, thesis_title, advisor_name
+            # Note: We need to join organizations and education_types
+            ae_query = text("""
+                SELECT 
+                    ae.researcher_id, 
+                    org.name as institution, 
+                    et.name as degree, 
+                    ae.title as course_name, 
+                    ae.start_year, 
+                    ae.end_year, 
+                    ae.thesis_title,
+                    adv.name as advisor_name
+                FROM academic_educations ae
+                LEFT JOIN organizations org ON ae.institution_id = org.id
+                LEFT JOIN education_types et ON ae.education_type_id = et.id
+                LEFT JOIN researchers adv ON ae.advisor_id = adv.id
+            """)
+            
+            try:
+                ae_result = session.execute(ae_query).fetchall()
+                for row in ae_result:
+                    rid = row[0]
+                    edu_item = {
+                        "institution": row[1],
+                        "degree": row[2],
+                        "course_name": row[3], # Mapped to title
+                        "start_year": row[4],
+                        "end_year": row[5],
+                        "thesis_title": row[6],
+                        "advisor_name": row[7]
+                    }
+                    if rid not in person_education_map: person_education_map[rid] = []
+                    person_education_map[rid].append(edu_item)
+            except Exception as e:
+                logger.warning(f"Failed to export Education data (Schema mismatch?): {e}")
+        except Exception as e:
+             logger.warning(f"Failed to fetch Academic Education for researcher enrichment: {e}")
+
 
         # Enrich and Export
         export_data = []
@@ -273,6 +315,7 @@ class CanonicalDataExporter:
             r_dict["initiatives"] = initiatives_data
             r_dict["research_groups"] = person_groups_map.get(p_id, [])
             r_dict["knowledge_areas"] = person_kas_map.get(p_id, [])
+            r_dict["academic_education"] = person_education_map.get(p_id, [])
             
             export_data.append(r_dict)
 
