@@ -60,7 +60,7 @@ class SigPesqAdvisorshipMappingStrategy(ProjectMappingStrategy):
                 "value": processed_valor,
                 "description": f"Programa: {programa}",
                 "sigpesq_id": row_id,
-                "sponsor_name": str(row.get("AgFinanciadora", "")).strip(),
+                "sponsor_name": str(row.get("AgFinanciadora", row.get("agFinanciadora", ""))).strip(),
             }
 
         return {
