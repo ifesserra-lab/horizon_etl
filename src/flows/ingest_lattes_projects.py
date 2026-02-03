@@ -10,9 +10,12 @@ from loguru import logger
 from src.adapters.sources.lattes_parser import LattesParser
 from src.core.logic.entity_manager import EntityManager
 from eo_lib import Initiative, InitiativeController, PersonController, TeamController
-from research_domain import ResearcherController
-from research_domain.controllers.academic_education_controller import AcademicEducationController
+from research_domain.controllers import (
+    ResearcherController,
+    AcademicEducationController
+)
 from research_domain.domain.entities.academic_education import AcademicEducation, EducationType, academic_education_knowledge_areas
+from research_domain.domain.entities.researcher import Researcher
 
 from prefect.cache_policies import NO_CACHE
 
@@ -64,6 +67,19 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
         if not person_id:
              logger.warning(f"Researcher {target_researcher} has no ID.")
              return
+        
+        # Update Citation Names if available
+        info = data.get("informacoes_pessoais", {})
+        citation_names = info.get("nome_citacoes")
+        if citation_names:
+            try:
+                # Update local object
+                target_researcher.citation_names = citation_names
+                # Persist to DB
+                researcher_ctrl.update(target_researcher)
+                logger.info(f"Updated citation names for {json_name}")
+            except Exception as e:
+                logger.warning(f"Failed to update citation names for {lattes_id}: {e}")
 
         # Parse Projects
         parser = LattesParser()
@@ -95,7 +111,23 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
         # Ensure Organization (IFES)
         org_id = entity_manager.ensure_organization()
 
+        # Deduplicate projects by name in-memory to avoid batch conflicts
+        seen_names = set()
+        unique_projects = []
         for p in projects:
+            p_name = (p.get("name") or "").strip()
+            if p_name and p_name not in seen_names:
+                p["name"] = p_name # Normalize
+                unique_projects.append(p)
+                seen_names.add(p_name)
+        
+        logger.info(f"deduplicated from {len(projects)} to {len(unique_projects)} projects.")
+
+        from eo_lib.infrastructure.database.postgres_client import PostgresClient
+        db_client = PostgresClient()
+        db_session = db_client.get_session()
+
+        for p in unique_projects:
             try:
                 p_type = types_map.get(p["initiative_type_name"])
                 type_id = getattr(p_type, "id", None)
@@ -103,21 +135,13 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
                 # Check if exists (Idempotency)
                 from sqlalchemy import text
                 
-                # Get session access
-                session_chk = None
-                if hasattr(initiative_ctrl, "_session") and initiative_ctrl._session:
-                     session_chk = initiative_ctrl._session
-                elif hasattr(initiative_ctrl, "client"):
-                     session_chk = initiative_ctrl.client.get_session()
-                
                 init_id = None
-                if session_chk:
-                    # Check by name constraint
-                    chk_sql = text("SELECT id FROM initiatives WHERE name = :name LIMIT 1")
-                    res = session_chk.execute(chk_sql, {"name": p["name"]}).fetchone()
-                    if res:
-                         init_id = res[0]
-                         logger.info(f"Skipping creation, Initiative exists: {p['name']} (ID: {init_id})")
+                # Check by name constraint using robust query
+                chk_sql = text("SELECT id FROM initiatives WHERE LOWER(name) = LOWER(:name) LIMIT 1")
+                res = db_session.execute(chk_sql, {"name": p["name"]}).fetchone()
+                if res:
+                        init_id = res[0]
+                        logger.info(f"Skipping creation, Initiative exists: {p['name']} (ID: {init_id})")
 
                 # Create Mapping Start/End Dates
                 start_date = None
@@ -231,11 +255,16 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
 
             except Exception as e:
                 logger.error(f"Error creating project {p['name']}: {e}")
+                # Important: Rollback session to clear error state for next iterations
+                if db_session:
+                    try:
+                        db_session.rollback()
+                        logger.info("Session rolled back after error.")
+                    except Exception as rb_err:
+                         logger.error(f"Failed to rollback: {rb_err}")
 
         # Ingest Academic Education
         if education_list:
-            edu_ctrl = AcademicEducationController()
-            
             for edu_data in education_list:
                 try:
                     # 1. Organization (Institution) - MANDATORY
@@ -246,7 +275,6 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
                         continue
 
                     # 2. Education Type - MANDATORY
-                    # "degree" from parser holds "Doutorado", "Mestrado" etc.
                     type_name = edu_data.get("degree") or "Unknown"
                     type_id = entity_manager.ensure_education_type(name=type_name)
                     if not type_id:
@@ -255,30 +283,53 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
 
                     # 3. Advisor Lookup (Optional)
                     advisor_id = None
+                    co_advisor_id = None
                     description = edu_data.get("description", "")
+                    
                     if description:
-                        # Regex for advisor: "Orientador: Name Name"
-                        # Be careful with "Coorientador"
                         import re
-                        # Look for "Orientador: <name>." or end of string
-                        adv_match = re.search(r"Orientador:\s*([^.;]+)", description, re.IGNORECASE)
+                        # Advisor Parser
+                        adv_match = re.search(r"Orientador:\s*([^.;)]+)", description, re.IGNORECASE)
                         if adv_match:
                             adv_name = adv_match.group(1).strip()
-                            # Lookup researcher
-                            # This is expensive validation, assuming cache for now?
-                            # Re-using logic from top of file or finding new
                             adv_res = next((r for r in all_researchers if getattr(r, "name", "").lower() == adv_name.lower()), None)
                             if adv_res:
                                 advisor_id = getattr(adv_res, "id")
-                                logger.info(f"Found Advisor: {adv_name} -> ID {advisor_id}")
+                            else:
+                                # Create Stub Researcher
+                                logger.info(f"Creating Stub Researcher for Advisor: {adv_name}")
+                                try:
+                                    new_adv = Researcher(name=adv_name)
+                                    researcher_ctrl.create(new_adv)
+                                    advisor_id = getattr(new_adv, "id")
+                                    # Add to cache to avoid re-creation in same run
+                                    all_researchers.append(new_adv)
+                                except Exception as e:
+                                    logger.warning(f"Failed to create stub advisor {adv_name}: {e}")
 
-                    # 4. Create Entity
-                    # Mapping: title <- course_name
-                    # Nullable mapping
+                        # Co-Advisor Parser
+                        co_match = re.search(r"Co-?orientador:\s*([^.;)]+)", description, re.IGNORECASE)
+                        if co_match:
+                            co_name = co_match.group(1).strip()
+                            co_res = next((r for r in all_researchers if getattr(r, "name", "").lower() == co_name.lower()), None)
+                            if co_res:
+                                co_advisor_id = getattr(co_res, "id")
+                            else:
+                                # Create Stub Researcher
+                                logger.info(f"Creating Stub Researcher for Co-Advisor: {co_name}")
+                                try:
+                                    new_co = Researcher(name=co_name)
+                                    researcher_ctrl.create(new_co)
+                                    co_advisor_id = getattr(new_co, "id")
+                                    all_researchers.append(new_co)
+                                except Exception as e:
+                                    logger.warning(f"Failed to create stub co-advisor {co_name}: {e}")
+
+                    # 4. Create Entity via Controller
                     start_val = edu_data.get("start_year")
-                    if start_val is None: start_val = 0 # Schema says NOT NULL for start_year
+                    if start_val is None: start_val = 0
                     
-                    education = AcademicEducation(
+                    entity_manager.academic_edu_controller.create_academic_education(
                         researcher_id=person_id,
                         education_type_id=type_id,
                         title=edu_data.get("course_name") or "Untitled",
@@ -286,14 +337,11 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
                         start_year=start_val,
                         end_year=edu_data.get("end_year"),
                         thesis_title=edu_data.get("thesis_title"),
-                        advisor_id=advisor_id
-                        # co_advisor_id and knowledge_areas pending parsing logic
+                        advisor_id=advisor_id,
+                        co_advisor_id=co_advisor_id
                     )
-                    edu_ctrl.create(education)
                 except Exception as e:
                     logger.warning(f"Failed to ingest education item for {lattes_id}: {e}")
-                    import traceback
-                    traceback.print_exc()
 
     except Exception as e:
         logger.error(f"Failed to process file {file_path}: {e}")
