@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from src.flows.ingest_lattes_projects import ingest_file_task
-from src.core.domain.academic_education import AcademicEducation
+from research_domain.domain.entities.academic_education import AcademicEducation
 
 @pytest.fixture
 def mock_entity_manager():
@@ -73,7 +73,7 @@ def test_ingest_academic_education(mock_entity_manager, mock_researcher_controll
             
             assert isinstance(created_edu, AcademicEducation)
             assert created_edu.researcher_id == 123
-            assert created_edu.degree == "Doutorado"
-            assert created_edu.institution == "UFES"
+            assert created_edu.title == "Ciência da Computação"
+            assert created_edu.institution_id == 1
             assert created_edu.start_year == 2018
             assert created_edu.end_year == 2022

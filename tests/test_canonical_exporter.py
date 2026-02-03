@@ -136,6 +136,7 @@ def test_export_all_orchestrates_exports():
                     "initiatives": [],
                     "research_groups": [],
                     "knowledge_areas": [],
+                    "academic_education": [],
                 }
             ]
             assert "researchers_canonical.json" in args[1]

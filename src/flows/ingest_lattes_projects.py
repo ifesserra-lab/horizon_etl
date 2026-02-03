@@ -11,9 +11,8 @@ from src.adapters.sources.lattes_parser import LattesParser
 from src.core.logic.entity_manager import EntityManager
 from eo_lib import Initiative, InitiativeController, PersonController, TeamController
 from research_domain import ResearcherController
-from src.core.controllers.academic_education_controller import AcademicEducationController
-from src.core.domain.academic_education import AcademicEducation, academic_education_knowledge_areas
-from src.core.domain.education_type import EducationType
+from research_domain.controllers.academic_education_controller import AcademicEducationController
+from research_domain.domain.entities.academic_education import AcademicEducation, EducationType, academic_education_knowledge_areas
 
 from prefect.cache_policies import NO_CACHE
 
@@ -326,7 +325,7 @@ def ingest_lattes_projects_flow():
     # This is a temporary fix for local entity support
     try:
         from eo_lib.domain.base import Base
-        from src.core.domain.academic_education import AcademicEducation
+        from research_domain.domain.entities.academic_education import AcademicEducation
         # Get engine from one of the controllers or client
         engine = init_ctrl.client.engine if hasattr(init_ctrl, 'client') else None
         if not engine:
