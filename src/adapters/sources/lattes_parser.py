@@ -36,6 +36,40 @@ class LattesParser:
             json_data, "projetos_desenvolvimento", "Development Project"
         )
     
+    def parse_articles(self, data: Dict) -> List[Dict[str, Any]]:
+        """Parses 'artigos_periodicos' from JSON."""
+        biblio = data.get("producao_bibliografica", {})
+        items = biblio.get("artigos_periodicos", [])
+        parsed = []
+        for item in items:
+            parsed.append({
+                "title": item.get("titulo"),
+                "year": int(item["ano"]) if str(item.get("ano", "")).isdigit() else None,
+                "journal_conference": item.get("revista"),
+                "volume": item.get("volume"),
+                "pages": item.get("paginas"),
+                "doi": item.get("doi"),
+                "authors_str": item.get("autores"),
+                "type": "Journal"
+            })
+        return parsed
+
+    def parse_conference_papers(self, data: Dict) -> List[Dict[str, Any]]:
+        """Parses 'trabalhos_completos_congressos' from JSON."""
+        biblio = data.get("producao_bibliografica", {})
+        items = biblio.get("trabalhos_completos_congressos", [])
+        parsed = []
+        for item in items:
+            parsed.append({
+                "title": item.get("titulo"),
+                "year": int(item["ano"]) if str(item.get("ano", "")).isdigit() else None,
+                "journal_conference": item.get("evento"),
+                "pages": item.get("paginas"),
+                "authors_str": item.get("autores"),
+                "type": "Conference Event"
+            })
+        return parsed
+    
     def parse_personal_info(self, data: Dict) -> Dict[str, Any]:
         """
         Extracts personal info (name, resume, etc) from JSON.

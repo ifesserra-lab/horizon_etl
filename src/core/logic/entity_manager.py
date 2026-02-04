@@ -14,7 +14,8 @@ from research_domain.controllers import (
     AcademicEducationController,
     CampusController,
     KnowledgeAreaController,
-    RoleController
+    RoleController,
+    ArticleController
 )
 from research_domain.domain.entities.academic_education import EducationType
 
@@ -40,6 +41,7 @@ class EntityManager:
         self.uni_controller = UniversityController()
         self.edu_type_controller = EducationTypeController()
         self.academic_edu_controller = AcademicEducationController()
+        self.article_controller = ArticleController()
 
         self._roles_cache: Dict[str, Role] = {}
 
