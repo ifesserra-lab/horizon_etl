@@ -12,6 +12,7 @@ from research_domain import (
     ResearcherController,
     ResearchGroupController,
 )
+from research_domain.controllers import ArticleController
 from research_domain.domain.entities import Advisorship, Fellowship
 
 from src.core.ports.export_sink import IExportSink
@@ -48,6 +49,7 @@ class CanonicalDataExporter:
         self.ka_ctrl = KnowledgeAreaController()
         self.researcher_ctrl = ResearcherController()
         self.initiative_ctrl = InitiativeController()
+        self.article_ctrl = ArticleController()
 
     def _export_entities(self, data: List[Any], output_path: str, entity_name: str):
         """
@@ -160,6 +162,11 @@ class CanonicalDataExporter:
                                             "id": init.id,
                                             "name": init.name,
                                             "status": init.status,
+                                            "demandante": {
+                                                "id": init.demandante.id,
+                                                "name": init.demandante.name,
+                                                "short_name": getattr(init.demandante, "short_name", None)
+                                            } if getattr(init, "demandante", None) else None,
                                             "roles": [role_name]
                                         })
                                     else:
@@ -308,6 +315,29 @@ class CanonicalDataExporter:
         except Exception as e:
              logger.warning(f"Failed to fetch Academic Education for researcher enrichment: {e}")
 
+        # 5. Articles (Researcher -> [Articles])
+        person_articles_map = {}
+        try:
+            a_query = text("""
+                SELECT aa.researcher_id, a.id, a.title, a.year, a.type, a.doi, a.journal_conference
+                FROM article_authors aa
+                JOIN articles a ON aa.article_id = a.id
+            """)
+            a_result = session.execute(a_query).fetchall()
+            for row in a_result:
+                rid, aid, atitle, ayear, atype, adoi, j_c = row[0], row[1], row[2], row[3], row[4], row[5], row[6]
+                if rid not in person_articles_map: person_articles_map[rid] = []
+                person_articles_map[rid].append({
+                    "id": aid,
+                    "title": atitle,
+                    "year": ayear,
+                    "type": atype,
+                    "doi": adoi,
+                    "journal_conference": j_c
+                })
+        except Exception as e:
+            logger.warning(f"Failed to fetch Articles for researcher enrichment: {e}")
+
 
         # Enrich and Export
         export_data = []
@@ -365,6 +395,7 @@ class CanonicalDataExporter:
             r_dict["research_groups"] = person_groups_map.get(p_id_int, []) if p_id_int else person_groups_map.get(p_id, [])
             r_dict["knowledge_areas"] = person_kas_map.get(p_id_int, []) if p_id_int else person_kas_map.get(p_id, [])
             r_dict["academic_education"] = person_education_map.get(p_id_int, []) if p_id_int else person_education_map.get(p_id, [])
+            r_dict["articles"] = person_articles_map.get(p_id_int, []) if p_id_int else person_articles_map.get(p_id, [])
             
             export_data.append(r_dict)
 
@@ -573,6 +604,11 @@ class CanonicalDataExporter:
                     "organization": org_data,
                     "parent_id": item.parent_id,
                     "team": team_list,
+                    "demandante": {
+                        "id": item.demandante.id,
+                        "name": item.demandante.name,
+                        "short_name": getattr(item.demandante, "short_name", None)
+                    } if getattr(item, "demandante", None) else None,
                     "research_group": research_group_data,
                     "knowledge_areas": initiative_kas_map.get(item.id, []),
                     "external_partner": (
@@ -606,6 +642,16 @@ class CanonicalDataExporter:
         data = self.initiative_ctrl.list_initiative_types()
         self._export_entities(data, output_path, "Initiative Types")
 
+    def export_articles(self, output_path: str):
+        """
+        Exports all articles to a JSON file.
+
+        Args:
+            output_path (str): The destination file path.
+        """
+        data = self.article_ctrl.get_all()
+        self._export_entities(data, output_path, "Articles")
+
     def export_all(self, output_dir: str):
         """
         Exports all canonical data to the specified directory.
@@ -625,6 +671,9 @@ class CanonicalDataExporter:
         self.export_initiatives(os.path.join(output_dir, "initiatives_canonical.json"))
         self.export_initiative_types(
             os.path.join(output_dir, "initiative_types_canonical.json")
+        )
+        self.export_articles(
+            os.path.join(output_dir, "articles_canonical.json")
         )
         self.export_advisorships(
             os.path.join(output_dir, "advisorships_canonical.json")
@@ -851,9 +900,12 @@ class CanonicalDataExporter:
 
                 # Fellowship Info
                 fell = adv.get("fellowship")
-                if fell:
+                if fell and isinstance(fell, dict):
                     prog_name = fell.get("name", "Unknown")
-                    val = fell.get("value", 0.0)
+                    try:
+                        val = float(fell.get("value", 0.0) or 0)
+                    except (ValueError, TypeError):
+                        val = 0.0
 
                     p_metrics["monthly_investment"] += val
                     global_stats["total_monthly_investment"] += val
@@ -862,7 +914,7 @@ class CanonicalDataExporter:
                     global_stats["program_distribution"][prog_name] += 1
                     global_stats["investment_per_program"][prog_name] += val
 
-                if not fell or fell.get("value", 0.0) == 0.0:
+                if not isinstance(fell, dict) or float(fell.get("value", 0.0) or 0) == 0.0:
                     global_stats["volunteer_count"] += 1
 
                 # Supervisor Stats

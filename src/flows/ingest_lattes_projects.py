@@ -320,6 +320,14 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
                         logger.info("Session rolled back after error.")
                     except Exception as rb_err:
                          logger.error(f"Failed to rollback: {rb_err}")
+            
+        # Commit all projects and articles for this researcher
+        if db_session:
+            try:
+                db_session.commit()
+                logger.debug(f"Committed data for {json_name}")
+            except Exception as commit_err:
+                logger.error(f"Failed to commit data for {json_name}: {commit_err}")
 
         # Ingest Articles
         # Optimization: Pre-load articles if many are expected, but here we use a local cache for the run
