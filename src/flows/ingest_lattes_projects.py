@@ -284,47 +284,78 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
                          logger.error(f"Failed to rollback: {rb_err}")
 
         # Ingest Articles
+        # Optimization: Pre-load articles if many are expected, but here we use a local cache for the run
+        # To be truly efficient, we should load once per flow, but for now let's optimize the per-researcher loop
+        
+        logger.info(f"Processing {len(articles)} articles for {json_name}...")
+        
+        # Load all existing articles once per researcher to avoid N calls to get_all()
+        # Better: Load once in the flow and pass it, but per-researcher get_all() is still better than per-article
+        try:
+            all_db_articles = article_ctrl.get_all()
+            # Create indices for fast lookup
+            doi_map = {a.doi: a for a in all_db_articles if getattr(a, "doi", None)}
+            
+            def get_art_key(title, year):
+                norm_t = parser.normalize_title(title)
+                return f"{norm_t}_{year}"
+            
+            title_year_map = {get_art_key(a.title, a.year): a for a in all_db_articles}
+        except Exception as cache_err:
+            logger.warning(f"Failed to build article lookup cache: {cache_err}. Falling back to slow lookup.")
+            doi_map = {}
+            title_year_map = {}
+
         for art in articles:
             try:
-                # Idempotency: Title + Year + DOI
-                # Actually, DOI is very reliable if available.
-                existing_art = None
-                if art.get("doi"):
-                    existing_art = next((a for a in article_ctrl.get_all() if a.doi == art["doi"]), None)
+                title = art["title"]
+                year = art["year"]
+                doi = art.get("doi")
                 
+                existing_art = None
+                
+                # 1. Check by DOI
+                if doi and doi in doi_map:
+                    existing_art = doi_map[doi]
+                    logger.debug(f"Article matched by DOI: {doi}")
+                
+                # 2. Check by Title + Year (Normalized)
                 if not existing_art:
-                    # Slow search fallback by title/year
-                    # For performance in large runs, we might want a get_by_title_year in controller
-                    existing_art = next((a for a in article_ctrl.get_all() if a.title.lower() == art["title"].lower() and a.year == art["year"]), None)
+                    art_key = get_art_key(title, year)
+                    if art_key in title_year_map:
+                        existing_art = title_year_map[art_key]
+                        logger.debug(f"Article matched by Title/Year: {art_key}")
 
                 if existing_art:
-                    logger.info(f"Article already exists: {art['title']} (ID: {existing_art.id})")
                     paper = existing_art
                 else:
                     # Create Article
                     paper = article_ctrl.create_article(
-                        title=art["title"],
-                        year=art["year"],
+                        title=title,
+                        year=year,
                         type=art["type"],
-                        doi=art.get("doi"),
+                        doi=doi,
                         journal_conference=art.get("journal_conference"),
                         volume=art.get("volume"),
                         pages=art.get("pages")
                     )
-                    logger.info(f"Created article: {art['title']} (Type: {art['type']})")
+                    logger.info(f"Created new article: {title} ({art['type']})")
+                    
+                    # Update cache to prevent duplicates within the same researcher loop
+                    if doi:
+                        doi_map[doi] = paper
+                    title_year_map[get_art_key(title, year)] = paper
 
-                # Link Authors
-                # Ensure current researcher is linked
+                # Link Author (Target Researcher)
                 if paper and target_researcher:
-                    # Check if already author
-                    if target_researcher.id not in [a.id for a in paper.authors]:
-                        article_ctrl.add_author(paper.id, target_researcher.id)
-                        logger.debug(f"Linked author {target_researcher.name} to article {paper.id}")
-
-                # Optional: Process authors_str to link other known researchers
-                # Current authors_str format: "Autor A; Autor B; Autor C"
-                # This is more complex because of name variations. 
-                # For now we focus on the owner of the CV.
+                    # Use author IDs to check existence
+                    current_author_ids = [getattr(auth, "id") for auth in getattr(paper, "authors", [])]
+                    if target_researcher.id not in current_author_ids:
+                        try:
+                            article_ctrl.add_author(paper.id, target_researcher.id)
+                            logger.debug(f"Linked author {target_researcher.name} to article {paper.id}")
+                        except Exception as link_err:
+                            logger.warning(f"Failed to link author {target_researcher.name} to article {paper.id}: {link_err}")
 
             except Exception as art_err:
                 logger.error(f"Failed to ingest article {art.get('title')}: {art_err}")

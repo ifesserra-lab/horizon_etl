@@ -1,5 +1,6 @@
 import json
 import re
+import unicodedata
 from typing import Any, Dict, List, Optional
 from datetime import date
 from dataclasses import dataclass
@@ -17,8 +18,21 @@ class LattesProject:
 
 class LattesParser:
     """
-    Parses Lattes JSON structure to extract projects.
+    Parses Lattes JSON structure to extract projects and articles.
     """
+
+    def normalize_title(self, title: Optional[str]) -> str:
+        """
+        Normalizes a title for comparison (lowercase, no accents, no special chars).
+        """
+        if not title:
+            return ""
+        # Accents and case
+        nfkd_form = unicodedata.normalize("NFKD", title)
+        only_ascii = nfkd_form.encode("ASCII", "ignore").decode("ASCII")
+        # Remove special characters and multiple spaces
+        clean = re.sub(r"[^a-zA-Z0-9\s]", " ", only_ascii).lower()
+        return " ".join(clean.split())
 
     def parse_research_projects(self, data: Dict) -> List[Dict]:
         return self._parse_generic_projects(
@@ -42,15 +56,17 @@ class LattesParser:
         items = biblio.get("artigos_periodicos", [])
         parsed = []
         for item in items:
+            title = item.get("titulo")
             parsed.append({
-                "title": item.get("titulo"),
+                "title": title,
+                "normalized_title": self.normalize_title(title),
                 "year": int(item["ano"]) if str(item.get("ano", "")).isdigit() else None,
                 "journal_conference": item.get("revista"),
                 "volume": item.get("volume"),
                 "pages": item.get("paginas"),
                 "doi": item.get("doi"),
                 "authors_str": item.get("autores"),
-                "type": "Journal"
+                "type": "Journal"  # lib expectation
             })
         return parsed
 
@@ -60,13 +76,15 @@ class LattesParser:
         items = biblio.get("trabalhos_completos_congressos", [])
         parsed = []
         for item in items:
+            title = item.get("titulo")
             parsed.append({
-                "title": item.get("titulo"),
+                "title": title,
+                "normalized_title": self.normalize_title(title),
                 "year": int(item["ano"]) if str(item.get("ano", "")).isdigit() else None,
                 "journal_conference": item.get("evento"),
                 "pages": item.get("paginas"),
                 "authors_str": item.get("autores"),
-                "type": "Conference Event"
+                "type": "Conference Event"  # lib expectation
             })
         return parsed
     
