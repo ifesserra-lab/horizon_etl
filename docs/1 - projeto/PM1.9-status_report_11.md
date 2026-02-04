@@ -16,7 +16,7 @@ This interaction delivered the high-priority enrichment of Lattes project data. 
 | TD-15 | Team Member Resolution & Linking | Done |
 | TD-16 | Automatic Team Creation for Initiatives | Done |
 | TD-17 | [US-034] PR Submission | Done (PR #64) |
-| TD-18 | Enriched Canonical Export (Teams/Sponsors) | Done |
+| TD-18 | Enriched Canonical Export (Teams/Sponsors/Types) | Done |
 | TD-19 | Pipeline Robustness (Mart Fixes) | Done |
 
 ## 3. Improvements Summary
