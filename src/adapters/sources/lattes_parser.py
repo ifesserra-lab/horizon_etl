@@ -226,7 +226,8 @@ class LattesParser:
                 "status": status,
                 "description": description,
                 "initiative_type_name": type_name,
-                "raw_members": p.get("integrantes", [])
+                "raw_members": p.get("integrantes", []),
+                "raw_sponsors": p.get("financiadores", [])
             })
             
         return parsed_projects
