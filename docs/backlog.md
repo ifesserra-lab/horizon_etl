@@ -47,7 +47,8 @@ Reflecting active work from `SI.3 Product Backlog`.
 
 - **Epic 7: Orquestração e Exportação**
     - [x] US-014 [Exportação de Iniciativas e Tipos] (PR #39 - Merged)
-    - [x] (US-016) Initiative Analytics Mart - v1.0.11
+    - **Epic 8: Enriquecimento de Projetos Lattes**
+    - [/] US-034 [Enriquecimento de Projetos, Membros e Patrocinadores] (PR #64 - In Review)
 
 ## 3. Hierarchical Status
 Mapping Epics -> User Stories -> Tasks status.
