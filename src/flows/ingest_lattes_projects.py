@@ -146,6 +146,9 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
         db_client = PostgresClient()
         db_session = db_client.get_session()
 
+        # Prepare Roles Cache
+        roles_cache = entity_manager.ensure_roles()
+
         for p in unique_projects:
             try:
                 p_type = types_map.get(p["initiative_type_name"])
@@ -191,87 +194,122 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
                      
                      initiative_ctrl.create(new_init)
                      init_id = getattr(new_init, "id", None)
-                
-                # Add Researcher as Coordinator/Member
-                person_id = getattr(target_researcher, "id", None)
-                if init_id and person_id:
-                    role_name = "Researcher" # Default
-                    role = entity_manager.ensure_roles().get(role_name)
-                    role_id = getattr(role, "id", None)
-                    
-                    if role_id:
-                        try:
-                            team_ctrl.add_member(
-                                team_id=init_id,
-                                person_id=person_id,
-                                role_id=role_id,
-                                start_date=start_date, # Use project dates as membership dates for simplicity
-                                end_date=end_date
-                            )
-                        except Exception as e:
-                            # It might be that we need to create a Team first, or the Initiative ID != Team ID.
-                            # Also handle duplicates if already member
-                            pass
-                
-                 # Process Other Members (Equipe)
-                raw_members = p.get("raw_members", [])
-                
-                # Fetch team mapping for this initiative
-                # Initiative -> [Teams]
-                # We assume the first team is the main team for the project
+
+                # Process Sponsors (Financiadores)
+                if init_id:
+                     raw_sponsors = p.get("raw_sponsors", [])
+                     if raw_sponsors:
+                         # Pick the first one as demandante for now
+                         sponsor_name = raw_sponsors[0].get("nome")
+                         if sponsor_name:
+                             sponsor_org_id = entity_manager.ensure_organization(name=sponsor_name)
+                             if sponsor_org_id:
+                                 # We need to link it. If using controller, we might need a direct update or service call.
+                                 # For simplicity, we'll use the initiative object if we can or direct SQL if needed.
+                                 # Let's try to get the initiative object
+                                 try:
+                                     init_obj = initiative_ctrl.get_by_id(init_id)
+                                     if init_obj and not getattr(init_obj, "demandante", None):
+                                         sponsor_org = entity_manager.get_organization(sponsor_org_id)
+                                         if sponsor_org:
+                                             init_obj.demandante = sponsor_org
+                                             initiative_ctrl.update(init_obj)
+                                             logger.info(f"Assigned sponsor {sponsor_name} as demandante for {p['name']}")
+                                 except Exception as sponsor_err:
+                                     logger.warning(f"Failed to assign sponsor for {init_id}: {sponsor_err}")
+
+                # Resolve/Get Team ID
+                target_team_id = None
                 try:
                      teams = initiative_ctrl.get_teams(init_id)
                      if teams:
                          target_team_id = teams[0].get("id") if isinstance(teams[0], dict) else getattr(teams[0], "id")
+                     else:
+                         # Create a team for this initiative if none exists
+                         team_name = f"Team: {p['name']}"[:100]
+                         logger.info(f"Creating team '{team_name}' for initiative {init_id}")
+                         new_team = team_ctrl.create_team(name=team_name, description=f"Team for {p['name']}")
+                         target_team_id = getattr(new_team, "id")
+                         initiative_ctrl.assign_team(init_id, target_team_id)
+                except Exception as team_err:
+                     logger.warning(f"Failed to ensure team for initiative {init_id}: {team_err}")
+                
+                # Add Researcher as Coordinator/Member
+                person_id = getattr(target_researcher, "id", None)
+                if init_id and person_id and target_team_id:
+                    try:
+                        # Check if already in team
+                        current_members = team_ctrl.get_members(target_team_id)
+                        is_member = any(m.person_id == person_id for m in current_members)
+                        
+                        if not is_member:
+                            # Map papel to role
+                            # Find the main researcher in the members list to get their role
+                            raw_members = p.get("raw_members", [])
+                            researcher_role = "Integrante" # Default
+                            for rm in raw_members:
+                                if parser.normalize_title(rm.get("nome", "")) == parser.normalize_title(target_researcher.name):
+                                    researcher_role = rm.get("papel", "Integrante")
+                                    break
+
+                            m_role_name = "Coordinator" if researcher_role == "Coordenador" else "Researcher"
+                            m_role = roles_cache.get(m_role_name)
+                            
+                            team_ctrl.add_member(target_team_id, person_id, m_role)
+                            logger.info(f"Linked researcher {target_researcher.name} as {m_role_name} to {p['name']}")
+                    except Exception as e:
+                        logger.warning(f"Failed to link researcher to project {p['name']}: {e}")
+
+                # Process Other Members (Equipe)
+                if init_id and target_team_id:
+                     raw_members = p.get("raw_members", [])
+                     
+                     try:
+                         current_members = team_ctrl.get_members(target_team_id)
                          
-                         for member in raw_members:
-                             m_name = member.get("nome") or member.get("name")
-                             m_role_str = member.get("papel", "Integrante")
+                         for m in raw_members:
+                             m_name = m.get("nome")
+                             m_role_raw = m.get("papel", "Integrante")
                              
-                             if not m_name: 
+                             if not m_name or m_name == target_researcher.name:
                                  continue
                                  
                              # Resolve Person by Name
-                             # We need a way to find person by name. 
-                             # distinct names search?
-                             # For now, let's try to find in `all_researchers` cache or skip if not simple.
-                             # But `all_researchers` only has researchers. Students might not be there.
-                             # If person_ctrl has `get_by_name`, great.
-                             # If not, we might be unable to link without creating new Persons.
-                             # For this task, we will try to link EXISTING researchers/people.
-                             
-                             # Simple fuzzy logic or exact match
-                             # We can match against all_researchers loaded previously.
-                             found_person = next((r for r in all_researchers if getattr(r, "name", "").lower() == m_name.lower()), None)
+                             m_name_norm = parser.normalize_title(m_name)
+                             found_person = next(
+                                 (r for r in all_researchers if parser.normalize_title(getattr(r, "name", "")) == m_name_norm), 
+                                 None
+                             )
                              
                              if found_person:
                                  m_person_id = getattr(found_person, "id")
                                  
                                  # Map Role
-                                 # Lattes roles: "Coordenador", "Integrante", etc.
                                  role_key = "Researcher" # Default
-                                 if "coordenador" in m_role_str.lower():
+                                 if "coordenador" in m_role_raw.lower():
                                      role_key = "Coordinator"
-                                 elif "estudante" in m_role_str.lower() or "bolsista" in m_role_str.lower():
+                                 elif "estudante" in m_role_raw.lower() or "bolsista" in m_role_raw.lower():
                                      role_key = "Student"
                                  
-                                 m_role = entity_manager.ensure_roles().get(role_key)
-                                 m_role_id = getattr(m_role, "id")
+                                 m_role = roles_cache.get(role_key)
                                  
                                  # Add Member
                                  try:
-                                     team_ctrl.add_member(
-                                         team_id=target_team_id,
-                                         person_id=m_person_id,
-                                         role_id=m_role_id,
-                                         start_date=start_date,
-                                         end_date=end_date
-                                     )
+                                     # Check if already member
+                                     is_member = any(mm.person_id == m_person_id for mm in current_members)
+                                     if not is_member:
+                                         team_ctrl.add_member(
+                                             team_id=target_team_id,
+                                             person_id=m_person_id,
+                                             role=m_role,
+                                             start_date=start_date,
+                                             end_date=end_date
+                                         )
+                                         logger.info(f"Added member {m_name} as {role_key} to {p['name']}")
                                  except Exception as mem_err:
-                                     # Ignore duplicate membership constraint errors
                                      pass
-                except Exception as team_err:
-                    logger.warning(f"Failed to process team for initiative {init_id}: {team_err}")
+                     except Exception as team_err:
+                         logger.warning(f"Failed to process team members for initiative {init_id}: {team_err}")
 
             except Exception as e:
                 logger.error(f"Error creating project {p['name']}: {e}")
