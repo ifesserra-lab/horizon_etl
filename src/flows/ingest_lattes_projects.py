@@ -152,6 +152,17 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
         for p in unique_projects:
             try:
                 p_type = types_map.get(p["initiative_type_name"])
+                
+                # Fallback for Development Project if not found (Double Check)
+                if not p_type and p["initiative_type_name"] == "Development Project":
+                    try:
+                         # Force ensure
+                         p_type = entity_manager.ensure_initiative_type("Development Project")
+                         types_map["Development Project"] = p_type
+                         logger.info("Force-created 'Development Project' type during ingestion loop.")
+                    except Exception as err:
+                         logger.error(f"Failed to fallback create Development Project type: {err}")
+
                 type_id = getattr(p_type, "id", None)
 
                 # Check if exists (Idempotency)
