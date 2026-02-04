@@ -76,6 +76,14 @@ def export_initiative_types_task(output_dir: str):
     )
 
 
+@task(name="export_articles_task")
+def export_articles_task(output_dir: str):
+    logger.info("Starting Articles export...")
+    sink = JsonSink()
+    exporter = CanonicalDataExporter(sink=sink)
+    exporter.export_articles(os.path.join(output_dir, "articles_canonical.json"))
+
+
 @task(name="export_advisorships_task")
 def export_advisorships_task(output_dir: str):
     logger.info("Starting Advisorships export...")
@@ -128,6 +136,7 @@ def export_canonical_data_flow(
     export_groups_task(output_dir, campus)
     export_initiatives_task(output_dir)
     export_initiative_types_task(output_dir)
+    export_articles_task(output_dir)
     export_advisorships_task(output_dir)
     export_fellowships_task(output_dir)
     export_advisorship_analytics_task(output_dir)
