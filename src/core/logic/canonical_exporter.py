@@ -131,6 +131,14 @@ class CanonicalDataExporter:
             from eo_lib import TeamController
             team_ctrl = TeamController()
             
+            # Pre-fetch initiative types
+            raw_types = self.initiative_ctrl.list_initiative_types()
+            types_map = {}
+            for t in raw_types:
+                t_id = t.get("id") if isinstance(t, dict) else getattr(t, "id", None)
+                if t_id:
+                    types_map[t_id] = t
+
             # Pre-fetch all Research Group IDs to identify "Group Teams" (non-project teams)
             rg_ids = {getattr(g, "id", None) for g in self.researcher_ctrl._service._repository._session.execute(text("SELECT id FROM research_groups")).fetchall()}
             
@@ -158,10 +166,18 @@ class CanonicalDataExporter:
                                     role_name = m.role.name if m.role else "Member"
                                     
                                     if not existing:
+                                        # Get Initiative Type
+                                        init_type = types_map.get(init.initiative_type_id)
+                                        type_data = {
+                                            "id": init_type.get("id") if isinstance(init_type, dict) else getattr(init_type, "id", None),
+                                            "name": init_type.get("name") if isinstance(init_type, dict) else getattr(init_type, "name", None)
+                                        } if init_type else None
+
                                         person_initiatives_map[p_id].append({
                                             "id": init.id,
                                             "name": init.name,
                                             "status": init.status,
+                                            "initiative_type": type_data,
                                             "demandante": {
                                                 "id": init.demandante.id,
                                                 "name": init.demandante.name,
