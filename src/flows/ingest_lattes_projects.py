@@ -12,7 +12,8 @@ from src.core.logic.entity_manager import EntityManager
 from eo_lib import Initiative, InitiativeController, PersonController, TeamController
 from research_domain.controllers import (
     ResearcherController,
-    AcademicEducationController
+    AcademicEducationController,
+    ArticleController
 )
 from research_domain.domain.entities.academic_education import AcademicEducation, EducationType, academic_education_knowledge_areas
 from research_domain.domain.entities.researcher import Researcher
@@ -100,6 +101,16 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
         else:
             logger.info(f"Found {len(projects)} projects for {lattes_id}.")
 
+        # Parse Articles
+        articles = []
+        articles.extend(parser.parse_articles(data))
+        articles.extend(parser.parse_conference_papers(data))
+        
+        if not articles:
+            logger.info(f"No articles found for {filename}.")
+        else:
+            logger.info(f"Found {len(articles)} articles for {lattes_id}.")
+
         # Parse Academic Education
         education_list = parser.parse_academic_education(data)
         logger.info(f"Found {len(education_list)} education entries for {lattes_id}.")
@@ -107,6 +118,7 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
         # Ingest Projects
         initiative_ctrl = InitiativeController()
         team_ctrl = TeamController()
+        article_ctrl = ArticleController()
         
         # Ensure Types
         types_map = {
@@ -271,6 +283,52 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
                     except Exception as rb_err:
                          logger.error(f"Failed to rollback: {rb_err}")
 
+        # Ingest Articles
+        for art in articles:
+            try:
+                # Idempotency: Title + Year + DOI
+                # Actually, DOI is very reliable if available.
+                existing_art = None
+                if art.get("doi"):
+                    existing_art = next((a for a in article_ctrl.get_all() if a.doi == art["doi"]), None)
+                
+                if not existing_art:
+                    # Slow search fallback by title/year
+                    # For performance in large runs, we might want a get_by_title_year in controller
+                    existing_art = next((a for a in article_ctrl.get_all() if a.title.lower() == art["title"].lower() and a.year == art["year"]), None)
+
+                if existing_art:
+                    logger.info(f"Article already exists: {art['title']} (ID: {existing_art.id})")
+                    paper = existing_art
+                else:
+                    # Create Article
+                    paper = article_ctrl.create_article(
+                        title=art["title"],
+                        year=art["year"],
+                        type=art["type"],
+                        doi=art.get("doi"),
+                        journal_conference=art.get("journal_conference"),
+                        volume=art.get("volume"),
+                        pages=art.get("pages")
+                    )
+                    logger.info(f"Created article: {art['title']} (Type: {art['type']})")
+
+                # Link Authors
+                # Ensure current researcher is linked
+                if paper and target_researcher:
+                    # Check if already author
+                    if target_researcher.id not in [a.id for a in paper.authors]:
+                        article_ctrl.add_author(paper.id, target_researcher.id)
+                        logger.debug(f"Linked author {target_researcher.name} to article {paper.id}")
+
+                # Optional: Process authors_str to link other known researchers
+                # Current authors_str format: "Autor A; Autor B; Autor C"
+                # This is more complex because of name variations. 
+                # For now we focus on the owner of the CV.
+
+            except Exception as art_err:
+                logger.error(f"Failed to ingest article {art.get('title')}: {art_err}")
+
         # Ingest Academic Education
         if education_list:
             for edu_data in education_list:
@@ -382,6 +440,7 @@ def ingest_lattes_projects_flow():
     try:
         from eo_lib.domain.base import Base
         from research_domain.domain.entities.academic_education import AcademicEducation
+        from research_domain.domain.entities.article import Article, article_authors
         # Get engine from one of the controllers or client
         engine = init_ctrl.client.engine if hasattr(init_ctrl, 'client') else None
         if not engine:
@@ -399,7 +458,11 @@ def ingest_lattes_projects_flow():
              AcademicEducation.__table__.drop(engine, checkfirst=True)
              academic_education_knowledge_areas.drop(engine, checkfirst=True)
              EducationType.__table__.drop(engine, checkfirst=True)
-             logger.warning("Dropped academic tables for schema update.")
+             
+             Article.__table__.drop(engine, checkfirst=True)
+             article_authors.drop(engine, checkfirst=True)
+             
+             logger.warning("Dropped academic and publication tables for schema update.")
         except Exception as drop_err:
              logger.warning(f"Failed to drop table: {drop_err}")
 
