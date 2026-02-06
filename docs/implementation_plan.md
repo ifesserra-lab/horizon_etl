@@ -1,42 +1,29 @@
-# Advisorship Analytics Mart Proposal
+# Enforce AdvisorshipType in Ingestion
 
-The objective is to transform the hierarchical `advisorships_canonical.json` into a focused analytical dataset (`advisorship_analytics.json`) for dashboards and reports.
+## Goal Description
+Ensure that every Advisorship created during Lattes ingestion has its `type` field correctly populated with the appropriate `AdvisorshipType` enum value. Currently, only the generic `initiative_type_id` is set, leaving the specific `type` column null.
 
-## Proposed Indicators
-
-### 1. Project Metrics (per Project)
-- `total_students`: Count of advisorships.
-- `active_students`: Count of students where status is "Active".
-- `monthly_investment`: Sum of `fellowship.value`.
-- `main_funding_program`: Most frequent fellowship name in the project.
-- `team_size`: Total members in the `team` list.
-
-### 2. Global Aggregates
-- `total_active_advisorships`: Sum of all active students across all projects.
-- `investment_distribution`: Breakdown of total value per program (e.g., "PIBITI: 5600.00").
-- `participation_ratio`: Average students per research project.
-- `volunteer_percentage`: (Students with 0.0 value / Total students) * 100.
-
-### 3. Rankings (Top 10)
-- `top_supervisors_by_count`: Name and student count.
-- `top_projects_by_investment`: Project name and total monthly value.
+## User Review Required
+None. This is a logic refinement to ensure data completeness.
 
 ## Proposed Changes
 
-### [Core Logic Layer]
-
-#### [MODIFY] [canonical_exporter.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/core/logic/canonical_exporter.py)
-- Add `generate_advisorship_mart(self, input_path, output_path)`:
-    - Load the canonical JSON.
-    - Iterate through projects and advisorships to calculate the above metrics.
-    - Structure the final JSON into `{"projects": [...], "global_stats": {...}, "rankings": {...}}`.
-    - Use `self.sink.export`.
+### [Flows]
+#### [MODIFY] [ingest_lattes_advisorships.py](file:///home/paulossjunior/projects/horizon_project/horizon_etl/src/flows/ingest_lattes_advisorships.py)
+- **Import**: `AdvisorshipType` from `research_domain.domain.entities.advisorship`.
+- **Mapping**: Create a dictionary mapping the strings returned by `LattesParser` (e.g., "Master's Thesis") to `AdvisorshipType` (e.g., `AdvisorshipType.MASTER_THESIS`).
+- **Logic**: 
+    - Inside the loop, map `item["type"]` (which is the canonical string) to the Enum.
+    - Pass this value to the `Advisorship` constructor as `type=mapped_type`.
 
 ## Verification Plan
 
 ### Automated Tests
-- Create a test case that loads a sample hierarchical JSON and verifies the calculated totals and rankings.
+- Create a temporary test script `tests/verify_advisorship_type.py`:
+  - It will query the database for the most recent Advisorships.
+  - Assert that `type` is NOT NULL and is a valid `AdvisorshipType`.
+- Run the ingestion flow for a sample file.
 
 ### Manual Verification
-- Run the mart generation.
-- Check `data/exports/advisorship_analytics.json` for logical consistency (e.g., global totals match the sum of project totals).
+- Check the logs to ensure no mapping errors occur.
+- Inspect the database or object representation to confirm persistence.
