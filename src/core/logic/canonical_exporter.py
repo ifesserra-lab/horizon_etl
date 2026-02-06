@@ -354,6 +354,56 @@ class CanonicalDataExporter:
         except Exception as e:
             logger.warning(f"Failed to fetch Articles for researcher enrichment: {e}")
 
+        # 6. Advisorships (Researcher -> [Advisorships])
+        person_advisorships_map = {}
+        try:
+            adv_query = text("""
+                SELECT 
+                    a.supervisor_id, 
+                    a.id, 
+                    i.name, 
+                    i.status, 
+                    i.start_date, 
+                    i.end_date,
+                    it.name as type_name,
+                    a.type as advisorship_type,
+                    p.name as student_name
+                FROM advisorships a
+                JOIN initiatives i ON a.id = i.id
+                LEFT JOIN initiative_types it ON i.initiative_type_id = it.id
+                LEFT JOIN persons p ON a.student_id = p.id
+                WHERE a.supervisor_id IS NOT NULL
+            """)
+            adv_result = session.execute(adv_query).fetchall()
+            
+            for row in adv_result:
+                sup_id = row.supervisor_id
+                adv_data = {
+                    "id": row.id,
+                    "name": row.name,
+                    "status": row.status,
+                    "start_year": (
+                        row.start_date.year 
+                        if hasattr(row.start_date, "year") 
+                        else int(str(row.start_date)[:4]) if row.start_date else None
+                    ),
+                    "end_year": (
+                        row.end_date.year 
+                        if hasattr(row.end_date, "year") 
+                        else int(str(row.end_date)[:4]) if row.end_date else None
+                    ),
+                    "type": row.advisorship_type,
+                    "initiative_type": row.type_name,
+                    "student_name": row.student_name
+                }
+                
+                if sup_id not in person_advisorships_map:
+                    person_advisorships_map[sup_id] = []
+                person_advisorships_map[sup_id].append(adv_data)
+                
+        except Exception as e:
+            logger.warning(f"Failed to fetch Advisorships for researcher enrichment: {e}")
+
 
         # Enrich and Export
         export_data = []
@@ -412,6 +462,7 @@ class CanonicalDataExporter:
             r_dict["knowledge_areas"] = person_kas_map.get(p_id_int, []) if p_id_int else person_kas_map.get(p_id, [])
             r_dict["academic_education"] = person_education_map.get(p_id_int, []) if p_id_int else person_education_map.get(p_id, [])
             r_dict["articles"] = person_articles_map.get(p_id_int, []) if p_id_int else person_articles_map.get(p_id, [])
+            r_dict["advisorships"] = person_advisorships_map.get(p_id_int, []) if p_id_int else person_advisorships_map.get(p_id, [])
             
             export_data.append(r_dict)
 
@@ -708,6 +759,8 @@ class CanonicalDataExporter:
         query = text("""
             SELECT 
                 a.id, i.name, i.status, i.description, i.start_date, i.end_date,
+                a.type as advisorship_type,
+                it.name as initiative_type_name,
                 a.student_id, p_std.name as student_name,
                 a.supervisor_id, p_sup.name as supervisor_name,
                 a.fellowship_id,
@@ -723,6 +776,7 @@ class CanonicalDataExporter:
                 p_init.end_date as parent_end_date
             FROM advisorships a
             JOIN initiatives i ON a.id = i.id
+            LEFT JOIN initiative_types it ON i.initiative_type_id = it.id
             LEFT JOIN persons p_std ON a.student_id = p_std.id
             LEFT JOIN persons p_sup ON a.supervisor_id = p_sup.id
             LEFT JOIN initiatives p_init ON i.parent_id = p_init.id
@@ -750,6 +804,8 @@ class CanonicalDataExporter:
                      if hasattr(row.end_date, "isoformat")
                      else str(row.end_date) if row.end_date else None
                 ),
+                "type": row.advisorship_type,
+                "initiative_type": row.initiative_type_name,
                 "student_id": row.student_id,
                 "student_name": row.student_name,
                 "supervisor_id": row.supervisor_id,
