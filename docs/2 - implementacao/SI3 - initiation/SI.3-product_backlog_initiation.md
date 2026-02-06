@@ -327,6 +327,34 @@ Implementar o pipeline de ingestão de artigos presentes nos arquivos JSON do La
     - [ ] Flow `ingest_lattes_projects` atualizado para incluir ingestão de artigos.
 
 
+### US-036 – Ingestão de Orientações Lattes (Advisorships)
+```yaml
+id: US-036
+milestone: R2
+prioridade: Alta
+tamanho: 5
+origem: [RF-16]
+tags: [type:feature, area:backend, source:lattes]
+dependencias: [US-033]
+modulos_afetados: [src/flows/ingest_lattes_advisorships.py, src/adapters/sources/lattes_parser.py]
+```
+
+#### Descrição
+Implementar o pipeline de ingestão de orientações (Advisorships) a partir dos arquivos JSON do Lattes. O sistema deve processar as seções `orientacoes.em_andamento` e `orientacoes.concluidas`, persistindo-as como entidades `Advisorship` e vinculando-as ao Pesquisador (Orientador) e ao aluno (Student).
+
+#### Critérios de Aceitação
+- **Funcional**:
+    - [ ] Parsing das seções de orientações.
+    - [ ] Identificação do Tipo (Mestrado, Doutorado, TCC, IC).
+    - [ ] Persistência da entidade `Advisorship` com título, ano, aluno e instituição.
+    - [ ] Vínculo do Pesquisador (dono do CV) como Supervisor.
+    - [ ] Criação/Vínculo do Aluno (Student).
+- **Teste**:
+    - [ ] Teste unitário para parsing.
+    - [ ] Teste de integração para persistência.
+- **Deploy**:
+    - [ ] Flow `ingest_lattes_advisorships` executável.
+
 ---
 
 ## Cross-Cutting (Arquitetura)

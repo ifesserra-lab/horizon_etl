@@ -253,3 +253,163 @@ class LattesParser:
                 clean = clean.split(marker)[0]
         
         return clean.strip().rstrip(".")
+
+    def parse_advisorships(self, data: Dict) -> List[Dict[str, Any]]:
+        """
+        Parses advisorships from JSON.
+        Supports both direct 'orientacoes' dict (scriptLattes style) and 'dados_complementares' list (generic style).
+        """
+        advisorships = []
+        
+        # Strategy A: Top-level 'orientacoes' dict (Nested types)
+        if "orientacoes" in data and isinstance(data["orientacoes"], dict):
+            sections = {
+                "concluidas": "Concluded",
+                "em_andamento": "In Progress"
+            }
+            
+            for section_key, status in sections.items():
+                section_data = data["orientacoes"].get(section_key, {})
+                if isinstance(section_data, dict):
+                    for type_key, items in section_data.items():
+                        if isinstance(items, list):
+                            parsed = self._parse_items(items, status=status, default_type=type_key)
+                            advisorships.extend(parsed)
+            
+            return advisorships
+
+        # Strategy B: 'dados_complementares' flat lists (Fallback)
+        # 1. Concluded
+        concluded = self._parse_generic_advisorships(
+            data, 
+            "orientacoes_concluidas", 
+            status="Concluded"
+        )
+        advisorships.extend(concluded)
+        
+        # 2. In Progress
+        in_progress = self._parse_generic_advisorships(
+            data, 
+            "orientacoes_em_andamento", 
+            status="In Progress"
+        )
+        advisorships.extend(in_progress)
+        
+        return advisorships
+    
+    def _parse_items(self, items: List[Dict], status: str, default_type: str = "") -> List[Dict]:
+        """
+        Parses a list of advisorship items from the 'orientacoes' dict structure.
+        """
+        parsed = []
+        for item in items:
+            title = item.get("titulo")
+            # Try specific keys first, then generic
+            student_name = item.get("orientando") or item.get("nome_do_orientado")
+            
+            year_str = item.get("ano_conclusao") or item.get("ano_inicio") or item.get("ano")
+            year = int(year_str) if year_str and str(year_str).isdigit() else None
+            
+            institution = item.get("instituicao") or item.get("nome_instituicao")
+            
+            # Map type_key to canonical
+            nature = (item.get("natureza") or item.get("tipo_trabalho") or "").lower()
+            tipo = item.get("tipo", "").lower()
+            def_type_lower = default_type.lower()
+            
+            # Combine all for search
+            text_search = f"{nature} {tipo} {def_type_lower}"
+            
+            canonical_type = "Advisorship"
+            if "mestrado" in text_search:
+                canonical_type = "Master's Thesis"
+            elif "doutorado" in text_search:
+                canonical_type = "PhD Thesis"
+            elif "iniciacao_cientifica" in text_search or "iniciação científica" in text_search:
+                canonical_type = "Scientific Initiation"
+            elif "conclusão de curso" in text_search or "tcc" in text_search or "graduacao" in text_search:
+                canonical_type = "Undergraduate Thesis"
+            elif "pos_doutorado" in text_search or "pós-doutorado" in text_search:
+                canonical_type = "Post-Doctorate"
+            elif "especializacao" in text_search or "especialização" in text_search:
+                canonical_type = "Specialization"
+            elif "outras" in text_search or "outros" in text_search:
+                canonical_type = "Advisorship"
+            
+            if title and student_name:
+                parsed.append({
+                    "title": title,
+                    "normalized_title": self.normalize_title(title),
+                    "student_name": student_name,
+                    "year": year,
+                    "institution": institution,
+                    "type": canonical_type,
+                    "status": status,
+                    "nature": nature
+                })
+        return parsed
+
+    def _parse_generic_advisorships(self, data: Dict, key: str, status: str) -> List[Dict]:
+        """
+        Helper to parse specific advisorship sections.
+        """
+        section = data.get("dados_complementares", {}).get(key, [])
+        parsed = []
+        
+        # Mapping of Lattes types to Canonical types
+        # This mapping might need refinement based on exact Lattes strings
+        type_map = {
+            "dissertacao_de_mestrado": "Master's Thesis",
+            "tese_de_doutorado": "PhD Thesis",
+            "monografia_de_conclusao_de_curso_aperfeicoamento_e_especializacao": "Specialization",
+            "trabalho_de_conclusao_de_curso_graduacao": "Undergraduate Thesis",
+            "iniciacao_cientifica": "Scientific Initiation",
+            "supervisao_de_pos_doutorado": "Post-Doc Supervision"
+        }
+
+        for item in section:
+            # Type extraction logic can be complex in Lattes. 
+            # Usually the key name in the list dictates the type if it's a list of specific objects,
+            # but in the JSON export, they are often flattened.
+            # We look for specific known keys or 'natureza'.
+            
+            nature = (item.get("natureza") or item.get("tipo_trabalho", "")).lower()
+            tipo = item.get("tipo", "").lower() # Sometimes 'tipo' holds "MESTRADO", "DOUTORADO"
+            
+            canonical_type = "Advisorship"
+            
+            # Simple heuristic for type
+            if "mestrado" in nature or "mestrado" in tipo:
+                canonical_type = "Master's Thesis"
+            elif "doutorado" in nature or "doutorado" in tipo:
+                canonical_type = "PhD Thesis"
+            elif "iniciação científica" in nature or "iniciacao_cientifica" in nature:
+                canonical_type = "Scientific Initiation"
+            elif "conclusão de curso" in nature or "graduacao" in nature:
+                canonical_type = "Undergraduate Thesis"
+            elif "pós-doutorado" in nature or "pos_doutorado" in nature:
+                canonical_type = "Post-Doc Supervision"
+            
+            # Extract common fields
+            title = item.get("titulo")
+            student_name = item.get("orientando") or item.get("nome_do_orientado")
+            
+            # Year logic: try 'ano_conclusao', then 'ano_inicio', then 'ano'
+            year_str = item.get("ano_conclusao") or item.get("ano_inicio") or item.get("ano")
+            year = int(year_str) if year_str and str(year_str).isdigit() else None
+            
+            institution = item.get("instituicao") or item.get("nome_instituicao")
+            
+            if title and student_name:
+                parsed.append({
+                    "title": title,
+                    "normalized_title": self.normalize_title(title),
+                    "student_name": student_name,
+                    "year": year,
+                    "institution": institution,
+                    "type": canonical_type,
+                    "status": status,
+                    "nature": nature
+                })
+                
+        return parsed
