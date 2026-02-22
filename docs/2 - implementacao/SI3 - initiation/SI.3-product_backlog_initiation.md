@@ -298,6 +298,62 @@ Implementar o pipeline de ingestão de projetos presentes nos arquivos JSON do L
 - **Deploy**:
     - [ ] Flow `ingest_lattes_projects` integrado e executável via `app.py`.
 
+### US-035 – Ingestão de Artigos Lattes (Periódicos e Congressos)
+```yaml
+id: US-035
+milestone: R2
+prioridade: Alta
+tamanho: 5
+origem: [RF-02]
+tags: [type:feature, area:backend, source:lattes]
+dependencias: [US-033]
+modulos_afetados: [src/flows/ingest_lattes_projects.py, src/adapters/sources/lattes_parser.py]
+```
+
+#### Descrição
+Implementar o pipeline de ingestão de artigos presentes nos arquivos JSON do Lattes. O sistema deve processar as seções `artigos_periodicos` e `trabalhos_completos_congressos`, criando registros de Artigos e vinculando-os ao Pesquisador proprietário do currículo e outros co-autores identificados no banco de dados.
+
+#### Critérios de Aceitação
+- **Funcional**:
+    - [ ] Parsing de `artigos_periodicos` (Journal articles).
+    - [ ] Parsing de `trabalhos_completos_congressos` (Conference papers).
+    - [ ] Persistência via `ArticleController` com título, ano, DOI, volume, páginas e nome da revista/evento.
+    - [ ] Vínculo automático do Pesquisador (dono do CV) como autor.
+    - [ ] Tentativa de vínculo de outros autores (Pesquisadores existentes no DB) via match de nome.
+- **Teste**:
+    - [ ] Teste unitário para parsing de artigos.
+    - [ ] Teste de integração para persistência de artigos e vínculos de autoria.
+- **Deploy**:
+    - [ ] Flow `ingest_lattes_projects` atualizado para incluir ingestão de artigos.
+
+
+### US-036 – Ingestão de Orientações Lattes (Advisorships)
+```yaml
+id: US-036
+milestone: R2
+prioridade: Alta
+tamanho: 5
+origem: [RF-16]
+tags: [type:feature, area:backend, source:lattes]
+dependencias: [US-033]
+modulos_afetados: [src/flows/ingest_lattes_advisorships.py, src/adapters/sources/lattes_parser.py]
+```
+
+#### Descrição
+Implementar o pipeline de ingestão de orientações (Advisorships) a partir dos arquivos JSON do Lattes. O sistema deve processar as seções `orientacoes.em_andamento` e `orientacoes.concluidas`, persistindo-as como entidades `Advisorship` e vinculando-as ao Pesquisador (Orientador) e ao aluno (Student).
+
+#### Critérios de Aceitação
+- **Funcional**:
+    - [ ] Parsing das seções de orientações.
+    - [ ] Identificação do Tipo (Mestrado, Doutorado, TCC, IC).
+    - [ ] Persistência da entidade `Advisorship` com título, ano, aluno e instituição.
+    - [ ] Vínculo do Pesquisador (dono do CV) como Supervisor.
+    - [ ] Criação/Vínculo do Aluno (Student).
+- **Teste**:
+    - [ ] Teste unitário para parsing.
+    - [ ] Teste de integração para persistência.
+- **Deploy**:
+    - [ ] Flow `ingest_lattes_advisorships` executável.
 
 ---
 
@@ -607,6 +663,7 @@ Criar automaticamente equipes (Teams) com seus membros durante a ingestão de pr
 | **US-006** | Extração Editais FAPES (PDF) | R3 | **Ready** |
 | **US-032** | Ingestão Bolsistas SigPesq | R5 | **Concluído** |
 | **US-034** | Ingestão Projetos Lattes | R2 | **Ready** |
+| **US-035** | Ingestão Artigos Lattes | R2 | **Ready** |
 
 
 
