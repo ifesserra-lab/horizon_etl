@@ -75,7 +75,7 @@ class ProjectLoader:
 
     def process_file(self, file_path: str) -> None:
         """
-        Reads the file, maps rows, and orchestrates the UPSERT logic across handlers and linkers.
+        Reads an Excel file and orchestrates the UPSERT logic across handlers and linkers.
         """
         logger.info(f"Processing Projects from: {file_path}")
 
@@ -85,7 +85,14 @@ class ProjectLoader:
         except Exception as e:
             logger.error(f"Failed to read Excel file {file_path}: {e}")
             return
+            
+        records = df.to_dict('records')
+        self.process_records(records)
 
+    def process_records(self, records: list[Dict[str, Any]]) -> None:
+        """
+        Maps a list of raw dictionary records and orchestrates the UPSERT logic across handlers and linkers.
+        """
         logger.info("Fetching existing initiatives for UPSERT...")
         existing_initiatives = self.controller.get_all()
         existing_by_name = {init.name: init for init in existing_initiatives}
@@ -95,9 +102,9 @@ class ProjectLoader:
 
         stats = {"created": 0, "updated": 0, "skipped": 0, "teams": 0}
 
-        for _, row in df.iterrows():
+        for row_dict in records:
             try:
-                self._process_row(row.to_dict(), existing_by_name, stats, df)
+                self._process_row(row_dict, existing_by_name, stats)
             except Exception as e:
                 logger.warning(f"Skipping row due to error: {e}")
                 stats["skipped"] += 1
@@ -233,7 +240,7 @@ class ProjectLoader:
         
         logger.info(f"Recalculation complete. Processed {processed_count} parents, updated {updated_count}.")
 
-    def _process_row(self, row_dict: Dict[str, Any], existing_by_name: Dict[str, Any], stats: Dict[str, int], df: pd.DataFrame) -> None:
+    def _process_row(self, row_dict: Dict[str, Any], existing_by_name: Dict[str, Any], stats: Dict[str, int]) -> None:
         # 1. Map to Dict
         project_data = self.mapping_strategy.map_row(row_dict)
 
