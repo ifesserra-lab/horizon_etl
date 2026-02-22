@@ -34,7 +34,29 @@ def sample_data():
                 "descricao": ["Descrição: Descricao dev. Situação: Concluído; Natureza: Desenvolvimento."],
                 "integrantes": []
             }
-        ]
+        ],
+        "producao_bibliografica": {
+            "artigos_periodicos": [
+                {
+                    "titulo": "Artigo Periodico 1",
+                    "ano": 2022,
+                    "autores": "Autor A; Autor B",
+                    "revista": "Revista Cientifica",
+                    "volume": "10",
+                    "paginas": "1-10",
+                    "doi": "10.1234/artigo1"
+                }
+            ],
+            "trabalhos_completos_congressos": [
+                {
+                    "titulo": "Trabalho Congresso 1",
+                    "ano": 2023,
+                    "autores": "Autor C; Autor D",
+                    "evento": "Congresso Internacional",
+                    "paginas": "100-110"
+                }
+            ]
+        }
     }
 
 def test_parse_research_projects(parser, sample_data):
@@ -64,6 +86,25 @@ def test_parse_development_projects(parser, sample_data):
     p = projects[0]
     assert p["name"] == "Projeto Dev 1"
     assert p["initiative_type_name"] == "Development Project"
+
+def test_parse_articles(parser, sample_data):
+    articles = parser.parse_articles(sample_data)
+    assert len(articles) == 1
+    a = articles[0]
+    assert a["title"] == "Artigo Periodico 1"
+    assert a["year"] == 2022
+    assert a["journal_conference"] == "Revista Cientifica"
+    assert a["doi"] == "10.1234/artigo1"
+    assert a["type"] == "Journal"
+
+def test_parse_conference_papers(parser, sample_data):
+    papers = parser.parse_conference_papers(sample_data)
+    assert len(papers) == 1
+    p = papers[0]
+    assert p["title"] == "Trabalho Congresso 1"
+    assert p["year"] == 2023
+    assert p["journal_conference"] == "Congresso Internacional"
+    assert p["type"] == "Conference Event"
 
 def test_clean_description(parser):
     raw = "Descrição: Minha descrição aqui. Situação: Em andamento; Natureza: Pesquisa."

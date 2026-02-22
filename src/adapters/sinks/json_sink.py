@@ -25,30 +25,32 @@ class JsonSink(IExportSink):
 
             # Internal serializer helper
             def serialize(obj):
+                import enum
+                from datetime import date, datetime
+
+                if isinstance(obj, enum.Enum):
+                    return obj.value
+
+                if isinstance(obj, (date, datetime)):
+                    return obj.isoformat()
+
                 if isinstance(obj, dict):
-                    return obj
+                    return {k: serialize(v) for k, v in obj.items()}
+
+                if isinstance(obj, list):
+                    return [serialize(i) for i in obj]
 
                 if isinstance(obj, BaseModel):
                     return obj.model_dump(mode="json")
 
                 # Check for SQLAlchemy model (has __table__)
                 if hasattr(obj, "__table__"):
-                    # Serialize columns
-                    result = {
-                        c.name: getattr(obj, c.name) for c in obj.__table__.columns
+                    return {
+                        c.name: serialize(getattr(obj, c.name)) for c in obj.__table__.columns
                     }
 
-                    # Attempt to include specific relationships requested (Leaders/Members)
-                    # This is brittle if session is closed, but we try.
-                    # Commonly for reports we want specific fields.
-                    # For now, let's just do columns to be safe and compatible.
-                    # If user needs relationships, accessing them here might fail if detached.
-                    # We will add a 'try' block for common relationships if we want to risk it,
-                    # but typically standard columns are safer.
-                    return result
-
                 if hasattr(obj, "__dict__"):
-                    return obj.__dict__
+                    return serialize(obj.__dict__)
 
                 return str(obj)
 
