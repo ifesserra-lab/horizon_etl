@@ -203,16 +203,31 @@ class ProjectLoader:
             # Since this is a bulk fix operation, we can just update if distinct
             
             needs_update = False
-            if parent.start_date != min_start: needs_update = True
-            if parent.end_date != max_end: needs_update = True
-            if parent.status != new_status: needs_update = True
+            
+            # Non-destructive update for start_date: only if earlier than current
+            if min_start and (not parent.start_date or min_start < parent.start_date):
+                 parent.start_date = min_start
+                 needs_update = True
+                 
+            # Non-destructive update for end_date: only if later than current
+            if max_end and (not parent.end_date or max_end > parent.end_date):
+                 parent.end_date = max_end
+                 needs_update = True
+            
+            # Recalculate status based on the RESULTING end_date (if it was "Unknown" or "Active/Concluded")
+            if parent.end_date:
+                # Map Concluded/Active based on time
+                # We skip updating status if it's something like "Recusado" or "Salvo"
+                if parent.status in ["Unknown", "Active", "Concluded", "Aprovado"]:
+                    calculated_status = "Active"
+                    if parent.end_date < datetime.now():
+                        calculated_status = "Concluded"
+                    
+                    if parent.status != calculated_status:
+                        parent.status = calculated_status
+                        needs_update = True
             
             if needs_update:
-                # Direct SQL update for performance or use controller
-                # Using controller to be safe with ORM
-                parent.start_date = min_start
-                parent.end_date = max_end
-                parent.status = new_status
                 self.controller.update(parent)
                 updated_count += 1
         
