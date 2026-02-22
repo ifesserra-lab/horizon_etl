@@ -49,9 +49,9 @@ Reflecting active work from `SI.3 Product Backlog`.
 - **Epic 7: Orquestração e Exportação**
     - [x] US-014 [Exportação de Iniciativas e Tipos] (Enriched Canonical Data)
 - **Epic 8: Enriquecimento de Projetos Lattes**
-    - [x] US-034 [Enriquecimento de Projetos, Membros e Patrocinadores Lattes] (Implemented)
-    - [x] US-035 [Ingestão de Artigos Lattes - Periodicals & Conferences] (Implemented)
-    - [x] US-036 [Ingestão de Orientações Lattes - Advisorships] (Implemented)
+    - [x] US-034 [Enriquecimento de Projetos, Membros e Patrocinadores Lattes] (PR #67)
+    - [x] US-035 [Ingestão de Artigos Lattes - Periodicals & Conferences] (PR #67)
+    - [x] US-036 [Ingestão de Orientações Lattes - Advisorships] (PR #67)
 
 ## 3. Hierarchical Status
 Mapping Epics -> User Stories -> Tasks status.
