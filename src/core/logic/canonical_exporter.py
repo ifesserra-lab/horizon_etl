@@ -12,6 +12,7 @@ from research_domain import (
     ResearcherController,
     ResearchGroupController,
 )
+from research_domain.controllers import ArticleController
 from research_domain.domain.entities import Advisorship, Fellowship
 
 from src.core.ports.export_sink import IExportSink
@@ -48,6 +49,7 @@ class CanonicalDataExporter:
         self.ka_ctrl = KnowledgeAreaController()
         self.researcher_ctrl = ResearcherController()
         self.initiative_ctrl = InitiativeController()
+        self.article_ctrl = ArticleController()
 
     def _export_entities(self, data: List[Any], output_path: str, entity_name: str):
         """
@@ -129,6 +131,14 @@ class CanonicalDataExporter:
             from eo_lib import TeamController
             team_ctrl = TeamController()
             
+            # Pre-fetch initiative types
+            raw_types = self.initiative_ctrl.list_initiative_types()
+            types_map = {}
+            for t in raw_types:
+                t_id = t.get("id") if isinstance(t, dict) else getattr(t, "id", None)
+                if t_id:
+                    types_map[t_id] = t
+
             # Pre-fetch all Research Group IDs to identify "Group Teams" (non-project teams)
             rg_ids = {getattr(g, "id", None) for g in self.researcher_ctrl._service._repository._session.execute(text("SELECT id FROM research_groups")).fetchall()}
             
@@ -156,10 +166,23 @@ class CanonicalDataExporter:
                                     role_name = m.role.name if m.role else "Member"
                                     
                                     if not existing:
+                                        # Get Initiative Type
+                                        init_type = types_map.get(init.initiative_type_id)
+                                        type_data = {
+                                            "id": init_type.get("id") if isinstance(init_type, dict) else getattr(init_type, "id", None),
+                                            "name": init_type.get("name") if isinstance(init_type, dict) else getattr(init_type, "name", None)
+                                        } if init_type else None
+
                                         person_initiatives_map[p_id].append({
                                             "id": init.id,
                                             "name": init.name,
                                             "status": init.status,
+                                            "initiative_type": type_data,
+                                            "demandante": {
+                                                "id": init.demandante.id,
+                                                "name": init.demandante.name,
+                                                "short_name": getattr(init.demandante, "short_name", None)
+                                            } if getattr(init, "demandante", None) else None,
                                             "roles": [role_name]
                                         })
                                     else:
@@ -308,6 +331,79 @@ class CanonicalDataExporter:
         except Exception as e:
              logger.warning(f"Failed to fetch Academic Education for researcher enrichment: {e}")
 
+        # 5. Articles (Researcher -> [Articles])
+        person_articles_map = {}
+        try:
+            a_query = text("""
+                SELECT aa.researcher_id, a.id, a.title, a.year, a.type, a.doi, a.journal_conference
+                FROM article_authors aa
+                JOIN articles a ON aa.article_id = a.id
+            """)
+            a_result = session.execute(a_query).fetchall()
+            for row in a_result:
+                rid, aid, atitle, ayear, atype, adoi, j_c = row[0], row[1], row[2], row[3], row[4], row[5], row[6]
+                if rid not in person_articles_map: person_articles_map[rid] = []
+                person_articles_map[rid].append({
+                    "id": aid,
+                    "title": atitle,
+                    "year": ayear,
+                    "type": atype,
+                    "doi": adoi,
+                    "journal_conference": j_c
+                })
+        except Exception as e:
+            logger.warning(f"Failed to fetch Articles for researcher enrichment: {e}")
+
+        # 6. Advisorships (Researcher -> [Advisorships])
+        person_advisorships_map = {}
+        try:
+            adv_query = text("""
+                SELECT 
+                    a.supervisor_id, 
+                    a.id, 
+                    i.name, 
+                    i.status, 
+                    i.start_date, 
+                    i.end_date,
+                    it.name as type_name,
+                    a.type as advisorship_type,
+                    p.name as student_name
+                FROM advisorships a
+                JOIN initiatives i ON a.id = i.id
+                LEFT JOIN initiative_types it ON i.initiative_type_id = it.id
+                LEFT JOIN persons p ON a.student_id = p.id
+                WHERE a.supervisor_id IS NOT NULL
+            """)
+            adv_result = session.execute(adv_query).fetchall()
+            
+            for row in adv_result:
+                sup_id = row.supervisor_id
+                adv_data = {
+                    "id": row.id,
+                    "name": row.name,
+                    "status": row.status,
+                    "start_year": (
+                        row.start_date.year 
+                        if hasattr(row.start_date, "year") 
+                        else int(str(row.start_date)[:4]) if row.start_date else None
+                    ),
+                    "end_year": (
+                        row.end_date.year 
+                        if hasattr(row.end_date, "year") 
+                        else int(str(row.end_date)[:4]) if row.end_date else None
+                    ),
+                    "type": row.advisorship_type,
+                    "initiative_type": row.type_name,
+                    "student_name": row.student_name
+                }
+                
+                if sup_id not in person_advisorships_map:
+                    person_advisorships_map[sup_id] = []
+                person_advisorships_map[sup_id].append(adv_data)
+                
+        except Exception as e:
+            logger.warning(f"Failed to fetch Advisorships for researcher enrichment: {e}")
+
 
         # Enrich and Export
         export_data = []
@@ -365,6 +461,8 @@ class CanonicalDataExporter:
             r_dict["research_groups"] = person_groups_map.get(p_id_int, []) if p_id_int else person_groups_map.get(p_id, [])
             r_dict["knowledge_areas"] = person_kas_map.get(p_id_int, []) if p_id_int else person_kas_map.get(p_id, [])
             r_dict["academic_education"] = person_education_map.get(p_id_int, []) if p_id_int else person_education_map.get(p_id, [])
+            r_dict["articles"] = person_articles_map.get(p_id_int, []) if p_id_int else person_articles_map.get(p_id, [])
+            r_dict["advisorships"] = person_advisorships_map.get(p_id_int, []) if p_id_int else person_advisorships_map.get(p_id, [])
             
             export_data.append(r_dict)
 
@@ -573,6 +671,11 @@ class CanonicalDataExporter:
                     "organization": org_data,
                     "parent_id": item.parent_id,
                     "team": team_list,
+                    "demandante": {
+                        "id": item.demandante.id,
+                        "name": item.demandante.name,
+                        "short_name": getattr(item.demandante, "short_name", None)
+                    } if getattr(item, "demandante", None) else None,
                     "research_group": research_group_data,
                     "knowledge_areas": initiative_kas_map.get(item.id, []),
                     "external_partner": (
@@ -606,6 +709,16 @@ class CanonicalDataExporter:
         data = self.initiative_ctrl.list_initiative_types()
         self._export_entities(data, output_path, "Initiative Types")
 
+    def export_articles(self, output_path: str):
+        """
+        Exports all articles to a JSON file.
+
+        Args:
+            output_path (str): The destination file path.
+        """
+        data = self.article_ctrl.get_all()
+        self._export_entities(data, output_path, "Articles")
+
     def export_all(self, output_dir: str):
         """
         Exports all canonical data to the specified directory.
@@ -626,6 +739,9 @@ class CanonicalDataExporter:
         self.export_initiative_types(
             os.path.join(output_dir, "initiative_types_canonical.json")
         )
+        self.export_articles(
+            os.path.join(output_dir, "articles_canonical.json")
+        )
         self.export_advisorships(
             os.path.join(output_dir, "advisorships_canonical.json")
         )
@@ -643,6 +759,8 @@ class CanonicalDataExporter:
         query = text("""
             SELECT 
                 a.id, i.name, i.status, i.description, i.start_date, i.end_date,
+                a.type as advisorship_type,
+                it.name as initiative_type_name,
                 a.student_id, p_std.name as student_name,
                 a.supervisor_id, p_sup.name as supervisor_name,
                 a.fellowship_id,
@@ -658,6 +776,7 @@ class CanonicalDataExporter:
                 p_init.end_date as parent_end_date
             FROM advisorships a
             JOIN initiatives i ON a.id = i.id
+            LEFT JOIN initiative_types it ON i.initiative_type_id = it.id
             LEFT JOIN persons p_std ON a.student_id = p_std.id
             LEFT JOIN persons p_sup ON a.supervisor_id = p_sup.id
             LEFT JOIN initiatives p_init ON i.parent_id = p_init.id
@@ -685,6 +804,8 @@ class CanonicalDataExporter:
                      if hasattr(row.end_date, "isoformat")
                      else str(row.end_date) if row.end_date else None
                 ),
+                "type": row.advisorship_type,
+                "initiative_type": row.initiative_type_name,
                 "student_id": row.student_id,
                 "student_name": row.student_name,
                 "supervisor_id": row.supervisor_id,
@@ -851,9 +972,12 @@ class CanonicalDataExporter:
 
                 # Fellowship Info
                 fell = adv.get("fellowship")
-                if fell:
+                if fell and isinstance(fell, dict):
                     prog_name = fell.get("name", "Unknown")
-                    val = fell.get("value", 0.0)
+                    try:
+                        val = float(fell.get("value", 0.0) or 0)
+                    except (ValueError, TypeError):
+                        val = 0.0
 
                     p_metrics["monthly_investment"] += val
                     global_stats["total_monthly_investment"] += val
@@ -862,7 +986,7 @@ class CanonicalDataExporter:
                     global_stats["program_distribution"][prog_name] += 1
                     global_stats["investment_per_program"][prog_name] += val
 
-                if not fell or fell.get("value", 0.0) == 0.0:
+                if not isinstance(fell, dict) or float(fell.get("value", 0.0) or 0) == 0.0:
                     global_stats["volunteer_count"] += 1
 
                 # Supervisor Stats

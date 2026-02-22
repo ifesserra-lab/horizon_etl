@@ -4,6 +4,7 @@ from typing import Any, Dict, Optional
 from eo_lib import (
     InitiativeController,
     PersonController,
+    OrganizationController
 )
 from eo_lib.domain import Role
 from eo_lib.infrastructure.database.postgres_client import PostgresClient
@@ -14,7 +15,8 @@ from research_domain.controllers import (
     AcademicEducationController,
     CampusController,
     KnowledgeAreaController,
-    RoleController
+    RoleController,
+    ArticleController
 )
 from research_domain.domain.entities.academic_education import EducationType
 
@@ -25,7 +27,7 @@ class EntityManager:
     Provides caching for frequently accessed entities like Roles.
     """
 
-    ROLES = ["Coordinator", "Researcher", "Student"]
+    ROLES = ["Coordinator", "Researcher", "Student", "Sponsor"]
 
     def __init__(
         self,
@@ -40,6 +42,8 @@ class EntityManager:
         self.uni_controller = UniversityController()
         self.edu_type_controller = EducationTypeController()
         self.academic_edu_controller = AcademicEducationController()
+        self.article_controller = ArticleController()
+        self.org_controller = OrganizationController()
 
         self._roles_cache: Dict[str, Role] = {}
 
@@ -92,6 +96,14 @@ class EntityManager:
             return new_org.id if hasattr(new_org, "id") else new_org.get("id")
         except Exception as e:
             logger.warning(f"Failed to ensure organization '{name}': {e}")
+            return None
+
+    def get_organization(self, org_id: int) -> Optional[Any]:
+        """Retrieve organization object by ID."""
+        try:
+            return self.org_controller.get_by_id(org_id)
+        except Exception as e:
+            logger.warning(f"Failed to get organization {org_id}: {e}")
             return None
 
     def ensure_roles(self) -> Dict[str, Role]:
