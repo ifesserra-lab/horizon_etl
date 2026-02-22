@@ -82,3 +82,20 @@ This release focused on upgrading the core domain library and improving metadata
 1. Finalize and verify `AcademicEducation` full history ingestion.
 2. Refactor `Advisorship` ingestion to improve performance and data quality.
 3. Integrate Automated Regression Tests for Export Schema.
+
+## v0.12.12 - Lattes Ingestion & Canonical Export Enrichment
+
+This increment focused on expanding the Lattes ingestion coverage and ensuring the canonical exports provide comprehensive, interconnected data for analytics and frontend consumption.
+
+### 1. Expanded Lattes Ingestion
+- **Articles & Conferences**: Implemented ingestion for Journal Articles (`artigos_periodicos`) and Conference Papers (`trabalhos_completos_congressos`), mapping them via the `ArticleController` with robust title normalization and in-memory caching.
+- **Advisorships**: Added ingestion for advising records (`orientacoes.em_andamento` and `concluidas`), creating proper `Advisorship` entities linking Supervisors and Students.
+- **Project Enrichment**: Projects extracted from Lattes are now enriched with Team Members (`membros`) and Sponsors (`patrocinadores`).
+
+### 2. SigPesq Enhancements
+- **Advisorship Refactor**: Updated the `SigPesqAdvisorshipsDownloadStrategy` to properly handle the new schema and business logic, maintaining compatibility with the parent Project linker.
+
+### 3. Canonical Exports Enhancements
+- **Initiative Types**: Canonical exports now include the specific `initiative_type` associated with research activities.
+- **Team & Demandante Data**: The schemas returned by `CanonicalDataExporter` now deeply nest team composition details and project sponsors (`demandante`), providing a richer JSON output for visualization.
+- **Serialization Improvements**: Addressed edge-case bugs in serialization to ensure standard JSON compliance.
