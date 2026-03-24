@@ -47,6 +47,16 @@ def export_researchers_task(output_dir: str):
     exporter.export_researchers(os.path.join(output_dir, "researchers_canonical.json"))
 
 
+@task(name="export_researchers_tracking_task")
+def export_researchers_tracking_task(output_dir: str):
+    logger.info("Starting Researchers tracking export...")
+    sink = JsonSink()
+    exporter = CanonicalDataExporter(sink=sink)
+    exporter.export_researchers_tracking(
+        os.path.join(output_dir, "researchers_tracking.json")
+    )
+
+
 @task(name="export_groups_task")
 def export_groups_task(output_dir: str, campus: Optional[str] = None):
     output_path = os.path.join(output_dir, "research_groups_canonical.json")
@@ -64,6 +74,16 @@ def export_initiatives_task(output_dir: str):
     sink = JsonSink()
     exporter = CanonicalDataExporter(sink=sink)
     exporter.export_initiatives(os.path.join(output_dir, "initiatives_canonical.json"))
+
+
+@task(name="export_initiatives_tracking_task")
+def export_initiatives_tracking_task(output_dir: str):
+    logger.info("Starting Initiatives tracking export...")
+    sink = JsonSink()
+    exporter = CanonicalDataExporter(sink=sink)
+    exporter.export_initiatives_tracking(
+        os.path.join(output_dir, "initiatives_tracking.json")
+    )
 
 
 @task(name="export_initiative_types_task")
@@ -90,6 +110,16 @@ def export_advisorships_task(output_dir: str):
     sink = JsonSink()
     exporter = CanonicalDataExporter(sink=sink)
     exporter.export_advisorships(os.path.join(output_dir, "advisorships_canonical.json"))
+
+
+@task(name="export_advisorships_tracking_task")
+def export_advisorships_tracking_task(output_dir: str):
+    logger.info("Starting Advisorships tracking export...")
+    sink = JsonSink()
+    exporter = CanonicalDataExporter(sink=sink)
+    exporter.export_advisorships_tracking(
+        os.path.join(output_dir, "advisorships_tracking.json")
+    )
 
 
 @task(name="export_fellowships_task")
@@ -133,11 +163,14 @@ def export_canonical_data_flow(
     export_campuses_task(output_dir, campus)
     export_knowledge_areas_task(output_dir)
     export_researchers_task(output_dir)
+    export_researchers_tracking_task(output_dir)
     export_groups_task(output_dir, campus)
     export_initiatives_task(output_dir)
+    export_initiatives_tracking_task(output_dir)
     export_initiative_types_task(output_dir)
     export_articles_task(output_dir)
     export_advisorships_task(output_dir)
+    export_advisorships_tracking_task(output_dir)
     export_fellowships_task(output_dir)
     export_advisorship_analytics_task(output_dir)
 
