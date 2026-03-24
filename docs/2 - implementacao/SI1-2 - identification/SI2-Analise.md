@@ -69,11 +69,13 @@ flowchart TD
     Start --> KA[Export Knowledge Areas]
     Start --> Res[Export Researchers]
     Start --> RG[Export Research Groups]
-    
-    Start --> Res[Export Researchers]
-    Start --> RG[Export Research Groups]
-    
-    Org & Cam & KA & RG --> End((Fim))
+    Start --> Init[Export Initiatives]
+    Start --> InitTypes[Export Initiative Types]
+    Start --> Articles[Export Articles]
+    Start --> Advisorships[Export Advisorships]
+    Start --> Fellowships[Export Fellowships]
+
+    Org & Cam & KA & RG & Init & InitTypes & Articles & Advisorships & Fellowships --> End((Fim))
     Res --> Enrichment[Enrich with Groups/KAs/Initiatives] --> End
     
     subgraph "Output Files"
@@ -82,27 +84,45 @@ flowchart TD
         KA -.-> f3["knowledge_areas_canonical.json"]
         Res -.-> f4["researchers_canonical.json"]
         RG -.-> f5["research_groups_canonical.json"]
+        Init -.-> f6["initiatives_canonical.json"]
+        InitTypes -.-> f7["initiative_types_canonical.json"]
+        Articles -.-> f8["articles_canonical.json"]
+        Advisorships -.-> f9["advisorships_canonical.json"]
+        Fellowships -.-> f10["fellowships_canonical.json"]
+        End -.-> f11["advisorship_analytics.json"]
     end
+```
 
 ### 3.6 Fluxo de Geração de Mart de Analytics
 ```mermaid
 flowchart TD
-    DB[(Database)] --> Initiatives[Fetch Initiatives]
-    DB --> TeamMembers[Fetch Team Members]
-    Initiatives --> Summary[Calculate Totals/Active]
-    Initiatives --> Evolution[Analyze Start/End Dates by Year]
-    TeamMembers --> Composition[Count by Role: Researcher/Student]
-    Summary & Evolution & Composition --> SaveMart[Save initiatives_analytics_mart.json]
-```
+    Canonical[advisorships_canonical.json] --> Summary[Calculate KPIs and rankings]
+    Summary --> SaveMart[Save advisorship_analytics.json]
 ```
 
-### 3.5 Pipeline Unificado (E2E)
+### 3.7 Pipeline Unificado (E2E)
 ```mermaid
-flowchart LR
-    Start((Início)) --> S1[SigPesq Flow]
-    S1 --> S2[CNPq Sync Flow]
-    S2 --> S3[Export Flow]
-    S3 --> End((Fim))
+flowchart TD
+    Start((Início)) --> S1[Ingest SigPesq]
+    S1 --> S1B[Ingest Lattes Projects]
+    S1B --> S2[Sync CNPq Groups]
+    S2 --> S3[Export Canonical Data]
+    S3 --> S4[Generate Knowledge Areas Mart]
+    S4 --> End((Fim))
+```
+
+### 3.8 Pipeline Serra (Operacional)
+```mermaid
+flowchart TD
+    Start((Início)) --> G[Ingest SigPesq Groups]
+    G --> C[Sync CNPq for Serra]
+    C --> P[Ingest SigPesq Projects]
+    P --> A[Ingest SigPesq Advisorships]
+    A --> L[Lattes Complete Flow]
+    L --> E[Export Canonical Data]
+    E --> K[Export Knowledge Areas Mart]
+    K --> M[Export Initiatives Analytics Mart]
+    M --> End((Fim))
 ```
 
 ---

@@ -99,3 +99,62 @@ This increment focused on expanding the Lattes ingestion coverage and ensuring t
 - **Initiative Types**: Canonical exports now include the specific `initiative_type` associated with research activities.
 - **Team & Demandante Data**: The schemas returned by `CanonicalDataExporter` now deeply nest team composition details and project sponsors (`demandante`), providing a richer JSON output for visualization.
 - **Serialization Improvements**: Addressed edge-case bugs in serialization to ensure standard JSON compliance.
+
+## Repository Documentation Alignment
+
+This increment focused on aligning the repository documentation with the actual codebase and local agent governance rules.
+
+### Changes Made
+- Updated [README.md](file:///home/paulossjunior/projects/horizon_project/horizon_etl/README.md) to reflect the current package layout, real flow entrypoints, and practical execution commands.
+- Updated [docs/README.md](file:///home/paulossjunior/projects/horizon_project/horizon_etl/docs/README.md) with operational notes about the actual runtime entrypoints and dependency on `research-domain`.
+- Updated [SI.3 Design](file:///home/paulossjunior/projects/horizon_project/horizon_etl/docs/2%20-%20implementacao/SI3%20-%20inception/diagramas/SI.3-design.md) so the documented folder structure matches the real `src/` layout.
+- Updated [SI.2 Analysis](file:///home/paulossjunior/projects/horizon_project/horizon_etl/docs/2%20-%20implementacao/SI1-2%20-%20identification/SI2-Analise.md) to reflect the current canonical export outputs and the operational Serra pipeline.
+- Replaced [implementation_plan.md](file:///home/paulossjunior/projects/horizon_project/horizon_etl/docs/implementation_plan.md) content so it reflects the active approved task instead of a previous advisorship-specific change.
+
+### Verified Against Code
+- Confirmed `app.py` exposes `sigpesq`, `cnpq_sync`, `export_canonical`, `ka_mart`, `analytics_mart`, `ingest_lattes_projects`, `lattes_full`, and `full_pipeline`.
+- Confirmed `src/flows/run_serra_pipeline.py` executes the fixed Serra operational pipeline.
+- Confirmed `src/flows/export_canonical_data.py` exports additional artifacts beyond the older documentation, including initiatives, initiative types, articles, advisorships, fellowships, and advisorship analytics.
+
+### Verification Results
+- Verification type: manual repository inspection
+- Commands used:
+  - `sed -n` on the active flow files and documentation files
+  - `rg` for entrypoint and artifact cross-checking
+  - `git diff` to validate the final documentation updates
+
+### Notes
+- No production code was changed in this increment.
+- No automated tests were run because the work was limited to documentation and planning artifacts.
+- A remaining follow-up item is to reconcile dependency divergence between `pyproject.toml` and `requirements.txt`.
+
+## Runtime and Packaging Consistency
+
+This increment focused on aligning installation metadata, dependency declarations, and setup documentation with the actual runtime imports used by the repository.
+
+### Changes Made
+- Updated [pyproject.toml](file:///home/paulossjunior/projects/horizon_project/horizon_etl/pyproject.toml) to add:
+  - explicit `build-system` metadata for setuptools
+  - missing runtime dependencies referenced by the codebase
+  - package discovery for `src` and its subpackages
+  - missing developer tooling dependencies used by the repository commands
+- Updated [requirements.txt](file:///home/paulossjunior/projects/horizon_project/horizon_etl/requirements.txt) to match the current runtime dependency set and the `research-domain` version already reflected elsewhere in the project.
+- Updated [README.md](file:///home/paulossjunior/projects/horizon_project/horizon_etl/README.md) to document the packaging changes and the `ensurepip` recovery path for environments where the virtual environment lacks `pip`.
+- Updated [implementation_plan.md](file:///home/paulossjunior/projects/horizon_project/horizon_etl/docs/implementation_plan.md) to reflect the active packaging task.
+
+### Verified Against Code
+- Confirmed runtime imports require `prefect`, `loguru`, `pandas`, `requests`, `beautifulsoup4`, `openpyxl`, `thefuzz`, `python-Levenshtein`, `python-dotenv`, `scriptLattes`, `research-domain`, `sigpesq_agent`, and `dgp_cnpq_lib`.
+- Confirmed VCS requirements in `pyproject.toml` use valid PEP 508 direct-reference syntax with explicit package names.
+- Confirmed the updated `pyproject.toml` parses correctly and all declared dependencies validate as requirement strings.
+
+### Verification Results
+- Verification type: manifest validation and repository inspection
+- Commands used:
+  - `rg -n` to map imports to declared dependencies
+  - `python3` with `packaging.requirements.Requirement` to validate dependency syntax
+  - `python3` with `tomllib` to validate `pyproject.toml`
+  - `git diff` to review final changes
+
+### Notes
+- I could not complete a real installation test inside `.venv` because that virtual environment currently does not have `pip` available.
+- No ETL production logic was changed in this increment.

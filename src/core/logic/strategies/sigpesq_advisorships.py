@@ -3,6 +3,8 @@ from typing import Any, Dict
 
 from research_domain.domain.entities import Advisorship
 
+from src.core.logic.initiative_identity import build_identity_key
+
 from .base import ProjectMappingStrategy
 
 
@@ -71,6 +73,17 @@ class SigPesqAdvisorshipMappingStrategy(ProjectMappingStrategy):
                 "sigpesq_id": row_id,
                 "original_program": programa,
                 "parent_project_title": str(row.get("TituloPJ", "")).strip(),
+                "source_system": "sigpesq_advisorships",
             },
             "campus_name": row.get("CampusExecucao", row.get("Campus")),
+            "identity_key": build_identity_key(
+                [
+                    "sigpesq_advisorship",
+                    row_id,
+                    project_title,
+                    orientador_email or orientador,
+                    bolsista_email or bolsista,
+                    row.get("Inicio"),
+                ]
+            ),
         }

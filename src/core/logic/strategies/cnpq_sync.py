@@ -9,6 +9,9 @@ from research_domain import (
     RoleController,
 )
 
+from src.core.logic.researcher_resolution import resolve_or_create_researcher
+from src.tracking.recorder import tracking_recorder
+
 
 class CnpqSyncLogic:
     """
@@ -79,7 +82,39 @@ class CnpqSyncLogic:
             logger.warning(f"Date parse failed for '{date_str}', returning None.")
             return None
 
-    def sync_group(self, group_id: Any, cnpq_data: Dict[str, Any]):
+    def _coerce_text_field(self, value: Any) -> str | None:
+        """Normalizes heterogeneous crawler payloads into plain text."""
+        if value is None:
+            return None
+
+        if isinstance(value, str):
+            text = value.strip()
+            return text or None
+
+        if isinstance(value, dict):
+            for key in ("descricao", "descrição", "texto", "value"):
+                nested = self._coerce_text_field(value.get(key))
+                if nested:
+                    return nested
+
+            parts = [self._coerce_text_field(item) for item in value.values()]
+            parts = [part for part in parts if part]
+            return "\n".join(parts) if parts else None
+
+        if isinstance(value, (list, tuple, set)):
+            parts = [self._coerce_text_field(item) for item in value]
+            parts = [part for part in parts if part]
+            return "\n".join(parts) if parts else None
+
+        return str(value).strip() or None
+
+    def sync_group(
+        self,
+        group_id: Any,
+        cnpq_data: Dict[str, Any],
+        *,
+        source_record_id: int | None = None,
+    ):
         """
         Updates group basic info (name, description, start_date) from CNPq data.
         """
@@ -88,8 +123,8 @@ class CnpqSyncLogic:
             session = self.rg_ctrl._service._repository._session
 
             # 1. Update Name and Description in 'teams' table
-            nome_cnpq = cnpq_data.get("nome_grupo")
-            repercussoes = cnpq_data.get("repercussoes")
+            nome_cnpq = self._coerce_text_field(cnpq_data.get("nome_grupo"))
+            repercussoes = self._coerce_text_field(cnpq_data.get("repercussoes"))
             
             # Patch: ignore 'CNPq' which is a header branding in some mirrors
             if nome_cnpq and nome_cnpq.upper() == "CNPQ":
@@ -109,12 +144,43 @@ class CnpqSyncLogic:
                         updates["description"] = repercussoes
                     
                     if updates:
+                        before_payload = {"name": curr_name, "description": curr_desc}
                         logger.info(f"Updating team {group_id} metadata: {list(updates.keys())}")
                         set_clause = ", ".join([f"{k} = :{k}" for k in updates])
                         updates["gid"] = group_id
                         upd_query = text(f"UPDATE teams SET {set_clause} WHERE id = :gid")
                         session.execute(upd_query, updates)
                         session.commit()
+                        tracking_recorder.record_entity_match(
+                            source_record_id=source_record_id,
+                            canonical_entity_type="research_group",
+                            canonical_entity_id=group_id,
+                            match_strategy="cnpq_group_id",
+                            match_confidence=1.0,
+                        )
+                        tracking_recorder.record_attribute_assertions(
+                            source_record_id=source_record_id,
+                            canonical_entity_type="research_group",
+                            canonical_entity_id=group_id,
+                            selected_attributes={
+                                "name": updates.get("name", curr_name),
+                                "description": updates.get("description", curr_desc),
+                            },
+                            selection_reason="cnpq_group_metadata_selected_values",
+                        )
+                        tracking_recorder.record_change(
+                            source_record_id=source_record_id,
+                            canonical_entity_type="research_group",
+                            canonical_entity_id=group_id,
+                            operation="update",
+                            changed_fields=list(updates.keys()),
+                            before=before_payload,
+                            after={
+                                "name": updates.get("name", curr_name),
+                                "description": updates.get("description", curr_desc),
+                            },
+                            reason="Updated from CNPq group metadata",
+                        )
 
             # 2. Update Start Date in 'research_groups' table
             ident = cnpq_data.get("identificacao", {})
@@ -128,10 +194,24 @@ class CnpqSyncLogic:
                     start_date = self._parse_date(str(ano_formacao))
                 
                 if start_date:
+                    current_start_date = session.execute(
+                        text("SELECT start_date FROM research_groups WHERE id = :gid"),
+                        {"gid": group_id},
+                    ).scalar()
                     logger.info(f"Updating group {group_id} start_date: {start_date}")
                     upd_rg = text("UPDATE research_groups SET start_date = :sd WHERE id = :gid")
                     session.execute(upd_rg, {"sd": start_date, "gid": group_id})
                     session.commit()
+                    tracking_recorder.record_change(
+                        source_record_id=source_record_id,
+                        canonical_entity_type="research_group",
+                        canonical_entity_id=group_id,
+                        operation="update",
+                        changed_fields=["start_date"],
+                        before={"start_date": current_start_date},
+                        after={"start_date": start_date},
+                        reason="Updated group start_date from CNPq identification data",
+                    )
 
         except Exception as e:
             logger.error(f"Failed to sync group {group_id}: {e}")
@@ -141,89 +221,70 @@ class CnpqSyncLogic:
             except Exception:
                 pass
 
-    def sync_members(self, group_id: Any, members_data: List[Dict[str, Any]]):
+    def sync_members(
+        self,
+        group_id: Any,
+        members_data: List[Dict[str, Any]],
+        *,
+        source_file: str | None = None,
+    ):
         """
         Synchronizes members of a research group.
         """
-        import unicodedata
-
         from sqlalchemy import text
-
-        def normalize(text):
-            if not text:
-                return ""
-            # NFC normalization + strip + lowercase for robust matching
-            return unicodedata.normalize("NFC", str(text).strip()).lower()
 
         # Fetch all once to avoid N+1 and many session calls
         all_res = self.res_ctrl.get_all()
-        # Create a map for quick lookup: norm -> researcher
-        res_map = {}
-        for r in all_res:
-            if r.name:
-                res_map[normalize(r.name)] = r
-            if hasattr(r, "identification_id") and r.identification_id:
-                res_map[normalize(r.identification_id)] = r
 
         for m_data in members_data:
             name = m_data.get("name")
             if not name:
                 continue
+            source_record = tracking_recorder.record_source_record(
+                source_entity_type="cnpq_group_member",
+                payload=m_data,
+                source_record_id=f"{group_id}|{name}|{m_data.get('role')}",
+                source_file=source_file,
+                source_path=source_file,
+            )
 
             try:
                 # 1. Ensure Researcher exists
-                search_name = normalize(name)
-                researcher = res_map.get(search_name)
+                researcher = resolve_or_create_researcher(
+                    self.res_ctrl,
+                    all_res,
+                    name=name,
+                    identification_id=None,
+                )
 
                 if researcher:
                     logger.debug(
                         f"Researcher '{name}' already exists (ID: {researcher.id}). Using existing."
                     )
+                    tracking_recorder.record_entity_match(
+                        source_record_id=getattr(source_record, "id", None),
+                        canonical_entity_type="researcher",
+                        canonical_entity_id=researcher.id,
+                        match_strategy="resolve_or_create_researcher",
+                        match_confidence=0.9,
+                    )
+                    tracking_recorder.record_attribute_assertions(
+                        source_record_id=getattr(source_record, "id", None),
+                        canonical_entity_type="researcher",
+                        canonical_entity_id=researcher.id,
+                        selected_attributes={
+                            "name": name,
+                            "role": m_data.get("role"),
+                            "data_inicio": m_data.get("data_inicio"),
+                            "data_fim": m_data.get("data_fim"),
+                        },
+                        selection_reason="cnpq_member_selected_values",
+                    )
                 else:
-                    logger.info(f"Creating new researcher: {name}")
-                    try:
-                        # Use nested transaction to allow rollback of just this failure without invalidating the whole session
-                        session = self.rg_ctrl._service._repository._session
-                        session.begin_nested()
-                        try:
-                            researcher = self.res_ctrl.create_researcher(
-                                name=name, identification_id=name
-                            )
-                            session.commit()  # Commit the savepoint
-                            # Add to map to handle potential duplicates within the SAME group
-                            res_map[search_name] = researcher
-                        except Exception as e:
-                            session.rollback()  # Rollback to savepoint
-                            raise e  # Re-raise to be caught by outer except
-                    except Exception:
-                        # If creation failed (likely UniqueViolation/IntegrityError), look it up directly
-                        # get_all() might have missed it due to limits or race conditions
-                        logger.warning(
-                            f"Creation failed for {name}, trying direct DB lookup."
-                        )
-                        from sqlalchemy import text
-
-                        session = self.rg_ctrl._service._repository._session
-                        # Try to find by identification_id (most reliable for duplicates) or name
-                        query = text(
-                            "SELECT id, name FROM persons WHERE identification_id = :iid OR name = :nm"
-                        )
-                        row = session.execute(
-                            query, {"iid": name, "nm": name}
-                        ).fetchone()
-                        if row:
-                            from research_domain.domain.entities import Researcher
-
-                            researcher = Researcher(name=row[1])
-                            researcher.id = row[0]
-                            logger.info(
-                                f"Recovered existing researcher ID {researcher.id} for {name}"
-                            )
-                        else:
-                            logger.error(
-                                f"Could not create nor find researcher {name}. Skipping."
-                            )
-                            continue
+                    logger.error(
+                        f"Could not create nor find researcher {name}. Skipping."
+                    )
+                    continue
 
                 # SELF-HEALING: Ensure it exists in 'researchers' table (Joined Inheritance fix)
                 # The library might only be inserting into 'persons' if mapping is partial.
@@ -293,6 +354,20 @@ class CnpqSyncLogic:
                         logger.info(
                             f"Member {name} ({role_name}) associated to group {group_id}"
                         )
+                        tracking_recorder.record_change(
+                            source_record_id=getattr(source_record, "id", None),
+                            canonical_entity_type="research_group",
+                            canonical_entity_id=group_id,
+                            operation="update",
+                            changed_fields=["member_association"],
+                            after={
+                                "person_id": researcher.id,
+                                "role_id": role.id,
+                                "start_date": start_date,
+                                "end_date": end_date,
+                            },
+                            reason="Associated member from CNPq sync",
+                        )
                     else:
                         # UPDATE LOGIC for Egressos
                         # If the member is already associated, check if we need to update the end_date
@@ -318,6 +393,7 @@ class CnpqSyncLogic:
                                     should_update = True
 
                                 if should_update:
+                                    before_end_date = current_end_date
                                     logger.info(
                                         f"Updating member {name} dates: End {current_end_date} -> {end_date}"
                                     )
@@ -338,6 +414,22 @@ class CnpqSyncLogic:
                                         },
                                     )
                                     session.commit()
+                                    tracking_recorder.record_change(
+                                        source_record_id=getattr(source_record, "id", None),
+                                        canonical_entity_type="research_group",
+                                        canonical_entity_id=group_id,
+                                        operation="update",
+                                        changed_fields=["member_end_date"],
+                                        before={
+                                            "person_id": researcher.id,
+                                            "end_date": before_end_date,
+                                        },
+                                        after={
+                                            "person_id": researcher.id,
+                                            "end_date": end_date,
+                                        },
+                                        reason="Updated group member end_date from CNPq sync",
+                                    )
                                 else:
                                     logger.debug(f"Member {name} up to date.")
 
@@ -365,7 +457,13 @@ class CnpqSyncLogic:
         except Exception:
             pass
 
-    def sync_knowledge_areas(self, group_id: Any, lines_data: List[Dict[str, Any]]):
+    def sync_knowledge_areas(
+        self,
+        group_id: Any,
+        lines_data: List[Dict[str, Any]],
+        *,
+        source_file: str | None = None,
+    ):
         """
         Syncs research lines as Knowledge Areas and associates them to the group.
         """
@@ -390,6 +488,7 @@ class CnpqSyncLogic:
                     ka_map[normalize(ka.name).lower()] = ka
 
             processed_kas = []
+            source_records_by_name = {}
             for line in lines_data:
                 raw_name = line.get("nome_da_linha_de_pesquisa")
                 if not raw_name:
@@ -397,6 +496,14 @@ class CnpqSyncLogic:
 
                 norm_name = normalize(raw_name)
                 key = norm_name.lower()
+                source_record = tracking_recorder.record_source_record(
+                    source_entity_type="cnpq_research_line",
+                    payload=line,
+                    source_record_id=f"{group_id}|{norm_name}",
+                    source_file=source_file,
+                    source_path=source_file,
+                )
+                source_records_by_name[key] = source_record
 
                 ka = ka_map.get(key)
                 if not ka:
@@ -404,6 +511,15 @@ class CnpqSyncLogic:
                     try:
                         ka = self.ka_ctrl.create_knowledge_area(name=norm_name)
                         ka_map[key] = ka  # Update map
+                        tracking_recorder.record_change(
+                            source_record_id=getattr(source_record, "id", None),
+                            canonical_entity_type="knowledge_area",
+                            canonical_entity_id=ka.id,
+                            operation="create",
+                            changed_fields=["name"],
+                            after={"name": norm_name},
+                            reason="Created knowledge area from CNPq research line",
+                        )
                     except Exception as e:
                         logger.error(f"Failed to create KA {norm_name}: {e}")
                         continue
@@ -432,6 +548,33 @@ class CnpqSyncLogic:
                             "INSERT INTO group_knowledge_areas (group_id, area_id) VALUES (:gid, :aid)"
                         )
                         session.execute(ins_query, {"gid": group_id, "aid": ka.id})
+                        source_record = source_records_by_name.get(normalize(ka.name).lower())
+                        tracking_recorder.record_entity_match(
+                            source_record_id=getattr(source_record, "id", None),
+                            canonical_entity_type="knowledge_area",
+                            canonical_entity_id=ka.id,
+                            match_strategy="normalized_name",
+                            match_confidence=1.0,
+                        )
+                        tracking_recorder.record_attribute_assertions(
+                            source_record_id=getattr(source_record, "id", None),
+                            canonical_entity_type="knowledge_area",
+                            canonical_entity_id=ka.id,
+                            selected_attributes={
+                                "name": ka.name,
+                                "group_id": group_id,
+                            },
+                            selection_reason="cnpq_research_line_selected_values",
+                        )
+                        tracking_recorder.record_change(
+                            source_record_id=getattr(source_record, "id", None),
+                            canonical_entity_type="research_group",
+                            canonical_entity_id=group_id,
+                            operation="update",
+                            changed_fields=["knowledge_area_association"],
+                            after={"knowledge_area_id": ka.id, "knowledge_area_name": ka.name},
+                            reason="Associated knowledge area from CNPq research line",
+                        )
                     else:
                         logger.debug(
                             f"KA '{ka.name}' already associated to Group {group_id}"

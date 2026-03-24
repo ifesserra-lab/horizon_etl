@@ -6,6 +6,7 @@ from research_domain import CampusController, ResearchGroupController
 
 from src.adapters.sources.cnpq_crawler import CnpqCrawlerAdapter
 from src.core.logic.strategies.cnpq_sync import CnpqSyncLogic
+from src.tracking.recorder import tracking_recorder
 
 load_dotenv()
 
@@ -88,9 +89,20 @@ def sync_single_group(group_info: dict):
     if not data:
         logger.error(f"Failed to extract data for {group_name}")
         return False
+    source_record = tracking_recorder.record_source_record(
+        source_entity_type="cnpq_group_payload",
+        payload=data,
+        source_record_id=str(group_id),
+        source_file=url,
+        source_path=url,
+    )
 
     # 2. Sync group info
-    sync_logic.sync_group(group_id, data)
+    sync_logic.sync_group(
+        group_id,
+        data,
+        source_record_id=getattr(source_record, "id", None),
+    )
 
     # 3. Extract and sync members
     members = adapter.extract_members(data)
@@ -116,12 +128,12 @@ def sync_single_group(group_info: dict):
     logger.info(
         f"Extracted {len(members)} members for {group_name}: {dict(roles_count)}"
     )
-    sync_logic.sync_members(group_id, members)
+    sync_logic.sync_members(group_id, members, source_file=url)
 
     # 4. Extract and sync Research Lines (Knowledge Areas)
     lines = adapter.extract_research_lines(data)
     logger.info(f"Extracted {len(lines)} research lines for {group_name}")
-    sync_logic.sync_knowledge_areas(group_id, lines)
+    sync_logic.sync_knowledge_areas(group_id, lines, source_file=url)
 
     return True
 

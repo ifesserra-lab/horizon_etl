@@ -1,10 +1,18 @@
 # Horizon ETL - Makefile
 # Project automation commands following @agile-standards
 
-.PHONY: help clean-db init-db pipeline export test lint format all
+.PHONY: help clean-db init-db reset-db prefect-server prefect-stop prefect-status pipeline pipeline-unified export test lint format all audit-duplicates harden-db consolidate-duplicates consolidate-duplicates-dry etl-report etl-report-md tracking-audit-report tracking-query
 
 # Python interpreter
-PYTHON := .venv/bin/python3
+PREFECT_HOST := 127.0.0.1
+PREFECT_PORT := 4200
+PREFECT_API_URL := http://$(PREFECT_HOST):$(PREFECT_PORT)/api
+PYTHON := PREFECT_API_URL=$(PREFECT_API_URL) PYTHONPATH=. .venv/bin/python3
+DOCKER_BIN ?= $(shell if command -v docker >/dev/null 2>&1; then echo docker; elif command -v flatpak-spawn >/dev/null 2>&1 && flatpak-spawn --host sh -lc 'command -v docker >/dev/null 2>&1'; then echo "flatpak-spawn --host docker"; else echo docker; fi)
+DOCKER_COMPOSE_FILE := docker-compose.yml
+DOCKER_COMPOSE := $(DOCKER_BIN) compose -f $(DOCKER_COMPOSE_FILE)
+PREFECT_SERVER_SERVICE := server
+PREFECT_DB_SERVICE := database
 
 # Campus configuration (default: Serra)
 CAMPUS ?= Serra
@@ -31,21 +39,69 @@ init-db: ## Initialize database schema and base data
 reset-db: clean-db init-db ## Clean and reinitialize the database
 	@echo "✅ Database reset complete"
 
+# Prefect Server
+prefect-server: logs-dir ## Start local Prefect server with Docker Compose
+	@if $(DOCKER_COMPOSE) ps --services --status running | grep -qx "$(PREFECT_SERVER_SERVICE)"; then \
+		echo "✅ Prefect server already running at $(PREFECT_API_URL)"; \
+	else \
+		echo "🚀 Starting Prefect server at $(PREFECT_API_URL)..."; \
+		$(DOCKER_COMPOSE) up -d $(PREFECT_DB_SERVICE) $(PREFECT_SERVER_SERVICE); \
+		for i in `seq 1 30`; do \
+			if curl -fsS "$(PREFECT_API_URL)/health" >/dev/null 2>&1; then \
+				echo "✅ Prefect server is ready at $(PREFECT_API_URL)"; \
+				exit 0; \
+			fi; \
+			sleep 1; \
+		done; \
+		echo "❌ Prefect server did not become ready. Recent logs:"; \
+		$(DOCKER_COMPOSE) logs --tail=50 $(PREFECT_SERVER_SERVICE); \
+		exit 1; \
+	fi
+
+prefect-stop: ## Stop local Prefect server containers
+	@if $(DOCKER_COMPOSE) ps --services --status running | grep -Eq "^($(PREFECT_SERVER_SERVICE)|$(PREFECT_DB_SERVICE))$$"; then \
+		echo "🛑 Stopping Prefect server containers..."; \
+		$(DOCKER_COMPOSE) stop $(PREFECT_SERVER_SERVICE) $(PREFECT_DB_SERVICE); \
+		echo "✅ Prefect server stopped"; \
+	else \
+		echo "ℹ️  No Prefect server containers are running"; \
+	fi
+
+prefect-status: ## Show Prefect server status
+	@if $(DOCKER_COMPOSE) ps --services --status running | grep -qx "$(PREFECT_SERVER_SERVICE)"; then \
+		echo "✅ Prefect server running at $(PREFECT_API_URL)"; \
+		$(DOCKER_COMPOSE) ps $(PREFECT_DB_SERVICE) $(PREFECT_SERVER_SERVICE); \
+	else \
+		echo "❌ Prefect server is not running"; \
+	fi
+
 # Pipeline Execution
-pipeline: ## Run the full campus pipeline (default: Serra, use CAMPUS=Name to override)
+pipeline: prefect-server ## Run the full campus pipeline (default: Serra, use CAMPUS=Name to override)
 	@echo "🚀 Running $(CAMPUS) campus pipeline..."
 	@$(PYTHON) src/flows/run_serra_pipeline.py
 
-pipeline-serra: ## Run the Serra campus pipeline explicitly
+pipeline-serra: prefect-server ## Run the Serra campus pipeline explicitly
 	@echo "🚀 Running Serra campus pipeline..."
 	@$(PYTHON) src/flows/run_serra_pipeline.py
 
-pipeline-log: ## Run pipeline with timestamped log output
+pipeline-unified: prefect-server ## Run the generic unified pipeline
+	@echo "🚀 Running unified pipeline for $(CAMPUS)..."
+	@$(PYTHON) -c "from src.flows.unified_pipeline import full_ingestion_pipeline; full_ingestion_pipeline(campus_name='$(CAMPUS)', output_dir='data/exports')"
+	@echo "📝 Latest ETL report:"
+	@echo "   JSON: data/reports/etl_flow_run.json"
+	@echo "   MD:   data/reports/etl_flow_run.md"
+
+pipeline-log: prefect-server ## Run pipeline with timestamped log output
 	@echo "🚀 Running $(CAMPUS) campus pipeline with logging..."
 	@$(PYTHON) src/flows/run_serra_pipeline.py 2>&1 | tee logs/pipeline_$(CAMPUS)_$$(date +%Y%m%d_%H%M%S).log
 
-full-refresh: reset-db pipeline ## Complete refresh: clean DB + run full pipeline
-	@echo "✅ Full refresh complete for $(CAMPUS)"
+full-refresh: reset-db prefect-server ## Complete refresh for all campi: clean DB + run unified pipeline without campus filter
+	@echo "🚀 Running unified full refresh for all campi..."
+	@$(PYTHON) -c "from src.flows.unified_pipeline import full_ingestion_pipeline; full_ingestion_pipeline(campus_name=None, output_dir='data/exports')"
+	@echo "✅ Full refresh complete for all campi"
+	@echo "📝 Latest ETL report:"
+	@echo "   JSON: data/reports/etl_flow_run.json"
+	@echo "   MD:   data/reports/etl_flow_run.md"
 
 full-refresh-serra: reset-db pipeline-serra ## Complete refresh for Serra campus explicitly
 	@echo "✅ Full Serra refresh complete"
@@ -125,6 +181,38 @@ verify-status: ## Verify advisorship status logic correctness
 verify-exports: ## Check if all export files exist
 	@echo "🔍 Verifying export files..."
 	@ls -lh data/exports/*.json
+
+audit-duplicates: ## Audit duplicate candidates in the current database
+	@echo "🔎 Auditing duplicate candidates..."
+	@$(PYTHON) src/scripts/audit_duplicates.py
+
+harden-db: ## Create safe indexes/constraints for duplicate prevention
+	@echo "🛡️ Hardening database indexes..."
+	@$(PYTHON) src/scripts/harden_db_indices.py
+
+consolidate-duplicates: ## Consolidate duplicate persons, teams, and knowledge areas
+	@echo "🧹 Consolidating duplicate entities..."
+	@$(PYTHON) src/scripts/consolidate_duplicates.py --entity all
+
+consolidate-duplicates-dry: ## Preview duplicate consolidations without changing the database
+	@echo "🧪 Previewing duplicate consolidation..."
+	@$(PYTHON) src/scripts/consolidate_duplicates.py --entity all --dry-run
+
+etl-report: ## Generate ETL extraction vs load reconciliation report
+	@echo "📊 Generating ETL load report..."
+	@$(PYTHON) src/scripts/etl_load_report.py
+
+etl-report-md: ## Generate Markdown from the ETL JSON report
+	@echo "📝 Generating ETL Markdown report..."
+	@$(PYTHON) src/scripts/etl_report_markdown.py
+
+tracking-audit-report: ## Generate tracking-domain audit report in JSON and Markdown
+	@echo "🧾 Generating tracking audit report..."
+	@$(PYTHON) src/scripts/tracking_audit_report.py
+
+tracking-query: ## Query tracking data (use QUERY_ARGS="--entity-type researcher --entity-id 2981")
+	@echo "🔎 Querying tracking data..."
+	@$(PYTHON) src/scripts/tracking_query.py $(QUERY_ARGS)
 
 # Development
 logs-dir: ## Create logs directory if it doesn't exist

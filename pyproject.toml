@@ -1,26 +1,39 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "horizon_etl"
 version = "0.1.0"
-description = "ETL pipeline for FAPES data using Prefect and Supabase"
+description = "ETL pipeline for academic and research data ingestion with Prefect"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "prefect>=3.0.0",
+    "loguru>=0.7.0",
     "pydantic>=2.0.0",
     "supabase>=2.0.0",
     "pandas>=2.0.0",
     "requests>=2.30.0",
     "beautifulsoup4>=4.12.0",
+    "openpyxl>=3.1.0",
+    "thefuzz>=0.22.0",
+    "python-Levenshtein>=0.25.0",
     "python-dotenv>=1.0.0",
-    "docling>=1.0.0",
+    "sigpesq-agent @ git+https://github.com/ifesserra-lab/sigpesq_agent.git@v0.3.0",
+    "dgp-cnpq-lib @ git+https://github.com/ifesserra-lab/dgp.cnqp_lib.git@v0.5.0",
+    "scriptLattes @ git+https://github.com/ifesserra-lab/scriptLattes.git@v0.8.0",
     "research-domain @ git+https://github.com/The-Band-Solution/ResearchDomain.git@v0.12.8",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "black", "isort", "mypy"]
+dev = ["pytest", "pytest-cov", "black", "isort", "mypy", "flake8"]
 
 [tool.setuptools]
-packages = ["src"]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["src*"]
 
 [tool.black]
 line-length = 88

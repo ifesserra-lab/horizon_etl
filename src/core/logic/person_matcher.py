@@ -25,6 +25,7 @@ class PersonMatcher:
         self.person_controller = person_controller
         self._persons_cache: Dict[str, Person] = {}
         self._emails_cache: Dict[str, Person] = {}
+        self._canonical_cache: Dict[str, Person] = {}
 
     def preload_cache(self):
         """
@@ -38,6 +39,7 @@ class PersonMatcher:
             all_persons = self.person_controller.get_all()
             self._persons_cache = {}
             self._emails_cache = {}
+            self._canonical_cache = {}
             for p in all_persons:
                 if isinstance(p, dict):
                     name = p.get("name")
@@ -47,6 +49,11 @@ class PersonMatcher:
                     email = getattr(p, "email", None)
                 if name:
                     self._persons_cache[name] = p
+                    canonical_name = self.canonicalize_name(name)
+                    if canonical_name:
+                        current = self._canonical_cache.get(canonical_name)
+                        if current is None or self._person_quality_score(p) > self._person_quality_score(current):
+                            self._canonical_cache[canonical_name] = p
                 if email:
                     self._emails_cache[email.lower()] = p
             logger.info(f"Loaded {len(self._persons_cache)} persons and {len(self._emails_cache)} emails into cache")
@@ -83,6 +90,29 @@ class PersonMatcher:
         # 3. Trim and remove double spaces
         return " ".join(name_str.split())
 
+    def canonicalize_name(self, name: str) -> str:
+        """Builds a stable comparison key for names."""
+        normalized = self.normalize_name(name)
+        if not normalized:
+            return ""
+
+        # Particles are preserved but normalized to a single representation
+        particles = {"DA", "DE", "DI", "DO", "DOS", "DAS", "DU", "DEL", "DELA"}
+        tokens = [
+            token if token not in particles else token.lower()
+            for token in normalized.split()
+        ]
+        return " ".join(tokens)
+
+    def _person_quality_score(self, person: Person) -> int:
+        """Prefers the richer record when duplicates share the same canonical name."""
+        score = 0
+        for attr in ("identification_id", "email", "resume", "citation_names", "cnpq_url"):
+            value = person.get(attr) if isinstance(person, dict) else getattr(person, attr, None)
+            if value:
+                score += 10
+        return score
+
     def match_or_create(
         self, name: str, email: Optional[str] = None, strict_match: bool = False
     ) -> Optional[Person]:
@@ -114,6 +144,23 @@ class PersonMatcher:
 
         name = name.strip() if name else ""
         normalized_input = self.normalize_name(name)
+        canonical_input = self.canonicalize_name(name)
+
+        # 1.5 Canonical exact match.
+        # This collapses duplicates such as "De"/"de" and accent-only variants.
+        if canonical_input and canonical_input in self._canonical_cache:
+            person = self._canonical_cache[canonical_input]
+            if email:
+                self._emails_cache[email.strip().lower()] = person
+            self._persons_cache[name] = person
+            return person
+
+        # 1.6 Exact raw-name match.
+        if name in self._persons_cache:
+            person = self._persons_cache[name]
+            if email:
+                self._emails_cache[email.strip().lower()] = person
+            return person
 
         # 2. Exact Match in Cache (Normalized)
         for cached_name, person in self._persons_cache.items():
@@ -157,6 +204,10 @@ class PersonMatcher:
             emails = [email] if email else []
             person = self.person_controller.create_person(name=name, emails=emails)
             self._persons_cache[name] = person
+            if canonical_input:
+                current = self._canonical_cache.get(canonical_input)
+                if current is None or self._person_quality_score(person) > self._person_quality_score(current):
+                    self._canonical_cache[canonical_input] = person
             if email:
                 self._emails_cache[email.strip().lower()] = person
             logger.debug(f"Created person: {name} (emails: {emails})")
