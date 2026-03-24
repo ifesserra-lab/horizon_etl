@@ -106,8 +106,8 @@ def test_export_all_orchestrates_exports():
             mock_makedirs.assert_called_once()
 
             # Verify Sink Calls
-            # Should be called 8 times (Org, Campus, KA, Researcher, Initiatives, InitiativeTypes, Advisorships, Fellowships)
-            assert mock_sink.export.call_count == 8
+            # Includes canonical exports plus the parallel tracking exports.
+            assert mock_sink.export.call_count == 12
 
             # Check call args to verify content
             calls = mock_sink.export.call_args_list
@@ -137,6 +137,116 @@ def test_export_all_orchestrates_exports():
                     "research_groups": [],
                     "knowledge_areas": [],
                     "academic_education": [],
+                    "articles": [],
+                    "advisorships": [],
                 }
             ]
             assert "researchers_canonical.json" in args[1]
+
+            # Researchers tracking export
+            args, _ = calls[4]
+            assert args[0] == []
+            assert "researchers_tracking.json" in args[1]
+
+
+def test_export_researchers_tracking_builds_parallel_payload():
+    mock_sink = MagicMock(spec=IExportSink)
+
+    with (
+        patch("src.core.logic.canonical_exporter.OrganizationController"),
+        patch("src.core.logic.canonical_exporter.CampusController"),
+        patch("src.core.logic.canonical_exporter.KnowledgeAreaController"),
+        patch("src.core.logic.canonical_exporter.ResearcherController"),
+        patch("src.core.logic.canonical_exporter.InitiativeController"),
+    ):
+        exporter = CanonicalDataExporter(sink=mock_sink)
+
+    class FakeResult:
+        def __init__(self, rows):
+            self._rows = rows
+
+        def fetchall(self):
+            return self._rows
+
+    class FakeSession:
+        def execute(self, statement, params=None):
+            statement_text = getattr(statement, "text", str(statement))
+            if "FROM entity_matches" in statement_text and "JOIN source_records sr" not in statement_text:
+                return FakeResult([{"entity_id": 2981}])
+            if "FROM entity_matches em" in statement_text:
+                return FakeResult(
+                    [
+                        {
+                            "entity_id": 2981,
+                            "source_system": "lattes",
+                            "source_entity_type": "researcher_profile",
+                            "source_record_id": "8400407353673370",
+                            "source_file": "data/lattes_json/00_Paulo.json",
+                            "source_path": "$.dados_gerais",
+                            "match_strategy": "lattes_id_exact",
+                            "match_confidence": 1,
+                            "matched_at": "2026-03-23T10:00:00",
+                        }
+                    ]
+                )
+            if "FROM attribute_assertions aa" in statement_text:
+                return FakeResult(
+                    [
+                        {
+                            "entity_id": 2981,
+                            "attribute_name": "resume",
+                            "value_json": {"text": "Resumo atualizado"},
+                            "value_hash": "abc123",
+                            "is_selected": 1,
+                            "selection_reason": "preferred_lattes_resume",
+                            "asserted_at": "2026-03-23T10:01:00",
+                            "source_record_pk": 77,
+                            "source_system": "lattes",
+                            "source_entity_type": "researcher_profile",
+                            "source_record_id": "8400407353673370",
+                            "source_file": "data/lattes_json/00_Paulo.json",
+                            "source_path": "$.resumo_cv",
+                        }
+                    ]
+                )
+            if "FROM entity_change_logs ecl" in statement_text:
+                return FakeResult(
+                    [
+                        {
+                            "entity_id": 2981,
+                            "operation": "create",
+                            "changed_fields_json": ["name", "resume"],
+                            "before_json": None,
+                            "after_json": {"id": 2981},
+                            "reason": "lattes researcher import",
+                            "changed_at": "2026-03-23T10:02:00",
+                            "run_id": 12,
+                            "run_source_system": "lattes",
+                            "flow_name": "ingest_lattes_projects",
+                            "run_status": "completed",
+                            "source_record_pk": 77,
+                            "source_record_system": "lattes",
+                            "source_entity_type": "researcher_profile",
+                            "source_record_id": "8400407353673370",
+                            "source_file": "data/lattes_json/00_Paulo.json",
+                            "source_path": "$.dados_gerais",
+                        }
+                    ]
+                )
+            return FakeResult([])
+
+    exporter._has_tracking_schema = lambda: True
+    exporter._get_session = lambda: FakeSession()
+
+    exporter.export_researchers_tracking("output/researchers_tracking.json")
+
+    mock_sink.export.assert_called_once()
+    exported_data, output_path = mock_sink.export.call_args[0]
+
+    assert output_path == "output/researchers_tracking.json"
+    assert exported_data[0]["entity_type"] == "researcher"
+    assert exported_data[0]["entity_id"] == 2981
+    assert exported_data[0]["sources"] == ["lattes"]
+    assert exported_data[0]["attributes"]["resume"]["selected_from"] == "lattes"
+    assert exported_data[0]["created_by"]["operation"] == "create"
+    assert exported_data[0]["last_updated_by"]["flow_name"] == "ingest_lattes_projects"
