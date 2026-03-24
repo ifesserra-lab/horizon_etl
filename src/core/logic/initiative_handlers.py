@@ -38,6 +38,9 @@ class StandardProjectHandler(BaseInitiativeHandler):
 
     def create_or_update(self, project_data: Dict[str, Any], existing_initiative: Optional[Any], initiative_type_name: str, initiative_type_id: int, organization_id: Optional[int], parent_id: Optional[int] = None) -> Any:
         title = project_data["title"]
+        metadata = project_data.get("metadata", {}).copy()
+        if project_data.get("identity_key"):
+            metadata["source_identity"] = project_data["identity_key"]
         
         if existing_initiative:
             logger.debug(f"Updating existing initiative: {title[:50]}...")
@@ -55,6 +58,8 @@ class StandardProjectHandler(BaseInitiativeHandler):
                 existing_initiative.organization_id = organization_id
                 if parent_id is not None:
                     existing_initiative.parent_id = parent_id
+                if metadata:
+                    existing_initiative.metadata = metadata
                 self.initiative_controller.update(existing_initiative)
             except Exception:
                 pass
@@ -71,8 +76,8 @@ class StandardProjectHandler(BaseInitiativeHandler):
                 organization_id=organization_id,
                 parent_id=parent_id,
             )
-            if "metadata" in project_data:
-                initiative.metadata = project_data["metadata"]
+            if metadata:
+                initiative.metadata = metadata
             
             self.initiative_controller.create(initiative)
             return initiative
@@ -108,6 +113,9 @@ class AdvisorshipHandler(BaseInitiativeHandler):
 
     def create_or_update(self, project_data: Dict[str, Any], existing_initiative: Optional[Any], initiative_type_name: str, initiative_type_id: int, organization_id: Optional[int], parent_id: Optional[int] = None) -> Any:
         title = project_data["title"]
+        metadata = project_data.get("metadata", {}).copy()
+        if project_data.get("identity_key"):
+            metadata["source_identity"] = project_data["identity_key"]
         
         if existing_initiative:
             # Advisorship update logic (using standard initiative update as base)
@@ -126,6 +134,8 @@ class AdvisorshipHandler(BaseInitiativeHandler):
                 existing_initiative.organization_id = organization_id
                 if parent_id is not None:
                     existing_initiative.parent_id = parent_id
+                if metadata:
+                    existing_initiative.metadata = metadata
                 self.initiative_controller.update(existing_initiative)
             except Exception:
                 pass
@@ -165,8 +175,8 @@ class AdvisorshipHandler(BaseInitiativeHandler):
                 organization_id=organization_id,
                 parent_id=parent_id,
             )
-            if "metadata" in project_data:
-                initiative.metadata = project_data["metadata"]
+            if metadata:
+                initiative.metadata = metadata
 
             self._handle_advisorship_details(initiative, project_data)
             self.adv_controller.create(initiative)

@@ -3,6 +3,7 @@ from datetime import datetime
 
 from .base import ProjectMappingStrategy
 from src.adapters.sources.lattes_parser import LattesParser
+from src.core.logic.initiative_identity import build_identity_key
 
 
 class LattesProjectMappingStrategy(ProjectMappingStrategy):
@@ -13,7 +14,10 @@ class LattesProjectMappingStrategy(ProjectMappingStrategy):
     def __init__(self, target_researcher_name: str, researcher_roles: Dict[str, str] = None):
         super().__init__()
         self.parser = LattesParser()
-        self.target_researcher_name = self.parser.normalize_title(target_researcher_name)
+        self.target_researcher_name = target_researcher_name
+        self.target_researcher_name_normalized = self.parser.normalize_title(
+            target_researcher_name
+        )
         # Roles from raw_members
         self.researcher_roles = researcher_roles or {}
 
@@ -63,11 +67,23 @@ class LattesProjectMappingStrategy(ProjectMappingStrategy):
         if not coordinator_name and (row.get("role") == "Coordenador" or self.researcher_roles.get(row.get("name")) == "Coordenador"):
             coordinator_name = self.target_researcher_name
             # remove from researchers if present
-            researcher_names = [n for n in researcher_names if self.parser.normalize_title(n) != self.target_researcher_name]
+            researcher_names = [
+                n
+                for n in researcher_names
+                if self.parser.normalize_title(n)
+                != self.target_researcher_name_normalized
+            ]
 
         # Ensure the target researcher is included if they are not the coordinator or a student
-        if coordinator_name and self.parser.normalize_title(coordinator_name) != self.target_researcher_name:
-             if not any(self.parser.normalize_title(n) == self.target_researcher_name for n in researcher_names + student_names):
+        if coordinator_name and (
+            self.parser.normalize_title(coordinator_name)
+            != self.target_researcher_name_normalized
+        ):
+             if not any(
+                 self.parser.normalize_title(n)
+                 == self.target_researcher_name_normalized
+                 for n in researcher_names + student_names
+             ):
                  researcher_names.append(self.target_researcher_name)
 
         # Extract sponsors
@@ -90,7 +106,17 @@ class LattesProjectMappingStrategy(ProjectMappingStrategy):
             "metadata": {
                 "external_partner": sponsor_name,
                 "project_nature": row.get("nature"),
-                "initiative_type_name": row.get("initiative_type_name")
+                "initiative_type_name": row.get("initiative_type_name"),
+                "source_system": "lattes_projects",
             },
             "campus_name": None, # Lattes doesn't provide campus
+            "identity_key": build_identity_key(
+                [
+                    "lattes_project",
+                    row.get("name"),
+                    coordinator_name or self.target_researcher_name,
+                    start_year,
+                    row.get("initiative_type_name"),
+                ]
+            ),
         }

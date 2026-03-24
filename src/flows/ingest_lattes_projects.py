@@ -6,9 +6,12 @@ import re
 
 from prefect import flow, task
 from loguru import logger
+from sqlalchemy import text
 
 from src.adapters.sources.lattes_parser import LattesParser
 from src.core.logic.entity_manager import EntityManager
+from src.core.logic.researcher_resolution import resolve_researcher_from_lattes
+from src.core.logic.researcher_resolution import resolve_or_create_researcher
 from eo_lib import InitiativeController, PersonController, TeamController
 from research_domain.controllers import (
     ResearcherController,
@@ -21,6 +24,7 @@ from research_domain.domain.entities.article import Article, article_authors
 
 from src.core.logic.project_loader import ProjectLoader
 from src.core.logic.strategies.lattes_projects import LattesProjectMappingStrategy
+from src.tracking.recorder import tracking_recorder
 
 from prefect.cache_policies import NO_CACHE
 
@@ -48,11 +52,18 @@ def ingest_researcher_data(file_path: str, entity_manager: EntityManager, parser
 
         researcher_ctrl = ResearcherController()
         all_researchers = researcher_ctrl.get_all()
-        target_researcher = next((r for r in all_researchers if str(getattr(r, "brand_id", "") or "") == lattes_id), None)
+        session = None
+        try:
+            session = researcher_ctrl._service._repository._session
+        except Exception:
+            pass
 
-        if not target_researcher and json_name:
-            logger.info(f"ID {lattes_id} match failed. Trying name from JSON: {json_name}")
-            target_researcher = next((r for r in all_researchers if getattr(r, "name", "").lower() == json_name.lower()), None)
+        target_researcher = resolve_researcher_from_lattes(
+            all_researchers,
+            lattes_id=lattes_id,
+            json_name=json_name,
+            session=session,
+        )
             
         if not target_researcher:
             logger.warning(f"Researcher with lattes_id {lattes_id} not found in DB and Name match failed. Skipping file {filename}.")
@@ -74,6 +85,48 @@ def ingest_researcher_data(file_path: str, entity_manager: EntityManager, parser
         if needs_update:
             try:
                 researcher_ctrl.update(target_researcher)
+                source_record = tracking_recorder.record_source_record(
+                    source_entity_type="researcher_profile",
+                    payload=personal_info,
+                    source_record_id=lattes_id,
+                    source_file=file_path,
+                    source_path=file_path,
+                )
+                tracking_recorder.record_entity_match(
+                    source_record_id=getattr(source_record, "id", None),
+                    canonical_entity_type="researcher",
+                    canonical_entity_id=target_researcher.id,
+                    match_strategy="lattes_id_exact",
+                    match_confidence=1.0,
+                )
+                tracking_recorder.record_attribute_assertions(
+                    source_record_id=getattr(source_record, "id", None),
+                    canonical_entity_type="researcher",
+                    canonical_entity_id=target_researcher.id,
+                    selected_attributes={
+                        "citation_names": personal_info.get("citation_names"),
+                        "cnpq_url": personal_info.get("cnpq_url"),
+                        "resume": personal_info.get("resume"),
+                    },
+                    selection_reason="lattes_personal_info_selected_values",
+                )
+                tracking_recorder.record_change(
+                    source_record_id=getattr(source_record, "id", None),
+                    canonical_entity_type="researcher",
+                    canonical_entity_id=target_researcher.id,
+                    operation="update",
+                    changed_fields=[
+                        key
+                        for key in ("citation_names", "cnpq_url", "resume")
+                        if personal_info.get(key)
+                    ],
+                    after={
+                        "citation_names": personal_info.get("citation_names"),
+                        "cnpq_url": personal_info.get("cnpq_url"),
+                        "resume": personal_info.get("resume"),
+                    },
+                    reason="Updated from Lattes personal info",
+                )
             except Exception as e:
                 logger.warning(f"Failed to update researcher data for {lattes_id}: {e}")
 
@@ -103,27 +156,28 @@ def ingest_researcher_data(file_path: str, entity_manager: EntityManager, parser
             mapping_strategy = LattesProjectMappingStrategy(target_researcher.name, researcher_roles)
             loader = ProjectLoader(mapping_strategy=mapping_strategy)
             
-            loader.process_records(unique_projects)
+            loader.process_records(unique_projects, source_file=file_path)
 
         # 3. Handle Articles
         articles = []
         articles.extend(parser.parse_articles(data))
         articles.extend(parser.parse_conference_papers(data))
         if articles:
-            ingest_articles_task(articles, target_researcher, all_researchers, parser)
+            ingest_articles_task(articles, target_researcher, all_researchers, parser, file_path)
 
         # 4. Handle Academic Education
         education_list = parser.parse_academic_education(data)
         if education_list:
-            ingest_education_task(education_list, target_researcher, all_researchers, entity_manager, researcher_ctrl)
+            ingest_education_task(education_list, target_researcher, all_researchers, entity_manager, researcher_ctrl, file_path)
 
     except Exception as e:
         logger.error(f"Failed to process file {file_path}: {e}")
 
 
-def ingest_articles_task(articles: List[Dict], target_researcher: Researcher, all_researchers: List[Researcher], parser: LattesParser):
+def ingest_articles_task(articles: List[Dict], target_researcher: Researcher, all_researchers: List[Researcher], parser: LattesParser, source_file: str):
     logger.info(f"Processing {len(articles)} articles for {target_researcher.name}...")
     article_ctrl = ArticleController()
+    researcher_ctrl = ResearcherController()
     
     try:
         all_db_articles = article_ctrl.get_all()
@@ -144,6 +198,13 @@ def ingest_articles_task(articles: List[Dict], target_researcher: Researcher, al
             title = art["title"]
             year = art["year"]
             doi = art.get("doi")
+            source_record = tracking_recorder.record_source_record(
+                source_entity_type="article",
+                payload=art,
+                source_record_id=(doi or f"{parser.normalize_title(title)}|{year}"),
+                source_file=source_file,
+                source_path=source_file,
+            )
             
             existing_art = None
             if doi and doi in doi_map:
@@ -168,24 +229,103 @@ def ingest_articles_task(articles: List[Dict], target_researcher: Researcher, al
                 if doi:
                     doi_map[doi] = paper
                 title_year_map[get_art_key(title, year)] = paper
+                tracking_recorder.record_change(
+                    source_record_id=getattr(source_record, "id", None),
+                    canonical_entity_type="article",
+                    canonical_entity_id=paper.id,
+                    operation="create",
+                    changed_fields=["title", "year", "doi", "journal_conference", "volume", "pages"],
+                    after={
+                        "title": title,
+                        "year": year,
+                        "doi": doi,
+                        "journal_conference": art.get("journal_conference"),
+                        "volume": art.get("volume"),
+                        "pages": art.get("pages"),
+                    },
+                    reason="Created article from Lattes",
+                )
+
+            tracking_recorder.record_entity_match(
+                source_record_id=getattr(source_record, "id", None),
+                canonical_entity_type="article",
+                canonical_entity_id=paper.id,
+                match_strategy="doi_exact" if doi else "title_year",
+                match_confidence=1.0 if doi else 0.8,
+            )
+            tracking_recorder.record_attribute_assertions(
+                source_record_id=getattr(source_record, "id", None),
+                canonical_entity_type="article",
+                canonical_entity_id=paper.id,
+                selected_attributes={
+                    "title": title,
+                    "year": year,
+                    "doi": doi,
+                    "journal_conference": art.get("journal_conference"),
+                    "volume": art.get("volume"),
+                    "pages": art.get("pages"),
+                },
+                selection_reason="lattes_article_selected_values",
+            )
 
             # Link primary author
             current_author_ids = [getattr(auth, "id") for auth in getattr(paper, "authors", [])]
             if target_researcher.id not in current_author_ids:
                 try:
-                    article_ctrl.add_author(paper.id, target_researcher.id)
+                    _attach_article_author(
+                        article_ctrl, researcher_ctrl, paper.id, target_researcher.id
+                    )
                 except Exception as link_err:
-                    pass
+                    logger.warning(
+                        f"Failed to link article '{title}' to researcher {target_researcher.id}: {link_err}"
+                    )
 
         except Exception as art_err:
             logger.error(f"Failed to ingest article {art.get('title')}: {art_err}")
 
 
-def ingest_education_task(education_list: List[Dict], target_researcher: Researcher, all_researchers: List[Researcher], entity_manager: EntityManager, researcher_ctrl: ResearcherController):
+def _attach_article_author(article_ctrl: ArticleController, researcher_ctrl: ResearcherController, article_id: int, researcher_id: int) -> None:
+    """Attach article author while tolerating controller/service version mismatches."""
+    try:
+        article_ctrl.add_author(article_id, researcher_id)
+        return
+    except AttributeError as exc:
+        if " has no attribute 'get'" not in str(exc):
+            raise
+
+    article = article_ctrl.get_by_id(article_id)
+    researcher = researcher_ctrl.get_by_id(researcher_id)
+    if not article or not researcher:
+        return
+
+    current_author_ids = [getattr(author, "id", None) for author in getattr(article, "authors", [])]
+    if researcher_id in current_author_ids:
+        return
+
+    article.authors.append(researcher)
+    article_ctrl.update(article)
+
+
+def ingest_education_task(education_list: List[Dict], target_researcher: Researcher, all_researchers: List[Researcher], entity_manager: EntityManager, researcher_ctrl: ResearcherController, source_file: str):
     logger.info(f"Processing {len(education_list)} education entries for {target_researcher.name}...")
-    
+    session = researcher_ctrl._service._repository._session
+
     for edu_data in education_list:
         try:
+            source_record = tracking_recorder.record_source_record(
+                source_entity_type="academic_education",
+                payload=edu_data,
+                source_record_id="|".join(
+                    [
+                        str(target_researcher.id),
+                        str(edu_data.get("course_name") or ""),
+                        str(edu_data.get("degree") or ""),
+                        str(edu_data.get("start_year") or ""),
+                    ]
+                ),
+                source_file=source_file,
+                source_path=source_file,
+            )
             inst_name = edu_data.get("institution") or "Unknown Institution"
             org_id = entity_manager.ensure_organization(name=inst_name)
             if not org_id:
@@ -204,45 +344,122 @@ def ingest_education_task(education_list: List[Dict], target_researcher: Researc
                 adv_match = re.search(r"Orientador:\s*([^.;)]+)", description, re.IGNORECASE)
                 if adv_match:
                     adv_name = adv_match.group(1).strip()
-                    adv_res = next((r for r in all_researchers if getattr(r, "name", "").lower() == adv_name.lower()), None)
+                    adv_res = resolve_or_create_researcher(
+                        researcher_ctrl,
+                        all_researchers,
+                        name=adv_name,
+                    )
                     if adv_res:
                         advisor_id = getattr(adv_res, "id")
-                    else:
-                        try:
-                            new_adv = Researcher(name=adv_name)
-                            researcher_ctrl.create(new_adv)
-                            advisor_id = getattr(new_adv, "id")
-                            all_researchers.append(new_adv)
-                        except Exception:
-                            pass
 
                 co_match = re.search(r"Co-?orientador:\s*([^.;)]+)", description, re.IGNORECASE)
                 if co_match:
                     co_name = co_match.group(1).strip()
-                    co_res = next((r for r in all_researchers if getattr(r, "name", "").lower() == co_name.lower()), None)
+                    co_res = resolve_or_create_researcher(
+                        researcher_ctrl,
+                        all_researchers,
+                        name=co_name,
+                    )
                     if co_res:
                         co_advisor_id = getattr(co_res, "id")
-                    else:
-                        try:
-                            new_co = Researcher(name=co_name)
-                            researcher_ctrl.create(new_co)
-                            co_advisor_id = getattr(new_co, "id")
-                            all_researchers.append(new_co)
-                        except Exception:
-                            pass
 
             start_val = edu_data.get("start_year") or 0
+            title = edu_data.get("course_name") or "Untitled"
+            thesis_title = edu_data.get("thesis_title")
+            end_year = edu_data.get("end_year")
+
+            existing = session.execute(
+                text(
+                    """
+                    SELECT id
+                    FROM academic_educations
+                    WHERE researcher_id = :researcher_id
+                      AND education_type_id = :education_type_id
+                      AND institution_id = :institution_id
+                      AND title = :title
+                      AND start_year = :start_year
+                      AND (
+                        (end_year IS NULL AND :end_year IS NULL)
+                        OR end_year = :end_year
+                      )
+                      AND (
+                        (thesis_title IS NULL AND :thesis_title IS NULL)
+                        OR thesis_title = :thesis_title
+                      )
+                    LIMIT 1
+                    """
+                ),
+                {
+                    "researcher_id": target_researcher.id,
+                    "education_type_id": type_id,
+                    "institution_id": org_id,
+                    "title": title,
+                    "start_year": start_val,
+                    "end_year": end_year,
+                    "thesis_title": thesis_title,
+                },
+            ).fetchone()
+            if existing:
+                tracking_recorder.record_entity_match(
+                    source_record_id=getattr(source_record, "id", None),
+                    canonical_entity_type="academic_education",
+                    canonical_entity_id=existing[0],
+                    match_strategy="natural_key_exact",
+                    match_confidence=1.0,
+                )
+                continue
             
-            entity_manager.academic_edu_controller.create_academic_education(
+            education = entity_manager.academic_edu_controller.create_academic_education(
                 researcher_id=target_researcher.id,
                 education_type_id=type_id,
-                title=edu_data.get("course_name") or "Untitled",
+                title=title,
                 institution_id=org_id,
                 start_year=start_val,
-                end_year=edu_data.get("end_year"),
-                thesis_title=edu_data.get("thesis_title"),
+                end_year=end_year,
+                thesis_title=thesis_title,
                 advisor_id=advisor_id,
                 co_advisor_id=co_advisor_id
+            )
+            tracking_recorder.record_entity_match(
+                source_record_id=getattr(source_record, "id", None),
+                canonical_entity_type="academic_education",
+                canonical_entity_id=education.id,
+                match_strategy="natural_key_exact",
+                match_confidence=1.0,
+            )
+            tracking_recorder.record_attribute_assertions(
+                source_record_id=getattr(source_record, "id", None),
+                canonical_entity_type="academic_education",
+                canonical_entity_id=education.id,
+                selected_attributes={
+                    "institution": inst_name,
+                    "degree": type_name,
+                    "title": title,
+                    "start_year": start_val,
+                    "end_year": end_year,
+                    "thesis_title": thesis_title,
+                    "advisor_id": advisor_id,
+                    "co_advisor_id": co_advisor_id,
+                },
+                selection_reason="lattes_education_selected_values",
+            )
+            tracking_recorder.record_change(
+                source_record_id=getattr(source_record, "id", None),
+                canonical_entity_type="academic_education",
+                canonical_entity_id=education.id,
+                operation="create",
+                changed_fields=["institution", "degree", "title", "start_year", "end_year", "thesis_title", "advisor_id", "co_advisor_id"],
+                after={
+                    "institution": inst_name,
+                    "degree": type_name,
+                    "title": title,
+                    "start_year": start_val,
+                    "end_year": end_year,
+                    "thesis_title": thesis_title,
+                    "advisor_id": advisor_id,
+                    "co_advisor_id": co_advisor_id,
+                },
+                reason="Created academic education from Lattes",
             )
         except Exception as e:
             logger.warning(f"Failed to ingest education item: {e}")

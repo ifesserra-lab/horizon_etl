@@ -6,9 +6,11 @@ from src.core.logic.person_matcher import PersonMatcher
 
 
 class MockPerson:
-    def __init__(self, id, name):
+    def __init__(self, id, name, identification_id=None, email=None):
         self.id = id
         self.name = name
+        self.identification_id = identification_id
+        self.email = email
 
 
 @pytest.fixture
@@ -21,6 +23,17 @@ def test_normalize_name(matcher):
     assert matcher.normalize_name("Pãulo Sérgio Junior") == "PAULO SERGIO JUNIOR"
     assert matcher.normalize_name("  ROBERTO   CARLOS  ") == "ROBERTO CARLOS"
     assert matcher.normalize_name("") == ""
+
+
+def test_canonicalize_name_normalizes_particles(matcher):
+    assert (
+        matcher.canonicalize_name("Gustavo Maia De Almeida")
+        == "GUSTAVO MAIA de ALMEIDA"
+    )
+    assert (
+        matcher.canonicalize_name("Gustavo Maia de Almeida")
+        == "GUSTAVO MAIA de ALMEIDA"
+    )
 
 
 def test_match_or_create_exact(matcher):
@@ -66,3 +79,28 @@ def test_strict_match_avoids_fuzzy(matcher):
     result = matcher.match_or_create("Jose da Silva", strict_match=True)
     assert result.id == 2
     matcher.person_controller.create_person.assert_called()
+
+
+def test_match_or_create_uses_canonical_name_for_case_variants(matcher):
+    person = MockPerson(1, "Gustavo Maia de Almeida")
+    matcher.person_controller.get_all.return_value = [person]
+    matcher.preload_cache()
+
+    result = matcher.match_or_create("Gustavo Maia De Almeida", strict_match=True)
+    assert result.id == 1
+    matcher.person_controller.create_person.assert_not_called()
+
+
+def test_match_or_create_prefers_richer_duplicate_for_same_canonical_name(matcher):
+    duplicate_plain = MockPerson(1, "Paulo Sérgio Dos Santos Júnior")
+    duplicate_rich = MockPerson(
+        2,
+        "Paulo Sergio dos Santos Junior",
+        identification_id="8400407353673370",
+    )
+    matcher.person_controller.get_all.return_value = [duplicate_plain, duplicate_rich]
+    matcher.preload_cache()
+
+    result = matcher.match_or_create("Paulo Sérgio dos Santos Júnior", strict_match=True)
+    assert result.id == 2
+    matcher.person_controller.create_person.assert_not_called()

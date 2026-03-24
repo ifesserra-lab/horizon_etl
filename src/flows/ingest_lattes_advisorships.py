@@ -4,16 +4,21 @@ import json
 
 from prefect import flow, task, get_run_logger
 from prefect.cache_policies import NO_CACHE
+from loguru import logger as fallback_logger
 
 from src.adapters.sources.lattes_parser import LattesParser
 from src.core.logic.project_loader import ProjectLoader
+from src.core.logic.researcher_resolution import resolve_researcher_from_lattes
 from src.core.logic.strategies.lattes_advisorships import LattesAdvisorshipMappingStrategy
 
 from research_domain.controllers import ResearcherController
 
 @task(name="Ingest Lattes Advisorships for File", cache_policy=NO_CACHE)
 def ingest_advisorships_file_task(file_path: str):
-    logger = get_run_logger()
+    try:
+        logger = get_run_logger()
+    except Exception:
+        logger = fallback_logger
     
     filename = os.path.basename(file_path)
     lattes_id = filename.replace(".json", "").split("_")[-1]
@@ -31,15 +36,20 @@ def ingest_advisorships_file_task(file_path: str):
     # 1. Identify Supervisor (Owner of CV)
     researcher_ctrl = ResearcherController()
     all_researchers = researcher_ctrl.get_all()
-    
-    # Match by ID
-    supervisor = next((r for r in all_researchers if str(getattr(r, "brand_id", "") or "") == lattes_id), None)
-    
-    if not supervisor:
-        # Fallback Name Match
-        json_name = data.get("nome") or data.get("name") or data.get("informacoes_pessoais", {}).get("nome_completo")
-        if json_name:
-             supervisor = next((r for r in all_researchers if getattr(r, "name", "").lower() == json_name.lower()), None)
+
+    json_name = data.get("nome") or data.get("name") or data.get("informacoes_pessoais", {}).get("nome_completo")
+    session = None
+    try:
+        session = researcher_ctrl._service._repository._session
+    except Exception:
+        pass
+
+    supervisor = resolve_researcher_from_lattes(
+        all_researchers,
+        lattes_id=lattes_id,
+        json_name=json_name,
+        session=session,
+    )
     
     if not supervisor:
         logger.debug(f"Skipping Advisorships for {lattes_id}: Supervisor not found in DB.")
@@ -60,7 +70,7 @@ def ingest_advisorships_file_task(file_path: str):
     mapping_strategy = LattesAdvisorshipMappingStrategy(json_name)
     loader = ProjectLoader(mapping_strategy=mapping_strategy)
     
-    loader.process_records(advisorships)
+    loader.process_records(advisorships, source_file=file_path)
 
 
 @flow(name="Ingest Lattes Advisorships Flow")

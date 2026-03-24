@@ -4,6 +4,9 @@ from typing import List, Optional, Tuple
 import pandas as pd
 from loguru import logger
 
+from src.core.logic.initiative_identity import normalize_text
+from src.core.logic.researcher_resolution import resolve_or_create_researcher
+
 from .base import (
     CampusStrategy,
     KnowledgeAreaStrategy,
@@ -20,7 +23,11 @@ class SigPesqOrganizationStrategy(OrganizationStrategy):
         try:
             all_orgs = uni_ctrl.get_all()
             for org in all_orgs:
-                if org.name == "IFES":
+                if normalize_text(org.name) in {
+                    normalize_text("IFES"),
+                    normalize_text("Instituto Federal do Espirito Santo"),
+                    normalize_text("Instituto Federal do Espírito Santo"),
+                }:
                     logger.info(f"Organization found: {org.name} (ID: {org.id})")
                     return org.id
         except Exception as e:
@@ -42,9 +49,10 @@ class SigPesqCampusStrategy(CampusStrategy):
         """Ensures Campus exists."""
         try:
             all_campuses = campus_ctrl.get_all()
+            target_name = normalize_text(campus_name)
             for campus in all_campuses:
                 c_org = getattr(campus, "organization_id", None)
-                if campus.name == campus_name and (c_org is None or c_org == org_id):
+                if normalize_text(campus.name) == target_name and (c_org is None or c_org == org_id):
                     logger.debug(f"Campus found: {campus.name}")
                     return campus.id
         except Exception as e:
@@ -67,8 +75,9 @@ class SigPesqKnowledgeAreaStrategy(KnowledgeAreaStrategy):
 
         try:
             all_areas = area_ctrl.get_all()
+            target_name = normalize_text(area_name)
             for area in all_areas:
-                if area.name == area_name:
+                if normalize_text(area.name) == target_name:
                     return area.id
         except Exception as e:
             logger.error(f"Error fetching areas: {e}")
@@ -87,31 +96,18 @@ class SigPesqResearcherStrategy(ResearcherStrategy):
         """Ensures a researcher exists using strict idempotency."""
         try:
             all_res = researcher_ctrl.get_all()
-            # 1. Try to find by identification_id (email) - Primary Key logic for source
-            if email:
-                for res in all_res:
-                    if getattr(res, "identification_id", None) == email:
-                        logger.debug(f"Researcher found by email: {email}")
-                        return res
-
-            # 2. Fallback to name
-            for res in all_res:
-                if res.name == name:
-                    logger.debug(f"Researcher found by name: {name}")
-                    return res
+            res = resolve_or_create_researcher(
+                researcher_ctrl,
+                all_res,
+                name=name,
+                identification_id=email,
+                emails=[email] if email else None,
+            )
+            if res:
+                return res
         except Exception as e:
             logger.error(f"Error fetching researchers: {e}")
-
-        try:
-            emails = [email] if email else []
-            res = researcher_ctrl.create_researcher(
-                name=name, emails=emails, identification_id=email
-            )
-            logger.info(f"Researcher created: {name} (ID: {email})")
-            return res
-        except Exception as e:
-            logger.error(f"Error creating researcher '{name}': {e}")
-            return None
+        return None
 
 
 class SigPesqRoleStrategy(RoleStrategy):
