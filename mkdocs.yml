@@ -1,0 +1,35 @@
+site_name: Horizon ETL
+site_description: Documentacao da solucao Horizon ETL
+repo_url: https://github.com/ifesserra-lab/horizon_etl
+repo_name: ifesserra-lab/horizon_etl
+docs_dir: docs
+
+theme:
+  name: mkdocs
+
+markdown_extensions:
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Inicio: index.md
+  - Solucao:
+      - Visao Geral: solution-overview.md
+      - Arquitetura: architecture.md
+      - Fluxos e Entrypoints: flows-and-entrypoints.md
+      - Dados e Artefatos: outputs-and-artifacts.md
+  - Operacao:
+      - Setup e Execucao: operations/setup-and-run.md
+      - Automacao Semanal: operations/automation.md
+      - Troubleshooting: operations/troubleshooting.md
+  - Reports:
+      - Visao Geral: reports/index.md
+      - ETL Flow Run: reports/etl-flow-run.md
+      - ETL Load Report: reports/etl-load-report.md
+      - Tracking Audit Report: reports/tracking-audit-report.md
+  - Governanca:
+      - Mapa da Documentacao: documentation-map.md
+      - Backlog: backlog.md
+      - Plano de Implementacao: implementation_plan.md
+      - Referencia SDLC: governance/sdlc-reference.md

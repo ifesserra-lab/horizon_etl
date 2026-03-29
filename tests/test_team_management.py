@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.core.logic.entity_manager import EntityManager
 from src.core.logic.project_loader import ProjectLoader
 
 
@@ -76,5 +77,5 @@ def test_ensure_roles_exist(mock_role_ctrl, mock_pg_client, project_loader):
 
     project_loader.entity_manager.ensure_roles()
 
-    assert session.add.call_count == 3  # Coordinator, Researcher, Student
+    assert session.add.call_count == len(EntityManager.ROLES)
     session.commit.assert_called()

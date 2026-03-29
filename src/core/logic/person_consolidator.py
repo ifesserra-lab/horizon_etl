@@ -25,8 +25,21 @@ class PersonConsolidator:
     def find_duplicate_groups(self) -> List[DuplicateGroup]:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
-            people = conn.execute(
+            advisorship_count_sql = """
+                (
+                    SELECT COUNT(*) FROM advisorship_members am
+                    WHERE am.person_id = p.id
+                ) AS advisorship_count,
+            """
+            if not self._table_exists(conn, "advisorship_members"):
+                advisorship_count_sql = """
+                    (
+                        SELECT COUNT(*) FROM advisorships a
+                        WHERE a.supervisor_id = p.id OR a.student_id = p.id
+                    ) AS advisorship_count,
                 """
+            people = conn.execute(
+                f"""
                 SELECT
                     p.id,
                     p.name,
@@ -38,10 +51,7 @@ class PersonConsolidator:
                         SELECT COUNT(*) FROM person_emails pe
                         WHERE pe.person_id = p.id
                     ) AS email_count,
-                    (
-                        SELECT COUNT(*) FROM advisorships a
-                        WHERE a.supervisor_id = p.id OR a.student_id = p.id
-                    ) AS advisorship_count,
+                    {advisorship_count_sql}
                     (
                         SELECT COUNT(*) FROM team_members tm
                         WHERE tm.person_id = p.id
@@ -169,8 +179,11 @@ class PersonConsolidator:
                     target_column="researcher_id",
                 )
                 self._merge_team_members(conn, winner_id, loser_id)
-                self._update_fk_column(conn, "advisorships", "supervisor_id", winner_id, loser_id)
-                self._update_fk_column(conn, "advisorships", "student_id", winner_id, loser_id)
+                if self._table_exists(conn, "advisorship_members"):
+                    self._merge_advisorship_members(conn, winner_id, loser_id)
+                else:
+                    self._update_fk_column(conn, "advisorships", "supervisor_id", winner_id, loser_id)
+                    self._update_fk_column(conn, "advisorships", "student_id", winner_id, loser_id)
                 self._update_fk_column(conn, "academic_educations", "researcher_id", winner_id, loser_id)
                 self._update_fk_column(conn, "academic_educations", "advisor_id", winner_id, loser_id)
                 self._update_fk_column(conn, "academic_educations", "co_advisor_id", winner_id, loser_id)
@@ -370,6 +383,44 @@ class PersonConsolidator:
                     (winner_id, row["id"]),
                 )
 
+    def _merge_advisorship_members(
+        self, conn: sqlite3.Connection, winner_id: int, loser_id: int
+    ) -> None:
+        rows = conn.execute(
+            """
+            SELECT id, advisorship_id, role_name
+            FROM advisorship_members
+            WHERE person_id = ?
+            ORDER BY id
+            """,
+            (loser_id,),
+        ).fetchall()
+
+        for row in rows:
+            existing = conn.execute(
+                """
+                SELECT id
+                FROM advisorship_members
+                WHERE advisorship_id = ?
+                  AND person_id = ?
+                  AND COALESCE(role_name, '') = COALESCE(?, '')
+                ORDER BY id
+                LIMIT 1
+                """,
+                (row["advisorship_id"], winner_id, row["role_name"]),
+            ).fetchone()
+
+            if existing:
+                conn.execute(
+                    "DELETE FROM advisorship_members WHERE id = ?",
+                    (row["id"],),
+                )
+            else:
+                conn.execute(
+                    "UPDATE advisorship_members SET person_id = ? WHERE id = ?",
+                    (winner_id, row["id"]),
+                )
+
     def _update_fk_column(
         self,
         conn: sqlite3.Connection,
@@ -382,6 +433,17 @@ class PersonConsolidator:
             f"UPDATE {table} SET {column} = ? WHERE {column} = ?",
             (winner_id, loser_id),
         )
+
+    def _table_exists(self, conn: sqlite3.Connection, table_name: str) -> bool:
+        row = conn.execute(
+            """
+            SELECT 1
+            FROM sqlite_master
+            WHERE type = 'table' AND name = ?
+            """,
+            (table_name,),
+        ).fetchone()
+        return row is not None
 
     def _quality_score(self, person_row: Dict[str, Any]) -> int:
         score = 0

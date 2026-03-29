@@ -7,7 +7,9 @@
 PREFECT_HOST := 127.0.0.1
 PREFECT_PORT := 4200
 PREFECT_API_URL := http://$(PREFECT_HOST):$(PREFECT_PORT)/api
-PYTHON := PREFECT_API_URL=$(PREFECT_API_URL) PYTHONPATH=. .venv/bin/python3
+PYTHON := PREFECT_API_URL=$(PREFECT_API_URL) PREFECT_CLIENT_SERVER_VERSION_CHECK_ENABLED=false PYTHONPATH=. .venv/bin/python3
+QUIET_PREFECT_ENV := HORIZON_QUIET_PREFECT=1 PREFECT_LOGGING_TO_API_ENABLED=false
+FLOW_PYTHON := $(QUIET_PREFECT_ENV) $(PYTHON)
 DOCKER_BIN ?= $(shell if command -v docker >/dev/null 2>&1; then echo docker; elif command -v flatpak-spawn >/dev/null 2>&1 && flatpak-spawn --host sh -lc 'command -v docker >/dev/null 2>&1'; then echo "flatpak-spawn --host docker"; else echo docker; fi)
 DOCKER_COMPOSE_FILE := docker-compose.yml
 DOCKER_COMPOSE := $(DOCKER_BIN) compose -f $(DOCKER_COMPOSE_FILE)
@@ -86,7 +88,7 @@ pipeline-serra: prefect-server ## Run the Serra campus pipeline explicitly
 
 pipeline-unified: prefect-server ## Run the generic unified pipeline
 	@echo "🚀 Running unified pipeline for $(CAMPUS)..."
-	@$(PYTHON) -c "from src.flows.unified_pipeline import full_ingestion_pipeline; full_ingestion_pipeline(campus_name='$(CAMPUS)', output_dir='data/exports')"
+	@$(FLOW_PYTHON) -c "from src.prefect_runtime import bootstrap_local_prefect; bootstrap_local_prefect(); from src.flows.unified_pipeline import full_ingestion_pipeline; full_ingestion_pipeline(campus_name='$(CAMPUS)', output_dir='data/exports')"
 	@echo "📝 Latest ETL report:"
 	@echo "   JSON: data/reports/etl_flow_run.json"
 	@echo "   MD:   data/reports/etl_flow_run.md"
@@ -97,7 +99,7 @@ pipeline-log: prefect-server ## Run pipeline with timestamped log output
 
 full-refresh: reset-db prefect-server ## Complete refresh for all campi: clean DB + run unified pipeline without campus filter
 	@echo "🚀 Running unified full refresh for all campi..."
-	@$(PYTHON) -c "from src.flows.unified_pipeline import full_ingestion_pipeline; full_ingestion_pipeline(campus_name=None, output_dir='data/exports')"
+	@$(FLOW_PYTHON) -c "from src.prefect_runtime import bootstrap_local_prefect; bootstrap_local_prefect(); from src.flows.unified_pipeline import full_ingestion_pipeline; full_ingestion_pipeline(campus_name=None, output_dir='data/exports')"
 	@echo "✅ Full refresh complete for all campi"
 	@echo "📝 Latest ETL report:"
 	@echo "   JSON: data/reports/etl_flow_run.json"

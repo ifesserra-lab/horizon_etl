@@ -25,10 +25,17 @@ CREATE TABLE person_emails (
 );
 CREATE TABLE advisorships (
     id INTEGER PRIMARY KEY,
-    student_id INTEGER,
-    supervisor_id INTEGER,
     fellowship_id INTEGER,
     institution_id INTEGER
+);
+CREATE TABLE advisorship_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    advisorship_id INTEGER NOT NULL,
+    person_id INTEGER NOT NULL,
+    role_id INTEGER,
+    role_name VARCHAR(50),
+    start_date DATETIME,
+    end_date DATETIME
 );
 CREATE TABLE academic_educations (
     id INTEGER PRIMARY KEY,
@@ -92,7 +99,10 @@ def test_consolidate_pair_moves_links_and_removes_loser(tmp_path: Path):
         "INSERT INTO person_emails (person_id, email) VALUES (452, 'paulo@example.com')"
     )
     conn.execute(
-        "INSERT INTO advisorships (id, supervisor_id) VALUES (1, 452)"
+        "INSERT INTO advisorships (id) VALUES (1)"
+    )
+    conn.execute(
+        "INSERT INTO advisorship_members (advisorship_id, person_id, role_name) VALUES (1, 452, 'Supervisor')"
     )
     conn.execute(
         "INSERT INTO academic_educations (id, researcher_id, education_type_id, title, start_year, institution_id) VALUES (1, 452, 1, 'Mestrado', 2007, 1)"
@@ -122,7 +132,9 @@ def test_consolidate_pair_moves_links_and_removes_loser(tmp_path: Path):
     cur = check.cursor()
     assert cur.execute("SELECT COUNT(*) FROM persons WHERE id = 452").fetchone()[0] == 0
     assert cur.execute("SELECT COUNT(*) FROM researchers WHERE id = 452").fetchone()[0] == 0
-    assert cur.execute("SELECT supervisor_id FROM advisorships WHERE id = 1").fetchone()[0] == 2981
+    assert cur.execute(
+        "SELECT person_id FROM advisorship_members WHERE advisorship_id = 1 AND role_name = 'Supervisor'"
+    ).fetchone()[0] == 2981
     assert cur.execute("SELECT researcher_id FROM academic_educations WHERE id = 1").fetchone()[0] == 2981
     assert cur.execute("SELECT researcher_id FROM article_authors WHERE article_id = 10").fetchone()[0] == 2981
     assert cur.execute("SELECT researcher_id FROM researcher_knowledge_areas WHERE area_id = 99").fetchone()[0] == 2981

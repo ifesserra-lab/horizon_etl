@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../../../img/favicon.ico">
+        <title>SI.2 – Análise do Software - Horizon ETL</title>
+        <link href="../../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../../../css/brands.min.css" rel="stylesheet">
+        <link href="../../../css/solid.min.css" rel="stylesheet">
+        <link href="../../../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../../../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../../..">Horizon ETL</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href="../../.." class="nav-link">Inicio</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Solucao</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../solution-overview/" class="dropdown-item">Visao Geral</a>
+</li>
+                                    
+<li>
+    <a href="../../../architecture/" class="dropdown-item">Arquitetura</a>
+</li>
+                                    
+<li>
+    <a href="../../../flows-and-entrypoints/" class="dropdown-item">Fluxos e Entrypoints</a>
+</li>
+                                    
+<li>
+    <a href="../../../outputs-and-artifacts/" class="dropdown-item">Dados e Artefatos</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Operacao</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../operations/setup-and-run/" class="dropdown-item">Setup e Execucao</a>
+</li>
+                                    
+<li>
+    <a href="../../../operations/automation/" class="dropdown-item">Automacao Semanal</a>
+</li>
+                                    
+<li>
+    <a href="../../../operations/troubleshooting/" class="dropdown-item">Troubleshooting</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Reports</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../reports/" class="dropdown-item">Visao Geral</a>
+</li>
+                                    
+<li>
+    <a href="../../../reports/etl-flow-run/" class="dropdown-item">ETL Flow Run</a>
+</li>
+                                    
+<li>
+    <a href="../../../reports/etl-load-report/" class="dropdown-item">ETL Load Report</a>
+</li>
+                                    
+<li>
+    <a href="../../../reports/tracking-audit-report/" class="dropdown-item">Tracking Audit Report</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Governanca</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../documentation-map/" class="dropdown-item">Mapa da Documentacao</a>
+</li>
+                                    
+<li>
+    <a href="../../../backlog/" class="dropdown-item">Backlog</a>
+</li>
+                                    
+<li>
+    <a href="../../../implementation_plan/" class="dropdown-item">Plano de Implementacao</a>
+</li>
+                                    
+<li>
+    <a href="../../../governance/sdlc-reference/" class="dropdown-item">Referencia SDLC</a>
+</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/ifesserra-lab/horizon_etl/edit/master/docs/2 - implementacao/SI1-2 - identification/SI2-Analise.md" class="nav-link">Edit on ifesserra-lab/horizon_etl
+                                    </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#si2-analise-do-software" class="nav-link">SI.2 – Análise do Software</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#1-objetivo-do-documento" class="nav-link">1. Objetivo do Documento</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#2-entendimento-do-dominio" class="nav-link">2. Entendimento do Domínio</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#3-modelagem-de-processos-prefect-flows" class="nav-link">3. Modelagem de Processos (Prefect Flows)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#4-modelo-conceitual-er-diagram" class="nav-link">4. Modelo Conceitual (ER Diagram)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#5-regras-de-negocio-etl" class="nav-link">5. Regras de Negócio (ETL)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#6-rastreabilidade-si1-si2" class="nav-link">6. Rastreabilidade (SI.1 → SI.2)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="si2-analise-do-software">SI.2 – Análise do Software<a class="headerlink" href="#si2-analise-do-software" title="Permanent link">&para;</a></h1>
+<p><strong>Projeto:</strong> Horizon ETL
+<strong>Versão:</strong> 1.0
+<strong>Responsável:</strong> Antigravity (Senior Analyst)</p>
+<hr />
+<h2 id="1-objetivo-do-documento">1. Objetivo do Documento<a class="headerlink" href="#1-objetivo-do-documento" title="Permanent link">&para;</a></h2>
+<p>Modelar o domínio de Dados Acadêmicos e desenhar os fluxos de orquestração do pipeline ETL.</p>
+<hr />
+<h2 id="2-entendimento-do-dominio">2. Entendimento do Domínio<a class="headerlink" href="#2-entendimento-do-dominio" title="Permanent link">&para;</a></h2>
+<p>O domínio central é a <strong>Produção Acadêmica e Científica</strong>.
+Conceitos Chave:
+- <strong>Pesquisador</strong>: Ator central (Professor/Aluno).
+- <strong>Produção</strong>: Artigo, Livro, Patente.
+- <strong>Projeto</strong>: Iniciativa financiada ou voluntária.
+- <strong>Instituição/Órgão</strong>: IFES, FAPES, CNPq.</p>
+<hr />
+<h2 id="3-modelagem-de-processos-prefect-flows">3. Modelagem de Processos (Prefect Flows)<a class="headerlink" href="#3-modelagem-de-processos-prefect-flows" title="Permanent link">&para;</a></h2>
+<h3 id="31-fluxo-de-ingestao-sigpesq">3.1 Fluxo de Ingestão SigPesq<a class="headerlink" href="#31-fluxo-de-ingestao-sigpesq" title="Permanent link">&para;</a></h3>
+<pre><code class="language-mermaid">flowchart TD
+    Start((Início)) --&gt; Extract[extract_data]
+    Extract --&gt; Transform[transform_data]
+    Transform --&gt; PersistGeneric[persist_data]
+    PersistGeneric --&gt; PersistGroups[persist_research_groups]
+    PersistGroups --&gt; End((Fim))
+
+    subgraph &quot;Persist Groups (Excel)&quot;
+        PersistGroups --&gt; FindLatest[Find Latest .xlsx]
+        FindLatest --&gt; ProcessFile[ResearchGroupLoader]
+        ProcessFile --&gt; Strategies[Strategies: Org, Campus, Area, Researcher]
+    end
+</code></pre>
+<h3 id="32-fluxo-de-atualizacao-cnpq-dgp">3.2 Fluxo de Atualização CNPq (DGP)<a class="headerlink" href="#32-fluxo-de-atualizacao-cnpq-dgp" title="Permanent link">&para;</a></h3>
+<pre><code class="language-mermaid">flowchart TD
+    DB[(Database)] --&gt;|Select Group URL| Fetch[Fetch Groups]
+    Fetch --&gt;|For each URL| Crawler[dgp_cnpq_lib]
+    Crawler --&gt;|Extract Data| Parse[Parse Mirror Data]
+    Parse --&gt;|Extract Members| MemberUpdate[Update Members]
+    Parse --&gt;|Extract Group Info| GroupUpdate[Update Group]
+    MemberUpdate --&gt; Save[(Database UPSERT)]
+    GroupUpdate --&gt; Save
+</code></pre>
+<h3 id="3-strategy-de-normalizacao-lattesscholar">3. strategy de Normalização (Lattes/Scholar)<a class="headerlink" href="#3-strategy-de-normalizacao-lattesscholar" title="Permanent link">&para;</a></h3>
+<pre><code class="language-mermaid">flowchart TD
+    Raw[Dados Brutos] --&gt;|Parse| Staging[Objeto Temporário]
+    Staging --&gt; Match{Existe no Banco?}
+    Match --&gt;|Sim| Merge[Fundir Metadados]
+    Match --&gt;|Não| Create[Criar Novo ID]
+    Merge --&gt; Persist[(Supabase)]
+    Create --&gt; Persist
+</code></pre>
+<h3 id="34-fluxo-de-exportacao-canonica">3.4 Fluxo de Exportação Canônica<a class="headerlink" href="#34-fluxo-de-exportacao-canonica" title="Permanent link">&para;</a></h3>
+<pre><code class="language-mermaid">flowchart TD
+    Start((Início)) --&gt; Org[Export Orgs]
+    Start --&gt; Cam[Export Campuses]
+    Start --&gt; KA[Export Knowledge Areas]
+    Start --&gt; Res[Export Researchers]
+    Start --&gt; RG[Export Research Groups]
+    Start --&gt; Init[Export Initiatives]
+    Start --&gt; InitTypes[Export Initiative Types]
+    Start --&gt; Articles[Export Articles]
+    Start --&gt; Advisorships[Export Advisorships]
+    Start --&gt; Fellowships[Export Fellowships]
+
+    Org &amp; Cam &amp; KA &amp; RG &amp; Init &amp; InitTypes &amp; Articles &amp; Advisorships &amp; Fellowships --&gt; End((Fim))
+    Res --&gt; Enrichment[Enrich with Groups/KAs/Initiatives] --&gt; End
+
+    subgraph &quot;Output Files&quot;
+        Org -.-&gt; f1[&quot;organizations_canonical.json&quot;]
+        Cam -.-&gt; f2[&quot;campuses_canonical.json&quot;]
+        KA -.-&gt; f3[&quot;knowledge_areas_canonical.json&quot;]
+        Res -.-&gt; f4[&quot;researchers_canonical.json&quot;]
+        RG -.-&gt; f5[&quot;research_groups_canonical.json&quot;]
+        Init -.-&gt; f6[&quot;initiatives_canonical.json&quot;]
+        InitTypes -.-&gt; f7[&quot;initiative_types_canonical.json&quot;]
+        Articles -.-&gt; f8[&quot;articles_canonical.json&quot;]
+        Advisorships -.-&gt; f9[&quot;advisorships_canonical.json&quot;]
+        Fellowships -.-&gt; f10[&quot;fellowships_canonical.json&quot;]
+        End -.-&gt; f11[&quot;advisorship_analytics.json&quot;]
+    end
+</code></pre>
+<h3 id="36-fluxo-de-geracao-de-mart-de-analytics">3.6 Fluxo de Geração de Mart de Analytics<a class="headerlink" href="#36-fluxo-de-geracao-de-mart-de-analytics" title="Permanent link">&para;</a></h3>
+<pre><code class="language-mermaid">flowchart TD
+    Canonical[advisorships_canonical.json] --&gt; Summary[Calculate KPIs and rankings]
+    Summary --&gt; SaveMart[Save advisorship_analytics.json]
+</code></pre>
+<h3 id="37-pipeline-unificado-e2e">3.7 Pipeline Unificado (E2E)<a class="headerlink" href="#37-pipeline-unificado-e2e" title="Permanent link">&para;</a></h3>
+<pre><code class="language-mermaid">flowchart TD
+    Start((Início)) --&gt; S1[Ingest SigPesq]
+    S1 --&gt; S1B[Ingest Lattes Projects]
+    S1B --&gt; S2[Sync CNPq Groups]
+    S2 --&gt; S3[Export Canonical Data]
+    S3 --&gt; S4[Generate Knowledge Areas Mart]
+    S4 --&gt; End((Fim))
+</code></pre>
+<h3 id="38-pipeline-serra-operacional">3.8 Pipeline Serra (Operacional)<a class="headerlink" href="#38-pipeline-serra-operacional" title="Permanent link">&para;</a></h3>
+<pre><code class="language-mermaid">flowchart TD
+    Start((Início)) --&gt; G[Ingest SigPesq Groups]
+    G --&gt; C[Sync CNPq for Serra]
+    C --&gt; P[Ingest SigPesq Projects]
+    P --&gt; A[Ingest SigPesq Advisorships]
+    A --&gt; L[Lattes Complete Flow]
+    L --&gt; E[Export Canonical Data]
+    E --&gt; K[Export Knowledge Areas Mart]
+    K --&gt; M[Export Initiatives Analytics Mart]
+    M --&gt; End((Fim))
+</code></pre>
+<hr />
+<h2 id="4-modelo-conceitual-er-diagram">4. Modelo Conceitual (ER Diagram)<a class="headerlink" href="#4-modelo-conceitual-er-diagram" title="Permanent link">&para;</a></h2>
+<p>Diagrama de Entidade-Relacionamento macro para o Supabase.</p>
+<pre><code class="language-mermaid">erDiagram
+    RESEARCHER ||--o{ PROJECT_MEMBER : &quot;participates&quot;
+    PROJECT ||--o{ PROJECT_MEMBER : &quot;has&quot;
+    PROJECT ||--o{ FUNDING : &quot;receives&quot;
+    AGENCY ||--o{ FUNDING : &quot;provides&quot;
+    RESEARCHER ||--o{ PUBLICATION : &quot;authors&quot;
+    RESEARCHER {
+        uuid id
+        string name
+        string lattes_id
+        string scholar_id
+    }
+    PROJECT {
+        uuid id
+        string title
+        string status
+        date start_date
+    }
+    PUBLICATION {
+        uuid id
+        string title
+        int year
+        string doi
+    }
+</code></pre>
+<hr />
+<h2 id="5-regras-de-negocio-etl">5. Regras de Negócio (ETL)<a class="headerlink" href="#5-regras-de-negocio-etl" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Regra</th>
+<th>Descrição</th>
+<th>Impacto</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RN-01</strong></td>
+<td><strong>Prioridade de Fonte</strong></td>
+<td>Se dados conflitarem (ex: Título), Lattes tem prioridade sobre Scholar.</td>
+</tr>
+<tr>
+<td><strong>RN-02</strong></td>
+<td><strong>Desduplicação</strong></td>
+<td>Publicações devem ser desduplicadas por DOI ou Título normalizado.</td>
+</tr>
+<tr>
+<td><strong>RN-03</strong></td>
+<td><strong>Histórico</strong></td>
+<td>Manter log de quando o dado foi extraído/atualizado (<code>updated_at</code>).</td>
+</tr>
+<tr>
+<td><strong>RN-04</strong></td>
+<td><strong>Observabilidade</strong></td>
+<td>Todas as ações (Start, End, Error) devem ser logadas com Contexto.</td>
+</tr>
+<tr>
+<td><strong>RN-05</strong></td>
+<td><strong>Idempotência Estrita (SigPesq)</strong></td>
+<td>Se um Pesquisador (por email) ou Grupo de Pesquisa (por nome) já existir, o sistema deve ignorar a criação e não realizar atualizações destas entidades base.</td>
+</tr>
+<tr>
+<td><strong>RN-06</strong></td>
+<td><strong>Geração de Mart</strong></td>
+<td>O Data Mart de Áreas deve ser gerado consultando diretamente o Banco de Dados via Controllers, garantindo dados em tempo real.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-rastreabilidade-si1-si2">6. Rastreabilidade (SI.1 → SI.2)<a class="headerlink" href="#6-rastreabilidade-si1-si2" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Requisito</th>
+<th>Elemento da Análise</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RF-01 (SigPesq)</td>
+<td>Entidade <code>PROJECT</code>, Fluxo 3.1</td>
+</tr>
+<tr>
+<td>RF-02 (Lattes)</td>
+<td>Entidade <code>RESEARCHER</code>, <code>PUBLICATION</code>, Fluxo 3.2</td>
+</tr>
+<tr>
+<td>RF-08 (Canonical JSON)</td>
+<td>Fluxo de Exportação (User Req. logic)</td>
+</tr>
+<tr>
+<td>RF-09 (CNPq Update)</td>
+<td>Fluxo 3.2, dgp_cnpq_lib</td>
+</tr>
+<tr>
+<td>RF-11 (KA Mart)</td>
+<td>Fluxo de Geração de Mart (RN-06)</td>
+</tr>
+<tr>
+<td>RF-13 (Analytics Mart)</td>
+<td>Fluxo 3.6, Geração de Mart</td>
+</tr>
+<tr>
+<td>RF-16 (SigPesq Advisorships)</td>
+<td>Fluxo de Ingestão SigPesq (Advisorships)</td>
+</tr>
+</tbody>
+</table></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "../../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../../js/base.js"></script>
+        <script src="../../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

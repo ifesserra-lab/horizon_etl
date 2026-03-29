@@ -122,6 +122,56 @@ def export_advisorships_tracking_task(output_dir: str):
     )
 
 
+@task(name="export_ingestion_runs_task")
+def export_ingestion_runs_task(output_dir: str):
+    logger.info("Starting Ingestion Runs export...")
+    sink = JsonSink()
+    exporter = CanonicalDataExporter(sink=sink)
+    exporter.export_ingestion_runs(
+        os.path.join(output_dir, "ingestion_runs_canonical.json")
+    )
+
+
+@task(name="export_source_records_task")
+def export_source_records_task(output_dir: str):
+    logger.info("Starting Source Records export...")
+    sink = JsonSink()
+    exporter = CanonicalDataExporter(sink=sink)
+    exporter.export_source_records(
+        os.path.join(output_dir, "source_records_canonical.json")
+    )
+
+
+@task(name="export_entity_matches_task")
+def export_entity_matches_task(output_dir: str):
+    logger.info("Starting Entity Matches export...")
+    sink = JsonSink()
+    exporter = CanonicalDataExporter(sink=sink)
+    exporter.export_entity_matches(
+        os.path.join(output_dir, "entity_matches_canonical.json")
+    )
+
+
+@task(name="export_attribute_assertions_task")
+def export_attribute_assertions_task(output_dir: str):
+    logger.info("Starting Attribute Assertions export...")
+    sink = JsonSink()
+    exporter = CanonicalDataExporter(sink=sink)
+    exporter.export_attribute_assertions(
+        os.path.join(output_dir, "attribute_assertions_canonical.json")
+    )
+
+
+@task(name="export_entity_change_logs_task")
+def export_entity_change_logs_task(output_dir: str):
+    logger.info("Starting Entity Change Logs export...")
+    sink = JsonSink()
+    exporter = CanonicalDataExporter(sink=sink)
+    exporter.export_entity_change_logs(
+        os.path.join(output_dir, "entity_change_logs_canonical.json")
+    )
+
+
 @task(name="export_fellowships_task")
 def export_fellowships_task(output_dir: str):
     logger.info("Starting Fellowships export...")
@@ -171,6 +221,11 @@ def export_canonical_data_flow(
     export_articles_task(output_dir)
     export_advisorships_task(output_dir)
     export_advisorships_tracking_task(output_dir)
+    export_ingestion_runs_task(output_dir)
+    export_source_records_task(output_dir)
+    export_entity_matches_task(output_dir)
+    export_attribute_assertions_task(output_dir)
+    export_entity_change_logs_task(output_dir)
     export_fellowships_task(output_dir)
     export_advisorship_analytics_task(output_dir)
 
