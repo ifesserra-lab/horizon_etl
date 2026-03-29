@@ -23,8 +23,10 @@ from research_domain.domain.entities import Advisorship
 from src.core.logic.person_matcher import PersonMatcher
 from src.core.logic.team_synchronizer import TeamSynchronizer
 from src.core.logic.entity_manager import EntityManager
+from src.core.logic.initiative_identity import get_existing_initiative_identity
 from src.core.logic.initiative_handlers import StandardProjectHandler, AdvisorshipHandler
 from src.core.logic.initiative_linker import InitiativeLinker
+from src.tracking.recorder import tracking_recorder
 
 
 class ProjectLoader:
@@ -87,15 +89,22 @@ class ProjectLoader:
             return
             
         records = df.to_dict('records')
-        self.process_records(records)
+        self.process_records(records, source_file=file_path)
 
-    def process_records(self, records: list[Dict[str, Any]]) -> None:
+    def process_records(
+        self, records: list[Dict[str, Any]], source_file: Optional[str] = None
+    ) -> None:
         """
         Maps a list of raw dictionary records and orchestrates the UPSERT logic across handlers and linkers.
         """
         logger.info("Fetching existing initiatives for UPSERT...")
         existing_initiatives = self.controller.get_all()
-        existing_by_name = {init.name: init for init in existing_initiatives}
+        existing_by_name = {init.name: init for init in existing_initiatives if getattr(init, "name", None)}
+        existing_by_identity = {}
+        for init in existing_initiatives:
+            identity = get_existing_initiative_identity(init)
+            if identity:
+                existing_by_identity[identity] = init
 
         self.person_matcher.preload_cache()
         initial_persons_count = len(self.person_matcher._persons_cache)
@@ -104,7 +113,13 @@ class ProjectLoader:
 
         for row_dict in records:
             try:
-                self._process_row(row_dict, existing_by_name, stats)
+                self._process_row(
+                    row_dict,
+                    existing_by_name,
+                    existing_by_identity,
+                    stats,
+                    source_file=source_file,
+                )
             except Exception as e:
                 logger.warning(f"Skipping row due to error: {e}")
                 stats["skipped"] += 1
@@ -240,7 +255,14 @@ class ProjectLoader:
         
         logger.info(f"Recalculation complete. Processed {processed_count} parents, updated {updated_count}.")
 
-    def _process_row(self, row_dict: Dict[str, Any], existing_by_name: Dict[str, Any], stats: Dict[str, int]) -> None:
+    def _process_row(
+        self,
+        row_dict: Dict[str, Any],
+        existing_by_name: Dict[str, Any],
+        existing_by_identity: Dict[str, Any],
+        stats: Dict[str, int],
+        source_file: Optional[str] = None,
+    ) -> None:
         # 1. Map to Dict
         project_data = self.mapping_strategy.map_row(row_dict)
 
@@ -250,15 +272,30 @@ class ProjectLoader:
             return
 
         title = project_data["title"]
+        identity_key = project_data.get("identity_key")
         model_class = project_data.get("model_class", Initiative)
         handler = self.handlers.get(model_class, self.handlers[Initiative])
+        source_record = tracking_recorder.record_source_record(
+            source_entity_type=(
+                "advisorship" if model_class is Advisorship else "initiative"
+            ),
+            payload=row_dict,
+            source_record_id=identity_key or title,
+            source_file=source_file,
+            source_path=source_file,
+        )
 
         # 2.5 Parent Initiative Handling
         parent_id = None
         parent_initiative = None
         parent_title = project_data.get("parent_title")
         if parent_title:
-            parent_initiative = existing_by_name.get(parent_title)
+            parent_identity = project_data.get("parent_identity_key")
+            parent_initiative = (
+                existing_by_identity.get(parent_identity)
+                if parent_identity
+                else None
+            ) or existing_by_name.get(parent_title)
             
             if not parent_initiative:
                 # Create parent via Standard Handler
@@ -279,11 +316,16 @@ class ProjectLoader:
                     organization_id=self.org_id
                 )
                 existing_by_name[parent_title] = parent_initiative
+                parent_identity_resolved = get_existing_initiative_identity(parent_initiative)
+                if parent_identity_resolved:
+                    existing_by_identity[parent_identity_resolved] = parent_initiative
             
             parent_id = parent_initiative.id
 
         # 3. UPSERT Initiative
-        existing = existing_by_name.get(title)
+        existing = existing_by_identity.get(identity_key) if identity_key else None
+        if not existing:
+            existing = existing_by_name.get(title)
         initiative = handler.create_or_update(
             project_data=project_data,
             existing_initiative=existing,
@@ -297,10 +339,55 @@ class ProjectLoader:
             stats["created"] += 1
             if initiative: 
                 existing_by_name[title] = initiative
+                resolved_identity = get_existing_initiative_identity(initiative) or identity_key
+                if resolved_identity:
+                    existing_by_identity[resolved_identity] = initiative
         else:
             stats["updated"] += 1
             if initiative:
                 existing_by_name[title] = initiative
+                resolved_identity = get_existing_initiative_identity(initiative) or identity_key
+                if resolved_identity:
+                    existing_by_identity[resolved_identity] = initiative
+
+        if initiative:
+            canonical_entity_type = (
+                "advisorship" if model_class is Advisorship else "initiative"
+            )
+            tracking_recorder.record_entity_match(
+                source_record_id=getattr(source_record, "id", None),
+                canonical_entity_type=canonical_entity_type,
+                canonical_entity_id=initiative.id,
+                match_strategy="identity_key" if identity_key else "title_fallback",
+                match_confidence=1.0 if identity_key else 0.7,
+            )
+            tracked_attrs = {
+                "name": title,
+                "status": project_data.get("status"),
+                "description": project_data.get("description"),
+                "start_date": project_data.get("start_date"),
+                "end_date": project_data.get("end_date"),
+                "coordinator_name": project_data.get("coordinator_name"),
+                "student_names": project_data.get("student_names"),
+                "researcher_names": project_data.get("researcher_names"),
+            }
+            tracking_recorder.record_attribute_assertions(
+                source_record_id=getattr(source_record, "id", None),
+                canonical_entity_type=canonical_entity_type,
+                canonical_entity_id=initiative.id,
+                selected_attributes=tracked_attrs,
+                selection_reason="loader_selected_values",
+            )
+            tracking_recorder.record_change(
+                source_record_id=getattr(source_record, "id", None),
+                canonical_entity_type=canonical_entity_type,
+                canonical_entity_id=initiative.id,
+                operation="create" if not existing else "update",
+                changed_fields=[key for key, value in tracked_attrs.items() if value not in (None, [], "")],
+                before={"existing_initiative_id": getattr(existing, "id", None)} if existing else None,
+                after={"initiative_id": initiative.id, **tracked_attrs},
+                reason=f"{self.mapping_strategy.__class__.__name__} applied",
+            )
 
         # 3.5 Link Advisorship members to Parent Project
         if parent_id and parent_initiative:

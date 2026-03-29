@@ -3,6 +3,8 @@ from typing import Any, Dict, List
 import pandas as pd
 from loguru import logger
 
+from src.core.logic.initiative_identity import build_identity_key
+
 from .base import ProjectMappingStrategy
 
 
@@ -52,8 +54,18 @@ class SigPesqProjectMappingStrategy(ProjectMappingStrategy):
                 "external_research_group": row.get("GrupoPesquisaExterno"),
                 "knowledge_area": row.get("AreaConhecimento"),
                 "keywords": row.get("PalavraChave"),
+                "source_system": "sigpesq_projects",
             },
             "campus_name": row.get("CampusExecucao"),
+            "identity_key": build_identity_key(
+                [
+                    "sigpesq_project",
+                    row.get("Id"),
+                    row.get("Titulo", row.get("Título")),
+                    row.get("Coordenador"),
+                    row.get("Inicio"),
+                ]
+            ),
         }
 
     def _parse_names(self, names_str: Any) -> List[str]:

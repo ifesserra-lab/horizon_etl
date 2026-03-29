@@ -27,6 +27,12 @@ Technical analysis and design phase artifacts.
 ### 4. Local Infrastructure
 - **[docker-compose.yml](../docker-compose.yml)**: Orchestration for local Prefect Server and PostgreSQL.
 
+### 5. Operational Notes
+- The current source layout is centered on `src/core`, `src/adapters`, and `src/flows`.
+- Domain entities are largely provided by the external `research-domain` package rather than a local `src/domain` module.
+- The main execution entrypoint is [app.py](../app.py), while [Makefile](../Makefile) provides the most practical local developer commands.
+- `docs/implementation_plan.md` must reflect the active approved task before implementation starts.
+
 ---
 > [!NOTE]
 > All changes to these documents must be approved and reflected in the `task.md` of active features.

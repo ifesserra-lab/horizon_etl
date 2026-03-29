@@ -43,6 +43,13 @@ from research_domain.controllers.controllers import (
 )
 
 from research_domain.domain.entities import Advisorship, Fellowship # Import new entities
+from src.tracking.entities import (  # noqa: F401
+    AttributeAssertion,
+    EntityChangeLog,
+    EntityMatch,
+    IngestionRun,
+    SourceRecord,
+)
 
 # Extension: Add start_date to ResearchGroup for fundamental metadata
 if not hasattr(ResearchGroup, "start_date"):
