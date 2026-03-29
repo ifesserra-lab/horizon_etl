@@ -1,0 +1,71 @@
+name: Weekly Unified ETL
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weekly-etl-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  run-etl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      STORAGE_TYPE: ${{ secrets.STORAGE_TYPE }}
+      SIGPESQ_USERNAME: ${{ secrets.SIGPESQ_USERNAME }}
+      SIGPESQ_USER: ${{ secrets.SIGPESQ_USERNAME }}
+      SIGPESQ_PASSWORD: ${{ secrets.SIGPESQ_PASSWORD }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Create virtual environment and install dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/pip install -r requirements.txt
+
+      - name: Validate required secrets
+        run: |
+          test -n "$DATABASE_URL" || { echo "Missing GitHub secret: DATABASE_URL"; exit 1; }
+          test -n "$STORAGE_TYPE" || { echo "Missing GitHub secret: STORAGE_TYPE"; exit 1; }
+          test -n "$SIGPESQ_USERNAME" || { echo "Missing GitHub secret: SIGPESQ_USERNAME"; exit 1; }
+          test -n "$SIGPESQ_PASSWORD" || { echo "Missing GitHub secret: SIGPESQ_PASSWORD"; exit 1; }
+
+      - name: Run weekly full refresh
+        run: make full-refresh
+
+      - name: Upload ETL artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-etl-artifacts
+          if-no-files-found: ignore
+          path: |
+            data
+            db/horizon.db
+            !.venv
+            !.venv/**
+            !.env
+            !.env.*
+
+      - name: Show Prefect logs on failure
+        if: failure()
+        run: docker compose logs --tail=200
+
+      - name: Stop Prefect server
+        if: always()
+        run: docker compose down -v
