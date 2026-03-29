@@ -2,6 +2,9 @@
 import sqlite3
 import os
 
+SUPERVISOR_ROLE = "Supervisor"
+
+
 def check_daniel():
     db_path = "/home/paulossjunior/projects/horizon_project/horizon_etl/db/horizon.db"
     if not os.path.exists(db_path):
@@ -33,8 +36,9 @@ def check_daniel():
             SELECT a.id, i.name, a.type, i.status
             FROM advisorships a
             JOIN initiatives i ON a.id = i.id
-            WHERE a.supervisor_id = ?
-        """, (person_id,))
+            JOIN advisorship_members am ON am.advisorship_id = a.id
+            WHERE am.person_id = ? AND am.role_name = ?
+        """, (person_id, SUPERVISOR_ROLE))
         advisorships = cursor.fetchall()
         print(f"Advisorships as supervisor for {name} (ID {person_id}): {len(advisorships)}")
         for adv in advisorships:

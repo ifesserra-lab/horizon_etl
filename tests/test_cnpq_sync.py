@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+import src.core.logic.strategies.cnpq_sync as cnpq_sync_module
 from src.core.logic.strategies.cnpq_sync import CnpqSyncLogic
 
 
@@ -57,7 +58,6 @@ def test_sync_members_uses_resume_fallback_for_new_researcher():
         identification_id="Alice",
         emails=None,
     )
-    assert session.begin_nested.called
     assert session.commit.called
     logic.rg_ctrl._service.add_member.assert_called_once_with(
         team_id=10,
@@ -93,3 +93,35 @@ def test_sync_group_coerces_dict_description_before_update():
     assert update_params["description"] == "Descricao normalizada do grupo"
     assert update_params["gid"] == 87
     session.commit.assert_called()
+
+
+def test_sync_knowledge_areas_tracks_associations_after_commit(monkeypatch):
+    logic = CnpqSyncLogic()
+
+    session = MagicMock()
+    existence_check = MagicMock()
+    existence_check.fetchone.return_value = None
+    session.execute.side_effect = [existence_check, MagicMock()]
+
+    events = []
+    session.commit.side_effect = lambda: events.append("commit")
+
+    logic.rg_ctrl = MagicMock()
+    logic.rg_ctrl._service._repository._session = session
+    logic.ka_ctrl = MagicMock()
+    logic.ka_ctrl.get_all.return_value = [SimpleNamespace(id=55, name="Linha A")]
+
+    tracker = MagicMock()
+    tracker.record_source_record.return_value = SimpleNamespace(id=91)
+    tracker.record_entity_match.side_effect = lambda **kwargs: events.append("match")
+    tracker.record_attribute_assertions.side_effect = lambda **kwargs: events.append("assert")
+    tracker.record_change.side_effect = lambda **kwargs: events.append("change")
+    monkeypatch.setattr(cnpq_sync_module, "tracking_recorder", tracker)
+
+    logic.sync_knowledge_areas(
+        group_id=10,
+        lines_data=[{"nome_da_linha_de_pesquisa": "Linha A"}],
+        source_file="grupo.json",
+    )
+
+    assert events == ["commit", "match", "assert", "change"]

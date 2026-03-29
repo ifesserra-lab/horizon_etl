@@ -1,6 +1,7 @@
 import hashlib
 import json
 from contextlib import contextmanager
+from types import SimpleNamespace
 from typing import Any, Iterable, Optional
 
 from sqlalchemy.exc import IntegrityError
@@ -21,6 +22,16 @@ def _json_default(value: Any) -> Any:
     return str(value)
 
 
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _json_safe(nested) for key, nested in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe(item) for item in value]
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return value
+
+
 def stable_hash(value: Any) -> str:
     payload = json.dumps(value, sort_keys=True, ensure_ascii=False, default=_json_default)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
@@ -28,26 +39,42 @@ def stable_hash(value: Any) -> str:
 
 class TrackingRecorder:
     def __init__(self):
-        self.ingestion_run_ctrl = IngestionRunController()
-        self.source_record_ctrl = SourceRecordController()
-        self.entity_match_ctrl = EntityMatchController()
-        self.attribute_assertion_ctrl = AttributeAssertionController()
-        self.entity_change_log_ctrl = EntityChangeLogController()
+        self._ingestion_run_controller_cls = IngestionRunController
+        self._source_record_controller_cls = SourceRecordController
+        self._entity_match_controller_cls = EntityMatchController
+        self._attribute_assertion_controller_cls = AttributeAssertionController
+        self._entity_change_log_controller_cls = EntityChangeLogController
+
+    @contextmanager
+    def _controller(self, controller_cls):
+        controller = controller_cls()
+        session = controller._service._repository._session
+        try:
+            yield controller
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
     @contextmanager
     def run_context(self, *, source_system: str, flow_name: str, notes: Optional[str] = None):
-        run = self.ingestion_run_ctrl.create_run(
-            source_system=source_system,
-            flow_name=flow_name,
-            notes=notes,
-        )
-        run_token = current_ingestion_run_id.set(run.id)
+        with self._controller(self._ingestion_run_controller_cls) as controller:
+            run = controller.create_run(
+                source_system=source_system,
+                flow_name=flow_name,
+                notes=notes,
+            )
+            run_id = run.id
+        run_token = current_ingestion_run_id.set(run_id)
         source_token = current_source_system.set(source_system)
         try:
-            yield run
-            self.ingestion_run_ctrl.finalize_run(run.id, status="success")
+            yield SimpleNamespace(id=run_id, source_system=source_system, flow_name=flow_name)
+            with self._controller(self._ingestion_run_controller_cls) as controller:
+                controller.finalize_run(run_id, status="success")
         except Exception as exc:
-            self.ingestion_run_ctrl.finalize_run(run.id, status="failed", notes=str(exc))
+            with self._controller(self._ingestion_run_controller_cls) as controller:
+                controller.finalize_run(run_id, status="failed", notes=str(exc))
             raise
         finally:
             current_ingestion_run_id.reset(run_token)
@@ -71,31 +98,32 @@ class TrackingRecorder:
             return None
 
         payload_hash = stable_hash(payload)
-        try:
-            return self.source_record_ctrl.create_source_record(
-                ingestion_run_id=run_id,
-                source_system=source_system,
-                source_entity_type=source_entity_type,
-                source_record_id=source_record_id,
-                source_file=source_file,
-                source_path=source_path,
-                raw_payload_json=payload,
-                payload_hash=payload_hash,
-            )
-        except IntegrityError:
-            session = self.source_record_ctrl._service._repository._session
-            session.rollback()
-            return (
-                session.query(self.source_record_ctrl._service._repository._entity_type)
-                .filter_by(
+        with self._controller(self._source_record_controller_cls) as controller:
+            try:
+                return controller.create_source_record(
                     ingestion_run_id=run_id,
                     source_system=source_system,
                     source_entity_type=source_entity_type,
                     source_record_id=source_record_id,
+                    source_file=source_file,
+                    source_path=source_path,
+                    raw_payload_json=payload,
                     payload_hash=payload_hash,
                 )
-                .first()
-            )
+            except IntegrityError:
+                session = controller._service._repository._session
+                session.rollback()
+                return (
+                    session.query(controller._service._repository._entity_type)
+                    .filter_by(
+                        ingestion_run_id=run_id,
+                        source_system=source_system,
+                        source_entity_type=source_entity_type,
+                        source_record_id=source_record_id,
+                        payload_hash=payload_hash,
+                    )
+                    .first()
+                )
 
     def record_entity_match(
         self,
@@ -108,18 +136,19 @@ class TrackingRecorder:
     ):
         if not source_record_id:
             return None
-        try:
-            return self.entity_match_ctrl.create_match(
-                source_record_id=source_record_id,
-                canonical_entity_type=canonical_entity_type,
-                canonical_entity_id=canonical_entity_id,
-                match_strategy=match_strategy,
-                match_confidence=match_confidence,
-            )
-        except IntegrityError:
-            session = self.entity_match_ctrl._service._repository._session
-            session.rollback()
-            return None
+        with self._controller(self._entity_match_controller_cls) as controller:
+            try:
+                return controller.create_match(
+                    source_record_id=source_record_id,
+                    canonical_entity_type=canonical_entity_type,
+                    canonical_entity_id=canonical_entity_id,
+                    match_strategy=match_strategy,
+                    match_confidence=match_confidence,
+                )
+            except IntegrityError:
+                session = controller._service._repository._session
+                session.rollback()
+                return None
 
     def record_attribute_assertions(
         self,
@@ -133,20 +162,21 @@ class TrackingRecorder:
         if not source_record_id:
             return
         for attribute_name, value in selected_attributes.items():
-            try:
-                self.attribute_assertion_ctrl.create_assertion(
-                    source_record_id=source_record_id,
-                    canonical_entity_type=canonical_entity_type,
-                    canonical_entity_id=canonical_entity_id,
-                    attribute_name=attribute_name,
-                    value_hash=stable_hash(value),
-                    value_json=value,
-                    is_selected=True,
-                    selection_reason=selection_reason,
-                )
-            except IntegrityError:
-                session = self.attribute_assertion_ctrl._service._repository._session
-                session.rollback()
+            with self._controller(self._attribute_assertion_controller_cls) as controller:
+                try:
+                    controller.create_assertion(
+                        source_record_id=source_record_id,
+                        canonical_entity_type=canonical_entity_type,
+                        canonical_entity_id=canonical_entity_id,
+                        attribute_name=attribute_name,
+                        value_hash=stable_hash(value),
+                        value_json=_json_safe(value),
+                        is_selected=True,
+                        selection_reason=selection_reason,
+                    )
+                except IntegrityError:
+                    session = controller._service._repository._session
+                    session.rollback()
 
     def record_change(
         self,
@@ -163,17 +193,18 @@ class TrackingRecorder:
         run_id = current_ingestion_run_id.get()
         if not run_id:
             return
-        self.entity_change_log_ctrl.create_change_log(
-            ingestion_run_id=run_id,
-            source_record_id=source_record_id,
-            canonical_entity_type=canonical_entity_type,
-            canonical_entity_id=canonical_entity_id,
-            operation=operation,
-            changed_fields_json=list(changed_fields),
-            before_json=before,
-            after_json=after,
-            reason=reason,
-        )
+        with self._controller(self._entity_change_log_controller_cls) as controller:
+            controller.create_change_log(
+                ingestion_run_id=run_id,
+                source_record_id=source_record_id,
+                canonical_entity_type=canonical_entity_type,
+                canonical_entity_id=canonical_entity_id,
+                operation=operation,
+                changed_fields_json=_json_safe(list(changed_fields)),
+                before_json=_json_safe(before),
+                after_json=_json_safe(after),
+                reason=reason,
+            )
 
 
 tracking_recorder = TrackingRecorder()

@@ -34,6 +34,9 @@ class JsonSink(IExportSink):
                 if isinstance(obj, (date, datetime)):
                     return obj.isoformat()
 
+                if obj is None or isinstance(obj, (bool, int, float, str)):
+                    return obj
+
                 if isinstance(obj, dict):
                     return {k: serialize(v) for k, v in obj.items()}
 
