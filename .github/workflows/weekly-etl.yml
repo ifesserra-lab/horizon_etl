@@ -38,6 +38,9 @@ jobs:
           .venv/bin/python -m pip install --upgrade pip
           .venv/bin/pip install -r requirements.txt
 
+      - name: Install Playwright Chromium
+        run: .venv/bin/python -m playwright install --with-deps chromium
+
       - name: Validate required secrets
         run: |
           test -n "$DATABASE_URL" || { echo "Missing GitHub secret: DATABASE_URL"; exit 1; }
