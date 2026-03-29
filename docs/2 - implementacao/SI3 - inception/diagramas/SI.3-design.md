@@ -77,16 +77,21 @@ flowchart TD
 src/
 ├── core/                  # BUSINESS RULES (Pure Python)
 │   ├── ports/             # Interfaces (Abstract Base Classes)
-│   ├── domain/            # Entities (Pydantic Models)
-│   └── logic/             # Transformations (Mappers, Cleaners)
+│   └── logic/             # Loaders, exporters, orchestrators, strategies
+│       └── strategies/    # Source- and entity-specific strategy implementations
 │
 ├── adapters/              # INFRASTRUCTURE (I/O)
 │   ├── sources/           # Extractors (Scrapers, API Clients)
-│   └── sinks/             # Loaders (Supabase, S3, FileSystem)
+│   └── sinks/             # Export sinks (JSON and related outputs)
 │
-└── flows/                 # ORCHESTRATION (Prefect)
-    └── <flow_name>.py     # Dependency Injection & Execution
+├── flows/                 # ORCHESTRATION (Prefect)
+│   └── <flow_name>.py     # Dependency Injection & Execution
+└── scripts/               # Local operational and debugging scripts
 ```
+
+Observação de arquitetura:
+- Embora o desenho conceitual continue hexagonal, as entidades de domínio não vivem hoje em um módulo local `src/core/domain`.
+- O projeto consome fortemente as entidades e controllers fornecidos pela biblioteca compartilhada `research-domain`.
 
 ---
 

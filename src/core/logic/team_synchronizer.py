@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from eo_lib import TeamController
 from loguru import logger
+from src.core.logic.initiative_identity import normalize_text
 
 
 class TeamSynchronizer:
@@ -36,13 +37,14 @@ class TeamSynchronizer:
         """
         try:
             existing_teams = self.team_controller.get_all()
+            team_name_key = normalize_text(team_name)
             for t in existing_teams:
                 t_name = (
                     t.name
                     if hasattr(t, "name")
                     else (t.get("name") if isinstance(t, dict) else "")
                 )
-                if t_name == team_name:
+                if t_name == team_name or normalize_text(t_name) == team_name_key:
                     logger.debug(f"Team already exists: {team_name[:50]}...")
                     return t
 

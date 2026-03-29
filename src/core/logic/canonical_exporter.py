@@ -1,7 +1,7 @@
 import os
 import json
 from datetime import datetime
-from collections import Counter
+from collections import Counter, defaultdict
 from typing import Any, List, Optional
 
 from eo_lib import InitiativeController, OrganizationController
@@ -50,6 +50,267 @@ class CanonicalDataExporter:
         self.researcher_ctrl = ResearcherController()
         self.initiative_ctrl = InitiativeController()
         self.article_ctrl = ArticleController()
+
+    def _get_session(self):
+        try:
+            return self.initiative_ctrl._service._repository._session
+        except Exception:
+            return None
+
+    def _has_tracking_schema(self) -> bool:
+        session = self._get_session()
+        if session is None:
+            return False
+
+        required_tables = (
+            "ingestion_runs",
+            "source_records",
+            "entity_matches",
+            "attribute_assertions",
+            "entity_change_logs",
+        )
+        try:
+            for table in required_tables:
+                exists = session.execute(
+                    text(
+                        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = :table_name"
+                    ),
+                    {"table_name": table},
+                ).fetchone()
+                if exists is None:
+                    return False
+            return True
+        except Exception:
+            return False
+
+    @staticmethod
+    def _row_to_dict(row: Any) -> dict:
+        if hasattr(row, "_mapping"):
+            return dict(row._mapping)
+        if isinstance(row, dict):
+            return row
+        return dict(row)
+
+    def _build_tracking_export(self, entity_type: str) -> List[dict]:
+        if not self._has_tracking_schema():
+            logger.info(
+                "Tracking schema not available. Skipping {} tracking export.",
+                entity_type,
+            )
+            return []
+
+        session = self._get_session()
+        if session is None:
+            return []
+
+        entity_ids_query = text(
+            """
+            SELECT canonical_entity_id AS entity_id
+            FROM entity_matches
+            WHERE canonical_entity_type = :entity_type
+            UNION
+            SELECT canonical_entity_id AS entity_id
+            FROM attribute_assertions
+            WHERE canonical_entity_type = :entity_type
+            UNION
+            SELECT canonical_entity_id AS entity_id
+            FROM entity_change_logs
+            WHERE canonical_entity_type = :entity_type
+            ORDER BY entity_id
+            """
+        )
+        source_rows_query = text(
+            """
+            SELECT
+                em.canonical_entity_id AS entity_id,
+                sr.source_system,
+                sr.source_entity_type,
+                sr.source_record_id,
+                sr.source_file,
+                sr.source_path,
+                em.match_strategy,
+                em.match_confidence,
+                em.matched_at
+            FROM entity_matches em
+            JOIN source_records sr ON sr.id = em.source_record_id
+            WHERE em.canonical_entity_type = :entity_type
+            ORDER BY em.canonical_entity_id, em.matched_at, em.id
+            """
+        )
+        assertion_rows_query = text(
+            """
+            SELECT
+                aa.canonical_entity_id AS entity_id,
+                aa.attribute_name,
+                aa.value_json,
+                aa.value_hash,
+                aa.is_selected,
+                aa.selection_reason,
+                aa.asserted_at,
+                sr.id AS source_record_pk,
+                sr.source_system,
+                sr.source_entity_type,
+                sr.source_record_id,
+                sr.source_file,
+                sr.source_path
+            FROM attribute_assertions aa
+            JOIN source_records sr ON sr.id = aa.source_record_id
+            WHERE aa.canonical_entity_type = :entity_type
+            ORDER BY aa.canonical_entity_id, aa.attribute_name, aa.asserted_at DESC, aa.id DESC
+            """
+        )
+        change_rows_query = text(
+            """
+            SELECT
+                ecl.canonical_entity_id AS entity_id,
+                ecl.operation,
+                ecl.changed_fields_json,
+                ecl.before_json,
+                ecl.after_json,
+                ecl.reason,
+                ecl.changed_at,
+                ir.id AS run_id,
+                ir.source_system AS run_source_system,
+                ir.flow_name,
+                ir.status AS run_status,
+                sr.id AS source_record_pk,
+                sr.source_system AS source_record_system,
+                sr.source_entity_type,
+                sr.source_record_id,
+                sr.source_file,
+                sr.source_path
+            FROM entity_change_logs ecl
+            JOIN ingestion_runs ir ON ir.id = ecl.ingestion_run_id
+            LEFT JOIN source_records sr ON sr.id = ecl.source_record_id
+            WHERE ecl.canonical_entity_type = :entity_type
+            ORDER BY ecl.canonical_entity_id, ecl.changed_at, ecl.id
+            """
+        )
+
+        try:
+            entity_ids = [
+                self._row_to_dict(row)["entity_id"]
+                for row in session.execute(
+                    entity_ids_query, {"entity_type": entity_type}
+                ).fetchall()
+            ]
+            if not entity_ids:
+                return []
+
+            items = {
+                entity_id: {
+                    "entity_type": entity_type,
+                    "entity_id": entity_id,
+                    "sources": [],
+                    "created_by": None,
+                    "last_updated_by": None,
+                    "attributes": {},
+                    "matches": [],
+                    "changes": [],
+                }
+                for entity_id in entity_ids
+            }
+
+            source_sets: dict[int, set[str]] = defaultdict(set)
+
+            for row in session.execute(
+                source_rows_query, {"entity_type": entity_type}
+            ).fetchall():
+                record = self._row_to_dict(row)
+                entity_id = record["entity_id"]
+                source_system = record.get("source_system")
+                if source_system:
+                    source_sets[entity_id].add(source_system)
+                items[entity_id]["matches"].append(
+                    {
+                        "source_system": source_system,
+                        "source_entity_type": record.get("source_entity_type"),
+                        "source_record_id": record.get("source_record_id"),
+                        "source_file": record.get("source_file"),
+                        "source_path": record.get("source_path"),
+                        "match_strategy": record.get("match_strategy"),
+                        "match_confidence": (
+                            float(record["match_confidence"])
+                            if record.get("match_confidence") is not None
+                            else None
+                        ),
+                        "matched_at": record.get("matched_at"),
+                    }
+                )
+
+            latest_selected: dict[tuple[int, str], dict] = {}
+            for row in session.execute(
+                assertion_rows_query, {"entity_type": entity_type}
+            ).fetchall():
+                record = self._row_to_dict(row)
+                entity_id = record["entity_id"]
+                source_system = record.get("source_system")
+                if source_system:
+                    source_sets[entity_id].add(source_system)
+
+                if not record.get("is_selected"):
+                    continue
+
+                key = (entity_id, record["attribute_name"])
+                if key in latest_selected:
+                    continue
+                latest_selected[key] = record
+
+            for (entity_id, attribute_name), record in latest_selected.items():
+                items[entity_id]["attributes"][attribute_name] = {
+                    "selected_from": record.get("source_system"),
+                    "source_entity_type": record.get("source_entity_type"),
+                    "source_record_id": record.get("source_record_id"),
+                    "source_file": record.get("source_file"),
+                    "source_path": record.get("source_path"),
+                    "source_record_pk": record.get("source_record_pk"),
+                    "selection_reason": record.get("selection_reason"),
+                    "asserted_at": record.get("asserted_at"),
+                    "value": record.get("value_json"),
+                    "value_hash": record.get("value_hash"),
+                }
+
+            for row in session.execute(
+                change_rows_query, {"entity_type": entity_type}
+            ).fetchall():
+                record = self._row_to_dict(row)
+                entity_id = record["entity_id"]
+                source_system = record.get("source_record_system") or record.get(
+                    "run_source_system"
+                )
+                if source_system:
+                    source_sets[entity_id].add(source_system)
+
+                change = {
+                    "operation": record.get("operation"),
+                    "source_system": source_system,
+                    "flow_name": record.get("flow_name"),
+                    "run_id": record.get("run_id"),
+                    "run_status": record.get("run_status"),
+                    "source_entity_type": record.get("source_entity_type"),
+                    "source_record_id": record.get("source_record_id"),
+                    "source_file": record.get("source_file"),
+                    "source_path": record.get("source_path"),
+                    "changed_at": record.get("changed_at"),
+                    "changed_fields": record.get("changed_fields_json"),
+                    "before": record.get("before_json"),
+                    "after": record.get("after_json"),
+                    "reason": record.get("reason"),
+                }
+                items[entity_id]["changes"].append(change)
+
+            for entity_id, item in items.items():
+                item["sources"] = sorted(source_sets.get(entity_id, set()))
+                if item["changes"]:
+                    item["created_by"] = item["changes"][0]
+                    item["last_updated_by"] = item["changes"][-1]
+
+            return list(items.values())
+        except Exception as exc:
+            logger.warning(
+                f"Failed to build tracking export for {entity_type}: {exc}"
+            )
+            return []
 
     def _export_entities(self, data: List[Any], output_path: str, entity_name: str):
         """
@@ -719,6 +980,18 @@ class CanonicalDataExporter:
         data = self.article_ctrl.get_all()
         self._export_entities(data, output_path, "Articles")
 
+    def export_researchers_tracking(self, output_path: str):
+        data = self._build_tracking_export("researcher")
+        self._export_entities(data, output_path, "Researchers Tracking")
+
+    def export_initiatives_tracking(self, output_path: str):
+        data = self._build_tracking_export("initiative")
+        self._export_entities(data, output_path, "Initiatives Tracking")
+
+    def export_advisorships_tracking(self, output_path: str):
+        data = self._build_tracking_export("advisorship")
+        self._export_entities(data, output_path, "Advisorships Tracking")
+
     def export_all(self, output_dir: str):
         """
         Exports all canonical data to the specified directory.
@@ -735,7 +1008,13 @@ class CanonicalDataExporter:
             os.path.join(output_dir, "knowledge_areas_canonical.json")
         )
         self.export_researchers(os.path.join(output_dir, "researchers_canonical.json"))
+        self.export_researchers_tracking(
+            os.path.join(output_dir, "researchers_tracking.json")
+        )
         self.export_initiatives(os.path.join(output_dir, "initiatives_canonical.json"))
+        self.export_initiatives_tracking(
+            os.path.join(output_dir, "initiatives_tracking.json")
+        )
         self.export_initiative_types(
             os.path.join(output_dir, "initiative_types_canonical.json")
         )
@@ -744,6 +1023,9 @@ class CanonicalDataExporter:
         )
         self.export_advisorships(
             os.path.join(output_dir, "advisorships_canonical.json")
+        )
+        self.export_advisorships_tracking(
+            os.path.join(output_dir, "advisorships_tracking.json")
         )
         self.export_fellowships(
             os.path.join(output_dir, "fellowships_canonical.json")

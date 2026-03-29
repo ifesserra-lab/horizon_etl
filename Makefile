@@ -1,7 +1,7 @@
 # Horizon ETL - Makefile
 # Project automation commands following @agile-standards
 
-.PHONY: help clean-db init-db reset-db prefect-server prefect-stop prefect-status pipeline pipeline-unified export test lint format all
+.PHONY: help clean-db init-db reset-db prefect-server prefect-stop prefect-status pipeline pipeline-unified export test lint format all audit-duplicates harden-db consolidate-duplicates consolidate-duplicates-dry etl-report etl-report-md tracking-audit-report tracking-query
 
 # Python interpreter
 PREFECT_HOST := 127.0.0.1
@@ -87,6 +87,9 @@ pipeline-serra: prefect-server ## Run the Serra campus pipeline explicitly
 pipeline-unified: prefect-server ## Run the generic unified pipeline
 	@echo "🚀 Running unified pipeline for $(CAMPUS)..."
 	@$(PYTHON) -c "from src.flows.unified_pipeline import full_ingestion_pipeline; full_ingestion_pipeline(campus_name='$(CAMPUS)', output_dir='data/exports')"
+	@echo "📝 Latest ETL report:"
+	@echo "   JSON: data/reports/etl_flow_run.json"
+	@echo "   MD:   data/reports/etl_flow_run.md"
 
 pipeline-log: prefect-server ## Run pipeline with timestamped log output
 	@echo "🚀 Running $(CAMPUS) campus pipeline with logging..."
@@ -96,6 +99,9 @@ full-refresh: reset-db prefect-server ## Complete refresh for all campi: clean D
 	@echo "🚀 Running unified full refresh for all campi..."
 	@$(PYTHON) -c "from src.flows.unified_pipeline import full_ingestion_pipeline; full_ingestion_pipeline(campus_name=None, output_dir='data/exports')"
 	@echo "✅ Full refresh complete for all campi"
+	@echo "📝 Latest ETL report:"
+	@echo "   JSON: data/reports/etl_flow_run.json"
+	@echo "   MD:   data/reports/etl_flow_run.md"
 
 full-refresh-serra: reset-db pipeline-serra ## Complete refresh for Serra campus explicitly
 	@echo "✅ Full Serra refresh complete"
@@ -175,6 +181,38 @@ verify-status: ## Verify advisorship status logic correctness
 verify-exports: ## Check if all export files exist
 	@echo "🔍 Verifying export files..."
 	@ls -lh data/exports/*.json
+
+audit-duplicates: ## Audit duplicate candidates in the current database
+	@echo "🔎 Auditing duplicate candidates..."
+	@$(PYTHON) src/scripts/audit_duplicates.py
+
+harden-db: ## Create safe indexes/constraints for duplicate prevention
+	@echo "🛡️ Hardening database indexes..."
+	@$(PYTHON) src/scripts/harden_db_indices.py
+
+consolidate-duplicates: ## Consolidate duplicate persons, teams, and knowledge areas
+	@echo "🧹 Consolidating duplicate entities..."
+	@$(PYTHON) src/scripts/consolidate_duplicates.py --entity all
+
+consolidate-duplicates-dry: ## Preview duplicate consolidations without changing the database
+	@echo "🧪 Previewing duplicate consolidation..."
+	@$(PYTHON) src/scripts/consolidate_duplicates.py --entity all --dry-run
+
+etl-report: ## Generate ETL extraction vs load reconciliation report
+	@echo "📊 Generating ETL load report..."
+	@$(PYTHON) src/scripts/etl_load_report.py
+
+etl-report-md: ## Generate Markdown from the ETL JSON report
+	@echo "📝 Generating ETL Markdown report..."
+	@$(PYTHON) src/scripts/etl_report_markdown.py
+
+tracking-audit-report: ## Generate tracking-domain audit report in JSON and Markdown
+	@echo "🧾 Generating tracking audit report..."
+	@$(PYTHON) src/scripts/tracking_audit_report.py
+
+tracking-query: ## Query tracking data (use QUERY_ARGS="--entity-type researcher --entity-id 2981")
+	@echo "🔎 Querying tracking data..."
+	@$(PYTHON) src/scripts/tracking_query.py $(QUERY_ARGS)
 
 # Development
 logs-dir: ## Create logs directory if it doesn't exist

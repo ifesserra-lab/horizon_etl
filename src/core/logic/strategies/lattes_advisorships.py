@@ -2,8 +2,8 @@ from typing import Any, Dict, List
 from datetime import datetime
 
 from .base import ProjectMappingStrategy
-from eo_lib import Initiative
 from research_domain.domain.entities import Advisorship
+from src.core.logic.initiative_identity import build_identity_key
 
 
 class LattesAdvisorshipMappingStrategy(ProjectMappingStrategy):
@@ -13,9 +13,7 @@ class LattesAdvisorshipMappingStrategy(ProjectMappingStrategy):
 
     def __init__(self, advisor_name: str):
         super().__init__()
-        from src.adapters.sources.lattes_parser import LattesParser
-        self.parser = LattesParser()
-        self.advisor_name = self.parser.normalize_title(advisor_name)
+        self.advisor_name = advisor_name
 
     def map_row(self, row: dict) -> Dict[str, Any]:
         """
@@ -74,15 +72,26 @@ class LattesAdvisorshipMappingStrategy(ProjectMappingStrategy):
             "start_date": start_date,
             "end_date": end_date,
             "description": row.get("type_name", ""),
-            "coordinator_name": self.advisor_name, # The Lattes profile owner
+            "coordinator_name": self.advisor_name, # Preserve original spelling for matching
             "student_names": student_names,
             "research_group_name": None,
             "metadata": {
                 "lattes_nature": row.get("nature"),
-                "advisorship_type": row.get("type_name")
+                "advisorship_type": row.get("type_name"),
+                "source_system": "lattes_advisorships",
             },
             "campus_name": None,
             "model_class": Advisorship,
             "initiative_type_name": "Advisorship", # Hardcoded type for the schema
-            "fellowship_data": fellowship_data
+            "fellowship_data": fellowship_data,
+            "identity_key": build_identity_key(
+                [
+                    "lattes_advisorship",
+                    row.get("title"),
+                    self.advisor_name,
+                    student_name,
+                    start_year or end_year,
+                    row.get("type_name"),
+                ]
+            ),
         }

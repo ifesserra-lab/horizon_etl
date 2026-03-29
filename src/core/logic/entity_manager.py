@@ -19,6 +19,7 @@ from research_domain.controllers import (
     ArticleController
 )
 from research_domain.domain.entities.academic_education import EducationType
+from src.core.logic.initiative_identity import normalize_text
 
 
 class EntityManager:
@@ -60,19 +61,8 @@ class EntityManager:
 
         try:
 
-            def normalize(s):
-                if not s:
-                    return ""
-                return (
-                    unicodedata.normalize("NFD", s)
-                    .encode("ascii", "ignore")
-                    .decode("utf-8")
-                    .upper()
-                    .strip()
-                )
-
-            target_norm = normalize(name)
-            target_short_norm = normalize(short_name) if short_name else ""
+            target_norm = normalize_text(name)
+            target_short_norm = normalize_text(short_name) if short_name else ""
 
             orgs = self.uni_controller.get_all()
             for o in orgs:
@@ -83,8 +73,8 @@ class EntityManager:
                     else o.get("short_name", "")
                 )
 
-                if normalize(o_name) == target_norm or (
-                    target_short_norm and normalize(o_short_name) == target_short_norm
+                if normalize_text(o_name) == target_norm or (
+                    target_short_norm and normalize_text(o_short_name) == target_short_norm
                 ):
                     return o.id if hasattr(o, "id") else o.get("id")
 
@@ -203,20 +193,20 @@ class EntityManager:
         try:
             campuses = self.campus_controller.get_all()
 
-            def normalize(s):
-                return (
-                    unicodedata.normalize("NFD", s)
-                    .encode("ascii", "ignore")
-                    .decode("utf-8")
-                    .upper()
-                    .strip()
-                )
-
-            target_norm = normalize(campus_name)
+            target_norm = normalize_text(campus_name)
 
             for c in campuses:
                 c_name = c.name if hasattr(c, "name") else c.get("name")
-                if c_name and normalize(c_name) == target_norm:
+                c_org = (
+                    c.organization_id
+                    if hasattr(c, "organization_id")
+                    else c.get("organization_id")
+                    if isinstance(c, dict)
+                    else None
+                )
+                if c_name and normalize_text(c_name) == target_norm and (
+                    org_id is None or c_org is None or c_org == org_id
+                ):
                     return c.id if hasattr(c, "id") else c.get("id")
 
             if org_id and len(campus_name) > 3:
@@ -239,13 +229,7 @@ class EntityManager:
             return None
 
         try:
-            norm_name = (
-                unicodedata.normalize("NFD", name)
-                .encode("ascii", "ignore")
-                .decode("utf-8")
-                .strip()
-                .lower()
-            )
+            norm_name = normalize_text(name)
         except Exception:
             return None
 
@@ -255,13 +239,7 @@ class EntityManager:
                 k_name = ka.name if hasattr(ka, "name") else ka.get("name")
                 if k_name:
                     try:
-                        k_norm = (
-                            unicodedata.normalize("NFD", k_name)
-                            .encode("ascii", "ignore")
-                            .decode("utf-8")
-                            .strip()
-                            .lower()
-                        )
+                        k_norm = normalize_text(k_name)
                         if k_norm == norm_name:
                             return ka.id if hasattr(ka, "id") else ka.get("id")
                     except Exception:
@@ -285,7 +263,7 @@ class EntityManager:
             all_types = self.edu_type_controller.get_all()
             for t in all_types:
                 t_name = t.name if hasattr(t, "name") else t.get("name")
-                if t_name == name:
+                if normalize_text(t_name) == normalize_text(name):
                     return t.id if hasattr(t, "id") else t.get("id")
 
             # Create
