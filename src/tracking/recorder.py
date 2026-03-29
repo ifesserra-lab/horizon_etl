@@ -21,6 +21,16 @@ def _json_default(value: Any) -> Any:
     return str(value)
 
 
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _json_safe(nested) for key, nested in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe(item) for item in value]
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return value
+
+
 def stable_hash(value: Any) -> str:
     payload = json.dumps(value, sort_keys=True, ensure_ascii=False, default=_json_default)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
@@ -34,6 +44,29 @@ class TrackingRecorder:
         self.attribute_assertion_ctrl = AttributeAssertionController()
         self.entity_change_log_ctrl = EntityChangeLogController()
 
+    @staticmethod
+    def _controller_session(controller: Any):
+        repository = getattr(getattr(controller, "_service", None), "_repository", None)
+        return getattr(repository, "_session", None)
+
+    def _rollback_sessions(self) -> None:
+        seen_sessions: set[int] = set()
+        for controller in (
+            self.ingestion_run_ctrl,
+            self.source_record_ctrl,
+            self.entity_match_ctrl,
+            self.attribute_assertion_ctrl,
+            self.entity_change_log_ctrl,
+        ):
+            session = self._controller_session(controller)
+            if session is None or id(session) in seen_sessions:
+                continue
+            seen_sessions.add(id(session))
+            try:
+                session.rollback()
+            except Exception:
+                pass
+
     @contextmanager
     def run_context(self, *, source_system: str, flow_name: str, notes: Optional[str] = None):
         run = self.ingestion_run_ctrl.create_run(
@@ -41,13 +74,15 @@ class TrackingRecorder:
             flow_name=flow_name,
             notes=notes,
         )
-        run_token = current_ingestion_run_id.set(run.id)
+        run_id = run.id
+        run_token = current_ingestion_run_id.set(run_id)
         source_token = current_source_system.set(source_system)
         try:
             yield run
-            self.ingestion_run_ctrl.finalize_run(run.id, status="success")
+            self.ingestion_run_ctrl.finalize_run(run_id, status="success")
         except Exception as exc:
-            self.ingestion_run_ctrl.finalize_run(run.id, status="failed", notes=str(exc))
+            self._rollback_sessions()
+            self.ingestion_run_ctrl.finalize_run(run_id, status="failed", notes=str(exc))
             raise
         finally:
             current_ingestion_run_id.reset(run_token)
@@ -79,7 +114,7 @@ class TrackingRecorder:
                 source_record_id=source_record_id,
                 source_file=source_file,
                 source_path=source_path,
-                raw_payload_json=payload,
+                raw_payload_json=_json_safe(payload),
                 payload_hash=payload_hash,
             )
         except IntegrityError:
@@ -140,7 +175,7 @@ class TrackingRecorder:
                     canonical_entity_id=canonical_entity_id,
                     attribute_name=attribute_name,
                     value_hash=stable_hash(value),
-                    value_json=value,
+                    value_json=_json_safe(value),
                     is_selected=True,
                     selection_reason=selection_reason,
                 )
@@ -169,9 +204,9 @@ class TrackingRecorder:
             canonical_entity_type=canonical_entity_type,
             canonical_entity_id=canonical_entity_id,
             operation=operation,
-            changed_fields_json=list(changed_fields),
-            before_json=before,
-            after_json=after,
+            changed_fields_json=_json_safe(list(changed_fields)),
+            before_json=_json_safe(before),
+            after_json=_json_safe(after),
             reason=reason,
         )
 
