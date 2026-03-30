@@ -13,9 +13,10 @@ from research_domain import (
     ResearchGroupController,
 )
 from research_domain.controllers import ArticleController
-from research_domain.domain.entities import Advisorship, AdvisorshipRole, Fellowship
+from src.research_domain_compat import AdvisorshipRole
 
 from src.core.ports.export_sink import IExportSink
+from src.core.logic.export_campus_resolver import ExportCampusResolver
 from src.tracking.entities import (
     AttributeAssertion,
     EntityChangeLog,
@@ -61,6 +62,7 @@ class CanonicalDataExporter:
         self.researcher_ctrl = ResearcherController()
         self.initiative_ctrl = InitiativeController()
         self.article_ctrl = ArticleController()
+        self._campus_resolver: Optional[ExportCampusResolver] = None
 
     def _get_session(self):
         try:
@@ -117,6 +119,159 @@ class CanonicalDataExporter:
             "id": getattr(item, "id", None),
             "name": getattr(item, "name", "Unknown"),
         }
+
+    @staticmethod
+    def _fetch_researcher_advisorship_rows(session: Any) -> list[Any]:
+        members_query = text(
+            """
+            SELECT
+                am_sup.supervisor_id,
+                a.id,
+                i.name,
+                i.status,
+                i.start_date,
+                i.end_date,
+                it.name as type_name,
+                a.type as advisorship_type,
+                p.name as student_name
+            FROM advisorships a
+            JOIN initiatives i ON a.id = i.id
+            LEFT JOIN initiative_types it ON i.initiative_type_id = it.id
+            LEFT JOIN (
+                SELECT advisorship_id, MIN(person_id) AS student_id
+                FROM advisorship_members
+                WHERE role_name = :student_role
+                GROUP BY advisorship_id
+            ) am_std ON am_std.advisorship_id = a.id
+            LEFT JOIN persons p ON am_std.student_id = p.id
+            JOIN (
+                SELECT advisorship_id, MIN(person_id) AS supervisor_id
+                FROM advisorship_members
+                WHERE role_name = :supervisor_role
+                GROUP BY advisorship_id
+            ) am_sup ON am_sup.advisorship_id = a.id
+            """
+        )
+        params = {
+            "student_role": ADVISORSHIP_STUDENT_ROLE,
+            "supervisor_role": ADVISORSHIP_SUPERVISOR_ROLE,
+        }
+
+        try:
+            return session.execute(members_query, params).fetchall()
+        except Exception as exc:
+            logger.info(
+                "Falling back to legacy advisorship columns for researcher export: {}",
+                exc,
+            )
+
+        legacy_query = text(
+            """
+            SELECT
+                a.supervisor_id AS supervisor_id,
+                a.id,
+                i.name,
+                i.status,
+                i.start_date,
+                i.end_date,
+                it.name as type_name,
+                a.type as advisorship_type,
+                p.name as student_name
+            FROM advisorships a
+            JOIN initiatives i ON a.id = i.id
+            LEFT JOIN initiative_types it ON i.initiative_type_id = it.id
+            LEFT JOIN persons p ON a.student_id = p.id
+            WHERE a.supervisor_id IS NOT NULL
+            """
+        )
+        return session.execute(legacy_query).fetchall()
+
+    @staticmethod
+    def _fetch_advisorship_export_rows(session: Any) -> list[Any]:
+        members_query = text(
+            """
+            SELECT
+                a.id, i.name, i.status, i.description, i.start_date, i.end_date,
+                a.type as advisorship_type,
+                it.name as initiative_type_name,
+                am_std.student_id, p_std.name as student_name,
+                am_sup.supervisor_id, p_sup.name as supervisor_name,
+                a.fellowship_id,
+                f.name as fellowship_name,
+                f.description as fellowship_description,
+                f.value as fellowship_value,
+                o.name as sponsor_name,
+                i.parent_id,
+                p_init.name as parent_name,
+                p_init.status as parent_status,
+                p_init.description as parent_description,
+                p_init.start_date as parent_start_date,
+                p_init.end_date as parent_end_date
+            FROM advisorships a
+            JOIN initiatives i ON a.id = i.id
+            LEFT JOIN initiative_types it ON i.initiative_type_id = it.id
+            LEFT JOIN (
+                SELECT advisorship_id, MIN(person_id) AS student_id
+                FROM advisorship_members
+                WHERE role_name = :student_role
+                GROUP BY advisorship_id
+            ) am_std ON am_std.advisorship_id = a.id
+            LEFT JOIN persons p_std ON am_std.student_id = p_std.id
+            LEFT JOIN (
+                SELECT advisorship_id, MIN(person_id) AS supervisor_id
+                FROM advisorship_members
+                WHERE role_name = :supervisor_role
+                GROUP BY advisorship_id
+            ) am_sup ON am_sup.advisorship_id = a.id
+            LEFT JOIN persons p_sup ON am_sup.supervisor_id = p_sup.id
+            LEFT JOIN initiatives p_init ON i.parent_id = p_init.id
+            LEFT JOIN fellowships f ON a.fellowship_id = f.id
+            LEFT JOIN organizations o ON f.sponsor_id = o.id
+            """
+        )
+        params = {
+            "student_role": ADVISORSHIP_STUDENT_ROLE,
+            "supervisor_role": ADVISORSHIP_SUPERVISOR_ROLE,
+        }
+
+        try:
+            return session.execute(members_query, params).fetchall()
+        except Exception as exc:
+            logger.info(
+                "Falling back to legacy advisorship columns for canonical export: {}",
+                exc,
+            )
+
+        legacy_query = text(
+            """
+            SELECT
+                a.id, i.name, i.status, i.description, i.start_date, i.end_date,
+                a.type as advisorship_type,
+                it.name as initiative_type_name,
+                a.student_id, p_std.name as student_name,
+                a.supervisor_id, p_sup.name as supervisor_name,
+                a.fellowship_id,
+                f.name as fellowship_name,
+                f.description as fellowship_description,
+                f.value as fellowship_value,
+                o.name as sponsor_name,
+                i.parent_id,
+                p_init.name as parent_name,
+                p_init.status as parent_status,
+                p_init.description as parent_description,
+                p_init.start_date as parent_start_date,
+                p_init.end_date as parent_end_date
+            FROM advisorships a
+            JOIN initiatives i ON a.id = i.id
+            LEFT JOIN initiative_types it ON i.initiative_type_id = it.id
+            LEFT JOIN persons p_std ON a.student_id = p_std.id
+            LEFT JOIN persons p_sup ON a.supervisor_id = p_sup.id
+            LEFT JOIN initiatives p_init ON i.parent_id = p_init.id
+            LEFT JOIN fellowships f ON a.fellowship_id = f.id
+            LEFT JOIN organizations o ON f.sponsor_id = o.id
+            """
+        )
+        return session.execute(legacy_query).fetchall()
 
     def _build_tracking_export(self, entity_type: str) -> List[dict]:
         if not self._has_tracking_schema():
@@ -339,13 +494,58 @@ class CanonicalDataExporter:
             )
             return []
 
-    def _export_entities(self, data: List[Any], output_path: str, entity_name: str):
+    def _get_campus_resolver(self) -> ExportCampusResolver:
+        if self._campus_resolver is None:
+            self._campus_resolver = ExportCampusResolver(
+                self._get_session(), self.campus_ctrl
+            )
+        return self._campus_resolver
+
+    def _resolve_record_campus(
+        self, record: dict, entity_type: Optional[str] = None
+    ) -> Optional[dict]:
+        resolver = self._get_campus_resolver()
+
+        if entity_type:
+            return resolver.get_campus(entity_type, record.get("id"))
+
+        if record.get("entity_type") and record.get("entity_id") is not None:
+            return resolver.get_campus(record["entity_type"], record["entity_id"])
+
+        if (
+            record.get("canonical_entity_type")
+            and record.get("canonical_entity_id") is not None
+        ):
+            return resolver.get_campus(
+                record["canonical_entity_type"], record["canonical_entity_id"]
+            )
+
+        return None
+
+    def _enrich_export_rows(
+        self, rows: List[dict], entity_type: Optional[str] = None
+    ) -> List[dict]:
+        enriched = []
+        for row in rows:
+            item = dict(row)
+            item.setdefault("campus", self._resolve_record_campus(item, entity_type))
+            enriched.append(item)
+        return enriched
+
+    def _export_entities(
+        self,
+        data: List[Any],
+        output_path: str,
+        entity_name: str,
+        entity_type: Optional[str] = None,
+    ):
         """
         Helper to serialize and export a list of entities.
         """
         logger.info(f"Exporting {len(data)} {entity_name}...")
         try:
             export_data = [self._item_to_export_dict(item) for item in data]
+            export_data = self._enrich_export_rows(export_data, entity_type=entity_type)
 
             self.sink.export(export_data, output_path)
             logger.info(f"Successfully exported {entity_name} to {output_path}")
@@ -373,10 +573,16 @@ class CanonicalDataExporter:
             return []
 
     def _export_tracking_entities(
-        self, model: Any, output_path: str, entity_name: str
+        self,
+        model: Any,
+        output_path: str,
+        entity_name: str,
+        entity_type: Optional[str] = None,
     ) -> None:
         data = self._load_tracking_entities(model, entity_name)
-        self._export_entities(data, output_path, entity_name)
+        self._export_entities(
+            data, output_path, entity_name, entity_type=entity_type
+        )
 
     def export_organizations(self, output_path: str):
         """
@@ -386,7 +592,9 @@ class CanonicalDataExporter:
             output_path (str): The destination file path.
         """
         data = self.org_ctrl.get_all()
-        self._export_entities(data, output_path, "Organizations")
+        self._export_entities(
+            data, output_path, "Organizations", entity_type="organization"
+        )
 
     def export_campuses(self, output_path: str, campus_filter: Optional[str] = None):
         """
@@ -399,7 +607,7 @@ class CanonicalDataExporter:
         data = self.campus_ctrl.get_all()
         if campus_filter:
             data = [c for c in data if c.name.lower() == campus_filter.lower()]
-        self._export_entities(data, output_path, "Campuses")
+        self._export_entities(data, output_path, "Campuses", entity_type="campus")
 
     def export_knowledge_areas(self, output_path: str):
         """
@@ -409,7 +617,9 @@ class CanonicalDataExporter:
             output_path (str): The destination file path.
         """
         data = self.ka_ctrl.get_all()
-        self._export_entities(data, output_path, "Knowledge Areas")
+        self._export_entities(
+            data, output_path, "Knowledge Areas", entity_type="knowledge_area"
+        )
 
     def export_researchers(self, output_path: str):
         """
@@ -418,6 +628,8 @@ class CanonicalDataExporter:
         Args:
             output_path (str): The destination file path.
         """
+        resolver = self._get_campus_resolver()
+
         # Fetch raw list
         researchers = self.researcher_ctrl.get_all()
         
@@ -657,41 +869,7 @@ class CanonicalDataExporter:
         # 6. Advisorships (Researcher -> [Advisorships])
         person_advisorships_map = {}
         try:
-            adv_query = text("""
-                SELECT 
-                    am_sup.supervisor_id,
-                    a.id, 
-                    i.name, 
-                    i.status, 
-                    i.start_date, 
-                    i.end_date,
-                    it.name as type_name,
-                    a.type as advisorship_type,
-                    p.name as student_name
-                FROM advisorships a
-                JOIN initiatives i ON a.id = i.id
-                LEFT JOIN initiative_types it ON i.initiative_type_id = it.id
-                LEFT JOIN (
-                    SELECT advisorship_id, MIN(person_id) AS student_id
-                    FROM advisorship_members
-                    WHERE role_name = :student_role
-                    GROUP BY advisorship_id
-                ) am_std ON am_std.advisorship_id = a.id
-                LEFT JOIN persons p ON am_std.student_id = p.id
-                JOIN (
-                    SELECT advisorship_id, MIN(person_id) AS supervisor_id
-                    FROM advisorship_members
-                    WHERE role_name = :supervisor_role
-                    GROUP BY advisorship_id
-                ) am_sup ON am_sup.advisorship_id = a.id
-            """)
-            adv_result = session.execute(
-                adv_query,
-                {
-                    "student_role": ADVISORSHIP_STUDENT_ROLE,
-                    "supervisor_role": ADVISORSHIP_SUPERVISOR_ROLE,
-                },
-            ).fetchall()
+            adv_result = self._fetch_researcher_advisorship_rows(session)
             
             for row in adv_result:
                 row_data = self._row_to_dict(row)
@@ -770,17 +948,41 @@ class CanonicalDataExporter:
                 init_export = init.copy()
                 init_export["role"] = translated_roles[0] # Primary role
                 del init_export["roles"]
+                init_export["campus"] = resolver.get_campus("initiative", init_export["id"])
                 initiatives_data.append(init_export)
 
             r_dict["initiatives"] = initiatives_data
             r_dict["initiatives"] = initiatives_data
             
             # Use Type-Safe lookups
-            r_dict["research_groups"] = person_groups_map.get(p_id_int, []) if p_id_int else person_groups_map.get(p_id, [])
+            raw_groups = (
+                person_groups_map.get(p_id_int, [])
+                if p_id_int
+                else person_groups_map.get(p_id, [])
+            )
+            r_dict["research_groups"] = []
+            for group in raw_groups:
+                group_export = group.copy()
+                group_export["campus"] = resolver.get_campus(
+                    "research_group", group_export.get("id")
+                )
+                r_dict["research_groups"].append(group_export)
             r_dict["knowledge_areas"] = person_kas_map.get(p_id_int, []) if p_id_int else person_kas_map.get(p_id, [])
             r_dict["academic_education"] = person_education_map.get(p_id_int, []) if p_id_int else person_education_map.get(p_id, [])
             r_dict["articles"] = person_articles_map.get(p_id_int, []) if p_id_int else person_articles_map.get(p_id, [])
-            r_dict["advisorships"] = person_advisorships_map.get(p_id_int, []) if p_id_int else person_advisorships_map.get(p_id, [])
+            raw_advisorships = (
+                person_advisorships_map.get(p_id_int, [])
+                if p_id_int
+                else person_advisorships_map.get(p_id, [])
+            )
+            r_dict["advisorships"] = []
+            for advisorship in raw_advisorships:
+                advisorship_export = advisorship.copy()
+                advisorship_export["campus"] = resolver.get_campus(
+                    "advisorship", advisorship_export.get("id")
+                )
+                r_dict["advisorships"].append(advisorship_export)
+            r_dict["campus"] = resolver.get_campus("researcher", p_id_int or p_id)
             
             export_data.append(r_dict)
 
@@ -798,6 +1000,7 @@ class CanonicalDataExporter:
         Args:
             output_path (str): The destination file path.
         """
+        resolver = self._get_campus_resolver()
         from eo_lib import TeamController
 
         team_ctrl = TeamController()
@@ -931,7 +1134,8 @@ class CanonicalDataExporter:
                             rg_id_val = getattr(rg_obj, "id", None)
                             research_group_data = {
                                 "id": rg_id_val,
-                                "name": getattr(rg_obj, "name", "Unknown")
+                                "name": getattr(rg_obj, "name", "Unknown"),
+                                "campus": resolver.get_campus("research_group", rg_id_val),
                             }
                         
                         # FILTER: Skip adding members if the team is a Research Group
@@ -994,6 +1198,7 @@ class CanonicalDataExporter:
                         "name": item.demandante.name,
                         "short_name": getattr(item.demandante, "short_name", None)
                     } if getattr(item, "demandante", None) else None,
+                    "campus": resolver.get_campus("initiative", item.id),
                     "research_group": research_group_data,
                     "knowledge_areas": initiative_kas_map.get(item.id, []),
                     "external_partner": (
@@ -1025,7 +1230,9 @@ class CanonicalDataExporter:
             output_path (str): The destination file path.
         """
         data = self.initiative_ctrl.list_initiative_types()
-        self._export_entities(data, output_path, "Initiative Types")
+        self._export_entities(
+            data, output_path, "Initiative Types", entity_type="initiative_type"
+        )
 
     def export_articles(self, output_path: str):
         """
@@ -1035,7 +1242,7 @@ class CanonicalDataExporter:
             output_path (str): The destination file path.
         """
         data = self.article_ctrl.get_all()
-        self._export_entities(data, output_path, "Articles")
+        self._export_entities(data, output_path, "Articles", entity_type="article")
 
     def export_researchers_tracking(self, output_path: str):
         data = self._build_tracking_export("researcher")
@@ -1051,12 +1258,12 @@ class CanonicalDataExporter:
 
     def export_ingestion_runs(self, output_path: str):
         self._export_tracking_entities(
-            IngestionRun, output_path, "Tracking Ingestion Runs"
+            IngestionRun, output_path, "Tracking Ingestion Runs", entity_type="ingestion_run"
         )
 
     def export_source_records(self, output_path: str):
         self._export_tracking_entities(
-            SourceRecord, output_path, "Tracking Source Records"
+            SourceRecord, output_path, "Tracking Source Records", entity_type="source_record"
         )
 
     def export_entity_matches(self, output_path: str):
@@ -1137,53 +1344,9 @@ class CanonicalDataExporter:
         """
         Exports all advisorships to a JSON file.
         """
+        resolver = self._get_campus_resolver()
         session = self.initiative_ctrl._service._repository._session
-        query = text("""
-            SELECT 
-                a.id, i.name, i.status, i.description, i.start_date, i.end_date,
-                a.type as advisorship_type,
-                it.name as initiative_type_name,
-                am_std.student_id, p_std.name as student_name,
-                am_sup.supervisor_id, p_sup.name as supervisor_name,
-                a.fellowship_id,
-                f.name as fellowship_name,
-                f.description as fellowship_description,
-                f.value as fellowship_value,
-                o.name as sponsor_name,
-                i.parent_id, 
-                p_init.name as parent_name,
-                p_init.status as parent_status,
-                p_init.description as parent_description,
-                p_init.start_date as parent_start_date,
-                p_init.end_date as parent_end_date
-            FROM advisorships a
-            JOIN initiatives i ON a.id = i.id
-            LEFT JOIN initiative_types it ON i.initiative_type_id = it.id
-            LEFT JOIN (
-                SELECT advisorship_id, MIN(person_id) AS student_id
-                FROM advisorship_members
-                WHERE role_name = :student_role
-                GROUP BY advisorship_id
-            ) am_std ON am_std.advisorship_id = a.id
-            LEFT JOIN persons p_std ON am_std.student_id = p_std.id
-            LEFT JOIN (
-                SELECT advisorship_id, MIN(person_id) AS supervisor_id
-                FROM advisorship_members
-                WHERE role_name = :supervisor_role
-                GROUP BY advisorship_id
-            ) am_sup ON am_sup.advisorship_id = a.id
-            LEFT JOIN persons p_sup ON am_sup.supervisor_id = p_sup.id
-            LEFT JOIN initiatives p_init ON i.parent_id = p_init.id
-            LEFT JOIN fellowships f ON a.fellowship_id = f.id
-            LEFT JOIN organizations o ON f.sponsor_id = o.id
-        """)
-        result = session.execute(
-            query,
-            {
-                "student_role": ADVISORSHIP_STUDENT_ROLE,
-                "supervisor_role": ADVISORSHIP_SUPERVISOR_ROLE,
-            },
-        ).fetchall()
+        result = self._fetch_advisorship_export_rows(session)
         
         projects_map = {}
         orphans = []
@@ -1211,6 +1374,7 @@ class CanonicalDataExporter:
                 "student_name": row_data["student_name"],
                 "supervisor_id": row_data["supervisor_id"],
                 "supervisor_name": row_data["supervisor_name"],
+                "campus": resolver.get_campus("advisorship", row_data["id"]),
                 "fellowship": {
                     "id": row_data["fellowship_id"],
                     "name": row_data["fellowship_name"],
@@ -1237,6 +1401,7 @@ class CanonicalDataExporter:
                              if hasattr(row_data["parent_end_date"], "isoformat")
                              else str(row_data["parent_end_date"]) if row_data["parent_end_date"] else None
                         ),
+                        "campus": resolver.get_campus("initiative", row_data["parent_id"]),
                         "advisorships": [],
                     }
                 projects_map[row_data["parent_id"]]["advisorships"].append(adv_data)
@@ -1291,6 +1456,7 @@ class CanonicalDataExporter:
                 "id": None,
                 "name": "Sem Projeto Associado",
                 "status": "N/A",
+                "campus": None,
                 "team": [],
                 "description": "Bolsistas sem vínculo direto com um projeto de pesquisa estruturado no SigPesq.",
                 "advisorships": orphans
@@ -1315,9 +1481,10 @@ class CanonicalDataExporter:
                 "description": row.description,
                 "value": row.value
             })
-        
-        self.sink.export(data, output_path)
-        logger.info(f"Successfully exported {len(data)} Fellowships to {output_path}")
+
+        self._export_entities(
+            data, output_path, "Fellowships", entity_type="fellowship"
+        )
 
     def generate_advisorship_mart(self, input_path: str, output_path: str):
         """
@@ -1342,6 +1509,7 @@ class CanonicalDataExporter:
         }
 
         supervisors_counter = Counter()
+        campus_counter = Counter()
 
         for p in projects:
             # We also process "Sem Projeto Associado" if it has advisorships
@@ -1354,12 +1522,17 @@ class CanonicalDataExporter:
             p_metrics = {
                 "id": p.get("id"),
                 "name": p.get("name"),
+                "campus": p.get("campus"),
                 "total_students": len(p["advisorships"]),
                 "active_students": 0,
                 "monthly_investment": 0.0,
                 "main_program": "N/A",
                 "team_size": len(p.get("team", [])),
             }
+
+            project_campus = p.get("campus")
+            if isinstance(project_campus, dict) and project_campus.get("name"):
+                campus_counter[project_campus["name"]] += 1
 
             p_programs = Counter()
 
@@ -1443,6 +1616,15 @@ class CanonicalDataExporter:
 
         final_mart = {
             "projects": mart_projects,
+            "campus": (
+                campus_counter.most_common(1)[0][0]
+                if len(campus_counter) == 1
+                else None
+            ),
+            "campuses": [
+                {"name": name, "count": count}
+                for name, count in campus_counter.most_common()
+            ],
             "global_stats": global_stats,
             "rankings": rankings,
             "generated_at": datetime.now().isoformat(),
