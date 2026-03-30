@@ -3,6 +3,7 @@ from typing import Optional
 
 from prefect import flow, get_run_logger
 
+from src.core.logic.prefect_runtime import configure_local_prefect_runtime
 from src.core.logic.etl_flow_reporter import (
     ETLFlowReporter,
     probe_cnpq_sync,
@@ -21,6 +22,8 @@ from .ingest_sigpesq_advisorships import ingest_advisorships_flow
 from .ingest_sigpesq_groups import ingest_research_groups_flow
 from .ingest_sigpesq_projects import ingest_projects_flow
 from .sync_cnpq_groups import sync_cnpq_groups_flow
+
+configure_local_prefect_runtime()
 
 
 @flow(name="Horizon Full Pipeline")
@@ -117,9 +120,9 @@ def full_ingestion_pipeline(
         if reporter:
             json_path, md_path = reporter.write()
             logger.info(
-                "ETL execution report written to {} and {}. Latest aliases updated in data/reports/etl_flow_run.json and data/reports/etl_flow_run.md",
-                json_path,
-                md_path,
+                f"ETL execution report written to {json_path} and {md_path}. "
+                "Latest aliases updated in data/reports/etl_flow_run.json and "
+                "data/reports/etl_flow_run.md"
             )
 
 

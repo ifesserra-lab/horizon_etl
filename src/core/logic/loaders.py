@@ -22,7 +22,7 @@ class SigPesqFileLoader:
         """
         target_dir = os.path.join(self.directory, "report")
         if not os.path.exists(target_dir):
-            logger.warning(
+            logger.info(
                 f"'report' directory not found in {self.directory}. Scanning root."
             )
             target_dir = self.directory

@@ -6,6 +6,8 @@ from glob import glob
 from pathlib import Path
 from typing import Any, Iterable
 
+from research_domain.domain.entities import AdvisorshipRole
+
 from src.adapters.sources.lattes_parser import LattesParser
 from src.core.logic.duplicate_auditor import DuplicateAuditor
 from src.core.logic.initiative_identity import normalize_text
@@ -15,6 +17,8 @@ DB_PATH = "db/horizon.db"
 LATTES_DIR = "data/lattes_json"
 SIGPESQ_DIR = "data/raw/sigpesq"
 OUTPUT_PATH = "data/reports/etl_load_report.json"
+ADVISORSHIP_STUDENT_ROLE = AdvisorshipRole.STUDENT.value
+ADVISORSHIP_SUPERVISOR_ROLE = AdvisorshipRole.SUPERVISOR.value
 
 
 def _safe_count(conn: sqlite3.Connection, table: str) -> int:
@@ -169,10 +173,26 @@ def _db_advisorship_keys(conn: sqlite3.Connection, researcher_id: int) -> set[st
         SELECT i.name AS title, p.name AS student_name, a.type, i.start_date, i.end_date
         FROM advisorships a
         JOIN initiatives i ON i.id = a.id
-        LEFT JOIN persons p ON p.id = a.student_id
-        WHERE a.supervisor_id = ?
+        LEFT JOIN (
+            SELECT advisorship_id, MIN(person_id) AS student_id
+            FROM advisorship_members
+            WHERE role_name = ?
+            GROUP BY advisorship_id
+        ) am_std ON am_std.advisorship_id = a.id
+        LEFT JOIN persons p ON p.id = am_std.student_id
+        JOIN (
+            SELECT advisorship_id, MIN(person_id) AS supervisor_id
+            FROM advisorship_members
+            WHERE role_name = ?
+            GROUP BY advisorship_id
+        ) am_sup ON am_sup.advisorship_id = a.id
+        WHERE am_sup.supervisor_id = ?
         """,
-        (researcher_id,),
+        (
+            ADVISORSHIP_STUDENT_ROLE,
+            ADVISORSHIP_SUPERVISOR_ROLE,
+            researcher_id,
+        ),
     ).fetchall()
     return {
         "|".join(
@@ -357,10 +377,28 @@ def _health_checks(conn: sqlite3.Connection) -> dict[str, int]:
             """
         ),
         "advisorships_without_supervisor": count(
-            "SELECT COUNT(*) FROM advisorships WHERE supervisor_id IS NULL"
+            """
+            SELECT COUNT(*)
+            FROM advisorships a
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM advisorship_members am
+                WHERE am.advisorship_id = a.id
+                  AND am.role_name = 'Supervisor'
+            )
+            """
         ),
         "advisorships_without_student": count(
-            "SELECT COUNT(*) FROM advisorships WHERE student_id IS NULL"
+            """
+            SELECT COUNT(*)
+            FROM advisorships a
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM advisorship_members am
+                WHERE am.advisorship_id = a.id
+                  AND am.role_name = 'Student'
+            )
+            """
         ),
         "initiatives_without_team": count(
             """

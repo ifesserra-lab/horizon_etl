@@ -31,7 +31,7 @@ def create_researcher_with_resume_fallback(
         if "resume" not in str(exc):
             raise
 
-        logger.warning(
+        logger.debug(
             f"Falling back to direct Researcher creation for '{name}' due to controller/service signature mismatch."
         )
         researcher = researcher_ctrl._service.create_with_details(
@@ -40,6 +40,27 @@ def create_researcher_with_resume_fallback(
             identification_id=identification_id,
         )
         _ensure_researcher_row(researcher_ctrl, researcher.id)
+
+        try:
+            return researcher_ctrl.get_by_id(researcher.id)
+        except Exception:
+            return researcher
+    except Exception as exc:
+        if not _is_person_email_type_mismatch(exc) or not emails:
+            raise
+
+        logger.debug(
+            f"Falling back to researcher creation without relationship-bound emails for '{name}'."
+        )
+        _rollback_session(researcher_ctrl)
+
+        researcher = researcher_ctrl.create_researcher(
+            name=name,
+            emails=None,
+            identification_id=identification_id,
+        )
+        _ensure_researcher_row(researcher_ctrl, researcher.id)
+        _ensure_person_emails(researcher_ctrl, researcher.id, emails)
 
         try:
             return researcher_ctrl.get_by_id(researcher.id)
@@ -70,3 +91,58 @@ def _ensure_researcher_row(researcher_ctrl, person_id: Optional[int]) -> None:
         except Exception:
             pass
         raise
+
+
+def _ensure_person_emails(
+    researcher_ctrl,
+    person_id: Optional[int],
+    emails: Optional[list[str]],
+) -> None:
+    if not person_id or not emails:
+        return
+
+    session = researcher_ctrl._service._repository._session
+    try:
+        for email in emails:
+            if not email:
+                continue
+            exists = session.execute(
+                text(
+                    """
+                    SELECT 1
+                    FROM person_emails
+                    WHERE person_id = :pid
+                      AND lower(email) = lower(:email)
+                    """
+                ),
+                {"pid": person_id, "email": email},
+            ).scalar()
+            if not exists:
+                session.execute(
+                    text(
+                        """
+                        INSERT INTO person_emails (person_id, email)
+                        VALUES (:pid, :email)
+                        """
+                    ),
+                    {"pid": person_id, "email": email},
+                )
+        session.commit()
+    except Exception:
+        try:
+            session.rollback()
+        except Exception:
+            pass
+        raise
+
+
+def _rollback_session(researcher_ctrl) -> None:
+    try:
+        researcher_ctrl._service._repository._session.rollback()
+    except Exception:
+        pass
+
+
+def _is_person_email_type_mismatch(exc: Exception) -> bool:
+    message = str(exc)
+    return "PersonEmail.person" in message and "Expected an object of type" in message

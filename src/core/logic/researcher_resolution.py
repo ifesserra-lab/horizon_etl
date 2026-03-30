@@ -1,6 +1,7 @@
 from typing import Any, Iterable, Optional
 
 from loguru import logger
+from research_domain.domain.entities import AdvisorshipRole
 from sqlalchemy import text
 
 from src.adapters.sources.lattes_parser import LattesParser
@@ -173,12 +174,20 @@ def _linked_data_score(person_id: Optional[int], session: Any) -> int:
             text(
                 """
                 SELECT
-                    (SELECT COUNT(*) FROM advisorships WHERE supervisor_id = :pid) +
+                    (
+                        SELECT COUNT(*)
+                        FROM advisorship_members
+                        WHERE role_name = :supervisor_role
+                          AND person_id = :pid
+                    ) +
                     (SELECT COUNT(*) FROM academic_educations WHERE researcher_id = :pid) +
                     (SELECT COUNT(*) FROM article_authors WHERE researcher_id = :pid)
                 """
             ),
-            {"pid": person_id},
+            {
+                "pid": person_id,
+                "supervisor_role": AdvisorshipRole.SUPERVISOR.value,
+            },
         ).fetchone()
         return int(row[0] or 0) * 20 if row else 0
     except Exception:

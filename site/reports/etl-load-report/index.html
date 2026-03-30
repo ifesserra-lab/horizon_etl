@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+        <title>ETL Load Report - Horizon ETL</title>
+        <link href="../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../../css/brands.min.css" rel="stylesheet">
+        <link href="../../css/solid.min.css" rel="stylesheet">
+        <link href="../../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../..">Horizon ETL</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href="../.." class="nav-link">Inicio</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Solucao</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../solution-overview/" class="dropdown-item">Visao Geral</a>
+</li>
+                                    
+<li>
+    <a href="../../architecture/" class="dropdown-item">Arquitetura</a>
+</li>
+                                    
+<li>
+    <a href="../../flows-and-entrypoints/" class="dropdown-item">Fluxos e Entrypoints</a>
+</li>
+                                    
+<li>
+    <a href="../../outputs-and-artifacts/" class="dropdown-item">Dados e Artefatos</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Operacao</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../operations/setup-and-run/" class="dropdown-item">Setup e Execucao</a>
+</li>
+                                    
+<li>
+    <a href="../../operations/automation/" class="dropdown-item">Automacao Semanal</a>
+</li>
+                                    
+<li>
+    <a href="../../operations/troubleshooting/" class="dropdown-item">Troubleshooting</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle active" aria-current="page" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Reports</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../" class="dropdown-item">Visao Geral</a>
+</li>
+                                    
+<li>
+    <a href="../etl-flow-run/" class="dropdown-item">ETL Flow Run</a>
+</li>
+                                    
+<li>
+    <a href="./" class="dropdown-item active" aria-current="page">ETL Load Report</a>
+</li>
+                                    
+<li>
+    <a href="../tracking-audit-report/" class="dropdown-item">Tracking Audit Report</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Governanca</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../documentation-map/" class="dropdown-item">Mapa da Documentacao</a>
+</li>
+                                    
+<li>
+    <a href="../../backlog/" class="dropdown-item">Backlog</a>
+</li>
+                                    
+<li>
+    <a href="../../implementation_plan/" class="dropdown-item">Plano de Implementacao</a>
+</li>
+                                    
+<li>
+    <a href="../../governance/sdlc-reference/" class="dropdown-item">Referencia SDLC</a>
+</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../etl-flow-run/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../tracking-audit-report/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/ifesserra-lab/horizon_etl/edit/master/docs/reports/etl-load-report.md" class="nav-link">Edit on ifesserra-lab/horizon_etl
+                                    </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#etl-load-report" class="nav-link">ETL Load Report</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#relatorio-etl" class="nav-link">Relatorio ETL</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#resumo-executivo" class="nav-link">Resumo Executivo</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#inventario" class="nav-link">Inventario</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#duplicados" class="nav-link">Duplicados</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#saude-do-banco" class="nav-link">Saude do Banco</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#reconciliacao-lattes" class="nav-link">Reconciliacao Lattes</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#principais-deltas-por-curriculo" class="nav-link">Principais Deltas por Curriculo</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="etl-load-report">ETL Load Report<a class="headerlink" href="#etl-load-report" title="Permanent link">&para;</a></h1>
+<p>Fonte canonica: <code>data/reports/etl_load_report.md</code></p>
+<p>Este arquivo abaixo representa um snapshot versionado do report de reconciliacao do ETL.</p>
+<hr />
+<h1 id="relatorio-etl">Relatorio ETL<a class="headerlink" href="#relatorio-etl" title="Permanent link">&para;</a></h1>
+<p>Gerado em: <strong>2026-03-23T23:05:26.925209</strong></p>
+<h2 id="resumo-executivo">Resumo Executivo<a class="headerlink" href="#resumo-executivo" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Duplicados estruturais auditados: <strong>0</strong></li>
+<li>Artigos faltando na reconciliacao Lattes: <strong>47</strong></li>
+<li>Formacoes faltando na reconciliacao Lattes: <strong>7</strong></li>
+<li>Orientacoes faltando na reconciliacao Lattes: <strong>150</strong></li>
+<li>Projetos faltando na reconciliacao Lattes: <strong>7</strong></li>
+<li>Pesquisadores sem resume: <strong>6.343</strong></li>
+<li>Pesquisadores sem CNPq URL: <strong>6.343</strong></li>
+</ul>
+<h2 id="inventario">Inventario<a class="headerlink" href="#inventario" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Arquivos Lattes: <strong>15</strong></li>
+<li>Arquivos fonte SigPesq: <strong>13</strong></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Entidade</th>
+<th>Quantidade</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>persons</td>
+<td>7.189</td>
+</tr>
+<tr>
+<td>researchers</td>
+<td>6.356</td>
+</tr>
+<tr>
+<td>person_emails</td>
+<td>715</td>
+</tr>
+<tr>
+<td>organizations</td>
+<td>24</td>
+</tr>
+<tr>
+<td>organizational_units</td>
+<td>23</td>
+</tr>
+<tr>
+<td>roles</td>
+<td>10</td>
+</tr>
+<tr>
+<td>initiative_types</td>
+<td>2</td>
+</tr>
+<tr>
+<td>initiatives</td>
+<td>1.351</td>
+</tr>
+<tr>
+<td>advisorships</td>
+<td>991</td>
+</tr>
+<tr>
+<td>fellowships</td>
+<td>9</td>
+</tr>
+<tr>
+<td>articles</td>
+<td>624</td>
+</tr>
+<tr>
+<td>article_authors</td>
+<td>736</td>
+</tr>
+<tr>
+<td>academic_educations</td>
+<td>54</td>
+</tr>
+<tr>
+<td>teams</td>
+<td>1.644</td>
+</tr>
+<tr>
+<td>team_members</td>
+<td>13.335</td>
+</tr>
+<tr>
+<td>research_groups</td>
+<td>339</td>
+</tr>
+<tr>
+<td>knowledge_areas</td>
+<td>1.450</td>
+</tr>
+<tr>
+<td>researcher_knowledge_areas</td>
+<td>917</td>
+</tr>
+<tr>
+<td>initiative_teams</td>
+<td>1.401</td>
+</tr>
+</tbody>
+</table>
+<h2 id="duplicados">Duplicados<a class="headerlink" href="#duplicados" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Quantidade</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>persons_by_canonical_name</td>
+<td>0</td>
+</tr>
+<tr>
+<td>teams_by_canonical_name</td>
+<td>0</td>
+</tr>
+<tr>
+<td>knowledge_areas_by_canonical_name</td>
+<td>0</td>
+</tr>
+<tr>
+<td>person_emails_by_lower_email</td>
+<td>0</td>
+</tr>
+<tr>
+<td>organizations_by_name</td>
+<td>0</td>
+</tr>
+<tr>
+<td>organizational_units_by_name_org</td>
+<td>0</td>
+</tr>
+<tr>
+<td>roles_by_name</td>
+<td>0</td>
+</tr>
+<tr>
+<td>initiative_types_by_name</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<h2 id="saude-do-banco">Saude do Banco<a class="headerlink" href="#saude-do-banco" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Quantidade</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>articles_duplicate_doi</td>
+<td>0</td>
+</tr>
+<tr>
+<td>articles_duplicate_title_year</td>
+<td>0</td>
+</tr>
+<tr>
+<td>advisorships_without_supervisor</td>
+<td>0</td>
+</tr>
+<tr>
+<td>advisorships_without_student</td>
+<td>0</td>
+</tr>
+<tr>
+<td>initiatives_without_team</td>
+<td>0</td>
+</tr>
+<tr>
+<td>research_groups_without_cnpq_url</td>
+<td>2</td>
+</tr>
+<tr>
+<td>researchers_without_resume</td>
+<td>6.343</td>
+</tr>
+<tr>
+<td>researchers_without_cnpq_url</td>
+<td>6.343</td>
+</tr>
+</tbody>
+</table>
+<h2 id="reconciliacao-lattes">Reconciliacao Lattes<a class="headerlink" href="#reconciliacao-lattes" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Curriculos Lattes: <strong>15</strong></li>
+<li>Curriculos resolvidos no banco: <strong>15</strong></li>
+<li>Curriculos nao resolvidos: <strong>0</strong></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Entidade</th>
+<th>Extraido</th>
+<th>Persistido</th>
+<th>Casado</th>
+<th>Faltando no banco</th>
+<th>Extras no banco</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>projects</td>
+<td>202</td>
+<td>918</td>
+<td>195</td>
+<td>7</td>
+<td>723</td>
+</tr>
+<tr>
+<td>articles</td>
+<td>782</td>
+<td>736</td>
+<td>735</td>
+<td>47</td>
+<td>1</td>
+</tr>
+<tr>
+<td>educations</td>
+<td>58</td>
+<td>51</td>
+<td>51</td>
+<td>7</td>
+<td>0</td>
+</tr>
+<tr>
+<td>advisorships</td>
+<td>639</td>
+<td>677</td>
+<td>489</td>
+<td>150</td>
+<td>188</td>
+</tr>
+</tbody>
+</table>
+<h3 id="limitacoes">Limitacoes<a class="headerlink" href="#limitacoes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Projects and advisorships are reconciled by normalized names/keys and researcher ownership because the current SQLite initiatives table does not persist source_identity metadata.</li>
+<li>extra_in_db can include records from SigPesq/CNPq or older loads that belong to the same researcher.</li>
+</ul>
+<h2 id="principais-deltas-por-curriculo">Principais Deltas por Curriculo<a class="headerlink" href="#principais-deltas-por-curriculo" title="Permanent link">&para;</a></h2>
+<h3 id="projects">projects<a class="headerlink" href="#projects" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Arquivo</th>
+<th>Faltando</th>
+<th>Extra</th>
+<th>Casado</th>
+<th>Extraido</th>
+<th>Persistido</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>13_Renner-Sartório-Camargo_3539297708118726.json</td>
+<td>5</td>
+<td>8</td>
+<td>1</td>
+<td>6</td>
+<td>9</td>
+</tr>
+<tr>
+<td>05_Gustavo-Maia-de-Almeida_2650921349694794.json</td>
+<td>1</td>
+<td>101</td>
+<td>18</td>
+<td>19</td>
+<td>119</td>
+</tr>
+<tr>
+<td>03_Gabriel-Tozatto-Zago_8771088249434104.json</td>
+<td>1</td>
+<td>24</td>
+<td>18</td>
+<td>19</td>
+<td>42</td>
+</tr>
+<tr>
+<td>08_Pablo-Rodrigues-Muniz_4404912914498937.json</td>
+<td>0</td>
+<td>123</td>
+<td>20</td>
+<td>20</td>
+<td>143</td>
+</tr>
+<tr>
+<td>11_Marco-Antonio-de-Souza-Leite-Cuadros_8629256330944049.json</td>
+<td>0</td>
+<td>108</td>
+<td>26</td>
+<td>26</td>
+<td>134</td>
+</tr>
+</tbody>
+</table>
+<h3 id="articles">articles<a class="headerlink" href="#articles" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Arquivo</th>
+<th>Faltando</th>
+<th>Extra</th>
+<th>Casado</th>
+<th>Extraido</th>
+<th>Persistido</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>13_Renner-Sartório-Camargo_3539297708118726.json</td>
+<td>32</td>
+<td>0</td>
+<td>0</td>
+<td>32</td>
+<td>0</td>
+</tr>
+<tr>
+<td>10_Leonardo-Azevedo-Scardua_3651077981942079.json</td>
+<td>14</td>
+<td>0</td>
+<td>0</td>
+<td>14</td>
+<td>0</td>
+</tr>
+<tr>
+<td>01_Daniel-Cruz-Cavalieri_9583314331960942.json</td>
+<td>1</td>
+<td>1</td>
+<td>79</td>
+<td>80</td>
+<td>80</td>
+</tr>
+<tr>
+<td>00_Paulo-Sergio-dos-Santos-Junior_8400407353673370.json</td>
+<td>0</td>
+<td>0</td>
+<td>27</td>
+<td>27</td>
+<td>27</td>
+</tr>
+<tr>
+<td>02_Rafael-Emerick-Zape-de-Oliveira_8365543719828195.json</td>
+<td>0</td>
+<td>0</td>
+<td>6</td>
+<td>6</td>
+<td>6</td>
+</tr>
+</tbody>
+</table>
+<h3 id="educations">educations<a class="headerlink" href="#educations" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Arquivo</th>
+<th>Faltando</th>
+<th>Extra</th>
+<th>Casado</th>
+<th>Extraido</th>
+<th>Persistido</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>13_Renner-Sartório-Camargo_3539297708118726.json</td>
+<td>4</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+</tr>
+<tr>
+<td>10_Leonardo-Azevedo-Scardua_3651077981942079.json</td>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+</tr>
+<tr>
+<td>00_Paulo-Sergio-dos-Santos-Junior_8400407353673370.json</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+</tr>
+<tr>
+<td>01_Daniel-Cruz-Cavalieri_9583314331960942.json</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+<td>4</td>
+<td>4</td>
+</tr>
+<tr>
+<td>02_Rafael-Emerick-Zape-de-Oliveira_8365543719828195.json</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<h3 id="advisorships">advisorships<a class="headerlink" href="#advisorships" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Arquivo</th>
+<th>Faltando</th>
+<th>Extra</th>
+<th>Casado</th>
+<th>Extraido</th>
+<th>Persistido</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>11_Marco-Antonio-de-Souza-Leite-Cuadros_8629256330944049.json</td>
+<td>46</td>
+<td>79</td>
+<td>56</td>
+<td>102</td>
+<td>135</td>
+</tr>
+<tr>
+<td>05_Gustavo-Maia-de-Almeida_2650921349694794.json</td>
+<td>39</td>
+<td>52</td>
+<td>55</td>
+<td>94</td>
+<td>107</td>
+</tr>
+<tr>
+<td>08_Pablo-Rodrigues-Muniz_4404912914498937.json</td>
+<td>24</td>
+<td>0</td>
+<td>123</td>
+<td>147</td>
+<td>123</td>
+</tr>
+<tr>
+<td>06_Cassius-Zanetti-Resende_4261626566157032.json</td>
+<td>12</td>
+<td>9</td>
+<td>12</td>
+<td>24</td>
+<td>21</td>
+</tr>
+<tr>
+<td>09_Luiz-Alberto-Pinto_3550111932609658.json</td>
+<td>10</td>
+<td>13</td>
+<td>32</td>
+<td>42</td>
+<td>45</td>
+</tr>
+</tbody>
+</table></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../js/base.js"></script>
+        <script src="../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../../../img/favicon.ico">
+        <title>SI.1 – Especificação dos Requisitos do Software - Horizon ETL</title>
+        <link href="../../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../../../css/brands.min.css" rel="stylesheet">
+        <link href="../../../css/solid.min.css" rel="stylesheet">
+        <link href="../../../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../../../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../../..">Horizon ETL</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href="../../.." class="nav-link">Inicio</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Solucao</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../solution-overview/" class="dropdown-item">Visao Geral</a>
+</li>
+                                    
+<li>
+    <a href="../../../architecture/" class="dropdown-item">Arquitetura</a>
+</li>
+                                    
+<li>
+    <a href="../../../flows-and-entrypoints/" class="dropdown-item">Fluxos e Entrypoints</a>
+</li>
+                                    
+<li>
+    <a href="../../../outputs-and-artifacts/" class="dropdown-item">Dados e Artefatos</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Operacao</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../operations/setup-and-run/" class="dropdown-item">Setup e Execucao</a>
+</li>
+                                    
+<li>
+    <a href="../../../operations/automation/" class="dropdown-item">Automacao Semanal</a>
+</li>
+                                    
+<li>
+    <a href="../../../operations/troubleshooting/" class="dropdown-item">Troubleshooting</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Reports</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../reports/" class="dropdown-item">Visao Geral</a>
+</li>
+                                    
+<li>
+    <a href="../../../reports/etl-flow-run/" class="dropdown-item">ETL Flow Run</a>
+</li>
+                                    
+<li>
+    <a href="../../../reports/etl-load-report/" class="dropdown-item">ETL Load Report</a>
+</li>
+                                    
+<li>
+    <a href="../../../reports/tracking-audit-report/" class="dropdown-item">Tracking Audit Report</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Governanca</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../documentation-map/" class="dropdown-item">Mapa da Documentacao</a>
+</li>
+                                    
+<li>
+    <a href="../../../backlog/" class="dropdown-item">Backlog</a>
+</li>
+                                    
+<li>
+    <a href="../../../implementation_plan/" class="dropdown-item">Plano de Implementacao</a>
+</li>
+                                    
+<li>
+    <a href="../../../governance/sdlc-reference/" class="dropdown-item">Referencia SDLC</a>
+</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/ifesserra-lab/horizon_etl/edit/master/docs/2 - implementacao/SI1-2 - identification/SI1-Requisitos.md" class="nav-link">Edit on ifesserra-lab/horizon_etl
+                                    </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#si1-especificacao-dos-requisitos-do-software" class="nav-link">SI.1 – Especificação dos Requisitos do Software</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#1-objetivo-do-documento" class="nav-link">1. Objetivo do Documento</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#2-escopo-do-sistema" class="nav-link">2. Escopo do Sistema</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#3-stakeholders" class="nav-link">3. Stakeholders</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#4-requisitos-funcionais-rf" class="nav-link">4. Requisitos Funcionais (RF)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#5-requisitos-nao-funcionais-rnf" class="nav-link">5. Requisitos Não Funcionais (RNF)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#6-restricoes" class="nav-link">6. Restrições</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="si1-especificacao-dos-requisitos-do-software">SI.1 – Especificação dos Requisitos do Software<a class="headerlink" href="#si1-especificacao-dos-requisitos-do-software" title="Permanent link">&para;</a></h1>
+<p><strong>Projeto:</strong> Horizon ETL
+<strong>Versão:</strong> 1.0
+<strong>Data:</strong> 06/01/2026
+<strong>Responsável:</strong> Antigravity (Senior Analyst)</p>
+<hr />
+<h2 id="1-objetivo-do-documento">1. Objetivo do Documento<a class="headerlink" href="#1-objetivo-do-documento" title="Permanent link">&para;</a></h2>
+<p>Registrar os requisitos funcionais e não funcionais do sistema Horizon ETL, focando na extração, transformação e carga de dados de múltiplas fontes acadêmicas.</p>
+<hr />
+<h2 id="2-escopo-do-sistema">2. Escopo do Sistema<a class="headerlink" href="#2-escopo-do-sistema" title="Permanent link">&para;</a></h2>
+<p>O <strong>Horizon ETL</strong> é uma infraestrutura de dados que automatiza a coleta de informações de pesquisa e extensão.
+- <strong>Entradas</strong>: SigPesq, Lattes, FAPES, Google Scholar.
+- <strong>Saída</strong>: Banco de Dados Unificado (Supabase) para consumo por outros sistemas.</p>
+<hr />
+<h2 id="3-stakeholders">3. Stakeholders<a class="headerlink" href="#3-stakeholders" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Nome / Papel</th>
+<th>Interesse</th>
+<th>Responsabilidade</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Product Owner</strong></td>
+<td>Priorização das fontes</td>
+<td>Validar dados extraídos</td>
+</tr>
+<tr>
+<td><strong>Gestores (Campus)</strong></td>
+<td>Relatórios gerenciais</td>
+<td>Definir métricas de sucesso</td>
+</tr>
+<tr>
+<td><strong>Pesquisadores</strong></td>
+<td>Visibilidade do perfil</td>
+<td>Validar precisão dos dados</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-requisitos-funcionais-rf">4. Requisitos Funcionais (RF)<a class="headerlink" href="#4-requisitos-funcionais-rf" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requisito</th>
+<th>Critério de Aceitação</th>
+<th>Origem</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RF-01</strong></td>
+<td>O sistema deve extrair dados de projetos do SigPesq.</td>
+<td>Projetos persistidos no Supabase com metadados completos.</td>
+<td>PM1.3 (R1)</td>
+</tr>
+<tr>
+<td><strong>RF-02</strong></td>
+<td>O sistema deve extrair dados curriculares da Plataforma Lattes.</td>
+<td>Perfil, formação e produções carregadas para pesquisadores listados.</td>
+<td>PM1.3 (R2)</td>
+</tr>
+<tr>
+<td><strong>RF-04</strong></td>
+<td>O sistema deve extrair dados de execução (Projetos/Bolsas/Compras) da FAPES.</td>
+<td>Dados financeiros e de bolsistas vinculados persistidos.</td>
+<td>PM1.3 (R3)</td>
+</tr>
+<tr>
+<td><strong>RF-05</strong></td>
+<td>O sistema deve coletar metadados do Google Scholar.</td>
+<td>Citações e índice-h atualizados.</td>
+<td>PM1.3 (R4)</td>
+</tr>
+<tr>
+<td><strong>RF-06</strong></td>
+<td>O sistema deve normalizar nomes de autores e instituições.</td>
+<td>Entidades duplicadas fundidas (Merge) em ID único.</td>
+<td>Arq.</td>
+</tr>
+<tr>
+<td><strong>RF-07</strong></td>
+<td>O sistema deve exportar dados de grupos de pesquisa de uma Unidade Organizacional para JSON.</td>
+<td>Arquivo JSON gerado seguindo schema do ResearchGroup.</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-08</strong></td>
+<td>O sistema deve exportar dados canônicos (Organização, Campus, Áreas) para arquivos JSON separados, permitindo filtragem por Campus.</td>
+<td>Arquivos <code>organizations.json</code>, <code>campuses.json</code>, <code>knowledge_areas.json</code> gerados. Filtro de Campus suportado.</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-09</strong></td>
+<td>O sistema deve extrair e atualizar dados de grupos de pesquisa do CNPq DGP (identificação, linhas de pesquisa, membros).</td>
+<td>Dados do grupo (espelho), membros e <strong>linhas de pesquisa (mapeadas para Áreas do Conhecimento)</strong> atualizados no banco de dados via <code>dgp_cnpq_lib</code>.</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-10</strong></td>
+<td>O sistema deve identificar e sincronizar membros egressos do CNPq, registrando corretamente as datas de início e fim de participação.</td>
+<td>Membros egressos identificados e datas de participação (início/fim) persistidas no Supabase.</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-11</strong></td>
+<td>O sistema deve gerar um "Mart JSON" que consolida as Áreas de Pesquisa com seus Grupos e Campi vinculados, permitindo filtragem por campus.</td>
+<td>Arquivo <code>knowledge_areas_mart.json</code> gerado com estatísticas por área. Filtro de campus suportado.</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-12</strong></td>
+<td>O sistema deve criar equipes automaticamente durante a ingestão de projetos SigPesq, extraindo coordenadores, pesquisadores e estudantes das colunas do Excel.</td>
+<td>Equipes criadas com membros associados aos respectivos roles (Coordinator, Researcher, Student). Persons criadas ou reutilizadas (idempotente com Fuzzy Matching).</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-13</strong></td>
+<td>O sistema deve gerar um "Mart JSON" de estatísticas de iniciativa, consolidando totais, evolução anual e composição de equipes.</td>
+<td>Arquivo <code>initiatives_analytics_mart.json</code> gerado com dados de resumo, evolução e composição.</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-14</strong></td>
+<td>O sistema deve associar palavras-chave de projetos como Áreas de Conhecimento ao Grupo de Pesquisa e Pesquisadores vinculados.</td>
+<td>Palavras-chave extraídas e persistidas como <code>KnowledgeArea</code>. Vínculos criados nas tabelas <code>group_knowledge_areas</code> e <code>researcher_knowledge_areas</code>.</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-15</strong></td>
+<td>O sistema deve popular automaticamente Grupos de Pesquisa recém-criados (via ingestão de projetos) com os membros do projeto (Pesquisadores e Estudantes).</td>
+<td>Ao criar um Grupo de Pesquisa inexistente, Coordenador/Pesquisadores do projeto são adicionados como "Pesquisador" do grupo, e Alunos como "Estudante".</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-16</strong></td>
+<td>O sistema deve extrair dados de bolsistas (orientações/bolsas) do SigPesq mapeando: TituloPT (Name), Inicio (StartDate), Fim (EndDate), Orientado (Student) e Orientador (Supervisor). A identificação de pessoas deve usar Nome e E-mail (OrientadoEmail/OrientadorEmail) para evitar duplicatas.</td>
+<td>Bolsistas persistidos no Supabase e vinculados aos seus projetos/orientadores com campos corretos.</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-17</strong></td>
+<td>O sistema deve extrair dados de bolsas (Fellowships) mapeando: Programa (Name) e Valor (Value).</td>
+<td>Fellowships persistidAs com nome do programa e valor financeiro.</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-18</strong></td>
+<td>O sistema deve criar uma Iniciativa do tipo "Projeto de Pesquisa" vinculada à "Advisorship" (Bolsista) usando o campo TituloPJ como nome.</td>
+<td>Advisorships vinculadas a um projeto pai único por título. A unicidade do projeto de pesquisa é garantida pelo nome (TituloPJ).</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-19</strong></td>
+<td>O arquivo <code>advisorships_canonical.json</code> deve exportar os dados agrupados por Projeto de Pesquisa (Parent Project), incluindo detalhes do projeto e a lista de bolsistas vinculados.</td>
+<td>Exportação hierárquica (Projeto -&gt; Bolsistas). Projetos sem bolsistas não precisam ser listados, e bolsistas sem projeto devem ser agrupados sob uma entrada "Sem Projeto" ou similar.</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-20</strong></td>
+<td>O sistema deve garantir que o orientador (Supervisor) e o bolsista (Student) de uma Advisorship sejam adicionados como membros da equipe do Projeto de Pesquisa pai correspondente.</td>
+<td>A identificação de pessoas deve ser idempotente (usando <code>PersonMatcher</code>). O orientador deve ser adicionado ao projeto pai com o papel de "Coordinator" (ou membro da equipe) e o estudante com o papel de "Student".</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-21</strong></td>
+<td>O arquivo <code>advisorships_canonical.json</code> deve incluir a lista de membros da equipe (Team) de cada Projeto de Pesquisa (Parent Project), detalhando nome e papel (Role).</td>
+<td>Para cada projeto no JSON, deve haver um campo <code>team</code> contendo a lista de membros e seus respectivos papéis no projeto pai.</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-22</strong></td>
+<td>O arquivo <code>advisorships_canonical.json</code> deve expandir o campo <code>fellowship_id</code> para um objeto <code>fellowship</code> contendo todos os detalhes da bolsa (ID, Nome, Descrição, Valor).</td>
+<td>Em vez de exportar apenas o ID da bolsa, o sistema deve realizar um join com a tabela de bolsas e exportar o objeto completo.</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-23</strong></td>
+<td>O sistema deve gerar um Data Mart de indicadores (<code>advisorship_analytics.json</code>) a partir do canônico agrupado.</td>
+<td>O mart deve consolidar métricas por projeto (investimento total, contagem de alunos) e globais (distribuição por modalidade de bolsa).</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-24</strong></td>
+<td>O Data Mart deve incluir resumos estatísticos e rankings de orientadores e programas de fomento.</td>
+<td>Automatizar a geração de indicadores de performance e rankings para dashboards.</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-25</strong></td>
+<td>O status de uma Advisorship deve ser determinado automaticamente com base na data de término (<code>Fim</code>). Se a data de término for maior que a data atual, o status é "Active"; caso contrário, é "Concluded".</td>
+<td>Implementar lógica de validação temporal durante a ingestão de dados do SigPesq.</td>
+<td>User Req.</td>
+</tr>
+<tr>
+<td><strong>RF-26</strong></td>
+<td>O sistema deve calcular automaticamente as datas de início e término dos Projetos de Pesquisa (TituloPJ) com base nas datas das orientações filhas associadas. O <code>start_date</code> do projeto deve ser a data mais antiga entre todas as orientações. O <code>end_date</code> deve ser a data mais recente. O <code>status</code> é calculado automaticamente: "Concluded" se <code>end_date</code> &lt; hoje, caso contrário "Active".</td>
+<td>Projetos de Pesquisa criados devem ter: (1) <code>start_date</code> = MIN(orientações.start_date), (2) <code>end_date</code> = MAX(orientações.end_date), (3) <code>status</code> calculado conforme regra. Nenhum projeto deve ter status "Unknown" quando possui orientações.</td>
+<td>User Req.</td>
+</tr>
+</tbody>
+</table>
+<p>| <strong>RF-27</strong> | O sistema deve capturar a agência financiadora (Sponsor) da bolsa SigPesq a partir da coluna <code>agFinanciadora</code>. | Campo <code>sponsor</code> populado na entidade Fellowship. | User Req. |
+| <strong>RF-28</strong> | O sistema deve baixar os currículos Lattes dos pesquisadores utilizando a biblioteca <code>scriptLattes</code> (v0.7.1). O processo deve gerar os arquivos de configuração e lista de pesquisadores a partir do banco de dados, e salvar o JSON gerado no diretório <code>data</code>. | Arquivos JSON gerados no diretório <code>data</code>. Configuração e lista geradas dinamicamente. | User Req. |
+| <strong>RF-29</strong> | O sistema deve extrair Projetos de Pesquisa, Extensão e Desenvolvimento do currículo Lattes (JSON) e persistí-los como Iniciativas. | Projetos extraídos e classificados corretamente (Research, Extension, Development) e vinculados ao pesquisador. | User Req. |</p>
+<hr />
+<h2 id="5-requisitos-nao-funcionais-rnf">5. Requisitos Não Funcionais (RNF)<a class="headerlink" href="#5-requisitos-nao-funcionais-rnf" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Categoria</th>
+<th>Descrição</th>
+<th>Restrição Técnica</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RNF-01</strong></td>
+<td>Idempotência</td>
+<td>Re-execução de pipelines não deve duplicar dados.</td>
+<td><code>UPSERT</code> obrigatório.</td>
+</tr>
+<tr>
+<td><strong>RNF-02</strong></td>
+<td>Resiliência</td>
+<td>Pipelines devem suportar falhas de rede (retries).</td>
+<td>Prefect Retries.</td>
+</tr>
+<tr>
+<td><strong>RNF-03</strong></td>
+<td>Arquitetura</td>
+<td>Código desacoplado seguindo Clean/Hexagonal Arch.</td>
+<td>Modules <code>etl</code>, <code>core</code>.</td>
+</tr>
+<tr>
+<td><strong>RNF-04</strong></td>
+<td>Stack</td>
+<td>Python 3.10+, Prefect, Supabase.</td>
+<td>PM1.0</td>
+</tr>
+<tr>
+<td><strong>RNF-05</strong></td>
+<td>Qualidade</td>
+<td>Cobertura de testes em lógicas de transformação.</td>
+<td>Pytest, TDD.</td>
+</tr>
+<tr>
+<td><strong>RNF-06</strong></td>
+<td>Observabilidade</td>
+<td>Todas as ações do sistema devem gerar logs estruturados.</td>
+<td>Loguru/Prefect Logger.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-restricoes">6. Restrições<a class="headerlink" href="#6-restricoes" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Rate Limits do Google Scholar e Lattes (cnpq).</li>
+<li>Acesso à VPN institucional pode ser necessário para SigPesq (a confirmar).</li>
+</ul></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "../../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../../js/base.js"></script>
+        <script src="../../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

@@ -39,13 +39,20 @@ def test_ingest_academic_education(mock_entity_manager, mock_researcher_controll
     # Mock Researcher
     mock_researcher = MagicMock()
     mock_researcher.id = 123
+    mock_researcher.name = "Test Researcher"
     mock_researcher.brand_id = "1234567890"
+    mock_session = MagicMock()
+    mock_session.execute.return_value.fetchone.return_value = None
     mock_researcher_controller.return_value.get_all.return_value = [mock_researcher]
+    mock_researcher_controller.return_value._service._repository._session = mock_session
     
     # Mock Parser Output
     mock_parser_instance.parse_research_projects.return_value = []
     mock_parser_instance.parse_extension_projects.return_value = []
     mock_parser_instance.parse_development_projects.return_value = []
+    mock_parser_instance.parse_articles.return_value = []
+    mock_parser_instance.parse_conference_papers.return_value = []
+    mock_parser_instance.parse_personal_info.return_value = {}
     
     mock_education_data = [
         {
@@ -65,7 +72,7 @@ def test_ingest_academic_education(mock_entity_manager, mock_researcher_controll
             mock_json_load.return_value = {"nome": "Test Researcher", "idLattes": "1234567890"}
             
             # Execute
-            ingest_file_task("dummy_path/1234567890.json", mock_entity_manager)
+            ingest_file_task.fn("dummy_path/1234567890.json", mock_entity_manager)
             
             # Assert
             # Check if parse_academic_education was called

@@ -7,6 +7,7 @@ import re
 from prefect import flow, task
 from loguru import logger
 from sqlalchemy import text
+from sqlalchemy.engine import Engine
 
 from src.adapters.sources.lattes_parser import LattesParser
 from src.core.logic.entity_manager import EntityManager
@@ -28,14 +29,49 @@ from src.tracking.recorder import tracking_recorder
 
 from prefect.cache_policies import NO_CACHE
 
-@task(name="Ingest Lattes Researcher Data", cache_policy=NO_CACHE)
-def ingest_researcher_data(file_path: str, entity_manager: EntityManager, parser: LattesParser):
+
+def _resolve_sqlalchemy_engine(init_ctrl: InitiativeController) -> Engine:
+    """Resolve the SQLAlchemy engine across eo-lib client variants."""
+    session = None
+    try:
+        session = init_ctrl._service._repository._session
+    except Exception:
+        session = None
+
+    if session is not None:
+        try:
+            bind = session.get_bind()
+            if bind is not None:
+                return bind
+        except Exception:
+            pass
+
+    client = getattr(init_ctrl, "client", None)
+    for attr in ("engine", "_engine"):
+        engine = getattr(client, attr, None)
+        if engine is not None:
+            return engine
+
+    from eo_lib.infrastructure.database.postgres_client import PostgresClient
+
+    repo = PostgresClient()
+    for attr in ("engine", "_engine"):
+        engine = getattr(repo, attr, None)
+        if engine is not None:
+            return engine
+
+    raise RuntimeError("Could not resolve SQLAlchemy engine for Lattes ingestion")
+
+
+def _ingest_researcher_file(
+    file_path: str, entity_manager: EntityManager, parser: LattesParser
+):
     try:
         filename = os.path.basename(file_path)
         lattes_id = filename.replace(".json", "").split("_")[-1]
 
         if not lattes_id or not lattes_id.isdigit():
-            logger.warning(f"Skipping file {filename}: Could not extract Lattes ID.")
+            logger.info(f"Skipping file {filename}: Could not extract Lattes ID.")
             return
 
         try:
@@ -45,10 +81,13 @@ def ingest_researcher_data(file_path: str, entity_manager: EntityManager, parser
             logger.error(f"Failed to load JSON {file_path}: {e}")
             return
             
+        personal_info = parser.parse_personal_info(data)
+
         json_name = data.get("nome") or data.get("name")
         if not json_name:
             info = data.get("informacoes_pessoais", {})
             json_name = info.get("nome_completo")
+        json_name = personal_info.get("name") or json_name
 
         researcher_ctrl = ResearcherController()
         all_researchers = researcher_ctrl.get_all()
@@ -66,11 +105,18 @@ def ingest_researcher_data(file_path: str, entity_manager: EntityManager, parser
         )
             
         if not target_researcher:
-            logger.warning(f"Researcher with lattes_id {lattes_id} not found in DB and Name match failed. Skipping file {filename}.")
-            return
+            target_researcher = resolve_or_create_researcher(
+                researcher_ctrl,
+                all_researchers,
+                name=json_name,
+                identification_id=personal_info.get("lattes_id") or lattes_id,
+            )
+        if not target_researcher:
+            raise RuntimeError(
+                f"Unable to resolve or create researcher for Lattes ID {lattes_id}."
+            )
             
         # 1. Update Personal Info
-        personal_info = parser.parse_personal_info(data)
         needs_update = False
         if personal_info.get("citation_names"):
             target_researcher.citation_names = personal_info["citation_names"]
@@ -172,6 +218,20 @@ def ingest_researcher_data(file_path: str, entity_manager: EntityManager, parser
 
     except Exception as e:
         logger.error(f"Failed to process file {file_path}: {e}")
+
+
+@task(name="Ingest Lattes Researcher Data", cache_policy=NO_CACHE)
+def ingest_researcher_data(
+    file_path: str, entity_manager: EntityManager, parser: LattesParser
+):
+    _ingest_researcher_file(file_path, entity_manager, parser)
+
+
+@task(name="Ingest Lattes Researcher File", cache_policy=NO_CACHE)
+def ingest_file_task(file_path: str, entity_manager: EntityManager):
+    """Compatibility wrapper kept for scripts/tests that still call this symbol."""
+    parser = LattesParser()
+    _ingest_researcher_file(file_path, entity_manager, parser)
 
 
 def ingest_articles_task(articles: List[Dict], target_researcher: Researcher, all_researchers: List[Researcher], parser: LattesParser, source_file: str):
@@ -482,29 +542,24 @@ def ingest_lattes_projects_flow():
     entity_manager = EntityManager(init_ctrl, person_ctrl)
     parser = LattesParser()
     
-    try:
-        from eo_lib.domain.base import Base
-        engine = init_ctrl.client.engine if hasattr(init_ctrl, 'client') else None
-        if not engine:
-             from eo_lib.infrastructure.database.postgres_client import PostgresClient
-             repo = PostgresClient()
-             engine = repo.engine
-        
-        try:
-             AcademicEducation.__table__.drop(engine, checkfirst=True)
-             academic_education_knowledge_areas.drop(engine, checkfirst=True)
-             EducationType.__table__.drop(engine, checkfirst=True)
-             Article.__table__.drop(engine, checkfirst=True)
-             article_authors.drop(engine, checkfirst=True)
-        except Exception:
-             pass
+    from eo_lib.domain.base import Base
 
-        Base.metadata.create_all(engine)
-    except Exception as e:
-        logger.warning(f"Could not ensure table creation: {e}")
+    engine = _resolve_sqlalchemy_engine(init_ctrl)
+
+    try:
+        AcademicEducation.__table__.drop(engine, checkfirst=True)
+        academic_education_knowledge_areas.drop(engine, checkfirst=True)
+        EducationType.__table__.drop(engine, checkfirst=True)
+        Article.__table__.drop(engine, checkfirst=True)
+        article_authors.drop(engine, checkfirst=True)
+    except Exception:
+        pass
+
+    Base.metadata.create_all(engine)
 
     for json_file in json_files:
         ingest_researcher_data(json_file, entity_manager, parser)
+
 
 if __name__ == "__main__":
     ingest_lattes_projects_flow()

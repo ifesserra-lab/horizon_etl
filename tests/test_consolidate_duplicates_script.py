@@ -12,7 +12,16 @@ def test_build_report_and_execute_for_references(tmp_path: Path):
         CREATE TABLE persons (id INTEGER PRIMARY KEY, name TEXT, identification_id TEXT);
         CREATE TABLE researchers (id INTEGER PRIMARY KEY, cnpq_url TEXT, google_scholar_url TEXT, resume TEXT, citation_names TEXT);
         CREATE TABLE person_emails (id INTEGER PRIMARY KEY, person_id INTEGER, email TEXT);
-        CREATE TABLE advisorships (id INTEGER PRIMARY KEY, student_id INTEGER, supervisor_id INTEGER, fellowship_id INTEGER, institution_id INTEGER);
+        CREATE TABLE advisorships (id INTEGER PRIMARY KEY, fellowship_id INTEGER, institution_id INTEGER);
+        CREATE TABLE advisorship_members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            advisorship_id INTEGER NOT NULL,
+            person_id INTEGER NOT NULL,
+            role_id INTEGER,
+            role_name TEXT,
+            start_date DATETIME,
+            end_date DATETIME
+        );
         CREATE TABLE academic_educations (
             id INTEGER PRIMARY KEY,
             researcher_id INTEGER NOT NULL,

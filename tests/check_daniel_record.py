@@ -1,6 +1,10 @@
 from sqlalchemy import text
 from src.core.logic.canonical_exporter import CanonicalDataExporter
 
+
+SUPERVISOR_ROLE = "Supervisor"
+
+
 def check_daniel_status():
     exporter = CanonicalDataExporter(sink=None)
     session = exporter.initiative_ctrl._service._repository._session
@@ -20,12 +24,18 @@ def check_daniel_status():
     print(f"\nChecking Title: {title}")
     
     query = text("""
-        SELECT i.id, i.name, a.type, a.supervisor_id 
+        SELECT i.id, i.name, a.type, am.person_id AS supervisor_id
         FROM initiatives i
         LEFT JOIN advisorships a ON a.id = i.id
+        LEFT JOIN advisorship_members am
+            ON am.advisorship_id = a.id
+           AND am.role_name = :supervisor_role
         WHERE LOWER(i.name) = LOWER(:t)
     """)
-    row = session.execute(query, {"t": title}).fetchone()
+    row = session.execute(
+        query,
+        {"t": title, "supervisor_role": SUPERVISOR_ROLE},
+    ).fetchone()
     
     if row:
         print(f"Found: ID={row.id}, Type={row.type}, SupervisorID={row.supervisor_id}")
