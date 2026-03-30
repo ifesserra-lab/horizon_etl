@@ -126,3 +126,56 @@ def test_advisorship_handler_disambiguates_title_when_name_is_already_taken(
         title
         == "Desenvolvimento de uma Bancada Didática de Baixo Custo | Orientacao Ana Estudante | 2019 | sigpesq 123"
     )
+
+
+@patch("src.core.logic.initiative_handlers.FellowshipController")
+@patch("src.core.logic.initiative_handlers.AdvisorshipController")
+def test_advisorship_handler_supports_legacy_student_and_supervisor_fields(
+    _MockAdvisorshipController,
+    MockFellowshipController,
+):
+    initiative_controller = MagicMock()
+    person_matcher = MagicMock()
+    entity_manager = MagicMock()
+
+    MockFellowshipController.return_value.get_all.return_value = []
+    session = MagicMock()
+    initiative_controller._service._repository._session = session
+    person_matcher.person_controller._service._repository._session = session
+
+    handler = AdvisorshipHandler(
+        initiative_controller=initiative_controller,
+        person_matcher=person_matcher,
+        entity_manager=entity_manager,
+    )
+
+    class LegacyAdvisorship:
+        student = None
+        student_id = None
+        supervisor = None
+        supervisor_id = None
+
+    initiative = LegacyAdvisorship()
+    student = MagicMock()
+    student.id = 11
+    supervisor = MagicMock()
+    supervisor.id = 12
+
+    with patch.object(handler, "_coerce_to_person", side_effect=[student, supervisor]):
+        handler._sync_advisorship_member(
+            initiative,
+            person=student,
+            role_name="Student",
+            start_date=None,
+        )
+        handler._sync_advisorship_member(
+            initiative,
+            person=supervisor,
+            role_name="Supervisor",
+            start_date=None,
+        )
+
+    assert initiative.student is student
+    assert initiative.student_id == 11
+    assert initiative.supervisor is supervisor
+    assert initiative.supervisor_id == 12

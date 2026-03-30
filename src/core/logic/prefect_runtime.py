@@ -1,7 +1,9 @@
 """Prefect runtime tweaks for local CLI ETL execution."""
 
-from prefect.events.clients import NullEventsClient
-from prefect.events.worker import EventsWorker
+from src.prefect_runtime import (
+    disable_prefect_events_client,
+    patch_prefect_task_run_payloads,
+)
 
 _configured = False
 
@@ -13,5 +15,6 @@ def configure_local_prefect_runtime() -> None:
     if _configured:
         return
 
-    EventsWorker.set_client_override(NullEventsClient)
+    patch_prefect_task_run_payloads()
+    disable_prefect_events_client()
     _configured = True

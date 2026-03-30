@@ -1,6 +1,11 @@
 import os
 from urllib.parse import urlparse
 
+from src.prefect_runtime import (
+    disable_prefect_events_client,
+    patch_prefect_task_run_payloads,
+)
+
 
 def configure_prefect_runtime() -> bool:
     """Disable Prefect event streaming for local runs without API auth.
@@ -10,10 +15,9 @@ def configure_prefect_runtime() -> bool:
     noisy warnings/errors for every state transition. We keep orchestration
     enabled and only replace the events client with a no-op implementation.
     """
+    patch_prefect_task_run_payloads()
 
     try:
-        from prefect.events.clients import NullEventsClient
-        from prefect.events.worker import EventsWorker
         from prefect.settings import PREFECT_API_KEY, PREFECT_API_URL
     except Exception:
         return False
@@ -28,5 +32,4 @@ def configure_prefect_runtime() -> bool:
     if hostname not in {"127.0.0.1", "localhost"}:
         return False
 
-    EventsWorker.set_client_override(NullEventsClient)
-    return True
+    return disable_prefect_events_client()

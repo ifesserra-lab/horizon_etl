@@ -124,17 +124,23 @@ def test_export_all_orchestrates_exports():
 
             # Organization export
             args, _ = calls[0]
-            assert args[0] == [{"id": 1, "name": "Org1"}]
+            assert args[0] == [{"id": 1, "name": "Org1", "campus": None}]
             assert "organizations_canonical.json" in args[1]
 
             # Campus export
             args, _ = calls[1]
-            assert args[0] == [{"id": 10, "name": "Campus1"}]
+            assert args[0] == [
+                {
+                    "id": 10,
+                    "name": "Campus1",
+                    "campus": {"id": 10, "name": "Campus1"},
+                }
+            ]
             assert "campuses_canonical.json" in args[1]
 
             # Knowledge Area export
             args, _ = calls[2]
-            assert args[0] == [{"id": 100, "name": "Area1"}]
+            assert args[0] == [{"id": 100, "name": "Area1", "campus": None}]
             assert "knowledge_areas_canonical.json" in args[1]
 
             # Researcher export
@@ -149,6 +155,7 @@ def test_export_all_orchestrates_exports():
                     "academic_education": [],
                     "articles": [],
                     "advisorships": [],
+                    "campus": None,
                 }
             ]
             assert "researchers_canonical.json" in args[1]
@@ -279,6 +286,7 @@ def test_export_researchers_tracking_builds_parallel_payload():
     assert exported_data[0]["entity_type"] == "researcher"
     assert exported_data[0]["entity_id"] == 2981
     assert exported_data[0]["sources"] == ["lattes"]
+    assert exported_data[0]["campus"] is None
     assert exported_data[0]["attributes"]["resume"]["selected_from"] == "lattes"
     assert exported_data[0]["created_by"]["operation"] == "create"
     assert exported_data[0]["last_updated_by"]["flow_name"] == "ingest_lattes_projects"
@@ -467,6 +475,7 @@ def test_export_advisorships_preserves_student_and_supervisor_fields_from_member
 
     assert output_path == "output/advisorships_canonical.json"
     assert exported_data[0]["name"] == "Sem Projeto Associado"
+    assert exported_data[0]["campus"] is None
     assert exported_data[0]["advisorships"] == [
         {
             "id": 1,
@@ -481,6 +490,79 @@ def test_export_advisorships_preserves_student_and_supervisor_fields_from_member
             "student_name": "Aluno A",
             "supervisor_id": 2981,
             "supervisor_name": "Paulo Sergio",
+            "campus": None,
             "fellowship": None,
         }
     ]
+
+
+def test_export_advisorships_falls_back_to_legacy_student_and_supervisor_columns():
+    mock_sink = MagicMock(spec=IExportSink)
+
+    with (
+        patch("src.core.logic.canonical_exporter.OrganizationController"),
+        patch("src.core.logic.canonical_exporter.CampusController"),
+        patch("src.core.logic.canonical_exporter.KnowledgeAreaController"),
+        patch("src.core.logic.canonical_exporter.ResearcherController"),
+        patch("src.core.logic.canonical_exporter.InitiativeController"),
+    ):
+        exporter = CanonicalDataExporter(sink=mock_sink)
+
+    class FakeResult:
+        def __init__(self, rows):
+            self._rows = rows
+
+        def fetchall(self):
+            return self._rows
+
+    class FakeSession:
+        def __init__(self):
+            self.members_query_attempted = False
+
+        def execute(self, statement, params=None):
+            statement_text = getattr(statement, "text", str(statement))
+            if "FROM advisorship_members" in statement_text:
+                self.members_query_attempted = True
+                raise RuntimeError("no such table: advisorship_members")
+
+            assert "a.student_id" in statement_text
+            assert "a.supervisor_id" in statement_text
+            return FakeResult(
+                [
+                    {
+                        "id": 2,
+                        "name": "Orientacao Legada",
+                        "status": "active",
+                        "description": "legacy",
+                        "start_date": None,
+                        "end_date": None,
+                        "advisorship_type": "Scientific Initiation",
+                        "initiative_type_name": "Advisorship",
+                        "student_id": 88,
+                        "student_name": "Aluno Legado",
+                        "supervisor_id": 99,
+                        "supervisor_name": "Supervisor Legado",
+                        "fellowship_id": None,
+                        "fellowship_name": None,
+                        "fellowship_description": None,
+                        "fellowship_value": None,
+                        "sponsor_name": None,
+                        "parent_id": None,
+                        "parent_name": None,
+                        "parent_status": None,
+                        "parent_description": None,
+                        "parent_start_date": None,
+                        "parent_end_date": None,
+                    }
+                ]
+            )
+
+    fake_session = FakeSession()
+    exporter.initiative_ctrl._service._repository._session = fake_session
+
+    exporter.export_advisorships("output/advisorships_canonical.json")
+
+    assert fake_session.members_query_attempted is True
+    exported_data, _output_path = mock_sink.export.call_args[0]
+    assert exported_data[0]["advisorships"][0]["student_name"] == "Aluno Legado"
+    assert exported_data[0]["advisorships"][0]["supervisor_name"] == "Supervisor Legado"

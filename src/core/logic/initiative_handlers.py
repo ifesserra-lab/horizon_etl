@@ -20,9 +20,15 @@ from research_domain.controllers.controllers import (
     AdvisorshipController,
     FellowshipController,
 )
-from research_domain.domain.entities import Advisorship, AdvisorshipRole, Fellowship
 from loguru import logger
 from sqlalchemy import text
+
+from src.research_domain_compat import (
+    Advisorship,
+    AdvisorshipRole,
+    Fellowship,
+    advisorship_supports_members_api,
+)
 
 
 class BaseInitiativeHandler(ABC):
@@ -303,20 +309,35 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         role_name: str,
         start_date: Optional[Any],
     ) -> None:
-        members = list(getattr(initiative, "members", []) or [])
-        retained_members = [
-            member
-            for member in members
-            if getattr(member, "role_name", None) != role_name
-        ]
-        initiative.members = retained_members
-
         person = self._coerce_to_person(person)
-        if not person:
+
+        if advisorship_supports_members_api(initiative):
+            members = list(getattr(initiative, "members", []) or [])
+            retained_members = [
+                member
+                for member in members
+                if getattr(member, "role_name", None) != role_name
+            ]
+            initiative.members = retained_members
+
+            if not person:
+                return
+
+            role = self._get_or_create_advisorship_role(role_name)
+            initiative.add_member(person=person, role=role, start_date=start_date)
             return
 
-        role = self._get_or_create_advisorship_role(role_name)
-        initiative.add_member(person=person, role=role, start_date=start_date)
+        if role_name == AdvisorshipRole.STUDENT.value:
+            legacy_attr = "student"
+        elif role_name == AdvisorshipRole.SUPERVISOR.value:
+            legacy_attr = "supervisor"
+        else:
+            return
+
+        setattr(initiative, legacy_attr, person)
+        id_attr = f"{legacy_attr}_id"
+        if hasattr(initiative, id_attr):
+            setattr(initiative, id_attr, getattr(person, "id", None) if person else None)
 
     def _coerce_to_person(self, person: Optional[Any]) -> Optional[Person]:
         if not person:

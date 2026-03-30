@@ -84,6 +84,8 @@ class ResearchGroupExporter:
                 # Enrich Campus
                 if group.campus_id in campus_map:
                     group_dict["campus"] = campus_map[group.campus_id]
+                else:
+                    group_dict.setdefault("campus", None)
 
                 # Enrich Knowledge Areas
                 # Assuming lazy loading works (attached session or eager load)

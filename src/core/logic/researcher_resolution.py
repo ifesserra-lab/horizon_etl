@@ -1,11 +1,11 @@
 from typing import Any, Iterable, Optional
 
 from loguru import logger
-from research_domain.domain.entities import AdvisorshipRole
 from sqlalchemy import text
 
 from src.adapters.sources.lattes_parser import LattesParser
 from src.core.logic.researcher_creation import create_researcher_with_resume_fallback
+from src.research_domain_compat import AdvisorshipRole
 
 
 def resolve_researcher_from_lattes(
@@ -191,4 +191,22 @@ def _linked_data_score(person_id: Optional[int], session: Any) -> int:
         ).fetchone()
         return int(row[0] or 0) * 20 if row else 0
     except Exception:
-        return 0
+        try:
+            row = session.execute(
+                text(
+                    """
+                    SELECT
+                        (
+                            SELECT COUNT(*)
+                            FROM advisorships
+                            WHERE supervisor_id = :pid
+                        ) +
+                        (SELECT COUNT(*) FROM academic_educations WHERE researcher_id = :pid) +
+                        (SELECT COUNT(*) FROM article_authors WHERE researcher_id = :pid)
+                    """
+                ),
+                {"pid": person_id},
+            ).fetchone()
+            return int(row[0] or 0) * 20 if row else 0
+        except Exception:
+            return 0

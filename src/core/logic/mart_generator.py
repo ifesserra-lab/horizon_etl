@@ -1,3 +1,5 @@
+from collections import Counter
+from datetime import date
 import json
 import os
 from typing import Any, Dict, List, Optional
@@ -9,6 +11,7 @@ from research_domain import (
     KnowledgeAreaController,
     ResearchGroupController,
 )
+from src.core.logic.export_campus_resolver import ExportCampusResolver
 
 
 class KnowledgeAreaMartGenerator:
@@ -102,6 +105,9 @@ class KnowledgeAreaMartGenerator:
                 item = area_mart[area_id]
                 if item["groups_count"] > 0:
                     item["campuses"] = sorted(list(item["campuses"]))
+                    item["campus"] = (
+                        item["campuses"][0] if len(item["campuses"]) == 1 else None
+                    )
                     mart_list.append(item)
 
             # 4. Save to JSON
@@ -126,6 +132,7 @@ class InitiativeAnalyticsMartGenerator:
     def __init__(self):
         self.initiative_ctrl = InitiativeController()
         self.team_ctrl = TeamController()
+        self.campus_ctrl = CampusController()
 
     def generate(self, output_path: str):
         """
@@ -140,6 +147,15 @@ class InitiativeAnalyticsMartGenerator:
             # 1. Fetch data
             all_initiatives = self.initiative_ctrl.get_all()
             logger.info(f"Loaded {len(all_initiatives)} initiatives.")
+            session = getattr(
+                getattr(getattr(self.initiative_ctrl, "_service", None), "_repository", None),
+                "_session",
+                None,
+            )
+            campus_resolver = ExportCampusResolver(
+                session,
+                self.campus_ctrl,
+            )
 
             # Pre-fetch Knowledge Areas mapping for Initiatives (Optimization)
             initiative_kas_map = {}
@@ -177,9 +193,14 @@ class InitiativeAnalyticsMartGenerator:
             total_participants_set = set()
             person_roles = {}  # person_id -> set of roles
             ka_stats = {}  # knowledge_area_name -> count
+            campus_stats = Counter()
 
             # For each initiative, process stats
             for init in all_initiatives:
+                campus = campus_resolver.get_campus("initiative", init.id)
+                if campus and campus.get("name"):
+                    campus_stats[campus["name"]] += 1
+
                 # Active logic
                 is_active = False
                 if init.status and init.status.lower() in [
@@ -347,6 +368,13 @@ class InitiativeAnalyticsMartGenerator:
 
             # 5. Final Structure
             mart_data = {
+                "campus": (
+                    campus_stats.most_common(1)[0][0] if len(campus_stats) == 1 else None
+                ),
+                "campuses": [
+                    {"name": name, "count": count}
+                    for name, count in campus_stats.most_common()
+                ],
                 "summary": {
                     "total_projects": total_projects,
                     "active_projects": active_projects,
