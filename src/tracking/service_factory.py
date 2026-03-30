@@ -1,5 +1,6 @@
 from eo_lib.infrastructure.database.postgres_client import PostgresClient
 from libbase.infrastructure.sql_repository import GenericSqlRepository
+from sqlalchemy.orm import sessionmaker
 
 from src.tracking.entities import (
     AttributeAssertion,
@@ -20,7 +21,13 @@ from src.tracking.services import (
 class TrackingServiceFactory:
     @staticmethod
     def _session():
-        return PostgresClient().get_session()
+        client = PostgresClient()
+        return sessionmaker(
+            autocommit=False,
+            autoflush=False,
+            bind=client._engine,
+            expire_on_commit=False,
+        )()
 
     @staticmethod
     def create_ingestion_run_service() -> IngestionRunService:

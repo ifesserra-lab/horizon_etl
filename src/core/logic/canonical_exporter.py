@@ -13,10 +13,21 @@ from research_domain import (
     ResearchGroupController,
 )
 from research_domain.controllers import ArticleController
-from research_domain.domain.entities import Advisorship, Fellowship
+from research_domain.domain.entities import Advisorship, AdvisorshipRole, Fellowship
 
 from src.core.ports.export_sink import IExportSink
+from src.tracking.entities import (
+    AttributeAssertion,
+    EntityChangeLog,
+    EntityMatch,
+    IngestionRun,
+    SourceRecord,
+)
 from sqlalchemy import text
+
+
+ADVISORSHIP_STUDENT_ROLE = AdvisorshipRole.STUDENT.value
+ADVISORSHIP_SUPERVISOR_ROLE = AdvisorshipRole.SUPERVISOR.value
 
 
 class CanonicalDataExporter:
@@ -90,6 +101,22 @@ class CanonicalDataExporter:
         if isinstance(row, dict):
             return row
         return dict(row)
+
+    @staticmethod
+    def _item_to_export_dict(item: Any) -> dict:
+        if isinstance(item, dict):
+            return item
+        if hasattr(item, "to_dict"):
+            return item.to_dict()
+        if hasattr(item, "__table__"):
+            return {
+                column.name: getattr(item, column.name)
+                for column in item.__table__.columns
+            }
+        return {
+            "id": getattr(item, "id", None),
+            "name": getattr(item, "name", "Unknown"),
+        }
 
     def _build_tracking_export(self, entity_type: str) -> List[dict]:
         if not self._has_tracking_schema():
@@ -318,26 +345,38 @@ class CanonicalDataExporter:
         """
         logger.info(f"Exporting {len(data)} {entity_name}...")
         try:
-            export_data = []
-            for item in data:
-                if isinstance(item, dict):
-                    export_data.append(item)
-                elif hasattr(item, "to_dict"):
-                    export_data.append(item.to_dict())
-                else:
-                    # Fallback for entities without to_dict (should not happen with SerializableMixin)
-                    export_data.append(
-                        {
-                            "id": getattr(item, "id", None),
-                            "name": getattr(item, "name", "Unknown"),
-                        }
-                    )
+            export_data = [self._item_to_export_dict(item) for item in data]
 
             self.sink.export(export_data, output_path)
             logger.info(f"Successfully exported {entity_name} to {output_path}")
         except Exception as e:
             logger.error(f"Failed to export {entity_name}: {e}")
             raise e
+
+    def _load_tracking_entities(self, model: Any, label: str) -> List[Any]:
+        if not self._has_tracking_schema():
+            logger.info(
+                "Tracking schema not available. Skipping {} canonical export.",
+                label,
+            )
+            return []
+
+        session = self._get_session()
+        if session is None:
+            logger.info("Tracking session not available. Skipping {} export.", label)
+            return []
+
+        try:
+            return session.query(model).order_by(model.id).all()
+        except Exception as exc:
+            logger.warning(f"Failed to load {label} tracking entities: {exc}")
+            return []
+
+    def _export_tracking_entities(
+        self, model: Any, output_path: str, entity_name: str
+    ) -> None:
+        data = self._load_tracking_entities(model, entity_name)
+        self._export_entities(data, output_path, entity_name)
 
     def export_organizations(self, output_path: str):
         """
@@ -620,7 +659,7 @@ class CanonicalDataExporter:
         try:
             adv_query = text("""
                 SELECT 
-                    a.supervisor_id, 
+                    am_sup.supervisor_id,
                     a.id, 
                     i.name, 
                     i.status, 
@@ -632,30 +671,48 @@ class CanonicalDataExporter:
                 FROM advisorships a
                 JOIN initiatives i ON a.id = i.id
                 LEFT JOIN initiative_types it ON i.initiative_type_id = it.id
-                LEFT JOIN persons p ON a.student_id = p.id
-                WHERE a.supervisor_id IS NOT NULL
+                LEFT JOIN (
+                    SELECT advisorship_id, MIN(person_id) AS student_id
+                    FROM advisorship_members
+                    WHERE role_name = :student_role
+                    GROUP BY advisorship_id
+                ) am_std ON am_std.advisorship_id = a.id
+                LEFT JOIN persons p ON am_std.student_id = p.id
+                JOIN (
+                    SELECT advisorship_id, MIN(person_id) AS supervisor_id
+                    FROM advisorship_members
+                    WHERE role_name = :supervisor_role
+                    GROUP BY advisorship_id
+                ) am_sup ON am_sup.advisorship_id = a.id
             """)
-            adv_result = session.execute(adv_query).fetchall()
+            adv_result = session.execute(
+                adv_query,
+                {
+                    "student_role": ADVISORSHIP_STUDENT_ROLE,
+                    "supervisor_role": ADVISORSHIP_SUPERVISOR_ROLE,
+                },
+            ).fetchall()
             
             for row in adv_result:
-                sup_id = row.supervisor_id
+                row_data = self._row_to_dict(row)
+                sup_id = row_data["supervisor_id"]
                 adv_data = {
-                    "id": row.id,
-                    "name": row.name,
-                    "status": row.status,
+                    "id": row_data["id"],
+                    "name": row_data["name"],
+                    "status": row_data["status"],
                     "start_year": (
-                        row.start_date.year 
-                        if hasattr(row.start_date, "year") 
-                        else int(str(row.start_date)[:4]) if row.start_date else None
+                        row_data["start_date"].year 
+                        if hasattr(row_data["start_date"], "year") 
+                        else int(str(row_data["start_date"])[:4]) if row_data["start_date"] else None
                     ),
                     "end_year": (
-                        row.end_date.year 
-                        if hasattr(row.end_date, "year") 
-                        else int(str(row.end_date)[:4]) if row.end_date else None
+                        row_data["end_date"].year 
+                        if hasattr(row_data["end_date"], "year") 
+                        else int(str(row_data["end_date"])[:4]) if row_data["end_date"] else None
                     ),
-                    "type": row.advisorship_type,
-                    "initiative_type": row.type_name,
-                    "student_name": row.student_name
+                    "type": row_data["advisorship_type"],
+                    "initiative_type": row_data["type_name"],
+                    "student_name": row_data["student_name"],
                 }
                 
                 if sup_id not in person_advisorships_map:
@@ -992,10 +1049,52 @@ class CanonicalDataExporter:
         data = self._build_tracking_export("advisorship")
         self._export_entities(data, output_path, "Advisorships Tracking")
 
+    def export_ingestion_runs(self, output_path: str):
+        self._export_tracking_entities(
+            IngestionRun, output_path, "Tracking Ingestion Runs"
+        )
+
+    def export_source_records(self, output_path: str):
+        self._export_tracking_entities(
+            SourceRecord, output_path, "Tracking Source Records"
+        )
+
+    def export_entity_matches(self, output_path: str):
+        self._export_tracking_entities(
+            EntityMatch, output_path, "Tracking Entity Matches"
+        )
+
+    def export_attribute_assertions(self, output_path: str):
+        self._export_tracking_entities(
+            AttributeAssertion, output_path, "Tracking Attribute Assertions"
+        )
+
+    def export_entity_change_logs(self, output_path: str):
+        self._export_tracking_entities(
+            EntityChangeLog, output_path, "Tracking Entity Change Logs"
+        )
+
+    def export_tracking_entities(self, output_dir: str):
+        self.export_ingestion_runs(
+            os.path.join(output_dir, "ingestion_runs_canonical.json")
+        )
+        self.export_source_records(
+            os.path.join(output_dir, "source_records_canonical.json")
+        )
+        self.export_entity_matches(
+            os.path.join(output_dir, "entity_matches_canonical.json")
+        )
+        self.export_attribute_assertions(
+            os.path.join(output_dir, "attribute_assertions_canonical.json")
+        )
+        self.export_entity_change_logs(
+            os.path.join(output_dir, "entity_change_logs_canonical.json")
+        )
+
     def export_all(self, output_dir: str):
         """
         Exports all canonical data to the specified directory.
-        Generates: organizations, campuses, knowledge_areas, researchers, initiatives, initiative_types
+        Generates: domain exports plus tracking canonical artifacts.
         """
         logger.info(f"Starting Canonical Data Export to {output_dir}")
         os.makedirs(output_dir, exist_ok=True)
@@ -1027,6 +1126,7 @@ class CanonicalDataExporter:
         self.export_advisorships_tracking(
             os.path.join(output_dir, "advisorships_tracking.json")
         )
+        self.export_tracking_entities(output_dir)
         self.export_fellowships(
             os.path.join(output_dir, "fellowships_canonical.json")
         )
@@ -1043,8 +1143,8 @@ class CanonicalDataExporter:
                 a.id, i.name, i.status, i.description, i.start_date, i.end_date,
                 a.type as advisorship_type,
                 it.name as initiative_type_name,
-                a.student_id, p_std.name as student_name,
-                a.supervisor_id, p_sup.name as supervisor_name,
+                am_std.student_id, p_std.name as student_name,
+                am_sup.supervisor_id, p_sup.name as supervisor_name,
                 a.fellowship_id,
                 f.name as fellowship_name,
                 f.description as fellowship_description,
@@ -1059,68 +1159,87 @@ class CanonicalDataExporter:
             FROM advisorships a
             JOIN initiatives i ON a.id = i.id
             LEFT JOIN initiative_types it ON i.initiative_type_id = it.id
-            LEFT JOIN persons p_std ON a.student_id = p_std.id
-            LEFT JOIN persons p_sup ON a.supervisor_id = p_sup.id
+            LEFT JOIN (
+                SELECT advisorship_id, MIN(person_id) AS student_id
+                FROM advisorship_members
+                WHERE role_name = :student_role
+                GROUP BY advisorship_id
+            ) am_std ON am_std.advisorship_id = a.id
+            LEFT JOIN persons p_std ON am_std.student_id = p_std.id
+            LEFT JOIN (
+                SELECT advisorship_id, MIN(person_id) AS supervisor_id
+                FROM advisorship_members
+                WHERE role_name = :supervisor_role
+                GROUP BY advisorship_id
+            ) am_sup ON am_sup.advisorship_id = a.id
+            LEFT JOIN persons p_sup ON am_sup.supervisor_id = p_sup.id
             LEFT JOIN initiatives p_init ON i.parent_id = p_init.id
             LEFT JOIN fellowships f ON a.fellowship_id = f.id
             LEFT JOIN organizations o ON f.sponsor_id = o.id
         """)
-        result = session.execute(query).fetchall()
+        result = session.execute(
+            query,
+            {
+                "student_role": ADVISORSHIP_STUDENT_ROLE,
+                "supervisor_role": ADVISORSHIP_SUPERVISOR_ROLE,
+            },
+        ).fetchall()
         
         projects_map = {}
         orphans = []
         
         for row in result:
+            row_data = self._row_to_dict(row)
             adv_data = {
-                "id": row.id,
-                "name": row.name,
-                "status": row.status,
-                "description": row.description,
+                "id": row_data["id"],
+                "name": row_data["name"],
+                "status": row_data["status"],
+                "description": row_data["description"],
                 "start_date": (
-                    row.start_date.isoformat() 
-                    if hasattr(row.start_date, "isoformat") 
-                    else str(row.start_date) if row.start_date else None
+                    row_data["start_date"].isoformat() 
+                    if hasattr(row_data["start_date"], "isoformat") 
+                    else str(row_data["start_date"]) if row_data["start_date"] else None
                 ),
                 "end_date": (
-                     row.end_date.isoformat()
-                     if hasattr(row.end_date, "isoformat")
-                     else str(row.end_date) if row.end_date else None
+                     row_data["end_date"].isoformat()
+                     if hasattr(row_data["end_date"], "isoformat")
+                     else str(row_data["end_date"]) if row_data["end_date"] else None
                 ),
-                "type": row.advisorship_type,
-                "initiative_type": row.initiative_type_name,
-                "student_id": row.student_id,
-                "student_name": row.student_name,
-                "supervisor_id": row.supervisor_id,
-                "supervisor_name": row.supervisor_name,
+                "type": row_data["advisorship_type"],
+                "initiative_type": row_data["initiative_type_name"],
+                "student_id": row_data["student_id"],
+                "student_name": row_data["student_name"],
+                "supervisor_id": row_data["supervisor_id"],
+                "supervisor_name": row_data["supervisor_name"],
                 "fellowship": {
-                    "id": row.fellowship_id,
-                    "name": row.fellowship_name,
-                    "description": row.fellowship_description,
-                    "value": row.fellowship_value,
-                    "sponsor_name": row.sponsor_name
-                } if row.fellowship_id else None
+                    "id": row_data["fellowship_id"],
+                    "name": row_data["fellowship_name"],
+                    "description": row_data["fellowship_description"],
+                    "value": row_data["fellowship_value"],
+                    "sponsor_name": row_data["sponsor_name"],
+                } if row_data["fellowship_id"] else None
             }
             
-            if row.parent_id:
-                if row.parent_id not in projects_map:
-                    projects_map[row.parent_id] = {
-                        "id": row.parent_id,
-                        "name": row.parent_name,
-                        "status": row.parent_status,
-                        "description": row.parent_description,
+            if row_data["parent_id"]:
+                if row_data["parent_id"] not in projects_map:
+                    projects_map[row_data["parent_id"]] = {
+                        "id": row_data["parent_id"],
+                        "name": row_data["parent_name"],
+                        "status": row_data["parent_status"],
+                        "description": row_data["parent_description"],
                         "start_date": (
-                            row.parent_start_date.isoformat() 
-                            if hasattr(row.parent_start_date, "isoformat") 
-                            else str(row.parent_start_date) if row.parent_start_date else None
+                            row_data["parent_start_date"].isoformat() 
+                            if hasattr(row_data["parent_start_date"], "isoformat") 
+                            else str(row_data["parent_start_date"]) if row_data["parent_start_date"] else None
                         ),
                         "end_date": (
-                             row.parent_end_date.isoformat()
-                             if hasattr(row.parent_end_date, "isoformat")
-                             else str(row.parent_end_date) if row.parent_end_date else None
+                             row_data["parent_end_date"].isoformat()
+                             if hasattr(row_data["parent_end_date"], "isoformat")
+                             else str(row_data["parent_end_date"]) if row_data["parent_end_date"] else None
                         ),
-                        "advisorships": []
+                        "advisorships": [],
                     }
-                projects_map[row.parent_id]["advisorships"].append(adv_data)
+                projects_map[row_data["parent_id"]]["advisorships"].append(adv_data)
             else:
                 orphans.append(adv_data)
         

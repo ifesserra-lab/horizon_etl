@@ -254,7 +254,7 @@ class CnpqSyncLogic:
                     self.res_ctrl,
                     all_res,
                     name=name,
-                    identification_id=None,
+                    identification_id=name,
                 )
 
                 if researcher:
@@ -532,6 +532,8 @@ class CnpqSyncLogic:
             # 2. Associate with Group (Direct SQL for safety/performance)
             session = self.rg_ctrl._service._repository._session
 
+            pending_tracking_associations = []
+
             for ka in processed_kas:
                 try:
                     # Check existence
@@ -548,32 +550,14 @@ class CnpqSyncLogic:
                             "INSERT INTO group_knowledge_areas (group_id, area_id) VALUES (:gid, :aid)"
                         )
                         session.execute(ins_query, {"gid": group_id, "aid": ka.id})
-                        source_record = source_records_by_name.get(normalize(ka.name).lower())
-                        tracking_recorder.record_entity_match(
-                            source_record_id=getattr(source_record, "id", None),
-                            canonical_entity_type="knowledge_area",
-                            canonical_entity_id=ka.id,
-                            match_strategy="normalized_name",
-                            match_confidence=1.0,
-                        )
-                        tracking_recorder.record_attribute_assertions(
-                            source_record_id=getattr(source_record, "id", None),
-                            canonical_entity_type="knowledge_area",
-                            canonical_entity_id=ka.id,
-                            selected_attributes={
-                                "name": ka.name,
-                                "group_id": group_id,
-                            },
-                            selection_reason="cnpq_research_line_selected_values",
-                        )
-                        tracking_recorder.record_change(
-                            source_record_id=getattr(source_record, "id", None),
-                            canonical_entity_type="research_group",
-                            canonical_entity_id=group_id,
-                            operation="update",
-                            changed_fields=["knowledge_area_association"],
-                            after={"knowledge_area_id": ka.id, "knowledge_area_name": ka.name},
-                            reason="Associated knowledge area from CNPq research line",
+                        pending_tracking_associations.append(
+                            {
+                                "source_record": source_records_by_name.get(
+                                    normalize(ka.name).lower()
+                                ),
+                                "knowledge_area_id": ka.id,
+                                "knowledge_area_name": ka.name,
+                            }
                         )
                     else:
                         logger.debug(
@@ -594,6 +578,40 @@ class CnpqSyncLogic:
                         pass
 
             session.commit()
+
+            for association in pending_tracking_associations:
+                source_record = association["source_record"]
+                knowledge_area_id = association["knowledge_area_id"]
+                knowledge_area_name = association["knowledge_area_name"]
+                tracking_recorder.record_entity_match(
+                    source_record_id=getattr(source_record, "id", None),
+                    canonical_entity_type="knowledge_area",
+                    canonical_entity_id=knowledge_area_id,
+                    match_strategy="normalized_name",
+                    match_confidence=1.0,
+                )
+                tracking_recorder.record_attribute_assertions(
+                    source_record_id=getattr(source_record, "id", None),
+                    canonical_entity_type="knowledge_area",
+                    canonical_entity_id=knowledge_area_id,
+                    selected_attributes={
+                        "name": knowledge_area_name,
+                        "group_id": group_id,
+                    },
+                    selection_reason="cnpq_research_line_selected_values",
+                )
+                tracking_recorder.record_change(
+                    source_record_id=getattr(source_record, "id", None),
+                    canonical_entity_type="research_group",
+                    canonical_entity_id=group_id,
+                    operation="update",
+                    changed_fields=["knowledge_area_association"],
+                    after={
+                        "knowledge_area_id": knowledge_area_id,
+                        "knowledge_area_name": knowledge_area_name,
+                    },
+                    reason="Associated knowledge area from CNPq research line",
+                )
             logger.info(
                 f"Synced {len(processed_kas)} research lines/KAs for group {group_id}"
             )
