@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../../../img/favicon.ico">
+        <title>Product Backlog – ConectaFapes - Horizon ETL</title>
+        <link href="../../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../../../css/brands.min.css" rel="stylesheet">
+        <link href="../../../css/solid.min.css" rel="stylesheet">
+        <link href="../../../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../../../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../../..">Horizon ETL</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href="../../.." class="nav-link">Inicio</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Solucao</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../solution-overview/" class="dropdown-item">Visao Geral</a>
+</li>
+                                    
+<li>
+    <a href="../../../architecture/" class="dropdown-item">Arquitetura</a>
+</li>
+                                    
+<li>
+    <a href="../../../flows-and-entrypoints/" class="dropdown-item">Fluxos e Entrypoints</a>
+</li>
+                                    
+<li>
+    <a href="../../../outputs-and-artifacts/" class="dropdown-item">Dados e Artefatos</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Operacao</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../operations/setup-and-run/" class="dropdown-item">Setup e Execucao</a>
+</li>
+                                    
+<li>
+    <a href="../../../operations/automation/" class="dropdown-item">Automacao Semanal</a>
+</li>
+                                    
+<li>
+    <a href="../../../operations/troubleshooting/" class="dropdown-item">Troubleshooting</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Reports</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../reports/" class="dropdown-item">Visao Geral</a>
+</li>
+                                    
+<li>
+    <a href="../../../reports/etl-flow-run/" class="dropdown-item">ETL Flow Run</a>
+</li>
+                                    
+<li>
+    <a href="../../../reports/etl-load-report/" class="dropdown-item">ETL Load Report</a>
+</li>
+                                    
+<li>
+    <a href="../../../reports/tracking-audit-report/" class="dropdown-item">Tracking Audit Report</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Governanca</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../documentation-map/" class="dropdown-item">Mapa da Documentacao</a>
+</li>
+                                    
+<li>
+    <a href="../../../backlog/" class="dropdown-item">Backlog</a>
+</li>
+                                    
+<li>
+    <a href="../../../implementation_plan/" class="dropdown-item">Plano de Implementacao</a>
+</li>
+                                    
+<li>
+    <a href="../../../governance/sdlc-reference/" class="dropdown-item">Referencia SDLC</a>
+</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/ifesserra-lab/horizon_etl/edit/master/docs/2 - implementacao/SI4-6 - construction-sprints/SI.3-product_backlog_sprints.md" class="nav-link">Edit on ifesserra-lab/horizon_etl
+                                    </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#product-backlog-conectafapes" class="nav-link">Product Backlog – ConectaFapes</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#1-visao-geral" class="nav-link">1. Visão Geral</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#2-convencoes" class="nav-link">2. Convenções</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#3-user-stories" class="nav-link">3. User Stories</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#us-001" class="nav-link">US-001 –</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#us-002" class="nav-link">US-002 –</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#us-003" class="nav-link">US-003 –</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#4-backlog-refinado-por-prioridade" class="nav-link">4. Backlog Refinado por Prioridade</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#5-preparacao-para-sprint-planning" class="nav-link">5. Preparação para Sprint Planning</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#dor-definition-of-ready" class="nav-link">DoR – Definition of Ready</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#6-como-migrar-do-product-backlog-sprint-backlog" class="nav-link">6. Como migrar do Product Backlog → Sprint Backlog</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#7-beneficios-desse-modelo" class="nav-link">7. Benefícios desse modelo</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="product-backlog-conectafapes">Product Backlog – ConectaFapes<a class="headerlink" href="#product-backlog-conectafapes" title="Permanent link">&para;</a></h1>
+<p><strong>Última atualização:</strong> <DD/MM/AAAA><br />
+<strong>Responsável (PO):</strong> <Nome><br />
+<strong>Versão do Documento:</strong> 1.0  </p>
+<hr />
+<h1 id="1-visao-geral">1. Visão Geral<a class="headerlink" href="#1-visao-geral" title="Permanent link">&para;</a></h1>
+<p>Este Product Backlog reúne todas as <strong>User Stories (US)</strong> priorizadas para o ConectaFapes, servindo como base para:</p>
+<ul>
+<li>Planejamento de Releases (PM1.3)  </li>
+<li>Planejamento de Sprints  </li>
+<li>Geração de Tasks no Sprint Backlog  </li>
+<li>Rastreabilidade ISO 29110 (SI.1 → SI.3)  </li>
+<li>Automação de criação de cards no GitHub Projects  </li>
+</ul>
+<p>Cada US deve conter <strong>título, prioridade, critérios de aceitação, notas técnicas, origem SI.1–SI.3, e os metadados necessários para futura decomposição</strong>.</p>
+<hr />
+<h1 id="2-convencoes">2. Convenções<a class="headerlink" href="#2-convencoes" title="Permanent link">&para;</a></h1>
+<table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Descrição</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ID</code></td>
+<td>Identificador único (US-001)</td>
+</tr>
+<tr>
+<td><code>Título</code></td>
+<td>Nome curto da funcionalidade</td>
+</tr>
+<tr>
+<td><code>Milestone</code></td>
+<td>Release (R1, R2, etc.)</td>
+</tr>
+<tr>
+<td><code>Prioridade</code></td>
+<td>Alta / Média / Baixa</td>
+</tr>
+<tr>
+<td><code>Tamanho</code></td>
+<td>Pontos (estimativa inicial)</td>
+</tr>
+<tr>
+<td><code>Origem</code></td>
+<td>SI.1 (Requisitos) / SI.2 (Processos) / SI.3 (Design)</td>
+</tr>
+<tr>
+<td><code>Descrição</code></td>
+<td>Contexto e objetivo da US</td>
+</tr>
+<tr>
+<td><code>Critérios de Aceitação</code></td>
+<td>Lista testável</td>
+</tr>
+<tr>
+<td><code>Dependencies</code></td>
+<td>Dependências técnicas ou funcionais</td>
+</tr>
+<tr>
+<td><code>Notas Técnicas</code></td>
+<td>Restrições, ADRs, módulos afetados</td>
+</tr>
+<tr>
+<td><code>Tags</code></td>
+<td>tipo:us, area:backend, area:frontend etc.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Os metadados são escritos em <strong>bloco YAML</strong>, fácil de detectar por scripts.</p>
+</blockquote>
+<hr />
+<h1 id="3-user-stories">3. User Stories<a class="headerlink" href="#3-user-stories" title="Permanent link">&para;</a></h1>
+<p>Abaixo está o template oficial para cada US.</p>
+<hr />
+<h2 id="us-001">US-001 – <Título da User Story><a class="headerlink" href="#us-001" title="Permanent link">&para;</a></h2>
+<pre><code class="language-yaml">id: US-001
+milestone: R1
+prioridade: Alta
+tamanho: 5
+origem:
+  - SI1_requisitos
+  - SI2_processos
+  - SI3_design
+tags:
+  - type:us
+  - area:frontend
+  - area:backend
+dependencias:
+  - US-000 (opcional)
+modulos_afetados:
+  - autenticação
+  - perfis
+</code></pre>
+<h3 id="descricao">Descrição<a class="headerlink" href="#descricao" title="Permanent link">&para;</a></h3>
+<p><Explique o problema, o objetivo e o valor gerado para o usuário.></p>
+<h3 id="criterios-de-aceitacao-bddgherkin">Critérios de Aceitação (BDD/Gherkin)<a class="headerlink" href="#criterios-de-aceitacao-bddgherkin" title="Permanent link">&para;</a></h3>
+<pre><code>Dado que &lt;situação inicial&gt;
+Quando &lt;ação do usuário&gt;
+Então &lt;resultado esperado&gt;
+</code></pre>
+<ul>
+<li>[ ] Critério 1  </li>
+<li>[ ] Critério 2  </li>
+<li>[ ] Critério 3  </li>
+</ul>
+<h3 id="notas-tecnicas">Notas Técnicas<a class="headerlink" href="#notas-tecnicas" title="Permanent link">&para;</a></h3>
+<ul>
+<li><Regra de negócio importante>  </li>
+<li><Possível impacto em integrações>  </li>
+<li><Referência ADR se existir>  </li>
+</ul>
+<hr />
+<h2 id="us-002">US-002 – <Título da US><a class="headerlink" href="#us-002" title="Permanent link">&para;</a></h2>
+<pre><code class="language-yaml">id: US-002
+milestone: R1
+prioridade: Média
+tamanho: 3
+origem:
+  - SI1_requisitos
+tags:
+  - type:us
+  - area:frontend
+dependencias: []
+modulos_afetados:
+  - dashboard
+</code></pre>
+<h3 id="descricao_1">Descrição<a class="headerlink" href="#descricao_1" title="Permanent link">&para;</a></h3>
+<p><Descrição da funcionalidade.></p>
+<h3 id="criterios-de-aceitacao">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[ ] Critério 1  </li>
+<li>[ ] Critério 2  </li>
+</ul>
+<h3 id="notas-tecnicas_1">Notas Técnicas<a class="headerlink" href="#notas-tecnicas_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Este módulo depende de autorização centralizada.  </li>
+<li>Deve seguir o padrão visual definido no design system.  </li>
+</ul>
+<hr />
+<h2 id="us-003">US-003 – <Título><a class="headerlink" href="#us-003" title="Permanent link">&para;</a></h2>
+<pre><code class="language-yaml">id: US-003
+milestone: R2
+prioridade: Baixa
+tamanho: 8
+origem:
+  - SI1_requisitos
+  - SI2_processos
+tags:
+  - type:us
+  - area:backend
+dependencias:
+  - US-001
+modulos_afetados:
+  - workflow
+</code></pre>
+<h3 id="descricao_2">Descrição<a class="headerlink" href="#descricao_2" title="Permanent link">&para;</a></h3>
+<p><Descrição da funcionalidade.></p>
+<h3 id="criterios-de-aceitacao_1">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[ ] Critério 1  </li>
+<li>[ ] Critério 2  </li>
+<li>[ ] Critério 3  </li>
+</ul>
+<h3 id="notas-tecnicas_2">Notas Técnicas<a class="headerlink" href="#notas-tecnicas_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Impacta o fluxo BPMN.  </li>
+</ul>
+<hr />
+<h1 id="4-backlog-refinado-por-prioridade">4. Backlog Refinado por Prioridade<a class="headerlink" href="#4-backlog-refinado-por-prioridade" title="Permanent link">&para;</a></h1>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Título</th>
+<th>Milestone</th>
+<th>Tamanho</th>
+<th>Prioridade</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>US-001</td>
+<td><Título></td>
+<td>R1</td>
+<td>5</td>
+<td>Alta</td>
+<td>Pendente</td>
+</tr>
+<tr>
+<td>US-002</td>
+<td><Título></td>
+<td>R1</td>
+<td>3</td>
+<td>Média</td>
+<td>Pendente</td>
+</tr>
+<tr>
+<td>US-003</td>
+<td><Título></td>
+<td>R2</td>
+<td>8</td>
+<td>Baixa</td>
+<td>Pendente</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="5-preparacao-para-sprint-planning">5. Preparação para Sprint Planning<a class="headerlink" href="#5-preparacao-para-sprint-planning" title="Permanent link">&para;</a></h1>
+<p>Cada US deve estar <strong>pronta para entrar na Sprint</strong> se:</p>
+<h2 id="dor-definition-of-ready">DoR – Definition of Ready<a class="headerlink" href="#dor-definition-of-ready" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] US tem descrição clara  </li>
+<li>[ ] Critérios de aceitação testáveis  </li>
+<li>[ ] Impactos e dependências conhecidos  </li>
+<li>[ ] Tamanho estimado  </li>
+<li>[ ] Tags definidas  </li>
+<li>[ ] Impactos SI.1 → SI.3 identificados  </li>
+</ul>
+<blockquote>
+<p>Se um script estiver processando este arquivo, ele pode checar automaticamente o DoR para liberar a US para planejamento da sprint.</p>
+</blockquote>
+<hr />
+<h1 id="6-como-migrar-do-product-backlog-sprint-backlog">6. Como migrar do Product Backlog → Sprint Backlog<a class="headerlink" href="#6-como-migrar-do-product-backlog-sprint-backlog" title="Permanent link">&para;</a></h1>
+<h3 id="a-conversao-e-direta">A conversão é direta:<a class="headerlink" href="#a-conversao-e-direta" title="Permanent link">&para;</a></h3>
+<p>Cada US possui metadados em YAML como:</p>
+<pre><code class="language-yaml">id: US-001
+milestone: R1
+prioridade: Alta
+tamanho: 5
+tags: [type:us, area:backend]
+</code></pre>
+<p>E no Sprint Backlog vira:</p>
+<pre><code>## US-001 – &lt;Título&gt;
+### Subtasks da Sprint
+- [ ] DEV-001 – &lt;Descrição&gt; (Resp: @devX, Tipo: dev, US: US-001...)
+- [ ] TEST-001 – &lt;Descrição&gt; (...)
+- [ ] DOC-001 – &lt;Descrição&gt; (...)
+</code></pre>
+<p>O <strong>parser</strong> pode:</p>
+<ol>
+<li>Ler cada bloco YAML  </li>
+<li>Criar uma Issue / Card para a US  </li>
+<li>Criar labels, milestone e assignee padrão  </li>
+<li>Permitir ao facilitador quebrar em tasks durante a Planning  </li>
+<li>Popular automaticamente o Sprint Backlog</li>
+</ol>
+<hr />
+<h1 id="7-beneficios-desse-modelo">7. Benefícios desse modelo<a class="headerlink" href="#7-beneficios-desse-modelo" title="Permanent link">&para;</a></h1>
+<h3 id="100-compativel-com-automacao-github-projectsapi">✔ 100% compatível com automação (GitHub Projects/API)<a class="headerlink" href="#100-compativel-com-automacao-github-projectsapi" title="Permanent link">&para;</a></h3>
+<ul>
+<li>YAML facilita parsing  </li>
+<li>IDs previsíveis (US-XXX)  </li>
+<li>Tags e Milestones prontos para card creation  </li>
+</ul>
+<h3 id="coerente-com-sprint-backlog">✔ Coerente com Sprint Backlog<a class="headerlink" href="#coerente-com-sprint-backlog" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Campos idênticos: US, Tipo, Dependências  </li>
+<li>Já carrega tudo que as tasks devem “herdar”</li>
+</ul>
+<h3 id="aderente-a-iso-29110">✔ Aderente à ISO 29110<a class="headerlink" href="#aderente-a-iso-29110" title="Permanent link">&para;</a></h3>
+<ul>
+<li>SI.1 alimenta requisitos  </li>
+<li>SI.2 alimenta regras de processo  </li>
+<li>SI.3 alimenta notas técnicas  </li>
+<li>PM1.2 e PM1.3 são respeitados via prioridade/milestone</li>
+</ul>
+<h3 id="facil-de-editar-manualmente">✔ Fácil de editar manualmente<a class="headerlink" href="#facil-de-editar-manualmente" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Markdown simples  </li>
+<li>Estrutura clara  </li>
+<li>Repetível para qualquer projeto</li>
+</ul></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "../../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../../js/base.js"></script>
+        <script src="../../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

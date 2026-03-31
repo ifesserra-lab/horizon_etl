@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../../../img/favicon.ico">
+        <title>Product Backlog – Horizon ETL - Horizon ETL</title>
+        <link href="../../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../../css/fontawesome.min.css" rel="stylesheet">
+        <link href="../../../css/brands.min.css" rel="stylesheet">
+        <link href="../../../css/solid.min.css" rel="stylesheet">
+        <link href="../../../css/v4-font-face.min.css" rel="stylesheet">
+        <link href="../../../css/base.css" rel="stylesheet">
+        <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" >
+        <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css" disabled>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../../..">Horizon ETL</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="nav-item">
+                                <a href="../../.." class="nav-link">Inicio</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Solucao</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../solution-overview/" class="dropdown-item">Visao Geral</a>
+</li>
+                                    
+<li>
+    <a href="../../../architecture/" class="dropdown-item">Arquitetura</a>
+</li>
+                                    
+<li>
+    <a href="../../../flows-and-entrypoints/" class="dropdown-item">Fluxos e Entrypoints</a>
+</li>
+                                    
+<li>
+    <a href="../../../outputs-and-artifacts/" class="dropdown-item">Dados e Artefatos</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Operacao</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../operations/setup-and-run/" class="dropdown-item">Setup e Execucao</a>
+</li>
+                                    
+<li>
+    <a href="../../../operations/automation/" class="dropdown-item">Automacao Semanal</a>
+</li>
+                                    
+<li>
+    <a href="../../../operations/troubleshooting/" class="dropdown-item">Troubleshooting</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Reports</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../reports/" class="dropdown-item">Visao Geral</a>
+</li>
+                                    
+<li>
+    <a href="../../../reports/etl-flow-run/" class="dropdown-item">ETL Flow Run</a>
+</li>
+                                    
+<li>
+    <a href="../../../reports/etl-load-report/" class="dropdown-item">ETL Load Report</a>
+</li>
+                                    
+<li>
+    <a href="../../../reports/tracking-audit-report/" class="dropdown-item">Tracking Audit Report</a>
+</li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"  aria-expanded="false">Governanca</a>
+                                <ul class="dropdown-menu">
+                                    
+<li>
+    <a href="../../../documentation-map/" class="dropdown-item">Mapa da Documentacao</a>
+</li>
+                                    
+<li>
+    <a href="../../../backlog/" class="dropdown-item">Backlog</a>
+</li>
+                                    
+<li>
+    <a href="../../../implementation_plan/" class="dropdown-item">Plano de Implementacao</a>
+</li>
+                                    
+<li>
+    <a href="../../../governance/sdlc-reference/" class="dropdown-item">Referencia SDLC</a>
+</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ms-md-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/ifesserra-lab/horizon_etl/edit/master/docs/2 - implementacao/SI3 - initiation/SI.3-product_backlog_initiation.md" class="nav-link">Edit on ifesserra-lab/horizon_etl
+                                    </a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-body-tertiary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-bs-level="1"><a href="#product-backlog-horizon-etl" class="nav-link">Product Backlog – Horizon ETL</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#1-visao-geral" class="nav-link">1. Visão Geral</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#2-epics-user-stories" class="nav-link">2. Epics &amp; User Stories</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-bs-level="2"><a href="#epic-1-extracao-sigpesq-release-1" class="nav-link">Epic 1: Extração SigPesq (Release 1)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#epic-2-extracao-lattes-release-2" class="nav-link">Epic 2: Extração Lattes (Release 2)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#epic-3-dados-de-execucao-fapes-release-3" class="nav-link">Epic 3: Dados de Execução FAPES (Release 3)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#epic-7-orquestracao-e-pipelines-release-1" class="nav-link">Epic 7: Orquestração e Pipelines (Release 1)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#epic-4-metadados-google-scholar-release-4" class="nav-link">Epic 4: Metadados Google Scholar (Release 4)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#cross-cutting-arquitetura" class="nav-link">Cross-Cutting (Arquitetura)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#epic-5-ingestao-de-grupos-de-pesquisa-excel-release-1" class="nav-link">Epic 5: Ingestão de Grupos de Pesquisa (Excel) (Release 1)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-bs-level="2"><a href="#epic-6-atualizacao-de-grupos-de-pesquisa-cnpq-release-2" class="nav-link">Epic 6: Atualização de Grupos de Pesquisa CNPq (Release 2)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#4-backlog-refinado-release-1" class="nav-link">4. Backlog Refinado (Release 1)</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            
+            <li class="nav-item" data-bs-level="1"><a href="#5-definition-of-ready-dor-check-for-r1" class="nav-link">5. Definition of Ready (DoR) Check for R1</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="product-backlog-horizon-etl">Product Backlog – Horizon ETL<a class="headerlink" href="#product-backlog-horizon-etl" title="Permanent link">&para;</a></h1>
+<p><strong>Última atualização:</strong> 06/01/2026
+<strong>Responsável (PO):</strong> Antigravity (Senior Lead)
+<strong>Versão do Documento:</strong> 1.0</p>
+<hr />
+<h1 id="1-visao-geral">1. Visão Geral<a class="headerlink" href="#1-visao-geral" title="Permanent link">&para;</a></h1>
+<p>Este Backlog traduz os Requisitos (SI.1) e Análise (SI.2) em itens de trabalho entregáveis (US).
+<strong>Estratégia</strong>: Todo item deve ser testável e deployável independentemente.</p>
+<hr />
+<h1 id="2-epics-user-stories">2. Epics &amp; User Stories<a class="headerlink" href="#2-epics-user-stories" title="Permanent link">&para;</a></h1>
+<h2 id="epic-1-extracao-sigpesq-release-1">Epic 1: Extração SigPesq (Release 1)<a class="headerlink" href="#epic-1-extracao-sigpesq-release-1" title="Permanent link">&para;</a></h2>
+<p><strong>Objetivo</strong>: Coletar dados de projetos da base SigPesq.</p>
+<h3 id="us-001-extracao-de-projetos-sigpesq">US-001 – Extração de Projetos SigPesq<a class="headerlink" href="#us-001-extracao-de-projetos-sigpesq" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-001
+milestone: R1
+prioridade: Alta
+tamanho: 8
+origem: [RF-01, RNF-01, RNF-04, RNF-06]
+tags: [type:feature, area:backend, source:sigpesq]
+dependencias: []
+modulos_afetados: [src/adapters/sources/sigpesq, src/flows]
+</code></pre>
+<h4 id="descricao">Descrição<a class="headerlink" href="#descricao" title="Permanent link">&para;</a></h4>
+<p>Desenvolver o pipeline de extração para o SigPesq. O sistema deve conectar e extrair dados de <strong>Projetos</strong>, <strong>Grupos de Pesquisa</strong> e <strong>Bolsistas</strong>, persistindo-os no Supabase.</p>
+<h4 id="criterios-de-aceitacao-definition-of-done">Critérios de Aceitação (Definition of Done)<a class="headerlink" href="#criterios-de-aceitacao-definition-of-done" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[ ] Dados de <strong>Projetos</strong> extraídos (Título, Data, Status).</li>
+<li>[ ] Dados de <strong>Grupos de Pesquisa</strong> extraídos (Líder, Área, certificado).</li>
+<li>[ ] Dados de <strong>Bolsistas</strong> extraídos (Nome, Modalidade de bolsa, Vigência).</li>
+<li>[ ] Mapeamento correto utilizando entidades da lib <strong><code>research_domain_lib</code></strong> (<code>Project</code>, <code>ResearchGroup</code>, <code>Researcher</code>).</li>
+</ul>
+</li>
+<li><strong>Teste (TDD)</strong>:<ul>
+<li>[ ] Teste Unitário: Parser de HTML/JSON do SigPesq com mocks.</li>
+<li>[ ] Teste Integração: Gravação via <code>ResearchDomainLib</code> (ou suas abstrações).</li>
+<li>[ ] Cobertura &gt; 80% no módulo <code>adapters/sources/sigpesq</code>.</li>
+</ul>
+</li>
+<li><strong>Deploy</strong>:<ul>
+<li>[ ] Flow <code>ingest_sigpesq</code> registrado no Prefect.</li>
+<li>[ ] Execução bem-sucedida em ambiente de Staging.</li>
+</ul>
+</li>
+<li><strong>Observabilidade</strong>:<ul>
+<li>[ ] Logs de "Início", "Extração (Qtd)", "Carga" e "Fim".</li>
+</ul>
+</li>
+</ul>
+<h4 id="tasks-sugeridas">Tasks Sugeridas<a class="headerlink" href="#tasks-sugeridas" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>T-001 [Dev]</strong>: Implementar <code>SigPesqClient</code> (Source Adapter).<ul>
+<li><em>Critério</em>: Passar testes unitários com HTML mockado.</li>
+</ul>
+</li>
+<li><strong>T-002 [Dev]</strong>: Implementar <code>SigPesqMapper</code> (Raw -&gt; Domain).<ul>
+<li><em>Critério</em>: Transformação valida tipos Pydantic.</li>
+</ul>
+</li>
+<li><strong>T-003 [Ops]</strong>: Criar Flow Prefect e Dockerfile.<ul>
+<li><em>Critério</em>: Container sobe e flow registra no server.</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2 id="epic-2-extracao-lattes-release-2">Epic 2: Extração Lattes (Release 2)<a class="headerlink" href="#epic-2-extracao-lattes-release-2" title="Permanent link">&para;</a></h2>
+<p><strong>Objetivo</strong>: Enriquecer dados de pesquisadores (Currículo, Produção).</p>
+<h3 id="us-002-extracao-de-curriculo-lattes-xmlzip">US-002 – Extração de Currículo Lattes (XML/Zip)<a class="headerlink" href="#us-002-extracao-de-curriculo-lattes-xmlzip" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-002
+milestone: R2
+prioridade: Alta
+tamanho: 13
+origem: [RF-02, RF-06, RNF-01]
+tags: [type:feature, area:backend, source:lattes]
+dependencias: [US-001]
+modulos_afetados: [src/adapters/sources/lattes, src/core/logic]
+</code></pre>
+<h4 id="descricao_1">Descrição<a class="headerlink" href="#descricao_1" title="Permanent link">&para;</a></h4>
+<p>Processar arquivos XML de currículos Lattes para extrair dados pessoais e produções bibliográficas. Deve lidar com desduplicação de autores (<code>RF-06</code>).</p>
+<h4 id="criterios-de-aceitacao-definition-of-done_1">Critérios de Aceitação (Definition of Done)<a class="headerlink" href="#criterios-de-aceitacao-definition-of-done_1" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[ ] XML parseado corretamente para Objetos de Domínio (<code>Researcher</code>, <code>Publication</code>).</li>
+<li>[ ] Identificação única por ID Lattes (16 dígitos).</li>
+</ul>
+</li>
+<li><strong>Teste (TDD)</strong>:<ul>
+<li>[ ] Teste Unitário: Parser XML com massa de dados de exemplo.</li>
+<li>[ ] Teste de Lógica: Algoritmo de normalização de nomes.</li>
+</ul>
+</li>
+<li><strong>Deploy</strong>:<ul>
+<li>[ ] Flow <code>ingest_lattes</code> capaz de processar lote de zips.</li>
+<li>[ ] Infraestrutura de disco/volume montada para leitura de arquivos.</li>
+</ul>
+</li>
+</ul>
+<h4 id="tasks-sugeridas_1">Tasks Sugeridas<a class="headerlink" href="#tasks-sugeridas_1" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>T-004 [Dev]</strong>: Criar <code>LattesXMLParser</code>.<ul>
+<li><em>Critério</em>: Extrair nome, resumo e lista de artigos.</li>
+</ul>
+</li>
+<li><strong>T-005 [Dev]</strong>: Implementar Lógica de <code>Merge/Deduplication</code>.<ul>
+<li><em>Critério</em>: Teste com 2 XMLs do mesmo autor (versões diferentes) resulta em 1 registro atualizado.</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2 id="epic-3-dados-de-execucao-fapes-release-3">Epic 3: Dados de Execução FAPES (Release 3)<a class="headerlink" href="#epic-3-dados-de-execucao-fapes-release-3" title="Permanent link">&para;</a></h2>
+<p><strong>Objetivo</strong>: Monitorar execução financeira e bolsas.</p>
+<h3 id="us-003-dados-financeiros-e-bolsas">US-003 – Dados Financeiros e Bolsas<a class="headerlink" href="#us-003-dados-financeiros-e-bolsas" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-003
+milestone: R3
+prioridade: Média
+tamanho: 8
+origem: [RF-04]
+tags: [type:feature, area:backend, source:fapes]
+dependencias: []
+</code></pre>
+<h4 id="descricao_2">Descrição<a class="headerlink" href="#descricao_2" title="Permanent link">&para;</a></h4>
+<p>Extrair dados do Portal da Transparência/Dados Abertos sobre repasses da FAPES.</p>
+<h4 id="criterios-de-aceitacao">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[ ] Extração de valores (R$) e beneficiários.</li>
+<li>[ ] Vínculo com Projetos existentes (se houver chave comum).</li>
+</ul>
+</li>
+<li><strong>Teste</strong>:<ul>
+<li>[ ] Teste de parsing de CSV/API Fapes.</li>
+</ul>
+</li>
+<li><strong>Deploy</strong>:<ul>
+<li>[ ] Flow agendado (Cron) para rodar mensalmente.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h3 id="us-006-integracao-api-fapes-projetos-e-bolsas">US-006 – Integração API FAPES (Projetos e Bolsas)<a class="headerlink" href="#us-006-integracao-api-fapes-projetos-e-bolsas" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-006
+milestone: R3
+prioridade: Alta
+tamanho: 8
+origem: [RF-04]
+tags: [type:feature, area:backend, source:fapes]
+dependencias: []
+modulos_afetados: [src/adapters/sources/fapes, src/flows]
+</code></pre>
+<h4 id="descricao_3">Descrição<a class="headerlink" href="#descricao_3" title="Permanent link">&para;</a></h4>
+<p>Desenvolver a integração com a <strong>API da FAPES</strong> para extrair dados estruturados de:
+1.  <strong>Projetos</strong> (Títulos, vigência, valores).
+2.  <strong>Bolsistas</strong> (Beneficiários de bolsas).
+3.  <strong>Pagamentos</strong> (Execução financeira).</p>
+<h4 id="criterios-de-aceitacao-definition-of-done_2">Critérios de Aceitação (Definition of Done)<a class="headerlink" href="#criterios-de-aceitacao-definition-of-done_2" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[ ] Conexão autenticada/segura com API FAPES.</li>
+<li>[ ] Extração de dados de <strong>Projetos</strong> mapeados para o Domínio.</li>
+<li>[ ] Extração de dados de <strong>Bolsistas</strong> mapeados para o Domínio.</li>
+<li>[ ] Extração de dados de <strong>Pagamentos</strong> financeiros.</li>
+</ul>
+</li>
+<li><strong>Teste (TDD)</strong>:<ul>
+<li>[ ] Teste Unitário: Client HTTP com Mock da API FAPES.</li>
+<li>[ ] Teste de Contrato: Validação do Schema JSON retornado.</li>
+</ul>
+</li>
+<li><strong>Deploy</strong>:  </li>
+</ul>
+<hr />
+<h2 id="epic-7-orquestracao-e-pipelines-release-1">Epic 7: Orquestração e Pipelines (Release 1)<a class="headerlink" href="#epic-7-orquestracao-e-pipelines-release-1" title="Permanent link">&para;</a></h2>
+<p><strong>Objetivo</strong>: Unificar fluxos de dados para facilitar a execução completa.</p>
+<h3 id="us-011-pipeline-unificado-de-ingestao-e-exportacao">US-011 – Pipeline Unificado de Ingestão e Exportação<a class="headerlink" href="#us-011-pipeline-unificado-de-ingestao-e-exportacao" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-011
+milestone: R1
+prioridade: Alta
+tamanho: 3
+origem: [RNF-01]
+tags: [type:feature, area:core, area:flows]
+dependencias: [US-001, US-009, US-007]
+modulos_afetados: [src/flows, app.py]
+</code></pre>
+<h4 id="descricao_4">Descrição<a class="headerlink" href="#descricao_4" title="Permanent link">&para;</a></h4>
+<p>Criar um flow mestre que orquestra a execução sequencial dos fluxos de SigPesq, CNPq e Exportação Canônica.</p>
+<h4 id="criterios-de-aceitacao_1">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao_1" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[x] Execução sequencial: SigPesq -&gt; CNPq -&gt; Export.</li>
+<li>[x] Parametrização de filtro de campus e diretório de saída.</li>
+</ul>
+</li>
+<li><strong>Deploy</strong>:<ul>
+<li>[ ] Comando <code>full_pipeline</code> disponível no <code>app.py</code>.</li>
+</ul>
+</li>
+<li><strong>Observabilidade</strong>:<ul>
+<li>[ ] Logs do flow pai indicando o status de cada subflow.</li>
+<li>[ ] Flow <code>ingest_fapes_api</code> agendado.</li>
+</ul>
+</li>
+<li><strong>Observabilidade</strong>:<ul>
+<li>[ ] Logs detalhando: "Projetos Encontrados"  , "Novos Baixados", "Falha na Extração".</li>
+</ul>
+</li>
+</ul>
+<h4 id="tasks-sugeridas_2">Tasks Sugeridas<a class="headerlink" href="#tasks-sugeridas_2" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>T-006 [Dev]</strong>: Criar <code>FapesSiteScraper</code> para listar e baixar PDFs.<ul>
+<li><em>Critério</em>: Salvar arquivos com nomenclatura padronizada.</li>
+</ul>
+</li>
+<li><strong>T-007 [Dev]</strong>: Implementar <code>EditalPDFParser</code> com Docling.<ul>
+<li><em>Critério</em>: Converter PDF para Markdown com layout preservado.</li>
+</ul>
+</li>
+<li><strong>T-008 [Dev]</strong>: Implementar <code>EditalMatcher</code> (Regex/NLP).<ul>
+<li><em>Critério</em>: Extrair Tabela de Cronograma e Parágrafo de Objetivo.</li>
+</ul>
+</li>
+<li><strong>T-009 [Ops]</strong>: Criar Flow Prefect com Persistência.</li>
+</ol>
+<hr />
+<h3 id="us-012-geracao-de-data-mart-de-areas-de-pesquisa">US-012 – Geração de Data Mart de Áreas de Pesquisa<a class="headerlink" href="#us-012-geracao-de-data-mart-de-areas-de-pesquisa" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-012
+milestone: R2
+prioridade: Alta
+tamanho: 3
+origem: [User Req.]
+tags: [type:feature, area:core, area:mart]
+dependencias: [US-007, US-009]
+modulos_afetados: [src/core/logic/mart_generator.py, src/flows]
+</code></pre>
+<h4 id="descricao_5">Descrição<a class="headerlink" href="#descricao_5" title="Permanent link">&para;</a></h4>
+<p>Gerar um arquivo JSON consolidado que vincula Áreas de Conhecimento aos Grupos de Pesquisa e Campi correspondentes, incluindo contagens agregadas.</p>
+<h4 id="criterios-de-aceitacao_2">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao_2" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[x] Leitura direta do Banco de Dados via Controllers.</li>
+<li>[x] Agregação de contagem de grupos por área.</li>
+<li>[x] Listagem de nomes de campi únicos por área.</li>
+<li>[ ] Parametrização de filtro de campus.</li>
+</ul>
+</li>
+<li><strong>Deploy</strong>:<ul>
+<li>[x] Comando <code>ka_mart</code> integrado ao <code>app.py</code>.</li>
+<li>[x] Passo final do <code>full_pipeline</code>.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2 id="epic-4-metadados-google-scholar-release-4">Epic 4: Metadados Google Scholar (Release 4)<a class="headerlink" href="#epic-4-metadados-google-scholar-release-4" title="Permanent link">&para;</a></h2>
+<p><strong>Objetivo</strong>: Métricas de impacto.</p>
+<h3 id="us-004-metadados-e-citacoes">US-004 – Metadados e Citações<a class="headerlink" href="#us-004-metadados-e-citacoes" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-004
+milestone: R4
+prioridade: Baixa
+tamanho: 5
+origem: [RF-05]
+tags: [type:feature, source:scholar]
+</code></pre>
+<h4 id="descricao_6">Descrição<a class="headerlink" href="#descricao_6" title="Permanent link">&para;</a></h4>
+<p>Busca de perfil e métricas (H-Index) via Scraper.</p>
+<h4 id="criterios-de-aceitacao_3">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao_3" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[ ] H-Index atualizado para pesquisador.</li>
+</ul>
+</li>
+<li><strong>Teste</strong>:<ul>
+<li>[ ] Mock severo do Scholar para evitar banimento em CI.</li>
+</ul>
+</li>
+<li><strong>Deploy</strong>:<ul>
+<li>[ ] Uso de Proxies configurados no Deploy (Env Vars).</li>
+</ul>
+</li>
+</ul>
+<h3 id="us-033-download-de-curriculos-lattes-via-scriptlattes">US-033 – Download de Currículos Lattes via scriptLattes<a class="headerlink" href="#us-033-download-de-curriculos-lattes-via-scriptlattes" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-033
+milestone: R2
+prioridade: Alta
+tamanho: 8
+origem: [RF-28]
+tags: [type:feature, area:backend, source:lattes]
+dependencias: [US-001]
+modulos_afetados: [src/flows/download_lattes.py, src/core/logic/lattes_utils.py]
+</code></pre>
+<h4 id="descricao_7">Descrição<a class="headerlink" href="#descricao_7" title="Permanent link">&para;</a></h4>
+<p>Implementar um fluxo para baixar os currículos Lattes dos pesquisadores utilizando a biblioteca <code>scriptLattes</code>. O sistema deve gerar automaticamente o arquivo de configuração e a lista de pesquisadores (Lattes ID) baseando-se nos pesquisadores já cadastrados no banco de dados. O arquivo JSON gerado pela biblioteca deve ser salvo no diretório <code>data</code>.</p>
+<h4 id="criterios-de-aceitacao_4">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao_4" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[ ] Geração dinâmica do arquivo de configuração (<code>.config</code>) baseado em template.</li>
+<li>[ ] Geração dinâmica do arquivo de lista (<code>.list</code>) com os IDs Lattes e nomes dos pesquisadores.</li>
+<li>[ ] Execução da lib <code>scriptLattes</code> (mockada para desenvolvimento) consumindo os arquivos gerados.</li>
+<li>[ ] Salvamento do arquivo JSON de saída no diretório configurado (<code>data</code>).</li>
+</ul>
+</li>
+<li><strong>Teste</strong>:<ul>
+<li>[ ] Teste unitário da geração de arquivos de config e lista.</li>
+<li>[ ] Teste de fluxo com mock da lib <code>scriptLattes</code>.</li>
+</ul>
+</li>
+<li><strong>Artefatos</strong>:<ul>
+<li>[ ] <code>LattesConfigGenerator</code>.</li>
+<li>[ ] <code>LattesListGenerator</code>.</li>
+<li>[ ] <code>LattesDownloadFlow</code>.</li>
+</ul>
+</li>
+</ul>
+<h3 id="us-034-ingestao-de-projetos-lattes-research-extension-development">US-034 – Ingestão de Projetos Lattes (Research, Extension, Development)<a class="headerlink" href="#us-034-ingestao-de-projetos-lattes-research-extension-development" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-034
+milestone: R2
+prioridade: Alta
+tamanho: 5
+origem: [RF-29]
+tags: [type:feature, area:backend, source:lattes]
+dependencias: [US-033]
+modulos_afetados: [src/flows/ingest_lattes_projects.py, src/adapters/sources/lattes_parser.py]
+</code></pre>
+<h4 id="descricao_8">Descrição<a class="headerlink" href="#descricao_8" title="Permanent link">&para;</a></h4>
+<p>Implementar o pipeline de ingestão de projetos presentes nos arquivos JSON do Lattes. O sistema deve processar as seções <code>projetos_pesquisa</code>, <code>projetos_extensao</code> e <code>projetos_desenvolvimento</code>, criando as respectivas Iniciativas e vinculando-as ao Pesquisador (Lattes ID).</p>
+<h4 id="criterios-de-aceitacao_5">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao_5" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[ ] Parsing das seções de projetos do JSON Lattes.</li>
+<li>[ ] Identificação correta do Tipo de Iniciativa (Pesquisa, Extensão, Desenvolvimento).</li>
+<li>[ ] Persistência da Iniciativa com: Nome, Descrição, Data Início, Data Fim (ou status).</li>
+<li>[ ] Vínculo do Pesquisador à Iniciativa (Role: Researcher ou Coordinator).</li>
+<li>[ ] Manipulação de Membros da Equipe (se possível parsear).</li>
+</ul>
+</li>
+<li><strong>Deploy</strong>:<ul>
+<li>[ ] Flow <code>ingest_lattes_projects</code> integrado e executável via <code>app.py</code>.</li>
+</ul>
+</li>
+</ul>
+<h3 id="us-035-ingestao-de-artigos-lattes-periodicos-e-congressos">US-035 – Ingestão de Artigos Lattes (Periódicos e Congressos)<a class="headerlink" href="#us-035-ingestao-de-artigos-lattes-periodicos-e-congressos" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-035
+milestone: R2
+prioridade: Alta
+tamanho: 5
+origem: [RF-02]
+tags: [type:feature, area:backend, source:lattes]
+dependencias: [US-033]
+modulos_afetados: [src/flows/ingest_lattes_projects.py, src/adapters/sources/lattes_parser.py]
+</code></pre>
+<h4 id="descricao_9">Descrição<a class="headerlink" href="#descricao_9" title="Permanent link">&para;</a></h4>
+<p>Implementar o pipeline de ingestão de artigos presentes nos arquivos JSON do Lattes. O sistema deve processar as seções <code>artigos_periodicos</code> e <code>trabalhos_completos_congressos</code>, criando registros de Artigos e vinculando-os ao Pesquisador proprietário do currículo e outros co-autores identificados no banco de dados.</p>
+<h4 id="criterios-de-aceitacao_6">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao_6" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[ ] Parsing de <code>artigos_periodicos</code> (Journal articles).</li>
+<li>[ ] Parsing de <code>trabalhos_completos_congressos</code> (Conference papers).</li>
+<li>[ ] Persistência via <code>ArticleController</code> com título, ano, DOI, volume, páginas e nome da revista/evento.</li>
+<li>[ ] Vínculo automático do Pesquisador (dono do CV) como autor.</li>
+<li>[ ] Tentativa de vínculo de outros autores (Pesquisadores existentes no DB) via match de nome.</li>
+</ul>
+</li>
+<li><strong>Teste</strong>:<ul>
+<li>[ ] Teste unitário para parsing de artigos.</li>
+<li>[ ] Teste de integração para persistência de artigos e vínculos de autoria.</li>
+</ul>
+</li>
+<li><strong>Deploy</strong>:<ul>
+<li>[ ] Flow <code>ingest_lattes_projects</code> atualizado para incluir ingestão de artigos.</li>
+</ul>
+</li>
+</ul>
+<h3 id="us-036-ingestao-de-orientacoes-lattes-advisorships">US-036 – Ingestão de Orientações Lattes (Advisorships)<a class="headerlink" href="#us-036-ingestao-de-orientacoes-lattes-advisorships" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-036
+milestone: R2
+prioridade: Alta
+tamanho: 5
+origem: [RF-16]
+tags: [type:feature, area:backend, source:lattes]
+dependencias: [US-033]
+modulos_afetados: [src/flows/ingest_lattes_advisorships.py, src/adapters/sources/lattes_parser.py]
+</code></pre>
+<h4 id="descricao_10">Descrição<a class="headerlink" href="#descricao_10" title="Permanent link">&para;</a></h4>
+<p>Implementar o pipeline de ingestão de orientações (Advisorships) a partir dos arquivos JSON do Lattes. O sistema deve processar as seções <code>orientacoes.em_andamento</code> e <code>orientacoes.concluidas</code>, persistindo-as como entidades <code>Advisorship</code> e vinculando-as ao Pesquisador (Orientador) e ao aluno (Student).</p>
+<h4 id="criterios-de-aceitacao_7">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao_7" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[ ] Parsing das seções de orientações.</li>
+<li>[ ] Identificação do Tipo (Mestrado, Doutorado, TCC, IC).</li>
+<li>[ ] Persistência da entidade <code>Advisorship</code> com título, ano, aluno e instituição.</li>
+<li>[ ] Vínculo do Pesquisador (dono do CV) como Supervisor.</li>
+<li>[ ] Criação/Vínculo do Aluno (Student).</li>
+</ul>
+</li>
+<li><strong>Teste</strong>:<ul>
+<li>[ ] Teste unitário para parsing.</li>
+<li>[ ] Teste de integração para persistência.</li>
+</ul>
+</li>
+<li><strong>Deploy</strong>:<ul>
+<li>[ ] Flow <code>ingest_lattes_advisorships</code> executável.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2 id="cross-cutting-arquitetura">Cross-Cutting (Arquitetura)<a class="headerlink" href="#cross-cutting-arquitetura" title="Permanent link">&para;</a></h2>
+<h3 id="us-005-observabilidade-e-idempotencia">US-005 – Observabilidade e Idempotência<a class="headerlink" href="#us-005-observabilidade-e-idempotencia" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-005
+milestone: R1
+prioridade: Crítica
+tamanho: 5
+origem: [RNF-01, RNF-06]
+tags: [type:arch, area:core]
+
+### US-013 – Ingestão de Projetos SigPesq como Iniciativas
+```yaml
+id: US-013
+milestone: R2
+prioridade: Alta
+tamanho: 5
+origem: [User Req, Issue #38]
+tags: [type:feature, area:backend, source:sigpesq]
+dependencias: [US-001]
+modulos_afetados: [src/flows/ingest_sigpesq.py, src/core/logic/project_loader.py]
+</code></pre>
+<h4 id="descricao_11">Descrição<a class="headerlink" href="#descricao_11" title="Permanent link">&para;</a></h4>
+<p>Estender a integração com SigPesq para extrair <strong>Projetos de Pesquisa</strong> e persistí-los como Iniciativas no banco de dados. Deve utilizar a lib <code>agent_sigpesq</code> para download.</p>
+<h4 id="criterios-de-aceitacao_8">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao_8" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[ ] Extração de relatórios de Projetos via <code>agent_sigpesq</code>.</li>
+<li>[ ] Mapeamento de Título, Situação, Datas e Coordenador.</li>
+<li>[ ] Persistência na entidade <code>Project</code> (metadata <code>type: Research Project</code>).</li>
+<li>[ ] Idempotência na carga (evitar duplicatas).</li>
+</ul>
+</li>
+<li><strong>Deploy</strong>:<ul>
+<li>[ ] Task <code>persist_projects</code> integrada ao flow <code>Ingest SigPesq</code>.</li>
+</ul>
+</li>
+</ul>
+<h3 id="us-014-exportacao-de-iniciativas-e-tipos">US-014 – Exportação de Iniciativas e Tipos<a class="headerlink" href="#us-014-exportacao-de-iniciativas-e-tipos" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-014
+milestone: R2
+prioridade: Alta
+tamanho: 3
+origem: [User Req.]
+tags: [type:feature, area:backend, area:export]
+dependencias: [US-013]
+modulos_afetados: [src/flows/export_canonical_data.py, src/core/logic/canonical_exporter.py]
+</code></pre>
+<h4 id="descricao_12">Descrição<a class="headerlink" href="#descricao_12" title="Permanent link">&para;</a></h4>
+<p>Estender o fluxo de exportação canônica para incluir <strong>Iniciativas</strong> e <strong>Tipos de Iniciativa</strong>. Isso permite que os dados de Projetos (ingestados na US-013) sejam consumidos por outras ferramentas ou frontend.</p>
+<h4 id="criterios-de-aceitacao_9">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao_9" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[ ] Exportação de <code>initiative_types</code> para <code>initiative_types_canonical.json</code>.</li>
+<li>[ ] Exportação de <code>initiatives</code> para <code>initiatives_canonical.json</code>.</li>
+<li>[ ] Enriquecimento leve (ex: incluir nome do tipo na iniciativa) se necessário, ou manter relacional.</li>
+</ul>
+</li>
+<li><strong>Deploy</strong>:<ul>
+<li>[ ] Tasks integradas ao flow <code>Export Canonical Data Flow</code>.</li>
+</ul>
+</li>
+</ul>
+<h3 id="us-016-analytics-de-iniciativas-mart">US-016 – Analytics de Iniciativas (Mart)<a class="headerlink" href="#us-016-analytics-de-iniciativas-mart" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-016
+milestone: R2
+prioridade: Alta
+tamanho: 3
+origem: [User Req, RF-13]
+tags: [type:feature, area:core, area:mart]
+dependencias: [US-013, US-015]
+modulos_afetados: [src/core/logic/mart_generator.py, src/flows]
+</code></pre>
+<h4 id="descricao_13">Descrição<a class="headerlink" href="#descricao_13" title="Permanent link">&para;</a></h4>
+<p>Desenvolver a lógica de agregação para gerar o JSON de estatísticas de nível organizacional, incluindo totais de projetos, evolução temporal (entradas/saídas por ano) e composição demográfica das equipes (Pesquisadores vs Estudantes).</p>
+<h4 id="criterios-de-aceitacao_10">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao_10" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[ ] <code>total_projects</code>: Contagem total de iniciativas.</li>
+</ul>
+</li>
+<li>[ ] <code>active_projects</code>: Iniciativas com status que indique atividade (ou sem data de fim).<ul>
+<li>[ ] <code>total_participants</code>: Contagem única de pessoas vinculadas a equipes.</li>
+</ul>
+</li>
+<li>[ ] <code>evolution</code>: Lista por ano com contagem de <code>start</code> e <code>end</code>.</li>
+<li>[ ] <code>team_composition</code>: Contagem segmentada por roles (Researcher, Student).</li>
+</ul>
+<h3 id="us-032-ingestao-de-bolsistas-sigpesq-advisorships">US-032 – Ingestão de Bolsistas SigPesq (Advisorships)<a class="headerlink" href="#us-032-ingestao-de-bolsistas-sigpesq-advisorships" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-032
+milestone: R5
+prioridade: Alta
+tamanho: 5
+origem: [RF-16]
+tags: [type:feature, area:backend, source:sigpesq]
+dependencias: [US-001]
+modulos_afetados: [src/flows/ingest_sigpesq_advisorships.py, src/core/logic/strategies/sigpesq_advisorships.py]
+</code></pre>
+<h4 id="descricao_14">Descrição<a class="headerlink" href="#descricao_14" title="Permanent link">&para;</a></h4>
+<p>Desenvolver o pipeline de ingestão de <strong>Bolsistas</strong> (Orientações/Bolsas) do SigPesq. Deve utilizar a estratégia <code>AdvisorshipsDownloadStrategy</code> da lib <code>agent_sigpesq</code> e persistir os dados no banco de dados.</p>
+<h4 id="criterios-de-aceitacao_11">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao_11" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[ ] Extração de relatórios de Bolsistas via <code>agent_sigpesq</code>.</li>
+<li>[ ] Mapeamento de Bolsista, Orientador, Datas e Vínculo.</li>
+<li>[ ] Persistência no banco de dados.</li>
+</ul>
+</li>
+<li><strong>TDD</strong>:<ul>
+<li>[ ] Testes de mapeamento e lógica de persistência.</li>
+</ul>
+</li>
+<li><strong>Deploy</strong>:<ul>
+<li>[ ] Flow <code>ingest_sigpesq_advisorships.py</code> executável.</li>
+</ul>
+</li>
+<li>
+<p><strong>Deploy</strong>:</p>
+<ul>
+<li>[ ] Comando <code>analytics_mart</code> integrado ao <code>app.py</code>.</li>
+<li>
+<p>[ ] Arquivo salvo em <code>src/data/marts/initiatives_analytics_mart.json</code>.</p>
+</li>
+<li>
+<p>[ ] Arquivo salvo em <code>src/data/marts/initiatives_analytics_mart.json</code>.</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="us-017-associacao-de-palavras-chave-como-areas-de-conhecimento">US-017 – Associação de Palavras-Chave como Áreas de Conhecimento<a class="headerlink" href="#us-017-associacao-de-palavras-chave-como-areas-de-conhecimento" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-017
+milestone: R2
+prioridade: Média
+tamanho: 3
+origem: [User Req, RF-14]
+tags: [type:feature, area:backend, source:sigpesq]
+dependencias: [US-013, US-015]
+modulos_afetados: [src/core/logic/project_loader.py]
+</code></pre>
+<h4 id="descricao_15">Descrição<a class="headerlink" href="#descricao_15" title="Permanent link">&para;</a></h4>
+<p>Extrair palavras-chave dos metadados de Projetos SigPesq e associá-las como <strong>Áreas de Conhecimento</strong> ao <strong>Grupo de Pesquisa</strong> (se houver) e aos <strong>Pesquisadores</strong> (Coordenador e Membros) envolvidos no projeto.</p>
+<h4 id="criterios-de-aceitacao_12">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao_12" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[ ] Extração de <code>keywords</code> do metadata do projeto.</li>
+<li>[ ] Normalização e criação (se não existir) de <code>KnowledgeArea</code>.</li>
+<li>[ ] Associação da <code>KnowledgeArea</code> ao <code>ResearchGroup</code> via tabela <code>group_knowledge_areas</code>.</li>
+<li>[ ] Associação da <code>KnowledgeArea</code> aos <code>Researcher</code> (Team Members) via tabela <code>researcher_knowledge_areas</code>.</li>
+</ul>
+</li>
+<li><strong>Teste</strong>:<ul>
+<li>[ ] Teste de Integração verificando a persistência dos relacionamentos.</li>
+</ul>
+</li>
+</ul>
+<h3 id="us-018-atualizacao-de-metadados-de-grupos-cnpq">US-018 – Atualização de Metadados de Grupos (CNPq)<a class="headerlink" href="#us-018-atualizacao-de-metadados-de-grupos-cnpq" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-018
+milestone: R2
+prioridade: Média
+tamanho: 3
+origem: [User Req.]
+tags: [type:feature, area:backend, source:cnpq]
+dependencias: [US-009]
+modulos_afetados: [src/core/logic/strategies/cnpq_sync.py]
+</code></pre>
+<h4 id="descricao_16">Descrição<a class="headerlink" href="#descricao_16" title="Permanent link">&para;</a></h4>
+<p>Sincronizar a data de fundação (start_date) e o texto de repercussões (description) do CNPq DGP Mirror para a entidade <code>ResearchGroup</code> no banco de dados local.</p>
+<h4 id="criterios-de-aceitacao_13">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao_13" title="Permanent link">&para;</a></h4>
+<ul>
+<li>[ ] Extração de <code>data_de_formacao</code> (ou ano) da seção <code>identificacao</code>.</li>
+<li>[ ] Extração de <code>repercussoes</code> da seção principal.</li>
+<li>[ ] Atualização automática no banco de dados durante o sync do grupo.</li>
+<li>[ ] Persistência da data no formato ISO compatível com <code>start_date</code>.</li>
+</ul>
+<hr />
+<h2 id="epic-5-ingestao-de-grupos-de-pesquisa-excel-release-1">Epic 5: Ingestão de Grupos de Pesquisa (Excel) (Release 1)<a class="headerlink" href="#epic-5-ingestao-de-grupos-de-pesquisa-excel-release-1" title="Permanent link">&para;</a></h2>
+<p><strong>Objetivo</strong>: Processar planilhas extraídas do SigPesq e popular o domínio de Grupos de Pesquisa.</p>
+<h3 id="us-007-carga-de-grupos-de-pesquisa-excel-db">US-007 – Carga de Grupos de Pesquisa (Excel -&gt; DB)<a class="headerlink" href="#us-007-carga-de-grupos-de-pesquisa-excel-db" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-007
+milestone: R1
+prioridade: Alta
+tamanho: 5
+origem: [RF-01]
+tags: [type:feature, area:backend, source:sigpesq]
+dependencias: [US-001]
+modulos_afetados: [src/flows, src/core/logic]
+</code></pre>
+<h4 id="descricao_17">Descrição<a class="headerlink" href="#descricao_17" title="Permanent link">&para;</a></h4>
+<p>Ler o arquivo Excel de Grupos de Pesquisa (processado na US-001/Extração) e persistir utilizando os Controllers da <code>research_domain_lib</code>. Deve garantir a criação da hierarquia (Universidade -&gt; Campus -&gt; Grupo).</p>
+<h4 id="criterios-de-aceitacao_14">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao_14" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[ ] Leitura do Excel <code>data/raw/sigpesq/research_group/*.xlsx</code>.</li>
+<li>[ ] <strong>Universidade</strong> "UFSC" criada (se não existir) via <code>UniversityController</code>.</li>
+<li>[ ] <strong>Campus</strong> "Florianópolis" criado (se não existir) via <code>CampusController</code>.</li>
+<li>[ ] <strong>Grupo de Pesquisa</strong> criado com nome, sigla e vínculos via <code>ResearchGroupController</code>.</li>
+</ul>
+</li>
+<li><strong>Teste</strong>:<ul>
+<li>[ ] Teste de Integração com banco (Mock ou Local) validando a criação dos registros.</li>
+</ul>
+</li>
+<li><strong>Deploy</strong>:<ul>
+<li>[ ] Flow <code>ingest_sigpesq_groups</code> executável via <code>app.py</code>.</li>
+</ul>
+</li>
+</ul>
+<h4 id="tasks-sugeridas_3">Tasks Sugeridas<a class="headerlink" href="#tasks-sugeridas_3" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>T-010 [Dev]</strong>: Implementar <code>ResearchGroupExcelLoader</code>.<ul>
+<li><em>Critério</em>: Ler Excel com Pandas e iterar linhas.</li>
+</ul>
+</li>
+<li><strong>T-011 [Dev]</strong>: Implementar Lógica de Carga (Service).<ul>
+<li><em>Critério</em>: Usar <code>UniversityController</code>, <code>CampusController</code>, <code>ResearchGroupController</code> para idempotência.</li>
+</ul>
+</li>
+</ol>
+<h4 id="descricao_18">Descrição<a class="headerlink" href="#descricao_18" title="Permanent link">&para;</a></h4>
+<p>Implementar Base Repository com Loguru e lógica de <code>ON CONFLICT DO UPDATE</code>.</p>
+<h4 id="criterios-de-aceitacao_15">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao_15" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[ ] Logs aparecem no Stdout e UI do Prefect.</li>
+<li>[ ] Inserir registro X duas vezes não cria duplicata.</li>
+</ul>
+</li>
+<li><strong>Teste</strong>:<ul>
+<li>[ ] Teste de Repositório (Integration) provando idempotência.</li>
+<li>[ ] Teste validando formato JSON dos logs.</li>
+</ul>
+</li>
+<li><strong>Deploy</strong>:<ul>
+<li>[ ] Variáveis de ambiente de LOG_LEVEL configuráveis.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2 id="epic-6-atualizacao-de-grupos-de-pesquisa-cnpq-release-2">Epic 6: Atualização de Grupos de Pesquisa CNPq (Release 2)<a class="headerlink" href="#epic-6-atualizacao-de-grupos-de-pesquisa-cnpq-release-2" title="Permanent link">&para;</a></h2>
+<p><strong>Objetivo</strong>: Enriquecer dados dos grupos de pesquisa com informações oficiais do CNPq (DGP).</p>
+<h3 id="us-009-atualizacao-de-dados-de-grupos-via-dgpcnpq">US-009 – Atualização de Dados de Grupos via DGP/CNPq<a class="headerlink" href="#us-009-atualizacao-de-dados-de-grupos-via-dgpcnpq" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-009
+milestone: R2
+prioridade: Média
+tamanho: 8
+origem: [RF-09, RNF-01, RNF-02, RNF-06]
+tags: [type:feature, area:backend, source:cnpq]
+dependencias: [US-007]
+modulos_afetados: [src/flows, src/core/logic/strategies]
+</code></pre>
+<h4 id="descricao_19">Descrição<a class="headerlink" href="#descricao_19" title="Permanent link">&para;</a></h4>
+<p>Desenvolver um novo pipeline que extrai URLs de espelho de grupos do banco de dados, utiliza a lib <code>dgp_cnpq_lib</code> para coletar dados atualizados (nome, líderes, linhas de pesquisa) e atualiza os membros do grupo.</p>
+<h4 id="criterios-de-aceitacao-definition-of-done_3">Critérios de Aceitação (Definition of Done)<a class="headerlink" href="#criterios-de-aceitacao-definition-of-done_3" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[ ] Extração de URLs de grupos existentes no DB via <code>ResearchGroupRepository</code>.</li>
+<li>[ ] Uso da <code>dgp_cnpq_lib</code> para extrair dados do espelho.</li>
+<li>[ ] Atualização dos dados do grupo (Líderes, Linhas de Pesquisa) no DB.</li>
+<li>[ ] Sincronização de membros do grupo (inserção de novos, atualização de participações).</li>
+</ul>
+</li>
+<li><strong>Teste (TDD)</strong>:<ul>
+<li>[ ] Teste Unitário: Estratégia de mapeamento dos dados da lib para o domínio <code>ResearchGroup</code>.</li>
+<li><strong>Tasks</strong>:<ul>
+<li>Create <code>CnpqCrawlerAdapter</code> to connect with <code>dgp_cnpq_lib</code>.</li>
+<li>Implement <code>CnpqSyncLogic</code> for orchestration.</li>
+<li>Create Sync Flow.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="us-010-sincronizacao-de-egressos-cnpq">US-010: Sincronização de Egressos CNPq<a class="headerlink" href="#us-010-sincronizacao-de-egressos-cnpq" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Description</strong>: Como gestor, quero que os ex-membros (egressos) dos grupos de pesquisa sejam sincronizados com suas respectivas datas de saída, para manter o histórico fiel da participação.</li>
+<li><strong>Acceptance Criteria</strong>:<ul>
+<li>Extrair lista de egressos do CNPq.</li>
+<li>Identificar pesquisadores/estudantes já existentes ou criar novos.</li>
+<li>Atualizar a associação no grupo (TeamMember) preservando a <code>start_date</code> e preenchendo a <code>end_date</code>.</li>
+<li>Garantir que egressos não sejam reativados como membros ativos incorretamente.</li>
+</ul>
+</li>
+<li><strong>Priority</strong>: High</li>
+<li><strong>Tasks</strong>:<ul>
+<li>Atualizar <code>CnpqCrawlerAdapter</code> para extrair egressos.</li>
+<li>Atualizar <code>CnpqSyncLogic</code> para processar egressos.</li>
+</ul>
+</li>
+<li><strong>Deploy</strong>:<ul>
+<li>[ ] Flow <code>sync_cnpq_groups</code> registrado e explorável no <code>app.py</code>.</li>
+</ul>
+</li>
+<li><strong>Observabilidade</strong>:<ul>
+<li>[ ] Log de "Qtd de Grupos Processados", "Sucesso/Erro por URL".</li>
+</ul>
+</li>
+</ul>
+<h4 id="tasks-sugeridas_4">Tasks Sugeridas<a class="headerlink" href="#tasks-sugeridas_4" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>T-012 [Dev]</strong>: Implementar <code>CnpqCrawlerStrategy</code>.<ul>
+<li><em>Critério</em>: Mapear <code>dict</code> retornado pela lib para as entidades do domínio.</li>
+</ul>
+</li>
+<li><strong>T-013 [Ops]</strong>: Criar Flow Prefect <code>sync_cnpq_groups</code>.<ul>
+<li><em>Critério</em>: Flow orquestra: Seleção -&gt; Crawler -&gt; Persistência.</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h3 id="us-015-gestao-automatica-de-equipes-em-projetos-sigpesq">US-015 – Gestão Automática de Equipes em Projetos SigPesq<a class="headerlink" href="#us-015-gestao-automatica-de-equipes-em-projetos-sigpesq" title="Permanent link">&para;</a></h3>
+<pre><code class="language-yaml">id: US-015
+milestone: R2
+prioridade: Alta
+tamanho: 5
+origem: [User Req., RF-12]
+tags: [type:feature, area:backend, source:sigpesq]
+dependencias: [US-013]
+modulos_afetados: [src/core/logic/project_loader.py]
+</code></pre>
+<h4 id="descricao_20">Descrição<a class="headerlink" href="#descricao_20" title="Permanent link">&para;</a></h4>
+<p>Criar automaticamente equipes (Teams) com seus membros durante a ingestão de projetos do SigPesq, extraindo dados das colunas <code>Coordenador</code>, <code>Pesquisadores</code> e <code>Estudantes</code> do Excel. A identificação de pessoas deve usar Normalização e Fuzzy Matching para evitar duplicatas.</p>
+<h4 id="criterios-de-aceitacao_16">Critérios de Aceitação<a class="headerlink" href="#criterios-de-aceitacao_16" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Funcional</strong>:<ul>
+<li>[x] Parsing de nomes sepados por <code>;</code>.</li>
+<li>[x] Normalização de nomes (Uppercase, No accents, No special chars).</li>
+<li>[x] Identificação de <code>Person</code> via Fuzzy Matching (Threshold 90%).</li>
+<li>[x] Criação de <code>Team</code> com nome do projeto (idempotente).</li>
+<li>[x] Adição de <code>TeamMember</code> com roles corretos.</li>
+</ul>
+</li>
+<li><strong>Teste (TDD)</strong>:<ul>
+<li>[ ] Testes unitários para a lógica de match.</li>
+<li>[ ] Testes de integração para a carga.</li>
+</ul>
+</li>
+<li><strong>Observabilidade</strong>:<ul>
+<li>[x] Logs detalhados de matches e criação.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h1 id="4-backlog-refinado-release-1">4. Backlog Refinado (Release 1)<a class="headerlink" href="#4-backlog-refinado-release-1" title="Permanent link">&para;</a></h1>
+<p>| <strong>US-005</strong> | Observabilidade e Idempotência (Base) | R1 | <strong>Concluído</strong> |
+| <strong>US-001</strong> | Extração Projetos SigPesq | R1 | <strong>Concluído</strong> |
+| <strong>US-007</strong> | Ingestão Grupos Pesquisa (Excel) | R1 | <strong>Concluído</strong> |
+| <strong>US-009</strong> | Sincronização CNPq DGP | R2 | <strong>Concluído</strong> |
+| <strong>US-010</strong> | Sincronização Egressos CNPq | R2 | <strong>Concluído</strong> |
+| <strong>US-011</strong> | Pipeline Unificado | R1 | <strong>Concluído</strong> |
+| <strong>US-012</strong> | Research Area Mart | R2 | <strong>Concluído</strong> |
+| <strong>US-006</strong> | Extração Editais FAPES (PDF) | R3 | <strong>Ready</strong> |
+| <strong>US-032</strong> | Ingestão Bolsistas SigPesq | R5 | <strong>Concluído</strong> |
+| <strong>US-034</strong> | Ingestão Projetos Lattes | R2 | <strong>Ready</strong> |
+| <strong>US-035</strong> | Ingestão Artigos Lattes | R2 | <strong>Ready</strong> |</p>
+<hr />
+<h1 id="5-definition-of-ready-dor-check-for-r1">5. Definition of Ready (DoR) Check for R1<a class="headerlink" href="#5-definition-of-ready-dor-check-for-r1" title="Permanent link">&para;</a></h1>
+<ul>
+<li>[x] US-005 e US-001 possuem arquitetura definida em <code>SI.3-design.md</code>.</li>
+<li>[x] Critérios de Teste e Deploy explícitos.</li>
+<li>[x] Origem rastreada para <code>SI.1</code>.</li>
+</ul></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../../js/bootstrap.bundle.min.js"></script>
+        <script>
+            var base_url = "../../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../../js/base.js"></script>
+        <script src="../../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

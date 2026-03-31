@@ -53,6 +53,7 @@ def test_initiative_analytics_calculation(mock_initiatives, mock_teams, tmp_path
     with (
         patch("src.core.logic.mart_generator.InitiativeController") as MockInitCtrl,
         patch("src.core.logic.mart_generator.TeamController") as MockTeamCtrl,
+        patch("src.core.logic.mart_generator.CampusController"),
     ):
 
         mock_init_instance = MockInitCtrl.return_value
@@ -68,6 +69,8 @@ def test_initiative_analytics_calculation(mock_initiatives, mock_teams, tmp_path
         result = generator.generate(output_path)
 
         # Verify Summary
+        assert result["campus"] is None
+        assert result["campuses"] == []
         assert result["summary"]["total_projects"] == 3
         # init1 (Active), init3 (Em execução) -> 2 active
         assert result["summary"]["active_projects"] == 2

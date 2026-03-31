@@ -1,3 +1,7 @@
+from src.prefect_runtime import bootstrap_local_prefect
+
+bootstrap_local_prefect()
+
 from src.flows.unified_pipeline import full_ingestion_pipeline
 
 def run_pipeline():

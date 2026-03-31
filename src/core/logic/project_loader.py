@@ -1,6 +1,7 @@
 from typing import Any, Dict, Optional
 import pandas as pd
 from loguru import logger
+from sqlalchemy import text
 
 from eo_lib import (
     Initiative,
@@ -291,11 +292,13 @@ class ProjectLoader:
         parent_title = project_data.get("parent_title")
         if parent_title:
             parent_identity = project_data.get("parent_identity_key")
-            parent_initiative = (
-                existing_by_identity.get(parent_identity)
-                if parent_identity
-                else None
-            ) or existing_by_name.get(parent_title)
+            parent_initiative = self._resolve_existing_initiative(
+                existing_by_name=existing_by_name,
+                existing_by_identity=existing_by_identity,
+                model_class=Initiative,
+                identity_key=parent_identity,
+                title=parent_title,
+            )
             
             if not parent_initiative:
                 # Create parent via Standard Handler
@@ -315,7 +318,12 @@ class ProjectLoader:
                     initiative_type_id=res_proj_type.id,
                     organization_id=self.org_id
                 )
-                existing_by_name[parent_title] = parent_initiative
+                self._register_existing_initiative(
+                    existing_by_name=existing_by_name,
+                    title=parent_title,
+                    initiative=parent_initiative,
+                    model_class=Initiative,
+                )
                 parent_identity_resolved = get_existing_initiative_identity(parent_initiative)
                 if parent_identity_resolved:
                     existing_by_identity[parent_identity_resolved] = parent_initiative
@@ -323,9 +331,13 @@ class ProjectLoader:
             parent_id = parent_initiative.id
 
         # 3. UPSERT Initiative
-        existing = existing_by_identity.get(identity_key) if identity_key else None
-        if not existing:
-            existing = existing_by_name.get(title)
+        existing = self._resolve_existing_initiative(
+            existing_by_name=existing_by_name,
+            existing_by_identity=existing_by_identity,
+            model_class=model_class,
+            identity_key=identity_key,
+            title=title,
+        )
         initiative = handler.create_or_update(
             project_data=project_data,
             existing_initiative=existing,
@@ -338,14 +350,24 @@ class ProjectLoader:
         if not existing:
             stats["created"] += 1
             if initiative: 
-                existing_by_name[title] = initiative
+                self._register_existing_initiative(
+                    existing_by_name=existing_by_name,
+                    title=title,
+                    initiative=initiative,
+                    model_class=model_class,
+                )
                 resolved_identity = get_existing_initiative_identity(initiative) or identity_key
                 if resolved_identity:
                     existing_by_identity[resolved_identity] = initiative
         else:
             stats["updated"] += 1
             if initiative:
-                existing_by_name[title] = initiative
+                self._register_existing_initiative(
+                    existing_by_name=existing_by_name,
+                    title=title,
+                    initiative=initiative,
+                    model_class=model_class,
+                )
                 resolved_identity = get_existing_initiative_identity(initiative) or identity_key
                 if resolved_identity:
                     existing_by_identity[resolved_identity] = initiative
@@ -409,6 +431,95 @@ class ProjectLoader:
 
             # Knowledge Areas / Keywords
             self.linker.associate_keyword_knowledge_areas(initiative, project_data, rg_name)
+
+    def _resolve_existing_initiative(
+        self,
+        *,
+        existing_by_name: Dict[str, Any],
+        existing_by_identity: Dict[str, Any],
+        model_class,
+        identity_key: Optional[str],
+        title: Optional[str],
+    ) -> Optional[Any]:
+        if identity_key:
+            candidate = existing_by_identity.get(identity_key)
+            if self._candidate_matches_model(candidate, model_class):
+                return candidate
+
+        if title:
+            candidate = existing_by_name.get(title)
+            if self._candidate_matches_model(candidate, model_class):
+                return candidate
+
+        return self._lookup_existing_by_exact_name(title, model_class)
+
+    def _candidate_matches_model(self, candidate: Optional[Any], model_class) -> bool:
+        if candidate is None:
+            return False
+
+        is_advisorship_candidate = self._is_advisorship_candidate(candidate)
+        if model_class is Advisorship:
+            return is_advisorship_candidate
+
+        return not is_advisorship_candidate
+
+    def _is_advisorship_candidate(self, candidate: Any) -> bool:
+        if isinstance(candidate, Advisorship):
+            return True
+
+        candidate_id = getattr(candidate, "id", None)
+        if not candidate_id:
+            return False
+
+        try:
+            return self.adv_controller.get_by_id(candidate_id) is not None
+        except Exception:
+            return False
+
+    def _lookup_existing_by_exact_name(
+        self, title: Optional[str], model_class
+    ) -> Optional[Any]:
+        if not title:
+            return None
+
+        session = self.controller._service._repository._session
+        row = session.execute(
+            text("SELECT id FROM initiatives WHERE name = :name LIMIT 1"),
+            {"name": title},
+        ).fetchone()
+        if not row:
+            return None
+
+        candidate_id = row[0]
+        if model_class is Advisorship:
+            try:
+                return self.adv_controller.get_by_id(candidate_id)
+            except Exception:
+                return None
+
+        try:
+            candidate = self.controller.get_by_id(candidate_id)
+        except Exception:
+            return None
+
+        if self._is_advisorship_candidate(candidate):
+            return None
+        return candidate
+
+    def _register_existing_initiative(
+        self,
+        *,
+        existing_by_name: Dict[str, Any],
+        title: Optional[str],
+        initiative: Any,
+        model_class,
+    ) -> None:
+        if not title or not initiative:
+            return
+
+        current = existing_by_name.get(title)
+        if current is None or self._candidate_matches_model(current, model_class):
+            existing_by_name[title] = initiative
 
     def _is_approved(self, row_dict: Dict[str, Any]) -> bool:
         parecer = row_dict.get("ParecerDiretoria", "Aprovado")
