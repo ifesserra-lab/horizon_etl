@@ -1,0 +1,94 @@
+{
+  "run_name": "etl_flow_run",
+  "run_stamp": "20260330_140855",
+  "started_at": "2026-03-30T14:08:55.752746",
+  "finished_at": "2026-03-30T14:08:55.931543",
+  "db_path": "db/horizon.db",
+  "steps": [
+    {
+      "step_name": "sigpesq_research_groups",
+      "origin": "sigpesq_research_group",
+      "source_files": [
+        "data/raw/sigpesq/research_group/Relatorio_30_03_2026.xlsx"
+      ],
+      "extracted_counts": {
+        "research_groups_rows": 339
+      },
+      "duration_seconds": 0.08,
+      "status": "failed",
+      "error": "Client error '422 Unprocessable Entity' for url 'http://127.0.0.1:4200/api/task_runs/'\nResponse: {'exception_message': 'Invalid request received.', 'exception_detail': [{'type': 'model_attributes_type', 'loc': ['body'], 'msg': 'Input should be a valid dictionary or object to extract fields from', 'input': '{\"state\":{\"type\":\"PENDING\",\"name\":\"Pending\",\"message\":null,\"state_details\":{\"flow_run_id\":null,\"task_run_id\":null,\"child_flow_run_id\":null,\"scheduled_time\":null,\"cache_key\":null,\"cache_expiration\":null,\"deferred\":null,\"untrackable_result\":false,\"pause_timeout\":null,\"pause_reschedule\":false,\"pause_key\":null,\"run_input_keyset\":null,\"refresh_cache\":null,\"retriable\":null,\"transition_id\":null,\"task_parameters_id\":null,\"traceparent\":null,\"deployment_concurrency_lease_id\":null},\"data\":null},\"name\":\"Ingest SigPesq Research Groups-0\",\"flow_run_id\":\"2902ea53-c13f-4660-a634-01bc27357069\",\"task_key\":\"ingest_research_groups_flow-babdf1d4\",\"dynamic_key\":\"0\",\"cache_key\":null,\"cache_expiration\":null,\"task_version\":\"2d7e4f21a00060d098123320ed24a1cf\",\"empirical_policy\":{\"max_retries\":0,\"retry_delay_seconds\":0.0,\"retries\":0,\"retry_delay\":0,\"retry_jitter_factor\":null},\"tags\":[],\"labels\":{},\"task_inputs\":{}}'}], 'request_body': '{\"state\":{\"type\":\"PENDING\",\"name\":\"Pending\",\"message\":null,\"state_details\":{\"flow_run_id\":null,\"task_run_id\":null,\"child_flow_run_id\":null,\"scheduled_time\":null,\"cache_key\":null,\"cache_expiration\":null,\"deferred\":null,\"untrackable_result\":false,\"pause_timeout\":null,\"pause_reschedule\":false,\"pause_key\":null,\"run_input_keyset\":null,\"refresh_cache\":null,\"retriable\":null,\"transition_id\":null,\"task_parameters_id\":null,\"traceparent\":null,\"deployment_concurrency_lease_id\":null},\"data\":null},\"name\":\"Ingest SigPesq Research Groups-0\",\"flow_run_id\":\"2902ea53-c13f-4660-a634-01bc27357069\",\"task_key\":\"ingest_research_groups_flow-babdf1d4\",\"dynamic_key\":\"0\",\"cache_key\":null,\"cache_expiration\":null,\"task_version\":\"2d7e4f21a00060d098123320ed24a1cf\",\"empirical_policy\":{\"max_retries\":0,\"retry_delay_seconds\":0.0,\"retries\":0,\"retry_delay\":0,\"retry_jitter_factor\":null},\"tags\":[],\"labels\":{},\"task_inputs\":{}}'}\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/422",
+      "tracking_run_id": 1,
+      "saved_entities": [],
+      "duplicates_before": {
+        "persons_by_canonical_name": 0,
+        "teams_by_canonical_name": 0,
+        "knowledge_areas_by_canonical_name": 0,
+        "person_emails_by_lower_email": 0,
+        "organizations_by_name": 0,
+        "organizational_units_by_name_org": 0,
+        "roles_by_name": 0,
+        "initiative_types_by_name": 0
+      },
+      "duplicates_after": {
+        "persons_by_canonical_name": 0,
+        "teams_by_canonical_name": 0,
+        "knowledge_areas_by_canonical_name": 0,
+        "person_emails_by_lower_email": 0,
+        "organizations_by_name": 0,
+        "organizational_units_by_name_org": 0,
+        "roles_by_name": 0,
+        "initiative_types_by_name": 0
+      }
+    }
+  ],
+  "final_duplicates": {
+    "persons_by_canonical_name": 0,
+    "teams_by_canonical_name": 0,
+    "knowledge_areas_by_canonical_name": 0,
+    "person_emails_by_lower_email": 0,
+    "organizations_by_name": 0,
+    "organizational_units_by_name_org": 0,
+    "roles_by_name": 0,
+    "initiative_types_by_name": 0
+  },
+  "final_tables": {
+    "persons": 0,
+    "researchers": 0,
+    "person_emails": 0,
+    "organizations": 1,
+    "organizational_units": 0,
+    "initiative_types": 0,
+    "initiatives": 0,
+    "advisorships": 0,
+    "fellowships": 0,
+    "articles": 0,
+    "article_authors": 0,
+    "academic_educations": 0,
+    "teams": 0,
+    "team_members": 0,
+    "research_groups": 0,
+    "knowledge_areas": 0,
+    "researcher_knowledge_areas": 0,
+    "initiative_teams": 0
+  },
+  "tracking_summary": {
+    "enabled": true,
+    "totals": {
+      "ingestion_runs": 1,
+      "source_records": 0,
+      "entity_matches": 0,
+      "attribute_assertions": 0,
+      "entity_change_logs": 0
+    },
+    "latest_runs": [
+      {
+        "id": 1,
+        "source_system": "sigpesq_research_group",
+        "flow_name": "sigpesq_research_groups",
+        "status": "failed",
+        "started_at": "2026-03-30 17:08:55",
+        "finished_at": "2026-03-30 17:08:55.926114"
+      }
+    ]
+  }
+}
