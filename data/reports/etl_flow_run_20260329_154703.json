@@ -1,0 +1,217 @@
+{
+  "run_name": "etl_flow_run",
+  "run_stamp": "20260329_154703",
+  "started_at": "2026-03-29T15:47:03.834745",
+  "finished_at": "2026-03-29T15:47:45.353051",
+  "db_path": "db/horizon.db",
+  "steps": [
+    {
+      "step_name": "sigpesq_research_groups",
+      "origin": "sigpesq_research_group",
+      "source_files": [
+        "data/raw/sigpesq/research_group/Relatorio_29_03_2026.xlsx"
+      ],
+      "extracted_counts": {
+        "research_groups_rows": 339
+      },
+      "duration_seconds": 32.27,
+      "status": "success",
+      "error": null,
+      "tracking_run_id": 1,
+      "saved_entities": [
+        {
+          "entity": "persons",
+          "before": 0,
+          "after": 449,
+          "delta": 449
+        },
+        {
+          "entity": "researchers",
+          "before": 0,
+          "after": 449,
+          "delta": 449
+        },
+        {
+          "entity": "person_emails",
+          "before": 0,
+          "after": 449,
+          "delta": 449
+        },
+        {
+          "entity": "organizational_units",
+          "before": 0,
+          "after": 23,
+          "delta": 23
+        },
+        {
+          "entity": "teams",
+          "before": 0,
+          "after": 338,
+          "delta": 338
+        },
+        {
+          "entity": "team_members",
+          "before": 0,
+          "after": 507,
+          "delta": 507
+        },
+        {
+          "entity": "research_groups",
+          "before": 0,
+          "after": 338,
+          "delta": 338
+        },
+        {
+          "entity": "knowledge_areas",
+          "before": 0,
+          "after": 51,
+          "delta": 51
+        }
+      ],
+      "duplicates_before": {
+        "persons_by_canonical_name": 0,
+        "teams_by_canonical_name": 0,
+        "knowledge_areas_by_canonical_name": 0,
+        "person_emails_by_lower_email": 0,
+        "organizations_by_name": 0,
+        "organizational_units_by_name_org": 0,
+        "roles_by_name": 0,
+        "initiative_types_by_name": 0
+      },
+      "duplicates_after": {
+        "persons_by_canonical_name": 0,
+        "teams_by_canonical_name": 0,
+        "knowledge_areas_by_canonical_name": 0,
+        "person_emails_by_lower_email": 0,
+        "organizations_by_name": 0,
+        "organizational_units_by_name_org": 0,
+        "roles_by_name": 0,
+        "initiative_types_by_name": 0
+      }
+    },
+    {
+      "step_name": "sigpesq_projects",
+      "origin": "sigpesq_research_projects",
+      "source_files": [
+        "data/raw/sigpesq/research_projects/Relatorio_29_03_2026.xlsx"
+      ],
+      "extracted_counts": {
+        "research_projects_rows": 66
+      },
+      "duration_seconds": 9.13,
+      "status": "failed",
+      "error": "(sqlite3.DatabaseError) malformed database schema (ix_organizational_units_id) - index ix_organizational_units_id already exists\n[SQL: SELECT ingestion_runs.id AS ingestion_runs_id, ingestion_runs.source_system AS ingestion_runs_source_system, ingestion_runs.flow_name AS ingestion_runs_flow_name, ingestion_runs.status AS ingestion_runs_status, ingestion_runs.input_snapshot_hash AS ingestion_runs_input_snapshot_hash, ingestion_runs.notes AS ingestion_runs_notes, ingestion_runs.started_at AS ingestion_runs_started_at, ingestion_runs.finished_at AS ingestion_runs_finished_at \nFROM ingestion_runs \nWHERE ingestion_runs.id = ?]\n[parameters: (2,)]\n(Background on this error at: https://sqlalche.me/e/20/4xp6)",
+      "tracking_run_id": 2,
+      "saved_entities": [
+        {
+          "entity": "persons",
+          "before": 449,
+          "after": 0,
+          "delta": -449
+        },
+        {
+          "entity": "researchers",
+          "before": 449,
+          "after": 0,
+          "delta": -449
+        },
+        {
+          "entity": "person_emails",
+          "before": 449,
+          "after": 0,
+          "delta": -449
+        },
+        {
+          "entity": "organizations",
+          "before": 1,
+          "after": 0,
+          "delta": -1
+        },
+        {
+          "entity": "organizational_units",
+          "before": 23,
+          "after": 0,
+          "delta": -23
+        },
+        {
+          "entity": "teams",
+          "before": 338,
+          "after": 0,
+          "delta": -338
+        },
+        {
+          "entity": "team_members",
+          "before": 507,
+          "after": 0,
+          "delta": -507
+        },
+        {
+          "entity": "research_groups",
+          "before": 338,
+          "after": 0,
+          "delta": -338
+        },
+        {
+          "entity": "knowledge_areas",
+          "before": 51,
+          "after": 0,
+          "delta": -51
+        }
+      ],
+      "duplicates_before": {
+        "persons_by_canonical_name": 0,
+        "teams_by_canonical_name": 0,
+        "knowledge_areas_by_canonical_name": 0,
+        "person_emails_by_lower_email": 0,
+        "organizations_by_name": 0,
+        "organizational_units_by_name_org": 0,
+        "roles_by_name": 0,
+        "initiative_types_by_name": 0
+      },
+      "duplicates_after": {
+        "persons_by_canonical_name": 0,
+        "teams_by_canonical_name": 0,
+        "knowledge_areas_by_canonical_name": 0,
+        "person_emails_by_lower_email": 0,
+        "organizations_by_name": 0,
+        "organizational_units_by_name_org": 0,
+        "roles_by_name": 0,
+        "initiative_types_by_name": 0
+      }
+    }
+  ],
+  "final_duplicates": {
+    "persons_by_canonical_name": 0,
+    "teams_by_canonical_name": 0,
+    "knowledge_areas_by_canonical_name": 0,
+    "person_emails_by_lower_email": 0,
+    "organizations_by_name": 0,
+    "organizational_units_by_name_org": 0,
+    "roles_by_name": 0,
+    "initiative_types_by_name": 0
+  },
+  "final_tables": {
+    "persons": 0,
+    "researchers": 0,
+    "person_emails": 0,
+    "organizations": 0,
+    "organizational_units": 0,
+    "initiative_types": 0,
+    "initiatives": 0,
+    "advisorships": 0,
+    "fellowships": 0,
+    "articles": 0,
+    "article_authors": 0,
+    "academic_educations": 0,
+    "teams": 0,
+    "team_members": 0,
+    "research_groups": 0,
+    "knowledge_areas": 0,
+    "researcher_knowledge_areas": 0,
+    "initiative_teams": 0
+  },
+  "tracking_summary": {
+    "enabled": false,
+    "note": "Tracking tables not found in current database."
+  }
+}

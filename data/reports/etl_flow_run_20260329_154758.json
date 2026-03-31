@@ -1,0 +1,143 @@
+{
+  "run_name": "etl_flow_run",
+  "run_stamp": "20260329_154758",
+  "started_at": "2026-03-29T15:47:58.989111",
+  "finished_at": "2026-03-29T15:48:22.369956",
+  "db_path": "db/horizon.db",
+  "steps": [
+    {
+      "step_name": "sigpesq_research_groups",
+      "origin": "sigpesq_research_group",
+      "source_files": [
+        "data/raw/sigpesq/research_group/Relatorio_29_03_2026.xlsx"
+      ],
+      "extracted_counts": {
+        "research_groups_rows": 339
+      },
+      "duration_seconds": 23.29,
+      "status": "success",
+      "error": null,
+      "tracking_run_id": 1,
+      "saved_entities": [
+        {
+          "entity": "persons",
+          "before": 0,
+          "after": 353,
+          "delta": 353
+        },
+        {
+          "entity": "researchers",
+          "before": 0,
+          "after": 353,
+          "delta": 353
+        },
+        {
+          "entity": "person_emails",
+          "before": 0,
+          "after": 353,
+          "delta": 353
+        },
+        {
+          "entity": "organizational_units",
+          "before": 0,
+          "after": 22,
+          "delta": 22
+        },
+        {
+          "entity": "teams",
+          "before": 0,
+          "after": 254,
+          "delta": 254
+        },
+        {
+          "entity": "team_members",
+          "before": 0,
+          "after": 387,
+          "delta": 387
+        },
+        {
+          "entity": "research_groups",
+          "before": 0,
+          "after": 254,
+          "delta": 254
+        },
+        {
+          "entity": "knowledge_areas",
+          "before": 0,
+          "after": 46,
+          "delta": 46
+        }
+      ],
+      "duplicates_before": {
+        "persons_by_canonical_name": 0,
+        "teams_by_canonical_name": 0,
+        "knowledge_areas_by_canonical_name": 0,
+        "person_emails_by_lower_email": 0,
+        "organizations_by_name": 0,
+        "organizational_units_by_name_org": 0,
+        "roles_by_name": 0,
+        "initiative_types_by_name": 0
+      },
+      "duplicates_after": {
+        "persons_by_canonical_name": 0,
+        "teams_by_canonical_name": 0,
+        "knowledge_areas_by_canonical_name": 0,
+        "person_emails_by_lower_email": 0,
+        "organizations_by_name": 0,
+        "organizational_units_by_name_org": 0,
+        "roles_by_name": 0,
+        "initiative_types_by_name": 0
+      }
+    }
+  ],
+  "final_duplicates": {
+    "persons_by_canonical_name": 0,
+    "teams_by_canonical_name": 0,
+    "knowledge_areas_by_canonical_name": 0,
+    "person_emails_by_lower_email": 0,
+    "organizations_by_name": 0,
+    "organizational_units_by_name_org": 0,
+    "roles_by_name": 0,
+    "initiative_types_by_name": 0
+  },
+  "final_tables": {
+    "persons": 353,
+    "researchers": 353,
+    "person_emails": 353,
+    "organizations": 1,
+    "organizational_units": 22,
+    "initiative_types": 0,
+    "initiatives": 0,
+    "advisorships": 0,
+    "fellowships": 0,
+    "articles": 0,
+    "article_authors": 0,
+    "academic_educations": 0,
+    "teams": 254,
+    "team_members": 387,
+    "research_groups": 254,
+    "knowledge_areas": 46,
+    "researcher_knowledge_areas": 0,
+    "initiative_teams": 0
+  },
+  "tracking_summary": {
+    "enabled": true,
+    "totals": {
+      "ingestion_runs": 1,
+      "source_records": 255,
+      "entity_matches": 254,
+      "attribute_assertions": 1270,
+      "entity_change_logs": 254
+    },
+    "latest_runs": [
+      {
+        "id": 1,
+        "source_system": "sigpesq_research_group",
+        "flow_name": "sigpesq_research_groups",
+        "status": "running",
+        "started_at": "2026-03-29 18:47:59",
+        "finished_at": null
+      }
+    ]
+  }
+}
