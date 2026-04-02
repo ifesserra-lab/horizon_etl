@@ -155,6 +155,18 @@ def test_export_all_orchestrates_exports():
                     "academic_education": [],
                     "articles": [],
                     "advisorships": [],
+                    "classification": None,
+                    "classification_confidence": "low",
+                    "classification_note": None,
+                    "role_evidence": {
+                        "project_roles": [],
+                        "research_group_roles": [],
+                        "advisorship_roles": [],
+                        "has_institutional_email": False,
+                        "academic_reference_count": 0,
+                    },
+                    "was_student": False,
+                    "was_staff": False,
                     "campus": None,
                 }
             ]
@@ -409,7 +421,7 @@ def test_export_tracking_entities_builds_canonical_files():
     )
 
 
-def test_export_advisorships_preserves_student_and_supervisor_fields_from_members():
+def test_export_advisorships_preserves_person_and_supervisor_fields_from_members():
     mock_sink = MagicMock(spec=IExportSink)
 
     with (
@@ -447,8 +459,8 @@ def test_export_advisorships_preserves_student_and_supervisor_fields_from_member
                         "end_date": None,
                         "advisorship_type": "Scientific Initiation",
                         "initiative_type_name": "Advisorship",
-                        "student_id": 452,
-                        "student_name": "Aluno A",
+                        "person_id": 452,
+                        "person_name": "Aluno A",
                         "supervisor_id": 2981,
                         "supervisor_name": "Paulo Sergio",
                         "fellowship_id": None,
@@ -486,8 +498,8 @@ def test_export_advisorships_preserves_student_and_supervisor_fields_from_member
             "end_date": None,
             "type": "Scientific Initiation",
             "initiative_type": "Advisorship",
-            "student_id": 452,
-            "student_name": "Aluno A",
+            "person_id": 452,
+            "person_name": "Aluno A",
             "supervisor_id": 2981,
             "supervisor_name": "Paulo Sergio",
             "campus": None,
@@ -496,7 +508,7 @@ def test_export_advisorships_preserves_student_and_supervisor_fields_from_member
     ]
 
 
-def test_export_advisorships_falls_back_to_legacy_student_and_supervisor_columns():
+def test_export_advisorships_falls_back_to_legacy_person_and_supervisor_columns():
     mock_sink = MagicMock(spec=IExportSink)
 
     with (
@@ -538,8 +550,8 @@ def test_export_advisorships_falls_back_to_legacy_student_and_supervisor_columns
                         "end_date": None,
                         "advisorship_type": "Scientific Initiation",
                         "initiative_type_name": "Advisorship",
-                        "student_id": 88,
-                        "student_name": "Aluno Legado",
+                        "person_id": 88,
+                        "person_name": "Aluno Legado",
                         "supervisor_id": 99,
                         "supervisor_name": "Supervisor Legado",
                         "fellowship_id": None,
@@ -564,5 +576,177 @@ def test_export_advisorships_falls_back_to_legacy_student_and_supervisor_columns
 
     assert fake_session.members_query_attempted is True
     exported_data, _output_path = mock_sink.export.call_args[0]
-    assert exported_data[0]["advisorships"][0]["student_name"] == "Aluno Legado"
+    assert exported_data[0]["advisorships"][0]["person_name"] == "Aluno Legado"
     assert exported_data[0]["advisorships"][0]["supervisor_name"] == "Supervisor Legado"
+
+
+def test_fetch_researcher_advisorship_rows_returns_person_id_from_members_query():
+    class FakeResult:
+        def __init__(self, rows):
+            self._rows = rows
+
+        def fetchall(self):
+            return self._rows
+
+    class FakeSession:
+        def execute(self, statement, params=None):
+            statement_text = getattr(statement, "text", str(statement))
+            assert "am_std.student_id AS person_id" in statement_text
+            assert params == {
+                "student_role": "Student",
+                "supervisor_role": "Supervisor",
+            }
+            return FakeResult(
+                [
+                    {
+                        "supervisor_id": 2981,
+                        "person_id": 452,
+                        "id": 916,
+                        "name": "Orientacao 1",
+                        "status": "Concluded",
+                        "start_date": None,
+                        "end_date": None,
+                        "type_name": "Research Project",
+                        "advisorship_type": None,
+                        "person_name": "Andre Porto",
+                    }
+                ]
+            )
+
+    rows = CanonicalDataExporter._fetch_researcher_advisorship_rows(FakeSession())
+
+    assert rows[0]["person_id"] == 452
+    assert rows[0]["person_name"] == "Andre Porto"
+
+
+def test_export_researchers_includes_person_id_in_advisorships():
+    mock_sink = MagicMock(spec=IExportSink)
+
+    with (
+        patch("src.core.logic.canonical_exporter.OrganizationController"),
+        patch("src.core.logic.canonical_exporter.CampusController"),
+        patch("src.core.logic.canonical_exporter.KnowledgeAreaController"),
+        patch("src.core.logic.canonical_exporter.ResearcherController"),
+        patch("src.core.logic.canonical_exporter.InitiativeController"),
+        patch("src.core.logic.canonical_exporter.ArticleController"),
+    ):
+        exporter = CanonicalDataExporter(sink=mock_sink)
+
+    mock_researcher = MagicMock()
+    mock_researcher.to_dict.return_value = {"id": 2981, "name": "Paulo Sergio"}
+    exporter.researcher_ctrl.get_all.return_value = [mock_researcher]
+    exporter.initiative_ctrl.get_all.return_value = []
+    exporter.initiative_ctrl.list_initiative_types.return_value = []
+    exporter._get_session = lambda: None
+    exporter._get_campus_resolver = lambda: MagicMock(
+        get_campus=lambda *_args, **_kwargs: None
+    )
+    exporter._fetch_researcher_advisorship_rows = lambda _session: [
+        {
+            "supervisor_id": 2981,
+            "person_id": 452,
+            "id": 916,
+            "name": "APRENDIZAGEM SIGNIFICATIVA",
+            "status": "Concluded",
+            "start_date": None,
+            "end_date": None,
+            "type_name": "Research Project",
+            "advisorship_type": None,
+            "person_name": "Andre Porto",
+        }
+    ]
+
+    exporter.export_researchers("output/researchers_canonical.json")
+
+    mock_sink.export.assert_called_once()
+    exported_data, output_path = mock_sink.export.call_args[0]
+
+    assert output_path == "output/researchers_canonical.json"
+    assert exported_data[0]["advisorships"][0]["person_id"] == 452
+    assert exported_data[0]["advisorships"][0]["person_name"] == "Andre Porto"
+
+
+def test_build_classification_payload_marks_student_from_student_evidence_only():
+    payload = CanonicalDataExporter._build_classification_payload(
+        project_roles=["Student"],
+        advisorship_roles=["Student"],
+    )
+
+    assert payload["classification"] == "student"
+    assert payload["classification_confidence"] == "high"
+    assert payload["classification_note"] is None
+    assert payload["was_student"] is True
+    assert payload["was_staff"] is False
+
+
+def test_build_classification_payload_marks_researcher_from_supervisor_evidence():
+    payload = CanonicalDataExporter._build_classification_payload(
+        advisorship_roles=["Supervisor"],
+    )
+
+    assert payload["classification"] == "researcher"
+    assert payload["classification_confidence"] == "high"
+    assert payload["classification_note"] is None
+    assert payload["was_student"] is False
+    assert payload["was_staff"] is True
+
+
+def test_build_classification_payload_marks_researcher_and_keeps_student_history():
+    payload = CanonicalDataExporter._build_classification_payload(
+        project_roles=["Student", "Researcher"],
+        research_group_roles=["Pesquisador"],
+        advisorship_roles=["Student"],
+    )
+
+    assert payload["classification"] == "researcher"
+    assert payload["classification_note"] is None
+    assert payload["was_student"] is True
+    assert payload["was_staff"] is True
+
+
+def test_build_classification_payload_marks_external_classification_for_project_only_staff():
+    payload = CanonicalDataExporter._build_classification_payload(
+        project_roles=["Coordinator"],
+    )
+
+    assert payload["classification"] == "outside_ifes"
+    assert payload["classification_confidence"] == "medium"
+    assert payload["classification_note"] == "project_only_staff_without_institutional_signals"
+    assert payload["was_student"] is False
+    assert payload["was_staff"] is False
+
+
+def test_build_classification_payload_keeps_null_for_mixed_weak_evidence():
+    payload = CanonicalDataExporter._build_classification_payload(
+        project_roles=["Student", "Researcher"],
+    )
+
+    assert payload["classification"] is None
+    assert payload["classification_confidence"] == "low"
+    assert payload["classification_note"] is None
+    assert payload["was_student"] is True
+    assert payload["was_staff"] is False
+
+
+def test_build_classification_payload_marks_student_for_mixed_project_roles_with_strong_student_signal():
+    payload = CanonicalDataExporter._build_classification_payload(
+        project_roles=["Student", "Researcher"],
+        advisorship_roles=["Student"],
+    )
+
+    assert payload["classification"] == "student"
+    assert payload["classification_confidence"] == "medium"
+    assert payload["classification_note"] == "student_signal_overrides_project_staff_role"
+    assert payload["was_student"] is True
+    assert payload["was_staff"] is False
+
+
+def test_build_classification_payload_marks_academic_reference_only_note():
+    payload = CanonicalDataExporter._build_classification_payload(
+        academic_reference_count=2,
+    )
+
+    assert payload["classification"] is None
+    assert payload["classification_confidence"] == "low"
+    assert payload["classification_note"] == "academic_advisor_reference_only"
+    assert payload["role_evidence"]["academic_reference_count"] == 2
