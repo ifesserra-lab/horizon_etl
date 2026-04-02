@@ -4,7 +4,7 @@ from datetime import datetime
 from collections import Counter, defaultdict
 from typing import Any, List, Optional
 
-from eo_lib import InitiativeController, OrganizationController
+from eo_lib import InitiativeController, OrganizationController, PersonController
 from loguru import logger
 from research_domain import (
     CampusController,
@@ -325,6 +325,49 @@ class CanonicalDataExporter:
         if person_id in values:
             return values[person_id]
         return default
+
+    @staticmethod
+    def _build_researcher_base_export_dict(item: Any) -> dict[str, Any]:
+        if hasattr(item, "to_dict"):
+            raw_dict = item.to_dict()
+        else:
+            raw_dict = {
+                "id": getattr(item, "id", None),
+                "name": getattr(item, "name", "Unknown"),
+                "identification_id": getattr(item, "identification_id", None),
+                "birthday": getattr(item, "birthday", None),
+            }
+
+        export_dict = dict(raw_dict)
+        export_dict.setdefault("id", None)
+        export_dict.setdefault("name", "Unknown")
+        export_dict.setdefault("identification_id", None)
+        export_dict.setdefault("birthday", None)
+        export_dict.setdefault("cnpq_url", None)
+        export_dict.setdefault("google_scholar_url", None)
+        export_dict.setdefault("resume", None)
+        export_dict.setdefault("citation_names", None)
+        return export_dict
+
+    @classmethod
+    def _collect_participant_person_ids(
+        cls, *person_maps: dict[Any, Any]
+    ) -> set[Any]:
+        participant_ids: set[Any] = set()
+        for person_map in person_maps:
+            for person_id in person_map.keys():
+                normalized_id = cls._normalize_person_id(person_id)
+                if normalized_id is not None:
+                    participant_ids.add(normalized_id)
+        return participant_ids
+
+    @staticmethod
+    def _person_sort_key(person_id: Any) -> tuple[bool, int, Any]:
+        if person_id is None:
+            return (True, 1, "")
+        if isinstance(person_id, int):
+            return (False, 0, person_id)
+        return (False, 1, str(person_id))
 
     @classmethod
     def _append_person_role(
@@ -1269,15 +1312,66 @@ class CanonicalDataExporter:
             session
         )
 
+        researchers_by_id: dict[Any, dict[str, Any]] = {}
+        for researcher in researchers:
+            researcher_dict = self._build_researcher_base_export_dict(researcher)
+            researcher_id = self._normalize_person_id(researcher_dict.get("id"))
+            if researcher_id is None:
+                continue
+            researchers_by_id[researcher_id] = researcher_dict
+
+        original_researcher_count = len(researchers_by_id)
+        participant_person_ids = self._collect_participant_person_ids(
+            person_initiatives_map,
+            person_groups_map,
+            person_advisorships_map,
+            person_project_roles_map,
+            person_research_group_roles_map,
+            person_advisorship_roles_map,
+        )
+        missing_participant_ids = sorted(
+            participant_person_ids - set(researchers_by_id.keys()),
+            key=self._person_sort_key,
+        )
+
+        added_participant_count = 0
+        if missing_participant_ids:
+            try:
+                person_ctrl = PersonController()
+                people_by_id = {}
+                for person in person_ctrl.get_all():
+                    person_id = self._normalize_person_id(getattr(person, "id", None))
+                    if person_id is not None:
+                        people_by_id[person_id] = person
+
+                for person_id in missing_participant_ids:
+                    person = people_by_id.get(person_id)
+                    if person is None:
+                        logger.warning(
+                            "Skipping researcher export backfill for missing person {} "
+                            "because no Person record was found.",
+                            person_id,
+                        )
+                        continue
+                    researchers_by_id[person_id] = self._build_researcher_base_export_dict(
+                        person
+                    )
+                    added_participant_count += 1
+            except Exception as exc:
+                logger.warning(
+                    "Failed to load participant-only people for researcher export: {}",
+                    exc,
+                )
+
+        ordered_researcher_ids = sorted(
+            researchers_by_id.keys(),
+            key=self._person_sort_key,
+        )
+
         # Enrich and Export
         export_data = []
-        for r in researchers:
-            r_dict = r.to_dict() if hasattr(r, "to_dict") else {
-                "id": getattr(r, "id", None),
-                "name": getattr(r, "name", "Unknown"),
-                "lattes_id": getattr(r, "lattes_id", None),
-                "email": getattr(r, "email", None),
-            }
+        for researcher_id in ordered_researcher_ids:
+            r_dict = dict(researchers_by_id[researcher_id])
 
             p_id = r_dict.get("id")
             p_id_int = self._normalize_person_id(p_id)
@@ -1359,6 +1453,13 @@ class CanonicalDataExporter:
 
             export_data.append(r_dict)
 
+        logger.info(
+            "Researcher export base: {} researchers from ResearcherController, "
+            "{} participant-only people added, {} total exported.",
+            original_researcher_count,
+            added_participant_count,
+            len(export_data),
+        )
         logger.info(f"Exporting {len(export_data)} Researchers...")
         self.sink.export(export_data, output_path)
         logger.info(f"Successfully exported enriched Researchers to {output_path}")

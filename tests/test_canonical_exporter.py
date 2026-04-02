@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock, patch
+from types import SimpleNamespace
 
 from src.core.logic.canonical_exporter import CanonicalDataExporter
 from src.core.ports.export_sink import IExportSink
@@ -26,6 +27,7 @@ def test_export_all_orchestrates_exports():
         patch(
             "src.core.logic.canonical_exporter.ResearcherController"
         ) as MockResearcherCtrl,
+        patch("src.core.logic.canonical_exporter.PersonController") as MockPersonCtrl,
         patch(
             "src.core.logic.canonical_exporter.InitiativeController"
         ) as MockInitCtrl,
@@ -44,6 +46,7 @@ def test_export_all_orchestrates_exports():
         mock_camp_instance = MockCampCtrl.return_value
         mock_ka_instance = MockKaCtrl.return_value
         mock_researcher_instance = MockResearcherCtrl.return_value
+        mock_person_instance = MockPersonCtrl.return_value
         mock_init_instance = MockInitCtrl.return_value
         mock_article_instance = MockArticleCtrl.return_value
         mock_rg_instance = MockRGCtrl.return_value
@@ -66,6 +69,7 @@ def test_export_all_orchestrates_exports():
         mock_researcher = MagicMock()
         mock_researcher.to_dict.return_value = {"id": 1000, "name": "Researcher1"}
         mock_researcher_instance.get_all.return_value = [mock_researcher]
+        mock_person_instance.get_all.return_value = []
         mock_article_instance.get_all.return_value = []
         
         # Mock Initiative Data
@@ -149,6 +153,12 @@ def test_export_all_orchestrates_exports():
                 {
                     "id": 1000,
                     "name": "Researcher1",
+                    "identification_id": None,
+                    "birthday": None,
+                    "cnpq_url": None,
+                    "google_scholar_url": None,
+                    "resume": None,
+                    "citation_names": None,
                     "initiatives": [],
                     "research_groups": [],
                     "knowledge_areas": [],
@@ -664,6 +674,194 @@ def test_export_researchers_includes_person_id_in_advisorships():
     assert output_path == "output/researchers_canonical.json"
     assert exported_data[0]["advisorships"][0]["person_id"] == 452
     assert exported_data[0]["advisorships"][0]["person_name"] == "Andre Porto"
+
+
+def test_export_researchers_backfills_participant_only_people_from_projects_and_advisorships():
+    mock_sink = MagicMock(spec=IExportSink)
+
+    with (
+        patch("src.core.logic.canonical_exporter.OrganizationController"),
+        patch("src.core.logic.canonical_exporter.CampusController"),
+        patch("src.core.logic.canonical_exporter.KnowledgeAreaController"),
+        patch("src.core.logic.canonical_exporter.ResearcherController"),
+        patch("src.core.logic.canonical_exporter.PersonController") as MockPersonCtrl,
+        patch("src.core.logic.canonical_exporter.InitiativeController"),
+        patch("src.core.logic.canonical_exporter.ArticleController"),
+        patch("eo_lib.TeamController") as MockTeamCtrl,
+    ):
+        exporter = CanonicalDataExporter(sink=mock_sink)
+
+        exporter.researcher_ctrl.get_all.return_value = []
+        exporter.initiative_ctrl.list_initiative_types.return_value = [
+            {"id": 1, "name": "Research Project"}
+        ]
+
+        mock_initiative = SimpleNamespace(
+            id=916,
+            name="Projeto Wilsiman",
+            status="active",
+            initiative_type_id=1,
+            demandante=None,
+        )
+        exporter.initiative_ctrl.get_all.return_value = [mock_initiative]
+        exporter.initiative_ctrl.get_teams.return_value = [{"id": 91}]
+
+        team_member = SimpleNamespace(
+            person_id=652,
+            person=SimpleNamespace(name="Wilsiman Santos Evangelista Silva"),
+            role=SimpleNamespace(name="Student"),
+            start_date=None,
+            end_date=None,
+        )
+        MockTeamCtrl.return_value.get_members.return_value = [team_member]
+
+        MockPersonCtrl.return_value.get_all.return_value = [
+            SimpleNamespace(
+                id=652,
+                name="Wilsiman Santos Evangelista Silva",
+                identification_id="wilsiman@example.com",
+                birthday=None,
+            )
+        ]
+
+        exporter._get_session = lambda: None
+        exporter._get_campus_resolver = lambda: MagicMock(
+            get_campus=lambda *_args, **_kwargs: None
+        )
+        exporter._fetch_researcher_advisorship_rows = lambda _session: []
+        exporter._fetch_person_project_roles = lambda _session: {652: ["Student"]}
+        exporter._fetch_person_research_group_roles = lambda _session: {}
+        exporter._fetch_person_advisorship_roles = lambda _session: {652: ["Student"]}
+        exporter._fetch_person_institutional_email_flags = lambda _session: {}
+        exporter._fetch_person_academic_reference_counts = lambda _session: {}
+
+        exporter.export_researchers("output/researchers_canonical.json")
+
+        exported_data, output_path = mock_sink.export.call_args[0]
+
+        assert output_path == "output/researchers_canonical.json"
+        assert exported_data == [
+            {
+                "id": 652,
+                "name": "Wilsiman Santos Evangelista Silva",
+                "identification_id": "wilsiman@example.com",
+                "birthday": None,
+                "cnpq_url": None,
+                "google_scholar_url": None,
+                "resume": None,
+                "citation_names": None,
+                "initiatives": [
+                    {
+                        "id": 916,
+                        "name": "Projeto Wilsiman",
+                        "status": "active",
+                        "initiative_type": {"id": 1, "name": "Research Project"},
+                        "demandante": None,
+                        "role": "Student",
+                        "campus": None,
+                    }
+                ],
+                "research_groups": [],
+                "knowledge_areas": [],
+                "academic_education": [],
+                "articles": [],
+                "advisorships": [],
+                "classification": "student",
+                "classification_confidence": "high",
+                "classification_note": None,
+                "role_evidence": {
+                    "project_roles": ["Student"],
+                    "research_group_roles": [],
+                    "advisorship_roles": ["Student"],
+                    "has_institutional_email": False,
+                    "academic_reference_count": 0,
+                },
+                "was_student": True,
+                "was_staff": False,
+                "campus": None,
+            }
+        ]
+
+
+def test_export_researchers_backfills_group_only_participants_from_people():
+    mock_sink = MagicMock(spec=IExportSink)
+
+    with (
+        patch("src.core.logic.canonical_exporter.OrganizationController"),
+        patch("src.core.logic.canonical_exporter.CampusController"),
+        patch("src.core.logic.canonical_exporter.KnowledgeAreaController"),
+        patch("src.core.logic.canonical_exporter.ResearcherController"),
+        patch("src.core.logic.canonical_exporter.PersonController") as MockPersonCtrl,
+        patch("src.core.logic.canonical_exporter.InitiativeController"),
+        patch("src.core.logic.canonical_exporter.ArticleController"),
+    ):
+        exporter = CanonicalDataExporter(sink=mock_sink)
+
+        class FakeResult:
+            def __init__(self, rows):
+                self._rows = rows
+
+            def fetchall(self):
+                return self._rows
+
+        class FakeSession:
+            def execute(self, statement, params=None):
+                statement_text = getattr(statement, "text", str(statement))
+                if "SELECT tm.person_id, rg.id, t.name" in statement_text:
+                    return FakeResult([(77, 501, "Grupo Integrado")])
+                if (
+                    "FROM research_groups rg" in statement_text
+                    and "role_name" in statement_text
+                ):
+                    return FakeResult([{"person_id": 77, "role_name": "Leader"}])
+                if (
+                    "FROM persons p" in statement_text
+                    and "person_emails" in statement_text
+                ):
+                    return FakeResult(
+                        [{"person_id": 77, "identification_id": None, "email": None}]
+                    )
+                if "FROM academic_educations ae" in statement_text:
+                    return FakeResult([])
+                raise AssertionError(statement_text)
+
+        exporter.researcher_ctrl.get_all.return_value = []
+        exporter.initiative_ctrl.get_all.return_value = []
+        exporter.initiative_ctrl.list_initiative_types.return_value = []
+        MockPersonCtrl.return_value.get_all.return_value = [
+            SimpleNamespace(
+                id=77,
+                name="Pesquisador de Grupo",
+                identification_id=None,
+                birthday=None,
+            )
+        ]
+
+        exporter._get_session = lambda: FakeSession()
+        exporter._get_campus_resolver = lambda: MagicMock(
+            get_campus=lambda *_args, **_kwargs: None
+        )
+        exporter._fetch_researcher_advisorship_rows = lambda _session: []
+
+        exporter.export_researchers("output/researchers_canonical.json")
+
+        exported_data, output_path = mock_sink.export.call_args[0]
+
+        assert output_path == "output/researchers_canonical.json"
+        assert exported_data[0]["id"] == 77
+        assert exported_data[0]["name"] == "Pesquisador de Grupo"
+        assert exported_data[0]["research_groups"] == [
+            {"id": 501, "name": "Grupo Integrado", "campus": None}
+        ]
+        assert exported_data[0]["classification"] == "researcher"
+        assert exported_data[0]["classification_confidence"] == "high"
+        assert exported_data[0]["role_evidence"]["research_group_roles"] == [
+            "Leader"
+        ]
+        assert exported_data[0]["cnpq_url"] is None
+        assert exported_data[0]["google_scholar_url"] is None
+        assert exported_data[0]["resume"] is None
+        assert exported_data[0]["citation_names"] is None
 
 
 def test_build_classification_payload_marks_student_from_student_evidence_only():

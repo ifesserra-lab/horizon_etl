@@ -2,6 +2,8 @@
 
 Este documento explica a regra usada para preencher o campo `classification` no arquivo `data/exports/researchers_canonical.json`.
 
+O export inclui tanto os registros base da tabela `researchers` quanto pessoas que aparecem como participantes em projetos, orientacoes e grupos de pesquisa, mesmo quando nao possuem linha propria em `researchers`.
+
 A logica esta implementada em `src/core/logic/canonical_exporter.py`, no metodo `_build_classification_payload`.
 
 ## Campos relevantes no JSON
@@ -100,9 +102,9 @@ Quando isso acontece, pode aparecer a nota:
 
 Distribuicao observada no export atual:
 
-- `student`: 3977
-- `researcher`: 2356
-- `outside_ifes`: 7
+- `student`: 4801
+- `researcher`: 2362
+- `outside_ifes`: 242
 - `null`: 33
 
 ## Exemplos reais
