@@ -12,7 +12,6 @@ from research_domain import (
     ResearcherController,
     ResearchGroupController,
 )
-from research_domain.controllers import ArticleController
 from src.research_domain_compat import AdvisorshipRole
 
 from src.core.ports.export_sink import IExportSink
@@ -26,9 +25,41 @@ from src.tracking.entities import (
 )
 from sqlalchemy import text
 
+try:
+    from research_domain.controllers import ArticleController
+except ImportError:
+    class ArticleController:  # type: ignore[override]
+        def __init__(self, *_args, **_kwargs):
+            logger.warning(
+                "ArticleController is unavailable in the current research_domain installation. "
+                "Article exports will fall back to an empty controller."
+            )
+
+        def get_all(self) -> list[Any]:
+            return []
+
 
 ADVISORSHIP_STUDENT_ROLE = AdvisorshipRole.STUDENT.value
 ADVISORSHIP_SUPERVISOR_ROLE = AdvisorshipRole.SUPERVISOR.value
+IFES_STUDENT_ROLES = frozenset(
+    {
+        "Student",
+        "Estudante",
+        "Estudante (Egresso)",
+    }
+)
+IFES_STAFF_ROLES = frozenset(
+    {
+        "Supervisor",
+        "Coordinator",
+        "Researcher",
+        "Pesquisador",
+        "Pesquisador (Egresso)",
+        "Leader",
+        "Líder",
+    }
+)
+PROJECT_STAFF_ROLES = frozenset({"Coordinator", "Researcher"})
 
 
 class CanonicalDataExporter:
@@ -126,6 +157,7 @@ class CanonicalDataExporter:
             """
             SELECT
                 am_sup.supervisor_id,
+                am_std.student_id AS person_id,
                 a.id,
                 i.name,
                 i.status,
@@ -133,7 +165,7 @@ class CanonicalDataExporter:
                 i.end_date,
                 it.name as type_name,
                 a.type as advisorship_type,
-                p.name as student_name
+                p.name as person_name
             FROM advisorships a
             JOIN initiatives i ON a.id = i.id
             LEFT JOIN initiative_types it ON i.initiative_type_id = it.id
@@ -169,6 +201,7 @@ class CanonicalDataExporter:
             """
             SELECT
                 a.supervisor_id AS supervisor_id,
+                a.student_id AS person_id,
                 a.id,
                 i.name,
                 i.status,
@@ -176,7 +209,7 @@ class CanonicalDataExporter:
                 i.end_date,
                 it.name as type_name,
                 a.type as advisorship_type,
-                p.name as student_name
+                p.name as person_name
             FROM advisorships a
             JOIN initiatives i ON a.id = i.id
             LEFT JOIN initiative_types it ON i.initiative_type_id = it.id
@@ -194,7 +227,7 @@ class CanonicalDataExporter:
                 a.id, i.name, i.status, i.description, i.start_date, i.end_date,
                 a.type as advisorship_type,
                 it.name as initiative_type_name,
-                am_std.student_id, p_std.name as student_name,
+                am_std.student_id AS person_id, p_std.name as person_name,
                 am_sup.supervisor_id, p_sup.name as supervisor_name,
                 a.fellowship_id,
                 f.name as fellowship_name,
@@ -248,7 +281,7 @@ class CanonicalDataExporter:
                 a.id, i.name, i.status, i.description, i.start_date, i.end_date,
                 a.type as advisorship_type,
                 it.name as initiative_type_name,
-                a.student_id, p_std.name as student_name,
+                a.student_id AS person_id, p_std.name as person_name,
                 a.supervisor_id, p_sup.name as supervisor_name,
                 a.fellowship_id,
                 f.name as fellowship_name,
@@ -272,6 +305,321 @@ class CanonicalDataExporter:
             """
         )
         return session.execute(legacy_query).fetchall()
+
+    @staticmethod
+    def _normalize_person_id(person_id: Any) -> Any:
+        if person_id is None:
+            return None
+        try:
+            return int(person_id)
+        except (TypeError, ValueError):
+            return person_id
+
+    @classmethod
+    def _lookup_person_value(
+        cls, values: dict[Any, Any], person_id: Any, default: Any
+    ) -> Any:
+        normalized_id = cls._normalize_person_id(person_id)
+        if normalized_id in values:
+            return values[normalized_id]
+        if person_id in values:
+            return values[person_id]
+        return default
+
+    @classmethod
+    def _append_person_role(
+        cls, role_map: dict[Any, list[str]], person_id: Any, role_name: Optional[str]
+    ) -> None:
+        normalized_id = cls._normalize_person_id(person_id)
+        if normalized_id is None or not role_name:
+            return
+        roles = role_map.setdefault(normalized_id, [])
+        if role_name not in roles:
+            roles.append(role_name)
+
+    @staticmethod
+    def _unique_roles(roles: Optional[List[str]]) -> List[str]:
+        if not roles:
+            return []
+        return list(dict.fromkeys(role for role in roles if role))
+
+    def _fetch_person_project_roles(self, session: Any) -> dict[Any, list[str]]:
+        if session is None:
+            return {}
+
+        query = text(
+            """
+            SELECT tm.person_id, r.name AS role_name
+            FROM initiative_teams it
+            JOIN team_members tm ON tm.team_id = it.team_id
+            JOIN roles r ON r.id = tm.role_id
+            WHERE it.team_id NOT IN (SELECT id FROM research_groups)
+            """
+        )
+
+        role_map: dict[Any, list[str]] = {}
+        try:
+            for row in session.execute(query).fetchall():
+                row_data = self._row_to_dict(row)
+                self._append_person_role(
+                    role_map, row_data.get("person_id"), row_data.get("role_name")
+                )
+        except Exception as exc:
+            logger.warning(
+                "Failed to fetch project role evidence for researcher export: {}",
+                exc,
+            )
+        return role_map
+
+    def _fetch_person_research_group_roles(self, session: Any) -> dict[Any, list[str]]:
+        if session is None:
+            return {}
+
+        query = text(
+            """
+            SELECT tm.person_id, r.name AS role_name
+            FROM research_groups rg
+            JOIN team_members tm ON tm.team_id = rg.id
+            JOIN roles r ON r.id = tm.role_id
+            """
+        )
+
+        role_map: dict[Any, list[str]] = {}
+        try:
+            for row in session.execute(query).fetchall():
+                row_data = self._row_to_dict(row)
+                self._append_person_role(
+                    role_map, row_data.get("person_id"), row_data.get("role_name")
+                )
+        except Exception as exc:
+            logger.warning(
+                "Failed to fetch research-group role evidence for researcher export: {}",
+                exc,
+            )
+        return role_map
+
+    def _fetch_person_advisorship_roles(self, session: Any) -> dict[Any, list[str]]:
+        if session is None:
+            return {}
+
+        members_query = text(
+            """
+            SELECT am.person_id, COALESCE(am.role_name, r.name) AS role_name
+            FROM advisorship_members am
+            LEFT JOIN roles r ON r.id = am.role_id
+            """
+        )
+
+        role_map: dict[Any, list[str]] = {}
+        try:
+            rows = session.execute(members_query).fetchall()
+        except Exception as exc:
+            logger.info(
+                "Falling back to legacy advisorship columns for researcher role evidence: {}",
+                exc,
+            )
+            legacy_query = text(
+                """
+                SELECT a.student_id AS person_id, :student_role AS role_name
+                FROM advisorships a
+                WHERE a.student_id IS NOT NULL
+                UNION ALL
+                SELECT a.supervisor_id AS person_id, :supervisor_role AS role_name
+                FROM advisorships a
+                WHERE a.supervisor_id IS NOT NULL
+                """
+            )
+            try:
+                rows = session.execute(
+                    legacy_query,
+                    {
+                        "student_role": ADVISORSHIP_STUDENT_ROLE,
+                        "supervisor_role": ADVISORSHIP_SUPERVISOR_ROLE,
+                    },
+                ).fetchall()
+            except Exception as legacy_exc:
+                logger.warning(
+                    "Failed to fetch advisorship role evidence for researcher export: {}",
+                    legacy_exc,
+                )
+                return role_map
+
+        for row in rows:
+            row_data = self._row_to_dict(row)
+            self._append_person_role(
+                role_map, row_data.get("person_id"), row_data.get("role_name")
+            )
+        return role_map
+
+    def _fetch_person_institutional_email_flags(self, session: Any) -> dict[Any, bool]:
+        if session is None:
+            return {}
+
+        query = text(
+            """
+            SELECT
+                p.id AS person_id,
+                p.identification_id,
+                pe.email
+            FROM persons p
+            LEFT JOIN person_emails pe ON pe.person_id = p.id
+            """
+        )
+
+        flags: dict[Any, bool] = {}
+        try:
+            for row in session.execute(query).fetchall():
+                row_data = self._row_to_dict(row)
+                person_id = self._normalize_person_id(row_data.get("person_id"))
+                if person_id is None:
+                    continue
+
+                values = [
+                    row_data.get("identification_id"),
+                    row_data.get("email"),
+                ]
+                has_institutional_email = any(
+                    isinstance(value, str)
+                    and value.strip().lower().endswith("@ifes.edu.br")
+                    for value in values
+                )
+                if has_institutional_email:
+                    flags[person_id] = True
+                else:
+                    flags.setdefault(person_id, False)
+        except Exception as exc:
+            logger.warning(
+                "Failed to fetch Ifes email evidence for researcher export: {}",
+                exc,
+            )
+        return flags
+
+    def _fetch_person_academic_reference_counts(self, session: Any) -> dict[Any, int]:
+        if session is None:
+            return {}
+
+        query = text(
+            """
+            SELECT ae.advisor_id AS person_id, COUNT(*) AS ref_count
+            FROM academic_educations ae
+            WHERE ae.advisor_id IS NOT NULL
+            GROUP BY ae.advisor_id
+            UNION ALL
+            SELECT ae.co_advisor_id AS person_id, COUNT(*) AS ref_count
+            FROM academic_educations ae
+            WHERE ae.co_advisor_id IS NOT NULL
+            GROUP BY ae.co_advisor_id
+            """
+        )
+
+        counts: dict[Any, int] = {}
+        try:
+            for row in session.execute(query).fetchall():
+                row_data = self._row_to_dict(row)
+                person_id = self._normalize_person_id(row_data.get("person_id"))
+                if person_id is None:
+                    continue
+                counts[person_id] = counts.get(person_id, 0) + int(
+                    row_data.get("ref_count") or 0
+                )
+        except Exception as exc:
+            logger.warning(
+                "Failed to fetch academic-reference evidence for researcher export: {}",
+                exc,
+            )
+        return counts
+
+    @classmethod
+    def _build_classification_payload(
+        cls,
+        project_roles: Optional[List[str]] = None,
+        research_group_roles: Optional[List[str]] = None,
+        advisorship_roles: Optional[List[str]] = None,
+        has_institutional_email: bool = False,
+        academic_reference_count: int = 0,
+    ) -> dict[str, Any]:
+        project_roles = cls._unique_roles(project_roles)
+        research_group_roles = cls._unique_roles(research_group_roles)
+        advisorship_roles = cls._unique_roles(advisorship_roles)
+
+        project_roles_set = set(project_roles)
+        group_roles_set = set(research_group_roles)
+        advisorship_roles_set = set(advisorship_roles)
+
+        has_project_student = bool(project_roles_set & IFES_STUDENT_ROLES)
+        has_group_student = bool(group_roles_set & IFES_STUDENT_ROLES)
+        has_advisorship_student = bool(advisorship_roles_set & IFES_STUDENT_ROLES)
+        has_any_student = (
+            has_project_student or has_group_student or has_advisorship_student
+        )
+
+        has_project_staff = bool(project_roles_set & PROJECT_STAFF_ROLES)
+        has_group_staff = bool(group_roles_set & IFES_STAFF_ROLES)
+        has_advisorship_staff = "Supervisor" in advisorship_roles_set
+        has_strong_staff_signal = (
+            has_group_staff
+            or has_advisorship_staff
+            or (has_project_staff and has_institutional_email)
+        )
+        has_strong_student = has_group_student or has_advisorship_student
+
+        project_only_staff = (
+            has_project_staff
+            and not has_institutional_email
+            and not research_group_roles
+            and not advisorship_roles
+        )
+
+        classification = None
+        confidence = "low"
+        classification_note = None
+
+        if has_strong_staff_signal:
+            classification = "researcher"
+            confidence = (
+                "high" if (has_group_staff or has_advisorship_staff) else "medium"
+            )
+        elif (
+            has_any_student
+            and not has_project_staff
+            and not has_group_staff
+            and not has_advisorship_staff
+        ):
+            classification = "student"
+            confidence = (
+                "high"
+                if (has_project_student or has_advisorship_student)
+                else "medium"
+            )
+        elif has_any_student and has_strong_student and not has_strong_staff_signal:
+            classification = "student"
+            confidence = "medium"
+            classification_note = "student_signal_overrides_project_staff_role"
+        elif project_only_staff and not has_any_student:
+            classification = "outside_ifes"
+            confidence = "medium"
+            classification_note = "project_only_staff_without_institutional_signals"
+        elif (
+            academic_reference_count > 0
+            and not has_any_student
+            and not has_strong_staff_signal
+        ):
+            classification_note = "academic_advisor_reference_only"
+
+        return {
+            "classification": classification,
+            "classification_confidence": confidence,
+            "classification_note": classification_note,
+            "role_evidence": {
+                "project_roles": project_roles,
+                "research_group_roles": research_group_roles,
+                "advisorship_roles": advisorship_roles,
+                "has_institutional_email": has_institutional_email,
+                "academic_reference_count": academic_reference_count,
+            },
+            "was_student": has_any_student,
+            "was_staff": has_strong_staff_signal,
+        }
 
     def _build_tracking_export(self, entity_type: str) -> List[dict]:
         if not self._has_tracking_schema():
@@ -629,6 +977,7 @@ class CanonicalDataExporter:
             output_path (str): The destination file path.
         """
         resolver = self._get_campus_resolver()
+        session = self._get_session()
 
         # Fetch raw list
         researchers = self.researcher_ctrl.get_all()
@@ -652,7 +1001,17 @@ class CanonicalDataExporter:
                     types_map[t_id] = t
 
             # Pre-fetch all Research Group IDs to identify "Group Teams" (non-project teams)
-            rg_ids = {getattr(g, "id", None) for g in self.researcher_ctrl._service._repository._session.execute(text("SELECT id FROM research_groups")).fetchall()}
+            rg_ids = set()
+            if session is not None:
+                try:
+                    rg_ids = {
+                        self._row_to_dict(row).get("id")
+                        for row in session.execute(
+                            text("SELECT id FROM research_groups")
+                        ).fetchall()
+                    }
+                except Exception:
+                    rg_ids = set()
             
             for init in initiatives:
                 try:
@@ -713,10 +1072,7 @@ class CanonicalDataExporter:
         person_groups_map = {}
         try:
             rg_ctrl = ResearchGroupController()
-            all_rgs = rg_ctrl.get_all()
-            
-            # Pre-fetch group IDs
-            rg_ids = {getattr(g, "id", None): getattr(g, "name", "Unknown") for g in all_rgs}
+            rg_ctrl.get_all()
             
             # Since RGs are teams, we might have already processed them in initiatives if they are linked there?
             # No, RGs are distinct entities in the domain lib, but they implement Team interface or are wrapped.
@@ -726,8 +1082,6 @@ class CanonicalDataExporter:
             # Assuming we can access the underlying team or members.
             # If not easy, we might skip or do a best effort.
             # Strategy: Access the database session again to query group_members tables directly for speed.
-            
-            session = rg_ctrl._service._repository._session
             
             # Query group members (person_id -> group info)
             # Schema: research_groups.id matches teams.id (joined inheritance or logical link)
@@ -743,11 +1097,13 @@ class CanonicalDataExporter:
                 JOIN research_groups rg ON tm.team_id = rg.id
                 JOIN teams t ON rg.id = t.id
             """)
-            g_result = session.execute(g_query).fetchall()
-            for row in g_result:
-                pid, gid, gname = row[0], row[1], row[2]
-                if pid not in person_groups_map: person_groups_map[pid] = []
-                person_groups_map[pid].append({"id": gid, "name": gname})
+            if session is not None:
+                g_result = session.execute(g_query).fetchall()
+                for row in g_result:
+                    pid, gid, gname = row[0], row[1], row[2]
+                    if pid not in person_groups_map:
+                        person_groups_map[pid] = []
+                    person_groups_map[pid].append({"id": gid, "name": gname})
                 
         except Exception as e:
             logger.warning(f"Failed to fetch research groups for researcher enrichment: {e}")
@@ -890,7 +1246,8 @@ class CanonicalDataExporter:
                     ),
                     "type": row_data["advisorship_type"],
                     "initiative_type": row_data["type_name"],
-                    "student_name": row_data["student_name"],
+                    "person_id": row_data.get("person_id"),
+                    "person_name": row_data["person_name"],
                 }
                 
                 if sup_id not in person_advisorships_map:
@@ -900,6 +1257,17 @@ class CanonicalDataExporter:
         except Exception as e:
             logger.warning(f"Failed to fetch Advisorships for researcher enrichment: {e}")
 
+        person_project_roles_map = self._fetch_person_project_roles(session)
+        person_research_group_roles_map = self._fetch_person_research_group_roles(
+            session
+        )
+        person_advisorship_roles_map = self._fetch_person_advisorship_roles(session)
+        person_institutional_email_flags = self._fetch_person_institutional_email_flags(
+            session
+        )
+        person_academic_reference_counts = self._fetch_person_academic_reference_counts(
+            session
+        )
 
         # Enrich and Export
         export_data = []
@@ -910,26 +1278,13 @@ class CanonicalDataExporter:
                 "lattes_id": getattr(r, "lattes_id", None),
                 "email": getattr(r, "email", None),
             }
-            
+
             p_id = r_dict.get("id")
-            if "Paulo Sergio" in r_dict.get("name", ""):
-                 logger.info(f"DEBUG: Processing Paulo Sergio. ID: {p_id} (Type: {type(p_id)})")
-                 p_id_int = int(p_id) if p_id is not None else None
-                 logger.info(f"DEBUG: Lookup key: {p_id_int}. In Map? {p_id_int in person_education_map}")
-            
-            # Type safety for lookups (Maps use integer keys from DB)
-            p_id_int = int(p_id) if p_id is not None else None
+            p_id_int = self._normalize_person_id(p_id)
 
             # Attach details
             initiatives_data = []
-            # Use p_id directly if map keys are consistent, but map keys are definitely INT from SQL
-            # p_id from to_dict() might be int or str depending on source model.
-            
-            # Lookup with p_id_int
-            init_list = person_initiatives_map.get(p_id_int, []) if p_id_int is not None else []
-            if not init_list and p_id_int:
-                 # Fallback to origin p_id if mismatch
-                 init_list = person_initiatives_map.get(p_id, [])
+            init_list = self._lookup_person_value(person_initiatives_map, p_id, [])
 
             for init in init_list:
                 # Standardize roles to English and pick primary if single string preferred
@@ -952,14 +1307,8 @@ class CanonicalDataExporter:
                 initiatives_data.append(init_export)
 
             r_dict["initiatives"] = initiatives_data
-            r_dict["initiatives"] = initiatives_data
-            
-            # Use Type-Safe lookups
-            raw_groups = (
-                person_groups_map.get(p_id_int, [])
-                if p_id_int
-                else person_groups_map.get(p_id, [])
-            )
+
+            raw_groups = self._lookup_person_value(person_groups_map, p_id, [])
             r_dict["research_groups"] = []
             for group in raw_groups:
                 group_export = group.copy()
@@ -967,13 +1316,17 @@ class CanonicalDataExporter:
                     "research_group", group_export.get("id")
                 )
                 r_dict["research_groups"].append(group_export)
-            r_dict["knowledge_areas"] = person_kas_map.get(p_id_int, []) if p_id_int else person_kas_map.get(p_id, [])
-            r_dict["academic_education"] = person_education_map.get(p_id_int, []) if p_id_int else person_education_map.get(p_id, [])
-            r_dict["articles"] = person_articles_map.get(p_id_int, []) if p_id_int else person_articles_map.get(p_id, [])
-            raw_advisorships = (
-                person_advisorships_map.get(p_id_int, [])
-                if p_id_int
-                else person_advisorships_map.get(p_id, [])
+            r_dict["knowledge_areas"] = self._lookup_person_value(
+                person_kas_map, p_id, []
+            )
+            r_dict["academic_education"] = self._lookup_person_value(
+                person_education_map, p_id, []
+            )
+            r_dict["articles"] = self._lookup_person_value(
+                person_articles_map, p_id, []
+            )
+            raw_advisorships = self._lookup_person_value(
+                person_advisorships_map, p_id, []
             )
             r_dict["advisorships"] = []
             for advisorship in raw_advisorships:
@@ -982,8 +1335,28 @@ class CanonicalDataExporter:
                     "advisorship", advisorship_export.get("id")
                 )
                 r_dict["advisorships"].append(advisorship_export)
+
+            r_dict.update(
+                self._build_classification_payload(
+                    project_roles=self._lookup_person_value(
+                        person_project_roles_map, p_id, []
+                    ),
+                    research_group_roles=self._lookup_person_value(
+                        person_research_group_roles_map, p_id, []
+                    ),
+                    advisorship_roles=self._lookup_person_value(
+                        person_advisorship_roles_map, p_id, []
+                    ),
+                    has_institutional_email=self._lookup_person_value(
+                        person_institutional_email_flags, p_id, False
+                    ),
+                    academic_reference_count=self._lookup_person_value(
+                        person_academic_reference_counts, p_id, 0
+                    ),
+                )
+            )
             r_dict["campus"] = resolver.get_campus("researcher", p_id_int or p_id)
-            
+
             export_data.append(r_dict)
 
         logger.info(f"Exporting {len(export_data)} Researchers...")
@@ -1370,8 +1743,8 @@ class CanonicalDataExporter:
                 ),
                 "type": row_data["advisorship_type"],
                 "initiative_type": row_data["initiative_type_name"],
-                "student_id": row_data["student_id"],
-                "student_name": row_data["student_name"],
+                "person_id": row_data["person_id"],
+                "person_name": row_data["person_name"],
                 "supervisor_id": row_data["supervisor_id"],
                 "supervisor_name": row_data["supervisor_name"],
                 "campus": resolver.get_campus("advisorship", row_data["id"]),
