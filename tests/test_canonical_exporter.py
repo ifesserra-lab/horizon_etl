@@ -121,10 +121,11 @@ def test_export_all_orchestrates_exports():
 
             # Verify Sink Calls
             # Includes canonical exports, tracking overlays, and tracking entities.
-            assert mock_sink.export.call_count == 17
+            assert mock_sink.export.call_count == 21
 
             # Check call args to verify content
             calls = mock_sink.export.call_args_list
+            exported_by_path = {call[0][1]: call[0][0] for call in calls}
 
             # Organization export
             args, _ = calls[0]
@@ -148,8 +149,7 @@ def test_export_all_orchestrates_exports():
             assert "knowledge_areas_canonical.json" in args[1]
 
             # Researcher export
-            args, _ = calls[3]
-            assert args[0] == [
+            assert exported_by_path["data/exports/researchers_canonical.json"] == [
                 {
                     "id": 1000,
                     "name": "Researcher1",
@@ -180,12 +180,16 @@ def test_export_all_orchestrates_exports():
                     "campus": None,
                 }
             ]
-            assert "researchers_canonical.json" in args[1]
+            assert exported_by_path["data/exports/researchers_only_canonical.json"] == []
+            assert exported_by_path["data/exports/students_canonical.json"] == []
+            assert exported_by_path["data/exports/outside_ifes_canonical.json"] == []
+            assert (
+                exported_by_path["data/exports/null_researchers_canonical.json"]
+                == exported_by_path["data/exports/researchers_canonical.json"]
+            )
 
             # Researchers tracking export
-            args, _ = calls[4]
-            assert args[0] == []
-            assert "researchers_tracking.json" in args[1]
+            assert exported_by_path["data/exports/researchers_tracking.json"] == []
 
             exported_paths = [call[0][1] for call in calls]
             assert any(
@@ -668,12 +672,17 @@ def test_export_researchers_includes_person_id_in_advisorships():
 
     exporter.export_researchers("output/researchers_canonical.json")
 
-    mock_sink.export.assert_called_once()
-    exported_data, output_path = mock_sink.export.call_args[0]
+    exported_by_path = {
+        call_args[0][1]: call_args[0][0] for call_args in mock_sink.export.call_args_list
+    }
 
-    assert output_path == "output/researchers_canonical.json"
+    exported_data = exported_by_path["output/researchers_canonical.json"]
     assert exported_data[0]["advisorships"][0]["person_id"] == 452
     assert exported_data[0]["advisorships"][0]["person_name"] == "Andre Porto"
+    assert exported_by_path["output/researchers_only_canonical.json"] == []
+    assert (
+        exported_by_path["output/null_researchers_canonical.json"][0]["id"] == 2981
+    )
 
 
 def test_export_researchers_backfills_participant_only_people_from_projects_and_advisorships():
@@ -737,10 +746,12 @@ def test_export_researchers_backfills_participant_only_people_from_projects_and_
 
         exporter.export_researchers("output/researchers_canonical.json")
 
-        exported_data, output_path = mock_sink.export.call_args[0]
+        exported_by_path = {
+            call_args[0][1]: call_args[0][0]
+            for call_args in mock_sink.export.call_args_list
+        }
 
-        assert output_path == "output/researchers_canonical.json"
-        assert exported_data == [
+        assert exported_by_path["output/researchers_canonical.json"] == [
             {
                 "id": 652,
                 "name": "Wilsiman Santos Evangelista Silva",
@@ -781,6 +792,13 @@ def test_export_researchers_backfills_participant_only_people_from_projects_and_
                 "campus": None,
             }
         ]
+        assert (
+            exported_by_path["output/students_canonical.json"]
+            == exported_by_path["output/researchers_canonical.json"]
+        )
+        assert exported_by_path["output/researchers_only_canonical.json"] == []
+        assert exported_by_path["output/outside_ifes_canonical.json"] == []
+        assert exported_by_path["output/null_researchers_canonical.json"] == []
 
 
 def test_export_researchers_backfills_group_only_participants_from_people():
@@ -845,9 +863,12 @@ def test_export_researchers_backfills_group_only_participants_from_people():
 
         exporter.export_researchers("output/researchers_canonical.json")
 
-        exported_data, output_path = mock_sink.export.call_args[0]
+        exported_by_path = {
+            call_args[0][1]: call_args[0][0]
+            for call_args in mock_sink.export.call_args_list
+        }
 
-        assert output_path == "output/researchers_canonical.json"
+        exported_data = exported_by_path["output/researchers_canonical.json"]
         assert exported_data[0]["id"] == 77
         assert exported_data[0]["name"] == "Pesquisador de Grupo"
         assert exported_data[0]["research_groups"] == [
@@ -862,6 +883,13 @@ def test_export_researchers_backfills_group_only_participants_from_people():
         assert exported_data[0]["google_scholar_url"] is None
         assert exported_data[0]["resume"] is None
         assert exported_data[0]["citation_names"] is None
+        assert (
+            exported_by_path["output/researchers_only_canonical.json"]
+            == exported_by_path["output/researchers_canonical.json"]
+        )
+        assert exported_by_path["output/students_canonical.json"] == []
+        assert exported_by_path["output/outside_ifes_canonical.json"] == []
+        assert exported_by_path["output/null_researchers_canonical.json"] == []
 
 
 def test_build_classification_payload_marks_student_from_student_evidence_only():
