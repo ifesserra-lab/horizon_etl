@@ -1,0 +1,270 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-02T13:31:59.628382+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "research_group": {
+                "id": 102,
+                "name": "Grupo de Estudo em Escrita Criativa",
+                "short_name": "GEEC",
+                "member_count": 5,
+                "expanded_node_count": 5,
+                "advisorship_neighbor_count": 0
+            }
+        },
+        "weight_definition": "Each edge weight equals the total number of relationship evidences between two people. Every shared initiative, shared research group, and advisorship adds 1 to the edge weight.",
+        "relation_types": {
+            "initiative": "People who appear together in the same initiative team.",
+            "research_group": "People who belong to the same research group.",
+            "advisorship": "Supervisor and student connected by an advisorship."
+        }
+    },
+    "graph_stats": {
+        "nodes": 5,
+        "edges": 10,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 5,
+        "relation_event_totals": {
+            "initiative": 0,
+            "research_group": 10,
+            "advisorship": 0
+        },
+        "edge_relation_presence": {
+            "initiative": 0,
+            "research_group": 10,
+            "advisorship": 0
+        },
+        "classification_distribution": {
+            "student": 4,
+            "researcher": 1
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 142,
+                "name": "Yan Patrick Brandemburg Siqueira",
+                "classification": "researcher",
+                "weighted_degree": 4,
+                "degree": 4
+            },
+            {
+                "id": 3595,
+                "name": "Ana Clara Nery Mendonça",
+                "classification": "student",
+                "weighted_degree": 4,
+                "degree": 4
+            },
+            {
+                "id": 3596,
+                "name": "Maria Eduarda de Oliveira Santos Bruno",
+                "classification": "student",
+                "weighted_degree": 4,
+                "degree": 4
+            },
+            {
+                "id": 3597,
+                "name": "Pietra Malacarne Chiabai de Cabral",
+                "classification": "student",
+                "weighted_degree": 4,
+                "degree": 4
+            },
+            {
+                "id": 3598,
+                "name": "Any Karoliny Wutke Souza",
+                "classification": "student",
+                "weighted_degree": 4,
+                "degree": 4
+            }
+        ]
+    },
+    "graph": {
+        "directed": false,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "name": "Ana Clara Nery Mendonça",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Viana",
+                "degree": 4,
+                "weighted_degree": 4,
+                "is_group_member": true,
+                "is_advisorship_neighbor": false,
+                "id": 3595
+            },
+            {
+                "name": "Maria Eduarda de Oliveira Santos Bruno",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Viana",
+                "degree": 4,
+                "weighted_degree": 4,
+                "is_group_member": true,
+                "is_advisorship_neighbor": false,
+                "id": 3596
+            },
+            {
+                "name": "Pietra Malacarne Chiabai de Cabral",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Viana",
+                "degree": 4,
+                "weighted_degree": 4,
+                "is_group_member": true,
+                "is_advisorship_neighbor": false,
+                "id": 3597
+            },
+            {
+                "name": "Yan Patrick Brandemburg Siqueira",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Viana",
+                "degree": 4,
+                "weighted_degree": 4,
+                "is_group_member": true,
+                "is_advisorship_neighbor": false,
+                "id": 142
+            },
+            {
+                "name": "Any Karoliny Wutke Souza",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Viana",
+                "degree": 4,
+                "weighted_degree": 4,
+                "is_group_member": true,
+                "is_advisorship_neighbor": false,
+                "id": 3598
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 3595,
+                "target": 142
+            },
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 3595,
+                "target": 3596
+            },
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 3595,
+                "target": 3597
+            },
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 3595,
+                "target": 3598
+            },
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 3596,
+                "target": 142
+            },
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 3596,
+                "target": 3597
+            },
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 3596,
+                "target": 3598
+            },
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 3597,
+                "target": 142
+            },
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 3597,
+                "target": 3598
+            },
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 142,
+                "target": 3598
+            }
+        ]
+    }
+}

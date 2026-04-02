@@ -1,0 +1,111 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-02T13:32:06.242855+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "research_group": {
+                "id": 270,
+                "name": "Núcleo de Estudos, Pesquisas e Práticas em Estatística Aplicada",
+                "short_name": "NEPPEA",
+                "member_count": 2,
+                "expanded_node_count": 2,
+                "advisorship_neighbor_count": 0
+            }
+        },
+        "weight_definition": "Each edge weight equals the total number of relationship evidences between two people. Every shared initiative, shared research group, and advisorship adds 1 to the edge weight.",
+        "relation_types": {
+            "initiative": "People who appear together in the same initiative team.",
+            "research_group": "People who belong to the same research group.",
+            "advisorship": "Supervisor and student connected by an advisorship."
+        }
+    },
+    "graph_stats": {
+        "nodes": 2,
+        "edges": 1,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 2,
+        "relation_event_totals": {
+            "initiative": 0,
+            "research_group": 1,
+            "advisorship": 0
+        },
+        "edge_relation_presence": {
+            "initiative": 0,
+            "research_group": 1,
+            "advisorship": 0
+        },
+        "classification_distribution": {
+            "student": 1,
+            "researcher": 1
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 372,
+                "name": "Daniela Bertolini Depizzol",
+                "classification": "researcher",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 6328,
+                "name": "Caetano Malacarne Biancardi",
+                "classification": "student",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": false,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "name": "Caetano Malacarne Biancardi",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Cariacica",
+                "degree": 1,
+                "weighted_degree": 1,
+                "is_group_member": true,
+                "is_advisorship_neighbor": false,
+                "id": 6328
+            },
+            {
+                "name": "Daniela Bertolini Depizzol",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Cariacica",
+                "degree": 1,
+                "weighted_degree": 1,
+                "is_group_member": true,
+                "is_advisorship_neighbor": false,
+                "id": 372
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 6328,
+                "target": 372
+            }
+        ]
+    }
+}

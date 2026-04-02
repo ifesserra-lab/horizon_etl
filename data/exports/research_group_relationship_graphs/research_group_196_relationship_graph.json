@@ -1,0 +1,205 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-02T13:32:03.074301+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "research_group": {
+                "id": 196,
+                "name": "História das interações políticas, culturais, econômicas e sociais",
+                "short_name": "ECES História",
+                "member_count": 4,
+                "expanded_node_count": 4,
+                "advisorship_neighbor_count": 0
+            }
+        },
+        "weight_definition": "Each edge weight equals the total number of relationship evidences between two people. Every shared initiative, shared research group, and advisorship adds 1 to the edge weight.",
+        "relation_types": {
+            "initiative": "People who appear together in the same initiative team.",
+            "research_group": "People who belong to the same research group.",
+            "advisorship": "Supervisor and student connected by an advisorship."
+        }
+    },
+    "graph_stats": {
+        "nodes": 4,
+        "edges": 6,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 4,
+        "relation_event_totals": {
+            "initiative": 0,
+            "research_group": 7,
+            "advisorship": 0
+        },
+        "edge_relation_presence": {
+            "initiative": 0,
+            "research_group": 6,
+            "advisorship": 0
+        },
+        "classification_distribution": {
+            "researcher": 4
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 3491,
+                "name": "Tiago de Araujo Camillo",
+                "classification": "researcher",
+                "weighted_degree": 4,
+                "degree": 3
+            },
+            {
+                "id": 4966,
+                "name": "Ernesto Charpinel Borges",
+                "classification": "researcher",
+                "weighted_degree": 4,
+                "degree": 3
+            },
+            {
+                "id": 275,
+                "name": "Amarildo Mendes Lemos",
+                "classification": "researcher",
+                "weighted_degree": 3,
+                "degree": 3
+            },
+            {
+                "id": 4967,
+                "name": "Wander Luiz Demartini Nunes",
+                "classification": "researcher",
+                "weighted_degree": 3,
+                "degree": 3
+            }
+        ]
+    },
+    "graph": {
+        "directed": false,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "name": "Amarildo Mendes Lemos",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Serra",
+                "degree": 3,
+                "weighted_degree": 3,
+                "is_group_member": true,
+                "is_advisorship_neighbor": false,
+                "id": 275
+            },
+            {
+                "name": "Tiago de Araujo Camillo",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Vila Velha",
+                "degree": 3,
+                "weighted_degree": 4,
+                "is_group_member": true,
+                "is_advisorship_neighbor": false,
+                "id": 3491
+            },
+            {
+                "name": "Ernesto Charpinel Borges",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": true,
+                "was_staff": true,
+                "campus_name": "Vila Velha",
+                "degree": 3,
+                "weighted_degree": 4,
+                "is_group_member": true,
+                "is_advisorship_neighbor": false,
+                "id": 4966
+            },
+            {
+                "name": "Wander Luiz Demartini Nunes",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Serra",
+                "degree": 3,
+                "weighted_degree": 3,
+                "is_group_member": true,
+                "is_advisorship_neighbor": false,
+                "id": 4967
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 275,
+                "target": 3491
+            },
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 275,
+                "target": 4966
+            },
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 275,
+                "target": 4967
+            },
+            {
+                "weight": 2,
+                "initiative_count": 0,
+                "research_group_count": 2,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 3491,
+                "target": 4966
+            },
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 3491,
+                "target": 4967
+            },
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 4966,
+                "target": 4967
+            }
+        ]
+    }
+}

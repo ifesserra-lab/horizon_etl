@@ -1,0 +1,153 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-02T13:32:03.361271+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "research_group": {
+                "id": 204,
+                "name": "Instituições e Representações: Analíticas e Críticas",
+                "short_name": "IRAC",
+                "member_count": 3,
+                "expanded_node_count": 3,
+                "advisorship_neighbor_count": 0
+            }
+        },
+        "weight_definition": "Each edge weight equals the total number of relationship evidences between two people. Every shared initiative, shared research group, and advisorship adds 1 to the edge weight.",
+        "relation_types": {
+            "initiative": "People who appear together in the same initiative team.",
+            "research_group": "People who belong to the same research group.",
+            "advisorship": "Supervisor and student connected by an advisorship."
+        }
+    },
+    "graph_stats": {
+        "nodes": 3,
+        "edges": 3,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 3,
+        "relation_event_totals": {
+            "initiative": 0,
+            "research_group": 3,
+            "advisorship": 0
+        },
+        "edge_relation_presence": {
+            "initiative": 0,
+            "research_group": 3,
+            "advisorship": 0
+        },
+        "classification_distribution": {
+            "researcher": 2,
+            "student": 1
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 284,
+                "name": "Marcelo Serute",
+                "classification": "researcher",
+                "weighted_degree": 2,
+                "degree": 2
+            },
+            {
+                "id": 5081,
+                "name": "Daniela Alves Silva Serute",
+                "classification": "researcher",
+                "weighted_degree": 2,
+                "degree": 2
+            },
+            {
+                "id": 5082,
+                "name": "João Pedro Sartori Alves",
+                "classification": "student",
+                "weighted_degree": 2,
+                "degree": 2
+            }
+        ]
+    },
+    "graph": {
+        "directed": false,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "name": "Daniela Alves Silva Serute",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Guarapari",
+                "degree": 2,
+                "weighted_degree": 2,
+                "is_group_member": true,
+                "is_advisorship_neighbor": false,
+                "id": 5081
+            },
+            {
+                "name": "João Pedro Sartori Alves",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Guarapari",
+                "degree": 2,
+                "weighted_degree": 2,
+                "is_group_member": true,
+                "is_advisorship_neighbor": false,
+                "id": 5082
+            },
+            {
+                "name": "Marcelo Serute",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Guarapari",
+                "degree": 2,
+                "weighted_degree": 2,
+                "is_group_member": true,
+                "is_advisorship_neighbor": false,
+                "id": 284
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 5081,
+                "target": 284
+            },
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 5081,
+                "target": 5082
+            },
+            {
+                "weight": 1,
+                "initiative_count": 0,
+                "research_group_count": 1,
+                "advisorship_count": 0,
+                "relation_types": [
+                    "research_group"
+                ],
+                "source": 5082,
+                "target": 284
+            }
+        ]
+    }
+}

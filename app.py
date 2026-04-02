@@ -8,6 +8,9 @@ from src.flows.export_initiatives_analytics_mart import (
     export_initiatives_analytics_mart_flow,
 )
 from src.flows.export_knowledge_areas_mart import export_knowledge_areas_mart_flow
+from src.flows.export_people_relationship_graph import (
+    export_people_relationship_graph_flow,
+)
 from src.flows.ingest_sigpesq import ingest_sigpesq_flow
 from src.flows.sync_cnpq_groups import sync_cnpq_groups_flow
 from src.flows.unified_pipeline import full_ingestion_pipeline
@@ -100,6 +103,17 @@ def main():
                 f"Executing Flow: Export Initiative Analytics Mart (Output: {output_path})"
             )
             export_initiatives_analytics_mart_flow(output_path=output_path)
+
+        if flow_to_run in ["people_graph", "all"]:
+            output_dir = (
+                sys.argv[2]
+                if len(sys.argv) > 2 and flow_to_run == "people_graph"
+                else "data/exports"
+            )
+            logger.info(
+                f"Executing Flow: Export People Relationship Graph (Output Dir: {output_dir})"
+            )
+            export_people_relationship_graph_flow(output_dir=output_dir)
 
         if flow_to_run in ["ingest_lattes_projects", "all"]:
              logger.info("Executing Flow: Ingest Lattes Projects")
