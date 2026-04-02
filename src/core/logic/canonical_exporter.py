@@ -60,6 +60,12 @@ IFES_STAFF_ROLES = frozenset(
     }
 )
 PROJECT_STAFF_ROLES = frozenset({"Coordinator", "Researcher"})
+RESEARCHER_CLASSIFICATION_EXPORTS = (
+    ("researcher", "researchers_only_canonical.json", "Researcher-only Researchers"),
+    ("student", "students_canonical.json", "Students"),
+    ("outside_ifes", "outside_ifes_canonical.json", "Outside Ifes Researchers"),
+    (None, "null_researchers_canonical.json", "Null-classification Researchers"),
+)
 
 
 class CanonicalDataExporter:
@@ -368,6 +374,22 @@ class CanonicalDataExporter:
         if isinstance(person_id, int):
             return (False, 0, person_id)
         return (False, 1, str(person_id))
+
+    def _export_researcher_classification_views(
+        self, export_data: list[dict[str, Any]], base_output_path: str
+    ) -> None:
+        output_dir = os.path.dirname(base_output_path)
+
+        for classification, filename, label in RESEARCHER_CLASSIFICATION_EXPORTS:
+            filtered_data = [
+                item
+                for item in export_data
+                if item.get("classification") == classification
+            ]
+            output_path = os.path.join(output_dir, filename) if output_dir else filename
+            logger.info("Exporting {} {}...", len(filtered_data), label)
+            self.sink.export(filtered_data, output_path)
+            logger.info("Successfully exported {} to {}", label, output_path)
 
     @classmethod
     def _append_person_role(
@@ -1463,6 +1485,7 @@ class CanonicalDataExporter:
         logger.info(f"Exporting {len(export_data)} Researchers...")
         self.sink.export(export_data, output_path)
         logger.info(f"Successfully exported enriched Researchers to {output_path}")
+        self._export_researcher_classification_views(export_data, output_path)
 
     def export_initiatives(self, output_path: str):
         """
