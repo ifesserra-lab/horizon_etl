@@ -6,6 +6,9 @@ from prefect import flow, task
 
 from src.adapters.sinks.json_sink import JsonSink
 from src.core.logic.canonical_exporter import CanonicalDataExporter
+from src.flows.export_people_relationship_graph import (
+    export_people_relationship_graph_flow,
+)
 from src.core.logic.research_group_exporter import ResearchGroupExporter
 
 
@@ -228,6 +231,7 @@ def export_canonical_data_flow(
     export_entity_change_logs_task(output_dir)
     export_fellowships_task(output_dir)
     export_advisorship_analytics_task(output_dir)
+    export_people_relationship_graph_flow(output_dir=output_dir)
 
 
 if __name__ == "__main__":
