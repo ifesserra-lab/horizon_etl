@@ -1,0 +1,429 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T14:18:00.172928+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "semantic",
+            "research_group": {
+                "id": 182,
+                "name": "Grupo de Pesquisa em Redes e Otimização",
+                "short_name": "GPRO",
+                "member_count": 16
+            }
+        },
+        "weight_definition": "Each edge weight equals the total number of semantic relationship evidences between two people inside the research group. Every shared research project, shared article, and orientation adds 1 to the edge weight.",
+        "relation_types": {
+            "orientation": "Supervisor and student connected by an advisorship/orientation.",
+            "project": "People who appear together in the same research project team.",
+            "article": "People who are linked to the same article record."
+        }
+    },
+    "graph_stats": {
+        "nodes": 16,
+        "edges": 6,
+        "isolated_nodes": 12,
+        "connected_components": 13,
+        "largest_component_size": 4,
+        "relation_event_totals": {
+            "orientation": 0,
+            "project": 9,
+            "article": 0
+        },
+        "edge_relation_presence": {
+            "orientation": 0,
+            "project": 6,
+            "article": 0
+        },
+        "classification_distribution": {
+            "researcher": 7,
+            "student": 9
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 259,
+                "name": "Leandro Colombi Resendo",
+                "classification": "researcher",
+                "weighted_degree": 5,
+                "degree": 3
+            },
+            {
+                "id": 260,
+                "name": "Cristina Klippel Dominicini",
+                "classification": "researcher",
+                "weighted_degree": 5,
+                "degree": 3
+            },
+            {
+                "id": 618,
+                "name": "Gilmar Luiz Vassoler",
+                "classification": "researcher",
+                "weighted_degree": 5,
+                "degree": 3
+            },
+            {
+                "id": 513,
+                "name": "Maxwell Eduardo Monteiro",
+                "classification": "researcher",
+                "weighted_degree": 3,
+                "degree": 3
+            },
+            {
+                "id": 300,
+                "name": "Bruno Cardoso Coutinho",
+                "classification": "researcher",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 3153,
+                "name": "Alan Pancieri Berger Saar",
+                "classification": "student",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 4755,
+                "name": "Fábio de Oliveira Lima",
+                "classification": "researcher",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 4756,
+                "name": "Giancarlo Oliveira dos Santos",
+                "classification": "researcher",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 4757,
+                "name": "Adailton Saraiva",
+                "classification": "student",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 4758,
+                "name": "Ana Júlia Caetano Martins",
+                "classification": "student",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 4759,
+                "name": "Bruno Moreto de Oliveira",
+                "classification": "student",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 4760,
+                "name": "Eduarda Nascimento Coelho",
+                "classification": "student",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 4761,
+                "name": "Jeorge Terci Gasperazzo",
+                "classification": "student",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 4762,
+                "name": "Leonardo Zuchi Guio",
+                "classification": "student",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 4763,
+                "name": "Cleber Silva Ferreira",
+                "classification": "student",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 4764,
+                "name": "Harrison Felipe Sanches Machado",
+                "classification": "student",
+                "weighted_degree": 0,
+                "degree": 0
+            }
+        ]
+    },
+    "graph": {
+        "directed": false,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "name": "Leandro Colombi Resendo",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Serra",
+                "degree": 3,
+                "weighted_degree": 5,
+                "id": 259
+            },
+            {
+                "name": "Cristina Klippel Dominicini",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Serra",
+                "degree": 3,
+                "weighted_degree": 5,
+                "id": 260
+            },
+            {
+                "name": "Bruno Cardoso Coutinho",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Serra",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 300
+            },
+            {
+                "name": "Maxwell Eduardo Monteiro",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Serra",
+                "degree": 3,
+                "weighted_degree": 3,
+                "id": 513
+            },
+            {
+                "name": "Gilmar Luiz Vassoler",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Serra",
+                "degree": 3,
+                "weighted_degree": 5,
+                "id": 618
+            },
+            {
+                "name": "Alan Pancieri Berger Saar",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Serra",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 3153
+            },
+            {
+                "name": "Fábio de Oliveira Lima",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Serra",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 4755
+            },
+            {
+                "name": "Giancarlo Oliveira dos Santos",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Serra",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 4756
+            },
+            {
+                "name": "Adailton Saraiva",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Serra",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 4757
+            },
+            {
+                "name": "Ana Júlia Caetano Martins",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Serra",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 4758
+            },
+            {
+                "name": "Bruno Moreto de Oliveira",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Serra",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 4759
+            },
+            {
+                "name": "Eduarda Nascimento Coelho",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Serra",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 4760
+            },
+            {
+                "name": "Jeorge Terci Gasperazzo",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Serra",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 4761
+            },
+            {
+                "name": "Leonardo Zuchi Guio",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Serra",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 4762
+            },
+            {
+                "name": "Cleber Silva Ferreira",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Serra",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 4763
+            },
+            {
+                "name": "Harrison Felipe Sanches Machado",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Serra",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 4764
+            }
+        ],
+        "edges": [
+            {
+                "weight": 2,
+                "project_count": 2,
+                "orientation_count": 0,
+                "article_count": 0,
+                "relation_types": [
+                    "project"
+                ],
+                "source": 259,
+                "target": 260
+            },
+            {
+                "weight": 2,
+                "project_count": 2,
+                "orientation_count": 0,
+                "article_count": 0,
+                "relation_types": [
+                    "project"
+                ],
+                "source": 259,
+                "target": 618
+            },
+            {
+                "weight": 1,
+                "project_count": 1,
+                "orientation_count": 0,
+                "article_count": 0,
+                "relation_types": [
+                    "project"
+                ],
+                "source": 259,
+                "target": 513
+            },
+            {
+                "weight": 2,
+                "project_count": 2,
+                "orientation_count": 0,
+                "article_count": 0,
+                "relation_types": [
+                    "project"
+                ],
+                "source": 260,
+                "target": 618
+            },
+            {
+                "weight": 1,
+                "project_count": 1,
+                "orientation_count": 0,
+                "article_count": 0,
+                "relation_types": [
+                    "project"
+                ],
+                "source": 260,
+                "target": 513
+            },
+            {
+                "weight": 1,
+                "project_count": 1,
+                "orientation_count": 0,
+                "article_count": 0,
+                "relation_types": [
+                    "project"
+                ],
+                "source": 513,
+                "target": 618
+            }
+        ]
+    }
+}

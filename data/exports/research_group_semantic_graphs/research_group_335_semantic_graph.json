@@ -1,0 +1,95 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T14:18:00.843846+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "semantic",
+            "research_group": {
+                "id": 335,
+                "name": "Tratamento de minérios",
+                "short_name": "LTM IFES",
+                "member_count": 2
+            }
+        },
+        "weight_definition": "Each edge weight equals the total number of semantic relationship evidences between two people inside the research group. Every shared research project, shared article, and orientation adds 1 to the edge weight.",
+        "relation_types": {
+            "orientation": "Supervisor and student connected by an advisorship/orientation.",
+            "project": "People who appear together in the same research project team.",
+            "article": "People who are linked to the same article record."
+        }
+    },
+    "graph_stats": {
+        "nodes": 2,
+        "edges": 0,
+        "isolated_nodes": 2,
+        "connected_components": 2,
+        "largest_component_size": 1,
+        "relation_event_totals": {
+            "orientation": 0,
+            "project": 0,
+            "article": 0
+        },
+        "edge_relation_presence": {
+            "orientation": 0,
+            "project": 0,
+            "article": 0
+        },
+        "classification_distribution": {
+            "researcher": 2
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 1638,
+                "name": "Tcharllis João da Cunha Demartini",
+                "classification": "researcher",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 444,
+                "name": "Eliseu Romero Campelo Correia",
+                "classification": "researcher",
+                "weighted_degree": 0,
+                "degree": 0
+            }
+        ]
+    },
+    "graph": {
+        "directed": false,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "name": "Eliseu Romero Campelo Correia",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Cachoeiro de Itapemirim",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 444
+            },
+            {
+                "name": "Tcharllis João da Cunha Demartini",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Cachoeiro de Itapemirim",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 1638
+            }
+        ],
+        "edges": []
+    }
+}

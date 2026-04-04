@@ -1,0 +1,210 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T14:18:00.211691+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "semantic",
+            "research_group": {
+                "id": 191,
+                "name": "Grupo de Pesquisas em Rochas Ornamentais",
+                "short_name": null,
+                "member_count": 8
+            }
+        },
+        "weight_definition": "Each edge weight equals the total number of semantic relationship evidences between two people inside the research group. Every shared research project, shared article, and orientation adds 1 to the edge weight.",
+        "relation_types": {
+            "orientation": "Supervisor and student connected by an advisorship/orientation.",
+            "project": "People who appear together in the same research project team.",
+            "article": "People who are linked to the same article record."
+        }
+    },
+    "graph_stats": {
+        "nodes": 8,
+        "edges": 0,
+        "isolated_nodes": 8,
+        "connected_components": 8,
+        "largest_component_size": 1,
+        "relation_event_totals": {
+            "orientation": 0,
+            "project": 0,
+            "article": 0
+        },
+        "edge_relation_presence": {
+            "orientation": 0,
+            "project": 0,
+            "article": 0
+        },
+        "classification_distribution": {
+            "researcher": 6,
+            "student": 2
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 1908,
+                "name": "ui-button",
+                "classification": "researcher",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 258,
+                "name": "Raphael Melo Borges",
+                "classification": "researcher",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 270,
+                "name": "Rômulo Furtado Faria",
+                "classification": "researcher",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 3016,
+                "name": "Marcos Hortolani Boldrim",
+                "classification": "researcher",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 4908,
+                "name": "Bruno do Vale Miotto",
+                "classification": "researcher",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 4909,
+                "name": "Lincoln Ribeiro Maia de Resende",
+                "classification": "researcher",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 4910,
+                "name": "Joicy Ferreira Leite",
+                "classification": "student",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 4911,
+                "name": "Yargo Lucio Gentil",
+                "classification": "student",
+                "weighted_degree": 0,
+                "degree": 0
+            }
+        ]
+    },
+    "graph": {
+        "directed": false,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "name": "Raphael Melo Borges",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Nova Venécia",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 258
+            },
+            {
+                "name": "Rômulo Furtado Faria",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Nova Venécia",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 270
+            },
+            {
+                "name": "ui-button",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Vitória",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 1908
+            },
+            {
+                "name": "Marcos Hortolani Boldrim",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Nova Venécia",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 3016
+            },
+            {
+                "name": "Bruno do Vale Miotto",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Nova Venécia",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 4908
+            },
+            {
+                "name": "Lincoln Ribeiro Maia de Resende",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Nova Venécia",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 4909
+            },
+            {
+                "name": "Joicy Ferreira Leite",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Nova Venécia",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 4910
+            },
+            {
+                "name": "Yargo Lucio Gentil",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Nova Venécia",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 4911
+            }
+        ],
+        "edges": []
+    }
+}

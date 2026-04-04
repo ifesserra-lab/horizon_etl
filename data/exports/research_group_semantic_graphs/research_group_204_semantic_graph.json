@@ -1,0 +1,115 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T14:18:00.264780+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "semantic",
+            "research_group": {
+                "id": 204,
+                "name": "Instituições e Representações: Analíticas e Críticas",
+                "short_name": "IRAC",
+                "member_count": 3
+            }
+        },
+        "weight_definition": "Each edge weight equals the total number of semantic relationship evidences between two people inside the research group. Every shared research project, shared article, and orientation adds 1 to the edge weight.",
+        "relation_types": {
+            "orientation": "Supervisor and student connected by an advisorship/orientation.",
+            "project": "People who appear together in the same research project team.",
+            "article": "People who are linked to the same article record."
+        }
+    },
+    "graph_stats": {
+        "nodes": 3,
+        "edges": 0,
+        "isolated_nodes": 3,
+        "connected_components": 3,
+        "largest_component_size": 1,
+        "relation_event_totals": {
+            "orientation": 0,
+            "project": 0,
+            "article": 0
+        },
+        "edge_relation_presence": {
+            "orientation": 0,
+            "project": 0,
+            "article": 0
+        },
+        "classification_distribution": {
+            "researcher": 2,
+            "student": 1
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 284,
+                "name": "Marcelo Serute",
+                "classification": "researcher",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 5081,
+                "name": "Daniela Alves Silva Serute",
+                "classification": "researcher",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 5082,
+                "name": "João Pedro Sartori Alves",
+                "classification": "student",
+                "weighted_degree": 0,
+                "degree": 0
+            }
+        ]
+    },
+    "graph": {
+        "directed": false,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "name": "Marcelo Serute",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Guarapari",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 284
+            },
+            {
+                "name": "Daniela Alves Silva Serute",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_name": "Guarapari",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 5081
+            },
+            {
+                "name": "João Pedro Sartori Alves",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_name": "Guarapari",
+                "degree": 0,
+                "weighted_degree": 0,
+                "id": 5082
+            }
+        ],
+        "edges": []
+    }
+}
