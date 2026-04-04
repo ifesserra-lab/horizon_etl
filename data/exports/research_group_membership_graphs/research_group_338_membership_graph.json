@@ -1,0 +1,440 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:21.354388+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 338,
+                "name": "ZitoLab",
+                "short_name": "ZitoLab",
+                "campus_name": "Venda Nova do Imigrante",
+                "member_count": 8
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 9,
+        "edges": 8,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 9,
+        "relation_event_totals": {
+            "present_in": 8
+        },
+        "edge_relation_presence": {
+            "present_in": 8
+        },
+        "classification_distribution": {
+            "researcher": 6,
+            "student": 2
+        },
+        "campus_distribution": {
+            "Venda Nova do Imigrante": 8
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 2061,
+                "name": "Admildo Costa de Freitas",
+                "classification": "researcher",
+                "campus_name": "Venda Nova do Imigrante",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 2159,
+                "name": "Fabrícia Ribeiro Mattos",
+                "classification": "researcher",
+                "campus_name": "Venda Nova do Imigrante",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 2161,
+                "name": "Vanessa Cristina de Castro",
+                "classification": "researcher",
+                "campus_name": "Venda Nova do Imigrante",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 447,
+                "name": "Genilson De Paiva",
+                "classification": "researcher",
+                "campus_name": "Venda Nova do Imigrante",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 448,
+                "name": "Marcos Roberto Moacir Ribeiro Pinto",
+                "classification": "researcher",
+                "campus_name": "Venda Nova do Imigrante",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 449,
+                "name": "Tiago Delpupo Mognhol",
+                "classification": "researcher",
+                "campus_name": "Venda Nova do Imigrante",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 7459,
+                "name": "Alice Spadeto de Freitas",
+                "classification": "student",
+                "campus_name": "Venda Nova do Imigrante",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 7460,
+                "name": "Kayllane Bozzi Bissoli",
+                "classification": "student",
+                "campus_name": "Venda Nova do Imigrante",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 338,
+                "name": "ZitoLab",
+                "short_name": "ZitoLab",
+                "description": "Grupo de pesquisa sobre zitologia.",
+                "campus_id": 8,
+                "campus_name": "Venda Nova do Imigrante",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 8,
+                "degree": 8,
+                "weighted_degree": 8,
+                "classification": null,
+                "id": "research_group:338"
+            },
+            {
+                "name": "Genilson De Paiva",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 8,
+                "campus_name": "Venda Nova do Imigrante",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.008068,
+                "betweenness_centrality": 0.002103,
+                "clustering_coefficient": 0.279661,
+                "community_id": 25,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 447
+            },
+            {
+                "name": "Marcos Roberto Moacir Ribeiro Pinto",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 8,
+                "campus_name": "Venda Nova do Imigrante",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001882,
+                "betweenness_centrality": 9e-06,
+                "clustering_coefficient": 0.516484,
+                "community_id": 25,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 448
+            },
+            {
+                "name": "Tiago Delpupo Mognhol",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 8,
+                "campus_name": "Venda Nova do Imigrante",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000941,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 25,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 449
+            },
+            {
+                "name": "Admildo Costa de Freitas",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 8,
+                "campus_name": "Venda Nova do Imigrante",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.006723,
+                "betweenness_centrality": 1.1e-05,
+                "clustering_coefficient": 0.376327,
+                "community_id": 25,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 2061
+            },
+            {
+                "name": "Fabrícia Ribeiro Mattos",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 8,
+                "campus_name": "Venda Nova do Imigrante",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.004303,
+                "betweenness_centrality": 0.001025,
+                "clustering_coefficient": 0.469758,
+                "community_id": 25,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 2159
+            },
+            {
+                "name": "Vanessa Cristina de Castro",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 8,
+                "campus_name": "Venda Nova do Imigrante",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.006185,
+                "betweenness_centrality": 5.6e-05,
+                "clustering_coefficient": 0.393237,
+                "community_id": 25,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 2161
+            },
+            {
+                "name": "Alice Spadeto de Freitas",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 8,
+                "campus_name": "Venda Nova do Imigrante",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000941,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 25,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 7459
+            },
+            {
+                "name": "Kayllane Bozzi Bissoli",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 8,
+                "campus_name": "Venda Nova do Imigrante",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000941,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 25,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 7460
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 447,
+                "target": "research_group:338"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 448,
+                "target": "research_group:338"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 449,
+                "target": "research_group:338"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2023-05-04",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 2061,
+                "target": "research_group:338"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2023-05-04",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 2159,
+                "target": "research_group:338"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2023-05-04",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 2161,
+                "target": "research_group:338"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-08-29",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 7459,
+                "target": "research_group:338"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2023-05-04",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 7460,
+                "target": "research_group:338"
+            }
+        ]
+    }
+}

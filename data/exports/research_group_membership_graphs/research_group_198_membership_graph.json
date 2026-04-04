@@ -1,0 +1,210 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:20.502761+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 198,
+                "name": "História, Memória, Educação tecnológica e Práticas de Turismo no Espírito Santo",
+                "short_name": null,
+                "campus_name": "Vitória",
+                "member_count": 3
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 4,
+        "edges": 3,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 4,
+        "relation_event_totals": {
+            "present_in": 3
+        },
+        "edge_relation_presence": {
+            "present_in": 3
+        },
+        "classification_distribution": {
+            "researcher": 3
+        },
+        "campus_distribution": {
+            "Vitória": 2,
+            "Colatina": 1
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 276,
+                "name": "Dinorah Lopes Rubim Almeida",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 297,
+                "name": "Bruno Dos Santos Prado Moura",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 4359,
+                "name": "Iuri Campos de Souza",
+                "classification": "researcher",
+                "campus_name": "Colatina",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 198,
+                "name": "História, Memória, Educação tecnológica e Práticas de Turismo no Espírito Santo",
+                "short_name": null,
+                "description": "Projeto de pesquisa O público e o privado na história capixaba: integração do Parque Residência Oficial do Governador do Espírito Santo na Praia da Costa por meio da visitação turística, que integra o projeto interinstitucional coordenado pela Universidade Federal do Espírito Santo (Ufes) em parceria com o Governo do Estado do Espírito Santo e o Instituto Federal do Espírito Santo (Ifes), que tem por objetivo geral desenvolver os projetos básicos necessários para a efetiva criação da infraestrutura adequada na área denominada como Parque Residência do Governador, visando abrigar atividades relacionadas à cultura, à arte, ao turismo e à educação, bem como de cunho preservacionista do ambiente natural e construído.",
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 3,
+                "degree": 3,
+                "weighted_degree": 3,
+                "classification": null,
+                "id": "research_group:198"
+            },
+            {
+                "name": "Dinorah Lopes Rubim Almeida",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001076,
+                "betweenness_centrality": 7.4e-05,
+                "clustering_coefficient": 0.75,
+                "community_id": 195,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 276
+            },
+            {
+                "name": "Bruno Dos Santos Prado Moura",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.00121,
+                "betweenness_centrality": 8.2e-05,
+                "clustering_coefficient": 0.777778,
+                "community_id": 195,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 297
+            },
+            {
+                "name": "Iuri Campos de Souza",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 4,
+                "campus_name": "Colatina",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001614,
+                "betweenness_centrality": 0.000123,
+                "clustering_coefficient": 0.681818,
+                "community_id": 226,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 4359
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 276,
+                "target": "research_group:198"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador (Egresso)"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2021-05-03",
+                        "end_date": "2025-11-10"
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 297,
+                "target": "research_group:198"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2022-03-17",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 4359,
+                "target": "research_group:198"
+            }
+        ]
+    }
+}

@@ -1,6 +1,6 @@
 {
     "metadata": {
-        "generated_at": "2026-04-02T13:31:58.350949+00:00",
+        "generated_at": "2026-04-04T20:12:19.686548+00:00",
         "sources": {
             "researchers": "data/exports/researchers_canonical.json",
             "initiatives": "data/exports/initiatives_canonical.json",
@@ -9,20 +9,20 @@
         },
         "scope": {
             "type": "research_group",
+            "graph_type": "collaboration",
             "research_group": {
                 "id": 69,
                 "name": "Estudos sobre língua, linguagem e cultura",
                 "short_name": null,
-                "member_count": 1,
-                "expanded_node_count": 1,
-                "advisorship_neighbor_count": 0
+                "campus_name": "Centro-Serrano",
+                "member_count": 1
             }
         },
-        "weight_definition": "Each edge weight equals the total number of relationship evidences between two people. Every shared initiative, shared research group, and advisorship adds 1 to the edge weight.",
+        "weight_definition": "Each edge weight equals the total number of collaboration evidences between two people inside the research group. Every shared research project, shared article, and orientation adds 1 to the edge weight.",
         "relation_types": {
-            "initiative": "People who appear together in the same initiative team.",
-            "research_group": "People who belong to the same research group.",
-            "advisorship": "Supervisor and student connected by an advisorship."
+            "orientation": "Supervisor and student connected by an advisorship/orientation.",
+            "project": "People who appear together in the same research project team.",
+            "article": "People who are linked to the same article record."
         }
     },
     "graph_stats": {
@@ -32,44 +32,141 @@
         "connected_components": 1,
         "largest_component_size": 1,
         "relation_event_totals": {
-            "initiative": 0,
-            "research_group": 0,
-            "advisorship": 0
+            "orientation": 0,
+            "project": 0,
+            "article": 0
         },
         "edge_relation_presence": {
-            "initiative": 0,
-            "research_group": 0,
-            "advisorship": 0
+            "orientation": 0,
+            "project": 0,
+            "article": 0
         },
         "classification_distribution": {
             "researcher": 1
+        },
+        "campus_distribution": {
+            "Centro-Serrano": 1
         },
         "top_people_by_weighted_degree": [
             {
                 "id": 98,
                 "name": "Samine de Almeida Benfica",
                 "classification": "researcher",
+                "campus_name": "Centro-Serrano",
                 "weighted_degree": 0,
                 "degree": 0
+            }
+        ],
+        "complex_network_metrics": {
+            "density": 0,
+            "average_clustering": 0.0,
+            "transitivity": 0,
+            "assortativity_by_classification": null,
+            "community_count": 1,
+            "largest_community_size": 1,
+            "community_detection_mode": "isolated_nodes",
+            "modularity": null,
+            "hub_count": 0,
+            "articulation_point_count": 0,
+            "bridge_edge_count": 0,
+            "betweenness_mode": "not_applicable"
+        },
+        "top_hubs_by_degree_centrality": [
+            {
+                "id": 98,
+                "name": "Samine de Almeida Benfica",
+                "classification": "researcher",
+                "campus_name": "Centro-Serrano",
+                "degree_centrality": 1,
+                "weighted_degree": 0,
+                "degree": 0
+            }
+        ],
+        "top_brokers_by_betweenness": [
+            {
+                "id": 98,
+                "name": "Samine de Almeida Benfica",
+                "classification": "researcher",
+                "campus_name": "Centro-Serrano",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            }
+        ],
+        "communities": [
+            {
+                "community_id": 0,
+                "size": 1
             }
         ]
     },
     "graph": {
         "directed": false,
         "multigraph": false,
-        "graph": {},
+        "graph": {
+            "_complex_network_summary": {
+                "metrics": {
+                    "density": 0,
+                    "average_clustering": 0.0,
+                    "transitivity": 0,
+                    "assortativity_by_classification": null,
+                    "community_count": 1,
+                    "largest_community_size": 1,
+                    "community_detection_mode": "isolated_nodes",
+                    "modularity": null,
+                    "hub_count": 0,
+                    "articulation_point_count": 0,
+                    "bridge_edge_count": 0,
+                    "betweenness_mode": "not_applicable"
+                },
+                "top_hubs": [
+                    {
+                        "id": 98,
+                        "name": "Samine de Almeida Benfica",
+                        "classification": "researcher",
+                        "campus_name": "Centro-Serrano",
+                        "degree_centrality": 1,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    }
+                ],
+                "top_brokers": [
+                    {
+                        "id": 98,
+                        "name": "Samine de Almeida Benfica",
+                        "classification": "researcher",
+                        "campus_name": "Centro-Serrano",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    }
+                ],
+                "communities": [
+                    {
+                        "community_id": 0,
+                        "size": 1
+                    }
+                ]
+            }
+        },
         "nodes": [
             {
                 "name": "Samine de Almeida Benfica",
+                "node_type": "person",
                 "classification": "researcher",
                 "classification_confidence": "high",
                 "was_student": false,
                 "was_staff": true,
+                "campus_id": 17,
                 "campus_name": "Centro-Serrano",
                 "degree": 0,
                 "weighted_degree": 0,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
+                "degree_centrality": 1,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 0,
+                "is_articulation_point": false,
+                "is_hub": false,
                 "id": 98
             }
         ],

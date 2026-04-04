@@ -1,0 +1,256 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:19.497149+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 37,
+                "name": "Documentos Históricos do Espírito Santo",
+                "short_name": "historiacapixaba.com",
+                "campus_name": "São Mateus",
+                "member_count": 4
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 5,
+        "edges": 4,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 5,
+        "relation_event_totals": {
+            "present_in": 4
+        },
+        "edge_relation_presence": {
+            "present_in": 4
+        },
+        "classification_distribution": {
+            "researcher": 1,
+            "student": 3
+        },
+        "campus_distribution": {
+            "São Mateus": 4
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 2457,
+                "name": "Mel Dos Santos Mota",
+                "classification": "student",
+                "campus_name": "São Mateus",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 2458,
+                "name": "Myllena Campos Alves",
+                "classification": "student",
+                "campus_name": "São Mateus",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 2459,
+                "name": "Nively Santana do Carmo",
+                "classification": "student",
+                "campus_name": "São Mateus",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 53,
+                "name": "Fabio Paiva Reis",
+                "classification": "researcher",
+                "campus_name": "São Mateus",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 37,
+                "name": "Documentos Históricos do Espírito Santo",
+                "short_name": "historiacapixaba.com",
+                "description": "Este Grupo de Pesquisa tem como objetivo principal localizar, catalogar, transcrever, digitalizar e analisar documentos históricos relacionados à formação social, econômica, política e cultural do Espírito Santo, com ênfase no período colonial. A partir do tratamento dessas fontes primárias, busca-se produzir conhecimento histórico qualificado, ampliar o acesso público à documentação e fomentar investigações acadêmicas sobre a história capixaba em diálogo com a historiografia da América Portuguesa.",
+                "campus_id": 10,
+                "campus_name": "São Mateus",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 4,
+                "degree": 4,
+                "weighted_degree": 4,
+                "classification": null,
+                "id": "research_group:37"
+            },
+            {
+                "name": "Fabio Paiva Reis",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 10,
+                "campus_name": "São Mateus",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.005513,
+                "betweenness_centrality": 0.001957,
+                "clustering_coefficient": 0.595122,
+                "community_id": 85,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 53
+            },
+            {
+                "name": "Mel Dos Santos Mota",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 10,
+                "campus_name": "São Mateus",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000403,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 49,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 2457
+            },
+            {
+                "name": "Myllena Campos Alves",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 10,
+                "campus_name": "São Mateus",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.004034,
+                "betweenness_centrality": 8.9e-05,
+                "clustering_coefficient": 0.783908,
+                "community_id": 43,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 2458
+            },
+            {
+                "name": "Nively Santana do Carmo",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 10,
+                "campus_name": "São Mateus",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.005647,
+                "betweenness_centrality": 9.7e-05,
+                "clustering_coefficient": 0.849013,
+                "community_id": 49,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 2459
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 53,
+                "target": "research_group:37"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-11-26",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 2457,
+                "target": "research_group:37"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-11-26",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 2458,
+                "target": "research_group:37"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-11-26",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 2459,
+                "target": "research_group:37"
+            }
+        ]
+    }
+}

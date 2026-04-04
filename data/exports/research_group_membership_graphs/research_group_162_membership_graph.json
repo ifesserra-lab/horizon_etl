@@ -1,0 +1,349 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:20.271140+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 162,
+                "name": "Grupo de pesquisa em educação, cidadania e informação",
+                "short_name": "Educin",
+                "campus_name": "Vitória",
+                "member_count": 6
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 7,
+        "edges": 6,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 7,
+        "relation_event_totals": {
+            "present_in": 6
+        },
+        "edge_relation_presence": {
+            "present_in": 6
+        },
+        "classification_distribution": {
+            "researcher": 4,
+            "student": 2
+        },
+        "campus_distribution": {
+            "Vitória": 5,
+            "Vila Velha": 1
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 18,
+                "name": "Eduardo Fausto Kuster Cid",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 19,
+                "name": "Sabrine Lino Pinto",
+                "classification": "researcher",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 1909,
+                "name": "Adriana Luisa Lourenço Falcão",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 1912,
+                "name": "Lucas Rodrigues Barreto",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 4426,
+                "name": "Elizabeth Bicalho do Amaral",
+                "classification": "student",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 4427,
+                "name": "Fabio Flores dos Anjos",
+                "classification": "student",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 162,
+                "name": "Grupo de pesquisa em educação, cidadania e informação",
+                "short_name": "Educin",
+                "description": null,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 6,
+                "degree": 6,
+                "weighted_degree": 6,
+                "classification": null,
+                "id": "research_group:162"
+            },
+            {
+                "name": "Eduardo Fausto Kuster Cid",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.003227,
+                "betweenness_centrality": 0.000516,
+                "clustering_coefficient": 0.514493,
+                "community_id": 93,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 18
+            },
+            {
+                "name": "Sabrine Lino Pinto",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": true,
+                "was_staff": true,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.009816,
+                "betweenness_centrality": 0.001209,
+                "clustering_coefficient": 0.464231,
+                "community_id": 32,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 19
+            },
+            {
+                "name": "Adriana Luisa Lourenço Falcão",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.003362,
+                "betweenness_centrality": 0.000385,
+                "clustering_coefficient": 0.556667,
+                "community_id": 15,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 1909
+            },
+            {
+                "name": "Lucas Rodrigues Barreto",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": true,
+                "was_staff": true,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001479,
+                "betweenness_centrality": 1.7e-05,
+                "clustering_coefficient": 0.563636,
+                "community_id": 181,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 1912
+            },
+            {
+                "name": "Elizabeth Bicalho do Amaral",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000672,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 295,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 4426
+            },
+            {
+                "name": "Fabio Flores dos Anjos",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000672,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 295,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 4427
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 18,
+                "target": "research_group:162"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 19,
+                "target": "research_group:162"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-10-06",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 1909,
+                "target": "research_group:162"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-10-06",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 1912,
+                "target": "research_group:162"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-10-02",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 4426,
+                "target": "research_group:162"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-10-06",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 4427,
+                "target": "research_group:162"
+            }
+        ]
+    }
+}

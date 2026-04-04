@@ -1,0 +1,304 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:20.469391+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 192,
+                "name": "GRUPO DE SISTEMAS TÉRMICOS",
+                "short_name": "GST ",
+                "campus_name": "Vitória",
+                "member_count": 5
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 6,
+        "edges": 5,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 6,
+        "relation_event_totals": {
+            "present_in": 5
+        },
+        "edge_relation_presence": {
+            "present_in": 5
+        },
+        "classification_distribution": {
+            "researcher": 3,
+            "student": 2
+        },
+        "campus_distribution": {
+            "Vitória": 3,
+            "Colatina": 1,
+            "Linhares": 1
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 1826,
+                "name": "Gustavo Rigamonte Gasperazzo",
+                "classification": "student",
+                "campus_name": "Colatina",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 271,
+                "name": "Leonardo Rodrigues De Araujo",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 2906,
+                "name": "Rodrigo Guedes dos Santos",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 4039,
+                "name": "Helder Roberto de Oliveira Rocha",
+                "classification": "researcher",
+                "campus_name": "Linhares",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 4912,
+                "name": "João Lucas Brum Orecchio",
+                "classification": "student",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 192,
+                "name": "GRUPO DE SISTEMAS TÉRMICOS",
+                "short_name": "GST ",
+                "description": null,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 5,
+                "degree": 5,
+                "weighted_degree": 5,
+                "classification": null,
+                "id": "research_group:192"
+            },
+            {
+                "name": "Leonardo Rodrigues De Araujo",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001479,
+                "betweenness_centrality": 5.9e-05,
+                "clustering_coefficient": 0.618182,
+                "community_id": 182,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 271
+            },
+            {
+                "name": "Gustavo Rigamonte Gasperazzo",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 4,
+                "campus_name": "Colatina",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.006589,
+                "betweenness_centrality": 0.000462,
+                "clustering_coefficient": 0.72619,
+                "community_id": 4,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 1826
+            },
+            {
+                "name": "Rodrigo Guedes dos Santos",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.002689,
+                "betweenness_centrality": 0.003114,
+                "clustering_coefficient": 0.326316,
+                "community_id": 182,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 2906
+            },
+            {
+                "name": "Helder Roberto de Oliveira Rocha",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 13,
+                "campus_name": "Linhares",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.00121,
+                "betweenness_centrality": 0.000273,
+                "clustering_coefficient": 0.416667,
+                "community_id": 182,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 4039
+            },
+            {
+                "name": "João Lucas Brum Orecchio",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000538,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 182,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 4912
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 271,
+                "target": "research_group:192"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2020-09-04",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 1826,
+                "target": "research_group:192"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2020-09-04",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 2906,
+                "target": "research_group:192"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2020-09-04",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 4039,
+                "target": "research_group:192"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2020-09-04",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 4912,
+                "target": "research_group:192"
+            }
+        ]
+    }
+}

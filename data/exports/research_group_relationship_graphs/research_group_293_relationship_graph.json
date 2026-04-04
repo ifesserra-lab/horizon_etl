@@ -1,6 +1,6 @@
 {
     "metadata": {
-        "generated_at": "2026-04-02T13:32:07.046482+00:00",
+        "generated_at": "2026-04-04T20:12:21.065303+00:00",
         "sources": {
             "researchers": "data/exports/researchers_canonical.json",
             "initiatives": "data/exports/initiatives_canonical.json",
@@ -9,628 +9,738 @@
         },
         "scope": {
             "type": "research_group",
+            "graph_type": "collaboration",
             "research_group": {
                 "id": 293,
                 "name": "Processos Biotecnológicos: Aplicações em Engenharia e Ensino",
                 "short_name": " BioEn",
-                "member_count": 9,
-                "expanded_node_count": 9,
-                "advisorship_neighbor_count": 0
+                "campus_name": "Vila Velha",
+                "member_count": 9
             }
         },
-        "weight_definition": "Each edge weight equals the total number of relationship evidences between two people. Every shared initiative, shared research group, and advisorship adds 1 to the edge weight.",
+        "weight_definition": "Each edge weight equals the total number of collaboration evidences between two people inside the research group. Every shared research project, shared article, and orientation adds 1 to the edge weight.",
         "relation_types": {
-            "initiative": "People who appear together in the same initiative team.",
-            "research_group": "People who belong to the same research group.",
-            "advisorship": "Supervisor and student connected by an advisorship."
+            "orientation": "Supervisor and student connected by an advisorship/orientation.",
+            "project": "People who appear together in the same research project team.",
+            "article": "People who are linked to the same article record."
         }
     },
     "graph_stats": {
         "nodes": 9,
-        "edges": 36,
-        "isolated_nodes": 0,
-        "connected_components": 1,
-        "largest_component_size": 9,
+        "edges": 0,
+        "isolated_nodes": 9,
+        "connected_components": 9,
+        "largest_component_size": 1,
         "relation_event_totals": {
-            "initiative": 0,
-            "research_group": 38,
-            "advisorship": 0
+            "orientation": 0,
+            "project": 0,
+            "article": 0
         },
         "edge_relation_presence": {
-            "initiative": 0,
-            "research_group": 36,
-            "advisorship": 0
+            "orientation": 0,
+            "project": 0,
+            "article": 0
         },
         "classification_distribution": {
-            "student": 5,
-            "researcher": 4
+            "researcher": 4,
+            "student": 5
+        },
+        "campus_distribution": {
+            "Vila Velha": 7,
+            "Vitória": 1,
+            "Aracruz": 1
         },
         "top_people_by_weighted_degree": [
             {
-                "id": 398,
-                "name": "Cristiane Pereira Zdradek",
+                "id": 1908,
+                "name": "ui-button",
                 "classification": "researcher",
-                "weighted_degree": 9,
-                "degree": 8
+                "campus_name": "Vitória",
+                "weighted_degree": 0,
+                "degree": 0
             },
             {
                 "id": 1959,
                 "name": "Amanda de Almeida Nunes",
                 "classification": "student",
-                "weighted_degree": 9,
-                "degree": 8
+                "campus_name": "Vila Velha",
+                "weighted_degree": 0,
+                "degree": 0
             },
             {
                 "id": 1965,
                 "name": "Layla Uliana Pinheiro",
                 "classification": "student",
-                "weighted_degree": 9,
-                "degree": 8
-            },
-            {
-                "id": 2410,
-                "name": "Elisa Tschaen Schneider",
-                "classification": "student",
-                "weighted_degree": 9,
-                "degree": 8
-            },
-            {
-                "id": 1908,
-                "name": "ui-button",
-                "classification": "researcher",
-                "weighted_degree": 8,
-                "degree": 8
+                "campus_name": "Vila Velha",
+                "weighted_degree": 0,
+                "degree": 0
             },
             {
                 "id": 2325,
                 "name": "Hugo Leonardo André Genier",
                 "classification": "researcher",
-                "weighted_degree": 8,
-                "degree": 8
+                "campus_name": "Vila Velha",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 2410,
+                "name": "Elisa Tschaen Schneider",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 398,
+                "name": "Cristiane Pereira Zdradek",
+                "classification": "researcher",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 0,
+                "degree": 0
             },
             {
                 "id": 4958,
                 "name": "Sandro Vandermuren Griffo",
                 "classification": "student",
-                "weighted_degree": 8,
-                "degree": 8
+                "campus_name": "Aracruz",
+                "weighted_degree": 0,
+                "degree": 0
             },
             {
                 "id": 6666,
                 "name": "Raquel Pellanda Dardengo Victor",
                 "classification": "researcher",
-                "weighted_degree": 8,
-                "degree": 8
+                "campus_name": "Vila Velha",
+                "weighted_degree": 0,
+                "degree": 0
             },
             {
                 "id": 6667,
                 "name": "Gabriel Braga",
                 "classification": "student",
-                "weighted_degree": 8,
-                "degree": 8
+                "campus_name": "Vila Velha",
+                "weighted_degree": 0,
+                "degree": 0
+            }
+        ],
+        "complex_network_metrics": {
+            "density": 0,
+            "average_clustering": 0.0,
+            "transitivity": 0,
+            "assortativity_by_classification": null,
+            "community_count": 9,
+            "largest_community_size": 1,
+            "community_detection_mode": "isolated_nodes",
+            "modularity": null,
+            "hub_count": 0,
+            "articulation_point_count": 0,
+            "bridge_edge_count": 0,
+            "betweenness_mode": "not_applicable"
+        },
+        "top_hubs_by_degree_centrality": [
+            {
+                "id": 1908,
+                "name": "ui-button",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "degree_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 1959,
+                "name": "Amanda de Almeida Nunes",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "degree_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 1965,
+                "name": "Layla Uliana Pinheiro",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "degree_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 2325,
+                "name": "Hugo Leonardo André Genier",
+                "classification": "researcher",
+                "campus_name": "Vila Velha",
+                "degree_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 2410,
+                "name": "Elisa Tschaen Schneider",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "degree_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 398,
+                "name": "Cristiane Pereira Zdradek",
+                "classification": "researcher",
+                "campus_name": "Vila Velha",
+                "degree_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 4958,
+                "name": "Sandro Vandermuren Griffo",
+                "classification": "student",
+                "campus_name": "Aracruz",
+                "degree_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 6666,
+                "name": "Raquel Pellanda Dardengo Victor",
+                "classification": "researcher",
+                "campus_name": "Vila Velha",
+                "degree_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 6667,
+                "name": "Gabriel Braga",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "degree_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            }
+        ],
+        "top_brokers_by_betweenness": [
+            {
+                "id": 1908,
+                "name": "ui-button",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 1959,
+                "name": "Amanda de Almeida Nunes",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 1965,
+                "name": "Layla Uliana Pinheiro",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 2325,
+                "name": "Hugo Leonardo André Genier",
+                "classification": "researcher",
+                "campus_name": "Vila Velha",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 2410,
+                "name": "Elisa Tschaen Schneider",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 398,
+                "name": "Cristiane Pereira Zdradek",
+                "classification": "researcher",
+                "campus_name": "Vila Velha",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 4958,
+                "name": "Sandro Vandermuren Griffo",
+                "classification": "student",
+                "campus_name": "Aracruz",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 6666,
+                "name": "Raquel Pellanda Dardengo Victor",
+                "classification": "researcher",
+                "campus_name": "Vila Velha",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 6667,
+                "name": "Gabriel Braga",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            }
+        ],
+        "communities": [
+            {
+                "community_id": 0,
+                "size": 1
+            },
+            {
+                "community_id": 1,
+                "size": 1
+            },
+            {
+                "community_id": 2,
+                "size": 1
+            },
+            {
+                "community_id": 3,
+                "size": 1
+            },
+            {
+                "community_id": 4,
+                "size": 1
+            },
+            {
+                "community_id": 5,
+                "size": 1
+            },
+            {
+                "community_id": 6,
+                "size": 1
+            },
+            {
+                "community_id": 7,
+                "size": 1
+            },
+            {
+                "community_id": 8,
+                "size": 1
             }
         ]
     },
     "graph": {
         "directed": false,
         "multigraph": false,
-        "graph": {},
+        "graph": {
+            "_complex_network_summary": {
+                "metrics": {
+                    "density": 0,
+                    "average_clustering": 0.0,
+                    "transitivity": 0,
+                    "assortativity_by_classification": null,
+                    "community_count": 9,
+                    "largest_community_size": 1,
+                    "community_detection_mode": "isolated_nodes",
+                    "modularity": null,
+                    "hub_count": 0,
+                    "articulation_point_count": 0,
+                    "bridge_edge_count": 0,
+                    "betweenness_mode": "not_applicable"
+                },
+                "top_hubs": [
+                    {
+                        "id": 1908,
+                        "name": "ui-button",
+                        "classification": "researcher",
+                        "campus_name": "Vitória",
+                        "degree_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 1959,
+                        "name": "Amanda de Almeida Nunes",
+                        "classification": "student",
+                        "campus_name": "Vila Velha",
+                        "degree_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 1965,
+                        "name": "Layla Uliana Pinheiro",
+                        "classification": "student",
+                        "campus_name": "Vila Velha",
+                        "degree_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 2325,
+                        "name": "Hugo Leonardo André Genier",
+                        "classification": "researcher",
+                        "campus_name": "Vila Velha",
+                        "degree_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 2410,
+                        "name": "Elisa Tschaen Schneider",
+                        "classification": "student",
+                        "campus_name": "Vila Velha",
+                        "degree_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 398,
+                        "name": "Cristiane Pereira Zdradek",
+                        "classification": "researcher",
+                        "campus_name": "Vila Velha",
+                        "degree_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 4958,
+                        "name": "Sandro Vandermuren Griffo",
+                        "classification": "student",
+                        "campus_name": "Aracruz",
+                        "degree_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 6666,
+                        "name": "Raquel Pellanda Dardengo Victor",
+                        "classification": "researcher",
+                        "campus_name": "Vila Velha",
+                        "degree_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 6667,
+                        "name": "Gabriel Braga",
+                        "classification": "student",
+                        "campus_name": "Vila Velha",
+                        "degree_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    }
+                ],
+                "top_brokers": [
+                    {
+                        "id": 1908,
+                        "name": "ui-button",
+                        "classification": "researcher",
+                        "campus_name": "Vitória",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 1959,
+                        "name": "Amanda de Almeida Nunes",
+                        "classification": "student",
+                        "campus_name": "Vila Velha",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 1965,
+                        "name": "Layla Uliana Pinheiro",
+                        "classification": "student",
+                        "campus_name": "Vila Velha",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 2325,
+                        "name": "Hugo Leonardo André Genier",
+                        "classification": "researcher",
+                        "campus_name": "Vila Velha",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 2410,
+                        "name": "Elisa Tschaen Schneider",
+                        "classification": "student",
+                        "campus_name": "Vila Velha",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 398,
+                        "name": "Cristiane Pereira Zdradek",
+                        "classification": "researcher",
+                        "campus_name": "Vila Velha",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 4958,
+                        "name": "Sandro Vandermuren Griffo",
+                        "classification": "student",
+                        "campus_name": "Aracruz",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 6666,
+                        "name": "Raquel Pellanda Dardengo Victor",
+                        "classification": "researcher",
+                        "campus_name": "Vila Velha",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 6667,
+                        "name": "Gabriel Braga",
+                        "classification": "student",
+                        "campus_name": "Vila Velha",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    }
+                ],
+                "communities": [
+                    {
+                        "community_id": 0,
+                        "size": 1
+                    },
+                    {
+                        "community_id": 1,
+                        "size": 1
+                    },
+                    {
+                        "community_id": 2,
+                        "size": 1
+                    },
+                    {
+                        "community_id": 3,
+                        "size": 1
+                    },
+                    {
+                        "community_id": 4,
+                        "size": 1
+                    },
+                    {
+                        "community_id": 5,
+                        "size": 1
+                    },
+                    {
+                        "community_id": 6,
+                        "size": 1
+                    },
+                    {
+                        "community_id": 7,
+                        "size": 1
+                    },
+                    {
+                        "community_id": 8,
+                        "size": 1
+                    }
+                ]
+            }
+        },
         "nodes": [
             {
-                "name": "Amanda de Almeida Nunes",
-                "classification": "student",
-                "classification_confidence": "medium",
-                "was_student": true,
-                "was_staff": false,
-                "campus_name": "Vila Velha",
-                "degree": 8,
-                "weighted_degree": 9,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
-                "id": 1959
-            },
-            {
-                "name": "Elisa Tschaen Schneider",
-                "classification": "student",
-                "classification_confidence": "medium",
-                "was_student": true,
-                "was_staff": false,
-                "campus_name": "Vila Velha",
-                "degree": 8,
-                "weighted_degree": 9,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
-                "id": 2410
-            },
-            {
-                "name": "Raquel Pellanda Dardengo Victor",
-                "classification": "researcher",
-                "classification_confidence": "high",
-                "was_student": false,
-                "was_staff": true,
-                "campus_name": "Vila Velha",
-                "degree": 8,
-                "weighted_degree": 8,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
-                "id": 6666
-            },
-            {
-                "name": "Gabriel Braga",
-                "classification": "student",
-                "classification_confidence": "medium",
-                "was_student": true,
-                "was_staff": false,
-                "campus_name": "Vila Velha",
-                "degree": 8,
-                "weighted_degree": 8,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
-                "id": 6667
-            },
-            {
-                "name": "Layla Uliana Pinheiro",
-                "classification": "student",
-                "classification_confidence": "medium",
-                "was_student": true,
-                "was_staff": false,
-                "campus_name": "Vila Velha",
-                "degree": 8,
-                "weighted_degree": 9,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
-                "id": 1965
-            },
-            {
                 "name": "Cristiane Pereira Zdradek",
+                "node_type": "person",
                 "classification": "researcher",
                 "classification_confidence": "high",
                 "was_student": false,
                 "was_staff": true,
+                "campus_id": 1,
                 "campus_name": "Vila Velha",
-                "degree": 8,
-                "weighted_degree": 9,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
+                "degree": 0,
+                "weighted_degree": 0,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 0,
+                "is_articulation_point": false,
+                "is_hub": false,
                 "id": 398
             },
             {
                 "name": "ui-button",
+                "node_type": "person",
                 "classification": "researcher",
                 "classification_confidence": "high",
                 "was_student": false,
                 "was_staff": true,
+                "campus_id": 2,
                 "campus_name": "Vitória",
-                "degree": 8,
-                "weighted_degree": 8,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
+                "degree": 0,
+                "weighted_degree": 0,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 1,
+                "is_articulation_point": false,
+                "is_hub": false,
                 "id": 1908
             },
             {
-                "name": "Hugo Leonardo André Genier",
-                "classification": "researcher",
-                "classification_confidence": "high",
-                "was_student": false,
-                "was_staff": true,
-                "campus_name": "Vila Velha",
-                "degree": 8,
-                "weighted_degree": 8,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
-                "id": 2325
-            },
-            {
-                "name": "Sandro Vandermuren Griffo",
+                "name": "Amanda de Almeida Nunes",
+                "node_type": "person",
                 "classification": "student",
                 "classification_confidence": "medium",
                 "was_student": true,
                 "was_staff": false,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 0,
+                "weighted_degree": 0,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 2,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 1959
+            },
+            {
+                "name": "Layla Uliana Pinheiro",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 0,
+                "weighted_degree": 0,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 3,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 1965
+            },
+            {
+                "name": "Hugo Leonardo André Genier",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 0,
+                "weighted_degree": 0,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 4,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 2325
+            },
+            {
+                "name": "Elisa Tschaen Schneider",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 0,
+                "weighted_degree": 0,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 5,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 2410
+            },
+            {
+                "name": "Sandro Vandermuren Griffo",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 21,
                 "campus_name": "Aracruz",
-                "degree": 8,
-                "weighted_degree": 8,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
+                "degree": 0,
+                "weighted_degree": 0,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 6,
+                "is_articulation_point": false,
+                "is_hub": false,
                 "id": 4958
+            },
+            {
+                "name": "Raquel Pellanda Dardengo Victor",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 0,
+                "weighted_degree": 0,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 7,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 6666
+            },
+            {
+                "name": "Gabriel Braga",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 0,
+                "weighted_degree": 0,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 8,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 6667
             }
         ],
-        "edges": [
-            {
-                "weight": 2,
-                "initiative_count": 0,
-                "research_group_count": 2,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1959,
-                "target": 1965
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1959,
-                "target": 398
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1959,
-                "target": 1908
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1959,
-                "target": 2325
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1959,
-                "target": 2410
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1959,
-                "target": 4958
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1959,
-                "target": 6666
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1959,
-                "target": 6667
-            },
-            {
-                "weight": 2,
-                "initiative_count": 0,
-                "research_group_count": 2,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 2410,
-                "target": 398
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 2410,
-                "target": 1908
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 2410,
-                "target": 1965
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 2410,
-                "target": 2325
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 2410,
-                "target": 4958
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 2410,
-                "target": 6666
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 2410,
-                "target": 6667
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6666,
-                "target": 398
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6666,
-                "target": 1908
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6666,
-                "target": 1965
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6666,
-                "target": 2325
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6666,
-                "target": 4958
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6666,
-                "target": 6667
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6667,
-                "target": 398
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6667,
-                "target": 1908
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6667,
-                "target": 1965
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6667,
-                "target": 2325
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6667,
-                "target": 4958
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1965,
-                "target": 398
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1965,
-                "target": 1908
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1965,
-                "target": 2325
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1965,
-                "target": 4958
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 398,
-                "target": 1908
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 398,
-                "target": 2325
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 398,
-                "target": 4958
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1908,
-                "target": 2325
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1908,
-                "target": 4958
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 2325,
-                "target": 4958
-            }
-        ]
+        "edges": []
     }
 }

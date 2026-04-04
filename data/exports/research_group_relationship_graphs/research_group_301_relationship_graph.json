@@ -1,6 +1,6 @@
 {
     "metadata": {
-        "generated_at": "2026-04-02T13:32:07.343520+00:00",
+        "generated_at": "2026-04-04T20:12:21.104622+00:00",
         "sources": {
             "researchers": "data/exports/researchers_canonical.json",
             "initiatives": "data/exports/initiatives_canonical.json",
@@ -9,520 +9,666 @@
         },
         "scope": {
             "type": "research_group",
+            "graph_type": "collaboration",
             "research_group": {
                 "id": 301,
                 "name": "Programação em mobile como ferramenta de ensino",
                 "short_name": null,
-                "member_count": 8,
-                "expanded_node_count": 8,
-                "advisorship_neighbor_count": 0
+                "campus_name": "Cachoeiro de Itapemirim",
+                "member_count": 8
             }
         },
-        "weight_definition": "Each edge weight equals the total number of relationship evidences between two people. Every shared initiative, shared research group, and advisorship adds 1 to the edge weight.",
+        "weight_definition": "Each edge weight equals the total number of collaboration evidences between two people inside the research group. Every shared research project, shared article, and orientation adds 1 to the edge weight.",
         "relation_types": {
-            "initiative": "People who appear together in the same initiative team.",
-            "research_group": "People who belong to the same research group.",
-            "advisorship": "Supervisor and student connected by an advisorship."
+            "orientation": "Supervisor and student connected by an advisorship/orientation.",
+            "project": "People who appear together in the same research project team.",
+            "article": "People who are linked to the same article record."
         }
     },
     "graph_stats": {
         "nodes": 8,
-        "edges": 28,
-        "isolated_nodes": 0,
-        "connected_components": 1,
-        "largest_component_size": 8,
+        "edges": 0,
+        "isolated_nodes": 8,
+        "connected_components": 8,
+        "largest_component_size": 1,
         "relation_event_totals": {
-            "initiative": 0,
-            "research_group": 38,
-            "advisorship": 0
+            "orientation": 0,
+            "project": 0,
+            "article": 0
         },
         "edge_relation_presence": {
-            "initiative": 0,
-            "research_group": 28,
-            "advisorship": 0
+            "orientation": 0,
+            "project": 0,
+            "article": 0
         },
         "classification_distribution": {
             "researcher": 4,
             "student": 4
         },
+        "campus_distribution": {
+            "Cachoeiro de Itapemirim": 7,
+            "Vitória": 1
+        },
         "top_people_by_weighted_degree": [
             {
-                "id": 90,
-                "name": "Eros Estevão De Moura",
+                "id": 1908,
+                "name": "ui-button",
                 "classification": "researcher",
-                "weighted_degree": 13,
-                "degree": 7
+                "campus_name": "Vitória",
+                "weighted_degree": 0,
+                "degree": 0
             },
             {
                 "id": 221,
                 "name": "Rafael Vargas Mesquita Dos Santos",
                 "classification": "researcher",
-                "weighted_degree": 12,
-                "degree": 7
+                "campus_name": "Cachoeiro de Itapemirim",
+                "weighted_degree": 0,
+                "degree": 0
             },
             {
                 "id": 2976,
                 "name": "Flávio Izo",
                 "classification": "researcher",
-                "weighted_degree": 12,
-                "degree": 7
-            },
-            {
-                "id": 1908,
-                "name": "ui-button",
-                "classification": "researcher",
-                "weighted_degree": 11,
-                "degree": 7
+                "campus_name": "Cachoeiro de Itapemirim",
+                "weighted_degree": 0,
+                "degree": 0
             },
             {
                 "id": 6749,
                 "name": "Luisa Moreira Bertolaci",
                 "classification": "student",
-                "weighted_degree": 7,
-                "degree": 7
+                "campus_name": "Cachoeiro de Itapemirim",
+                "weighted_degree": 0,
+                "degree": 0
             },
             {
                 "id": 6750,
                 "name": "Alexandre Alves da Silva",
                 "classification": "student",
-                "weighted_degree": 7,
-                "degree": 7
+                "campus_name": "Cachoeiro de Itapemirim",
+                "weighted_degree": 0,
+                "degree": 0
             },
             {
                 "id": 6751,
                 "name": "Joluan Luiz Arthur Zucateli Suave",
                 "classification": "student",
-                "weighted_degree": 7,
-                "degree": 7
+                "campus_name": "Cachoeiro de Itapemirim",
+                "weighted_degree": 0,
+                "degree": 0
             },
             {
                 "id": 6752,
                 "name": "Letícia Carvalheiro Navarro",
                 "classification": "student",
-                "weighted_degree": 7,
-                "degree": 7
+                "campus_name": "Cachoeiro de Itapemirim",
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 90,
+                "name": "Eros Estevão De Moura",
+                "classification": "researcher",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "weighted_degree": 0,
+                "degree": 0
+            }
+        ],
+        "complex_network_metrics": {
+            "density": 0,
+            "average_clustering": 0.0,
+            "transitivity": 0,
+            "assortativity_by_classification": null,
+            "community_count": 8,
+            "largest_community_size": 1,
+            "community_detection_mode": "isolated_nodes",
+            "modularity": null,
+            "hub_count": 0,
+            "articulation_point_count": 0,
+            "bridge_edge_count": 0,
+            "betweenness_mode": "not_applicable"
+        },
+        "top_hubs_by_degree_centrality": [
+            {
+                "id": 1908,
+                "name": "ui-button",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "degree_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 221,
+                "name": "Rafael Vargas Mesquita Dos Santos",
+                "classification": "researcher",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "degree_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 2976,
+                "name": "Flávio Izo",
+                "classification": "researcher",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "degree_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 6749,
+                "name": "Luisa Moreira Bertolaci",
+                "classification": "student",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "degree_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 6750,
+                "name": "Alexandre Alves da Silva",
+                "classification": "student",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "degree_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 6751,
+                "name": "Joluan Luiz Arthur Zucateli Suave",
+                "classification": "student",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "degree_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 6752,
+                "name": "Letícia Carvalheiro Navarro",
+                "classification": "student",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "degree_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 90,
+                "name": "Eros Estevão De Moura",
+                "classification": "researcher",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "degree_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            }
+        ],
+        "top_brokers_by_betweenness": [
+            {
+                "id": 1908,
+                "name": "ui-button",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 221,
+                "name": "Rafael Vargas Mesquita Dos Santos",
+                "classification": "researcher",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 2976,
+                "name": "Flávio Izo",
+                "classification": "researcher",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 6749,
+                "name": "Luisa Moreira Bertolaci",
+                "classification": "student",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 6750,
+                "name": "Alexandre Alves da Silva",
+                "classification": "student",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 6751,
+                "name": "Joluan Luiz Arthur Zucateli Suave",
+                "classification": "student",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 6752,
+                "name": "Letícia Carvalheiro Navarro",
+                "classification": "student",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            },
+            {
+                "id": 90,
+                "name": "Eros Estevão De Moura",
+                "classification": "researcher",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "betweenness_centrality": 0.0,
+                "weighted_degree": 0,
+                "degree": 0
+            }
+        ],
+        "communities": [
+            {
+                "community_id": 0,
+                "size": 1
+            },
+            {
+                "community_id": 1,
+                "size": 1
+            },
+            {
+                "community_id": 2,
+                "size": 1
+            },
+            {
+                "community_id": 3,
+                "size": 1
+            },
+            {
+                "community_id": 4,
+                "size": 1
+            },
+            {
+                "community_id": 5,
+                "size": 1
+            },
+            {
+                "community_id": 6,
+                "size": 1
+            },
+            {
+                "community_id": 7,
+                "size": 1
             }
         ]
     },
     "graph": {
         "directed": false,
         "multigraph": false,
-        "graph": {},
+        "graph": {
+            "_complex_network_summary": {
+                "metrics": {
+                    "density": 0,
+                    "average_clustering": 0.0,
+                    "transitivity": 0,
+                    "assortativity_by_classification": null,
+                    "community_count": 8,
+                    "largest_community_size": 1,
+                    "community_detection_mode": "isolated_nodes",
+                    "modularity": null,
+                    "hub_count": 0,
+                    "articulation_point_count": 0,
+                    "bridge_edge_count": 0,
+                    "betweenness_mode": "not_applicable"
+                },
+                "top_hubs": [
+                    {
+                        "id": 1908,
+                        "name": "ui-button",
+                        "classification": "researcher",
+                        "campus_name": "Vitória",
+                        "degree_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 221,
+                        "name": "Rafael Vargas Mesquita Dos Santos",
+                        "classification": "researcher",
+                        "campus_name": "Cachoeiro de Itapemirim",
+                        "degree_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 2976,
+                        "name": "Flávio Izo",
+                        "classification": "researcher",
+                        "campus_name": "Cachoeiro de Itapemirim",
+                        "degree_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 6749,
+                        "name": "Luisa Moreira Bertolaci",
+                        "classification": "student",
+                        "campus_name": "Cachoeiro de Itapemirim",
+                        "degree_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 6750,
+                        "name": "Alexandre Alves da Silva",
+                        "classification": "student",
+                        "campus_name": "Cachoeiro de Itapemirim",
+                        "degree_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 6751,
+                        "name": "Joluan Luiz Arthur Zucateli Suave",
+                        "classification": "student",
+                        "campus_name": "Cachoeiro de Itapemirim",
+                        "degree_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 6752,
+                        "name": "Letícia Carvalheiro Navarro",
+                        "classification": "student",
+                        "campus_name": "Cachoeiro de Itapemirim",
+                        "degree_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 90,
+                        "name": "Eros Estevão De Moura",
+                        "classification": "researcher",
+                        "campus_name": "Cachoeiro de Itapemirim",
+                        "degree_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    }
+                ],
+                "top_brokers": [
+                    {
+                        "id": 1908,
+                        "name": "ui-button",
+                        "classification": "researcher",
+                        "campus_name": "Vitória",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 221,
+                        "name": "Rafael Vargas Mesquita Dos Santos",
+                        "classification": "researcher",
+                        "campus_name": "Cachoeiro de Itapemirim",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 2976,
+                        "name": "Flávio Izo",
+                        "classification": "researcher",
+                        "campus_name": "Cachoeiro de Itapemirim",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 6749,
+                        "name": "Luisa Moreira Bertolaci",
+                        "classification": "student",
+                        "campus_name": "Cachoeiro de Itapemirim",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 6750,
+                        "name": "Alexandre Alves da Silva",
+                        "classification": "student",
+                        "campus_name": "Cachoeiro de Itapemirim",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 6751,
+                        "name": "Joluan Luiz Arthur Zucateli Suave",
+                        "classification": "student",
+                        "campus_name": "Cachoeiro de Itapemirim",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 6752,
+                        "name": "Letícia Carvalheiro Navarro",
+                        "classification": "student",
+                        "campus_name": "Cachoeiro de Itapemirim",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    },
+                    {
+                        "id": 90,
+                        "name": "Eros Estevão De Moura",
+                        "classification": "researcher",
+                        "campus_name": "Cachoeiro de Itapemirim",
+                        "betweenness_centrality": 0.0,
+                        "weighted_degree": 0,
+                        "degree": 0
+                    }
+                ],
+                "communities": [
+                    {
+                        "community_id": 0,
+                        "size": 1
+                    },
+                    {
+                        "community_id": 1,
+                        "size": 1
+                    },
+                    {
+                        "community_id": 2,
+                        "size": 1
+                    },
+                    {
+                        "community_id": 3,
+                        "size": 1
+                    },
+                    {
+                        "community_id": 4,
+                        "size": 1
+                    },
+                    {
+                        "community_id": 5,
+                        "size": 1
+                    },
+                    {
+                        "community_id": 6,
+                        "size": 1
+                    },
+                    {
+                        "community_id": 7,
+                        "size": 1
+                    }
+                ]
+            }
+        },
         "nodes": [
             {
-                "name": "Flávio Izo",
-                "classification": "researcher",
-                "classification_confidence": "high",
-                "was_student": false,
-                "was_staff": true,
-                "campus_name": "Cachoeiro de Itapemirim",
-                "degree": 7,
-                "weighted_degree": 12,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
-                "id": 2976
-            },
-            {
-                "name": "Letícia Carvalheiro Navarro",
-                "classification": "student",
-                "classification_confidence": "medium",
-                "was_student": true,
-                "was_staff": false,
-                "campus_name": "Cachoeiro de Itapemirim",
-                "degree": 7,
-                "weighted_degree": 7,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
-                "id": 6752
-            },
-            {
-                "name": "ui-button",
-                "classification": "researcher",
-                "classification_confidence": "high",
-                "was_student": false,
-                "was_staff": true,
-                "campus_name": "Vitória",
-                "degree": 7,
-                "weighted_degree": 11,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
-                "id": 1908
-            },
-            {
-                "name": "Rafael Vargas Mesquita Dos Santos",
-                "classification": "researcher",
-                "classification_confidence": "high",
-                "was_student": false,
-                "was_staff": true,
-                "campus_name": "Cachoeiro de Itapemirim",
-                "degree": 7,
-                "weighted_degree": 12,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
-                "id": 221
-            },
-            {
                 "name": "Eros Estevão De Moura",
+                "node_type": "person",
                 "classification": "researcher",
                 "classification_confidence": "high",
                 "was_student": false,
                 "was_staff": true,
+                "campus_id": 9,
                 "campus_name": "Cachoeiro de Itapemirim",
-                "degree": 7,
-                "weighted_degree": 13,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
+                "degree": 0,
+                "weighted_degree": 0,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 0,
+                "is_articulation_point": false,
+                "is_hub": false,
                 "id": 90
             },
             {
+                "name": "Rafael Vargas Mesquita Dos Santos",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 9,
+                "campus_name": "Cachoeiro de Itapemirim",
+                "degree": 0,
+                "weighted_degree": 0,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 1,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 221
+            },
+            {
+                "name": "ui-button",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 0,
+                "weighted_degree": 0,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 2,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 1908
+            },
+            {
+                "name": "Flávio Izo",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 9,
+                "campus_name": "Cachoeiro de Itapemirim",
+                "degree": 0,
+                "weighted_degree": 0,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 3,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 2976
+            },
+            {
                 "name": "Luisa Moreira Bertolaci",
+                "node_type": "person",
                 "classification": "student",
                 "classification_confidence": "medium",
                 "was_student": true,
                 "was_staff": false,
+                "campus_id": 9,
                 "campus_name": "Cachoeiro de Itapemirim",
-                "degree": 7,
-                "weighted_degree": 7,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
+                "degree": 0,
+                "weighted_degree": 0,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 4,
+                "is_articulation_point": false,
+                "is_hub": false,
                 "id": 6749
             },
             {
                 "name": "Alexandre Alves da Silva",
+                "node_type": "person",
                 "classification": "student",
                 "classification_confidence": "medium",
                 "was_student": true,
                 "was_staff": false,
+                "campus_id": 9,
                 "campus_name": "Cachoeiro de Itapemirim",
-                "degree": 7,
-                "weighted_degree": 7,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
+                "degree": 0,
+                "weighted_degree": 0,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 5,
+                "is_articulation_point": false,
+                "is_hub": false,
                 "id": 6750
             },
             {
                 "name": "Joluan Luiz Arthur Zucateli Suave",
+                "node_type": "person",
                 "classification": "student",
                 "classification_confidence": "medium",
                 "was_student": true,
                 "was_staff": false,
+                "campus_id": 9,
                 "campus_name": "Cachoeiro de Itapemirim",
-                "degree": 7,
-                "weighted_degree": 7,
-                "is_group_member": true,
-                "is_advisorship_neighbor": false,
+                "degree": 0,
+                "weighted_degree": 0,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 6,
+                "is_articulation_point": false,
+                "is_hub": false,
                 "id": 6751
+            },
+            {
+                "name": "Letícia Carvalheiro Navarro",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 9,
+                "campus_name": "Cachoeiro de Itapemirim",
+                "degree": 0,
+                "weighted_degree": 0,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 7,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 6752
             }
         ],
-        "edges": [
-            {
-                "weight": 3,
-                "initiative_count": 0,
-                "research_group_count": 3,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 2976,
-                "target": 90
-            },
-            {
-                "weight": 3,
-                "initiative_count": 0,
-                "research_group_count": 3,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 2976,
-                "target": 221
-            },
-            {
-                "weight": 2,
-                "initiative_count": 0,
-                "research_group_count": 2,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 2976,
-                "target": 1908
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 2976,
-                "target": 6749
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 2976,
-                "target": 6750
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 2976,
-                "target": 6751
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 2976,
-                "target": 6752
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6752,
-                "target": 90
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6752,
-                "target": 221
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6752,
-                "target": 1908
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6752,
-                "target": 6749
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6752,
-                "target": 6750
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6752,
-                "target": 6751
-            },
-            {
-                "weight": 3,
-                "initiative_count": 0,
-                "research_group_count": 3,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1908,
-                "target": 90
-            },
-            {
-                "weight": 2,
-                "initiative_count": 0,
-                "research_group_count": 2,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1908,
-                "target": 221
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1908,
-                "target": 6749
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1908,
-                "target": 6750
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 1908,
-                "target": 6751
-            },
-            {
-                "weight": 3,
-                "initiative_count": 0,
-                "research_group_count": 3,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 221,
-                "target": 90
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 221,
-                "target": 6749
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 221,
-                "target": 6750
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 221,
-                "target": 6751
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 90,
-                "target": 6749
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 90,
-                "target": 6750
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 90,
-                "target": 6751
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6749,
-                "target": 6750
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6749,
-                "target": 6751
-            },
-            {
-                "weight": 1,
-                "initiative_count": 0,
-                "research_group_count": 1,
-                "advisorship_count": 0,
-                "relation_types": [
-                    "research_group"
-                ],
-                "source": 6750,
-                "target": 6751
-            }
-        ]
+        "edges": []
     }
 }

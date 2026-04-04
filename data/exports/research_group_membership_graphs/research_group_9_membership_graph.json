@@ -1,0 +1,304 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:19.330759+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 9,
+                "name": "Aquicultura e Ambiência Animal",
+                "short_name": null,
+                "campus_name": "Itapina",
+                "member_count": 5
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 6,
+        "edges": 5,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 6,
+        "relation_event_totals": {
+            "present_in": 5
+        },
+        "edge_relation_presence": {
+            "present_in": 5
+        },
+        "classification_distribution": {
+            "researcher": 4,
+            "student": 1
+        },
+        "campus_distribution": {
+            "Itapina": 3,
+            "Colatina": 1,
+            "Vitória": 1
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 17,
+                "name": "Marcelo Gomes De Araujo",
+                "classification": "researcher",
+                "campus_name": "Itapina",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 1905,
+                "name": "Abrahao Alexandre Alden Elesbon",
+                "classification": "researcher",
+                "campus_name": "Colatina",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 1906,
+                "name": "Déborah Cunha Cassuce",
+                "classification": "researcher",
+                "campus_name": "Itapina",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 1907,
+                "name": "Alex Sandro Xavier",
+                "classification": "student",
+                "campus_name": "Itapina",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 1908,
+                "name": "ui-button",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 9,
+                "name": "Aquicultura e Ambiência Animal",
+                "short_name": null,
+                "description": null,
+                "campus_id": 3,
+                "campus_name": "Itapina",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 5,
+                "degree": 5,
+                "weighted_degree": 5,
+                "classification": null,
+                "id": "research_group:9"
+            },
+            {
+                "name": "Marcelo Gomes De Araujo",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 3,
+                "campus_name": "Itapina",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.004034,
+                "betweenness_centrality": 0.001127,
+                "clustering_coefficient": 0.935632,
+                "community_id": 100,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 17
+            },
+            {
+                "name": "Abrahao Alexandre Alden Elesbon",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 4,
+                "campus_name": "Colatina",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.00632,
+                "betweenness_centrality": 0.001714,
+                "clustering_coefficient": 0.47271,
+                "community_id": 101,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 1905
+            },
+            {
+                "name": "Déborah Cunha Cassuce",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 3,
+                "campus_name": "Itapina",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001614,
+                "betweenness_centrality": 0.000428,
+                "clustering_coefficient": 0.560606,
+                "community_id": 180,
+                "is_articulation_point": true,
+                "is_hub": false,
+                "id": 1906
+            },
+            {
+                "name": "Alex Sandro Xavier",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 3,
+                "campus_name": "Itapina",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000134,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 180,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 1907
+            },
+            {
+                "name": "ui-button",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.046524,
+                "betweenness_centrality": 0.179177,
+                "clustering_coefficient": 0.034498,
+                "community_id": 87,
+                "is_articulation_point": false,
+                "is_hub": true,
+                "id": 1908
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 17,
+                "target": "research_group:9"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador (Egresso)"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2016-03-16",
+                        "end_date": "2016-10-18"
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 1905,
+                "target": "research_group:9"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador (Egresso)"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2016-03-16",
+                        "end_date": "2022-03-11"
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 1906,
+                "target": "research_group:9"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante (Egresso)"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2018-03-26",
+                        "end_date": "2019-05-21"
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 1907,
+                "target": "research_group:9"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Líder"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 1908,
+                "target": "research_group:9"
+            }
+        ]
+    }
+}

@@ -1,0 +1,210 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:20.534390+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 204,
+                "name": "Instituições e Representações: Analíticas e Críticas",
+                "short_name": "IRAC",
+                "campus_name": "Guarapari",
+                "member_count": 3
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 4,
+        "edges": 3,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 4,
+        "relation_event_totals": {
+            "present_in": 3
+        },
+        "edge_relation_presence": {
+            "present_in": 3
+        },
+        "classification_distribution": {
+            "researcher": 2,
+            "student": 1
+        },
+        "campus_distribution": {
+            "Guarapari": 3
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 284,
+                "name": "Marcelo Serute",
+                "classification": "researcher",
+                "campus_name": "Guarapari",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 5081,
+                "name": "Daniela Alves Silva Serute",
+                "classification": "researcher",
+                "campus_name": "Guarapari",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 5082,
+                "name": "João Pedro Sartori Alves",
+                "classification": "student",
+                "campus_name": "Guarapari",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 204,
+                "name": "Instituições e Representações: Analíticas e Críticas",
+                "short_name": "IRAC",
+                "description": null,
+                "campus_id": 7,
+                "campus_name": "Guarapari",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 3,
+                "degree": 3,
+                "weighted_degree": 3,
+                "classification": null,
+                "id": "research_group:204"
+            },
+            {
+                "name": "Marcelo Serute",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 7,
+                "campus_name": "Guarapari",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000269,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 277,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 284
+            },
+            {
+                "name": "Daniela Alves Silva Serute",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 7,
+                "campus_name": "Guarapari",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000269,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 277,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 5081
+            },
+            {
+                "name": "João Pedro Sartori Alves",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 7,
+                "campus_name": "Guarapari",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000269,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 277,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 5082
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 284,
+                "target": "research_group:204"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2024-09-22",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 5081,
+                "target": "research_group:204"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2024-09-22",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 5082,
+                "target": "research_group:204"
+            }
+        ]
+    }
+}

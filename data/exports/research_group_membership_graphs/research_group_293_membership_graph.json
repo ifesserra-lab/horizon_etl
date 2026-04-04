@@ -1,0 +1,488 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:21.066059+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 293,
+                "name": "Processos Biotecnológicos: Aplicações em Engenharia e Ensino",
+                "short_name": " BioEn",
+                "campus_name": "Vila Velha",
+                "member_count": 9
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 10,
+        "edges": 9,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 10,
+        "relation_event_totals": {
+            "present_in": 9
+        },
+        "edge_relation_presence": {
+            "present_in": 9
+        },
+        "classification_distribution": {
+            "researcher": 4,
+            "student": 5
+        },
+        "campus_distribution": {
+            "Vila Velha": 7,
+            "Vitória": 1,
+            "Aracruz": 1
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 1908,
+                "name": "ui-button",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 1959,
+                "name": "Amanda de Almeida Nunes",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 1965,
+                "name": "Layla Uliana Pinheiro",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 2325,
+                "name": "Hugo Leonardo André Genier",
+                "classification": "researcher",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 2410,
+                "name": "Elisa Tschaen Schneider",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 398,
+                "name": "Cristiane Pereira Zdradek",
+                "classification": "researcher",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 4958,
+                "name": "Sandro Vandermuren Griffo",
+                "classification": "student",
+                "campus_name": "Aracruz",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 6666,
+                "name": "Raquel Pellanda Dardengo Victor",
+                "classification": "researcher",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 6667,
+                "name": "Gabriel Braga",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 293,
+                "name": "Processos Biotecnológicos: Aplicações em Engenharia e Ensino",
+                "short_name": " BioEn",
+                "description": null,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 9,
+                "degree": 9,
+                "weighted_degree": 9,
+                "classification": null,
+                "id": "research_group:293"
+            },
+            {
+                "name": "Cristiane Pereira Zdradek",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.005647,
+                "betweenness_centrality": 0.001303,
+                "clustering_coefficient": 0.707317,
+                "community_id": 50,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 398
+            },
+            {
+                "name": "ui-button",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.046524,
+                "betweenness_centrality": 0.179177,
+                "clustering_coefficient": 0.034498,
+                "community_id": 87,
+                "is_articulation_point": false,
+                "is_hub": true,
+                "id": 1908
+            },
+            {
+                "name": "Amanda de Almeida Nunes",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.003362,
+                "betweenness_centrality": 0.000369,
+                "clustering_coefficient": 0.603333,
+                "community_id": 125,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 1959
+            },
+            {
+                "name": "Layla Uliana Pinheiro",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.003765,
+                "betweenness_centrality": 0.000439,
+                "clustering_coefficient": 0.534392,
+                "community_id": 125,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 1965
+            },
+            {
+                "name": "Hugo Leonardo André Genier",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.006454,
+                "betweenness_centrality": 0.001153,
+                "clustering_coefficient": 0.359929,
+                "community_id": 146,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 2325
+            },
+            {
+                "name": "Elisa Tschaen Schneider",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.005782,
+                "betweenness_centrality": 0.001346,
+                "clustering_coefficient": 0.692137,
+                "community_id": 50,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 2410
+            },
+            {
+                "name": "Sandro Vandermuren Griffo",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 21,
+                "campus_name": "Aracruz",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.002824,
+                "betweenness_centrality": 0.004379,
+                "clustering_coefficient": 0.433333,
+                "community_id": 108,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 4958
+            },
+            {
+                "name": "Raquel Pellanda Dardengo Victor",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001076,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 50,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 6666
+            },
+            {
+                "name": "Gabriel Braga",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001076,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 50,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 6667
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 398,
+                "target": "research_group:293"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Líder"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 1908,
+                "target": "research_group:293"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2019-09-29",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 1959,
+                "target": "research_group:293"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2019-09-29",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 1965,
+                "target": "research_group:293"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2019-09-29",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 2325,
+                "target": "research_group:293"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2019-09-29",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 2410,
+                "target": "research_group:293"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2019-09-29",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 4958,
+                "target": "research_group:293"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2019-09-29",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 6666,
+                "target": "research_group:293"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2019-09-29",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 6667,
+                "target": "research_group:293"
+            }
+        ]
+    }
+}

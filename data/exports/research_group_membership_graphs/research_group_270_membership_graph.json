@@ -1,0 +1,164 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:20.936374+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 270,
+                "name": "Núcleo de Estudos, Pesquisas e Práticas em Estatística Aplicada",
+                "short_name": "NEPPEA",
+                "campus_name": "Cariacica",
+                "member_count": 2
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 3,
+        "edges": 2,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 3,
+        "relation_event_totals": {
+            "present_in": 2
+        },
+        "edge_relation_presence": {
+            "present_in": 2
+        },
+        "classification_distribution": {
+            "researcher": 1,
+            "student": 1
+        },
+        "campus_distribution": {
+            "Cariacica": 2
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 372,
+                "name": "Daniela Bertolini Depizzol",
+                "classification": "researcher",
+                "campus_name": "Cariacica",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 6328,
+                "name": "Caetano Malacarne Biancardi",
+                "classification": "student",
+                "campus_name": "Cariacica",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 270,
+                "name": "Núcleo de Estudos, Pesquisas e Práticas em Estatística Aplicada",
+                "short_name": "NEPPEA",
+                "description": null,
+                "campus_id": 12,
+                "campus_name": "Cariacica",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 2,
+                "degree": 2,
+                "weighted_degree": 2,
+                "classification": null,
+                "id": "research_group:270"
+            },
+            {
+                "name": "Daniela Bertolini Depizzol",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 12,
+                "campus_name": "Cariacica",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000134,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 293,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 372
+            },
+            {
+                "name": "Caetano Malacarne Biancardi",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 12,
+                "campus_name": "Cariacica",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000134,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 293,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 6328
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 372,
+                "target": "research_group:270"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-11-29",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 6328,
+                "target": "research_group:270"
+            }
+        ]
+    }
+}

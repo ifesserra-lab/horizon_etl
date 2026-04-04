@@ -1,0 +1,348 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:20.173738+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 145,
+                "name": "Grupo de Inovação em Fabricação e Prototipagem",
+                "short_name": "GINFAP",
+                "campus_name": "Vitória",
+                "member_count": 6
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 7,
+        "edges": 6,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 7,
+        "relation_event_totals": {
+            "present_in": 6
+        },
+        "edge_relation_presence": {
+            "present_in": 6
+        },
+        "classification_distribution": {
+            "researcher": 6
+        },
+        "campus_distribution": {
+            "Vitória": 5,
+            "Serra": 1
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 1890,
+                "name": "Vinicius Moura Marques",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 213,
+                "name": "Jose Carlos Thompson Da Silva",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 214,
+                "name": "Janaina Carneiro Marques",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 246,
+                "name": "Guilbert De Arruda Souza",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 364,
+                "name": "Wagner Teixeira da Costa",
+                "classification": "researcher",
+                "campus_name": "Serra",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 4252,
+                "name": "Renato Benezath Cabelino Ribeiro",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 145,
+                "name": "Grupo de Inovação em Fabricação e Prototipagem",
+                "short_name": "GINFAP",
+                "description": "O trabalho do GINFAP gera repercussão acadêmica, tecnológica, social e econômica, por meio da formação de estudantes, do desenvolvimento de protótipos e processos de fabricação, da produção científica e da criação de soluções inovadoras aplicáveis à indústria e à comunidade.",
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 6,
+                "degree": 6,
+                "weighted_degree": 6,
+                "classification": null,
+                "id": "research_group:145"
+            },
+            {
+                "name": "Jose Carlos Thompson Da Silva",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": true,
+                "was_staff": true,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.008875,
+                "betweenness_centrality": 0.004349,
+                "clustering_coefficient": 0.417249,
+                "community_id": 13,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 213
+            },
+            {
+                "name": "Janaina Carneiro Marques",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.005916,
+                "betweenness_centrality": 0.001532,
+                "clustering_coefficient": 0.529598,
+                "community_id": 21,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 214
+            },
+            {
+                "name": "Guilbert De Arruda Souza",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.00753,
+                "betweenness_centrality": 0.003983,
+                "clustering_coefficient": 0.467532,
+                "community_id": 87,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 246
+            },
+            {
+                "name": "Wagner Teixeira da Costa",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 6,
+                "campus_name": "Serra",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.009143,
+                "betweenness_centrality": 0.010963,
+                "clustering_coefficient": 0.264706,
+                "community_id": 45,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 364
+            },
+            {
+                "name": "Vinicius Moura Marques",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001748,
+                "betweenness_centrality": 0.00032,
+                "clustering_coefficient": 0.410256,
+                "community_id": 194,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 1890
+            },
+            {
+                "name": "Renato Benezath Cabelino Ribeiro",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.011698,
+                "betweenness_centrality": 0.005201,
+                "clustering_coefficient": 0.357391,
+                "community_id": 3,
+                "is_articulation_point": false,
+                "is_hub": true,
+                "id": 4252
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 213,
+                "target": "research_group:145"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 214,
+                "target": "research_group:145"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-02",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 246,
+                "target": "research_group:145"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-02",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 364,
+                "target": "research_group:145"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-02",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 1890,
+                "target": "research_group:145"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-03",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 4252,
+                "target": "research_group:145"
+            }
+        ]
+    }
+}

@@ -1,0 +1,209 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:20.850724+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 257,
+                "name": "NÚCLEO DE ESTUDOS EM ENSINO DE CIÊNCIAS E MATEMÁTICA",
+                "short_name": "NEECM",
+                "campus_name": "Nova Venécia",
+                "member_count": 3
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 4,
+        "edges": 3,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 4,
+        "relation_event_totals": {
+            "present_in": 3
+        },
+        "edge_relation_presence": {
+            "present_in": 3
+        },
+        "classification_distribution": {
+            "researcher": 3
+        },
+        "campus_distribution": {
+            "Nova Venécia": 3
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 356,
+                "name": "ANDRE OAKES DE OLIVEIRA GONCALVES",
+                "classification": "researcher",
+                "campus_name": "Nova Venécia",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 357,
+                "name": "ÁDILA MOTTA LEITE SEFERIN",
+                "classification": "researcher",
+                "campus_name": "Nova Venécia",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 6059,
+                "name": "Emerson Crizoé Pereira",
+                "classification": "researcher",
+                "campus_name": "Nova Venécia",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 257,
+                "name": "NÚCLEO DE ESTUDOS EM ENSINO DE CIÊNCIAS E MATEMÁTICA",
+                "short_name": "NEECM",
+                "description": null,
+                "campus_id": 20,
+                "campus_name": "Nova Venécia",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 3,
+                "degree": 3,
+                "weighted_degree": 3,
+                "classification": null,
+                "id": "research_group:257"
+            },
+            {
+                "name": "ANDRE OAKES DE OLIVEIRA GONCALVES",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 20,
+                "campus_name": "Nova Venécia",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.0,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 330,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 356
+            },
+            {
+                "name": "ÁDILA MOTTA LEITE SEFERIN",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 20,
+                "campus_name": "Nova Venécia",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000134,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 292,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 357
+            },
+            {
+                "name": "Emerson Crizoé Pereira",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 20,
+                "campus_name": "Nova Venécia",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000134,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 292,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 6059
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 356,
+                "target": "research_group:257"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": "2025-12-09"
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 357,
+                "target": "research_group:257"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador (Egresso)"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2022-04-13",
+                        "end_date": "2025-12-09"
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 6059,
+                "target": "research_group:257"
+            }
+        ]
+    }
+}

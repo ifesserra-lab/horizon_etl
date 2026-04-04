@@ -1,0 +1,163 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:20.431739+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 186,
+                "name": "Grupo de Pesquisas Aplicadas em Água e Solo - GPAAS",
+                "short_name": "GPAAS",
+                "campus_name": "Alegre",
+                "member_count": 2
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 3,
+        "edges": 2,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 3,
+        "relation_event_totals": {
+            "present_in": 2
+        },
+        "edge_relation_presence": {
+            "present_in": 2
+        },
+        "classification_distribution": {
+            "researcher": 2
+        },
+        "campus_distribution": {
+            "Alegre": 2
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 263,
+                "name": "Otacilio Jose Passos Rangel",
+                "classification": "researcher",
+                "campus_name": "Alegre",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 264,
+                "name": "Júlio Cezar Machado Baptestini",
+                "classification": "researcher",
+                "campus_name": "Alegre",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 186,
+                "name": "Grupo de Pesquisas Aplicadas em Água e Solo - GPAAS",
+                "short_name": "GPAAS",
+                "description": null,
+                "campus_id": 5,
+                "campus_name": "Alegre",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 2,
+                "degree": 2,
+                "weighted_degree": 2,
+                "classification": null,
+                "id": "research_group:186"
+            },
+            {
+                "name": "Otacilio Jose Passos Rangel",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 5,
+                "campus_name": "Alegre",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.019228,
+                "betweenness_centrality": 0.003562,
+                "clustering_coefficient": 0.259923,
+                "community_id": 1,
+                "is_articulation_point": false,
+                "is_hub": true,
+                "id": 263
+            },
+            {
+                "name": "Júlio Cezar Machado Baptestini",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 5,
+                "campus_name": "Alegre",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.002689,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 152,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 264
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 263,
+                "target": "research_group:186"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 264,
+                "target": "research_group:186"
+            }
+        ]
+    }
+}

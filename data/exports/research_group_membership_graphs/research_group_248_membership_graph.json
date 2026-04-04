@@ -1,0 +1,348 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:20.804392+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 248,
+                "name": "Núcleo de Estudos de Estruturas",
+                "short_name": "NEECNI",
+                "campus_name": "Nova Venécia",
+                "member_count": 6
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 7,
+        "edges": 6,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 7,
+        "relation_event_totals": {
+            "present_in": 6
+        },
+        "edge_relation_presence": {
+            "present_in": 6
+        },
+        "classification_distribution": {
+            "researcher": 2,
+            "student": 4
+        },
+        "campus_distribution": {
+            "Nova Venécia": 6
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 347,
+                "name": "Isis Cler Depolli",
+                "classification": "researcher",
+                "campus_name": "Nova Venécia",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 5810,
+                "name": "Gabriel Moura Novelli",
+                "classification": "student",
+                "campus_name": "Nova Venécia",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 5955,
+                "name": "André Pereira Pinto",
+                "classification": "researcher",
+                "campus_name": "Nova Venécia",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 5956,
+                "name": "Heloiza Gabrielle Ribeiro Gomes",
+                "classification": "student",
+                "campus_name": "Nova Venécia",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 5957,
+                "name": "Taiane Schvanz",
+                "classification": "student",
+                "campus_name": "Nova Venécia",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 5958,
+                "name": "João Pedro Piana Paiva",
+                "classification": "student",
+                "campus_name": "Nova Venécia",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 248,
+                "name": "Núcleo de Estudos de Estruturas",
+                "short_name": "NEECNI",
+                "description": null,
+                "campus_id": 20,
+                "campus_name": "Nova Venécia",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 6,
+                "degree": 6,
+                "weighted_degree": 6,
+                "classification": null,
+                "id": "research_group:248"
+            },
+            {
+                "name": "Isis Cler Depolli",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 20,
+                "campus_name": "Nova Venécia",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001479,
+                "betweenness_centrality": 0.000456,
+                "clustering_coefficient": 0.618182,
+                "community_id": 201,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 347
+            },
+            {
+                "name": "Gabriel Moura Novelli",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 20,
+                "campus_name": "Nova Venécia",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.002555,
+                "betweenness_centrality": 0.001563,
+                "clustering_coefficient": 0.584795,
+                "community_id": 123,
+                "is_articulation_point": true,
+                "is_hub": false,
+                "id": 5810
+            },
+            {
+                "name": "André Pereira Pinto",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 20,
+                "campus_name": "Nova Venécia",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001614,
+                "betweenness_centrality": 0.000456,
+                "clustering_coefficient": 0.560606,
+                "community_id": 201,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 5955
+            },
+            {
+                "name": "Heloiza Gabrielle Ribeiro Gomes",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 20,
+                "campus_name": "Nova Venécia",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000672,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0.9,
+                "community_id": 282,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 5956
+            },
+            {
+                "name": "Taiane Schvanz",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 20,
+                "campus_name": "Nova Venécia",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000672,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0.9,
+                "community_id": 282,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 5957
+            },
+            {
+                "name": "João Pedro Piana Paiva",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 20,
+                "campus_name": "Nova Venécia",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000538,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 282,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 5958
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 347,
+                "target": "research_group:248"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-10-02",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 5810,
+                "target": "research_group:248"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2024-10-31",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 5955,
+                "target": "research_group:248"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2024-10-31",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 5956,
+                "target": "research_group:248"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-10-02",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 5957,
+                "target": "research_group:248"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante (Egresso)"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2024-10-31",
+                        "end_date": "2025-12-05"
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 5958,
+                "target": "research_group:248"
+            }
+        ]
+    }
+}

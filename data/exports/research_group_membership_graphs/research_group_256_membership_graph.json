@@ -1,0 +1,441 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:20.847027+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 256,
+                "name": "Núcleo de Estudos em Apoio à Decisão",
+                "short_name": "NEAD ",
+                "campus_name": "Cariacica",
+                "member_count": 8
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 9,
+        "edges": 8,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 9,
+        "relation_event_totals": {
+            "present_in": 8
+        },
+        "edge_relation_presence": {
+            "present_in": 8
+        },
+        "classification_distribution": {
+            "researcher": 7,
+            "student": 1
+        },
+        "campus_distribution": {
+            "Cariacica": 7,
+            "Piúma": 1
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 146,
+                "name": "Rodrigo Loureiro Medeiros",
+                "classification": "researcher",
+                "campus_name": "Cariacica",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 3527,
+                "name": "Lucas de Carvalho Guesse",
+                "classification": "researcher",
+                "campus_name": "Piúma",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 355,
+                "name": "Tiago José Menezes Gonçalves",
+                "classification": "researcher",
+                "campus_name": "Cariacica",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 4317,
+                "name": "Pedro Matos da Silva",
+                "classification": "researcher",
+                "campus_name": "Cariacica",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 5069,
+                "name": "Daniela da Gama e Silva Volpe Moreira de Moraes",
+                "classification": "researcher",
+                "campus_name": "Cariacica",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 5438,
+                "name": "Denilton Macário de Paula",
+                "classification": "researcher",
+                "campus_name": "Cariacica",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 6057,
+                "name": "João Paulo Nascimento Armeloni",
+                "classification": "student",
+                "campus_name": "Cariacica",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 6058,
+                "name": "Luiz Sávio de Araújo Júnior",
+                "classification": "researcher",
+                "campus_name": "Cariacica",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 256,
+                "name": "Núcleo de Estudos em Apoio à Decisão",
+                "short_name": "NEAD ",
+                "description": null,
+                "campus_id": 12,
+                "campus_name": "Cariacica",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 8,
+                "degree": 8,
+                "weighted_degree": 8,
+                "classification": null,
+                "id": "research_group:256"
+            },
+            {
+                "name": "Rodrigo Loureiro Medeiros",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 12,
+                "campus_name": "Cariacica",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.00753,
+                "betweenness_centrality": 0.00126,
+                "clustering_coefficient": 0.307792,
+                "community_id": 60,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 146
+            },
+            {
+                "name": "Tiago José Menezes Gonçalves",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 12,
+                "campus_name": "Cariacica",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.006454,
+                "betweenness_centrality": 0.000663,
+                "clustering_coefficient": 0.492021,
+                "community_id": 60,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 355
+            },
+            {
+                "name": "Lucas de Carvalho Guesse",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 11,
+                "campus_name": "Piúma",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.013715,
+                "betweenness_centrality": 0.002779,
+                "clustering_coefficient": 0.516405,
+                "community_id": 8,
+                "is_articulation_point": false,
+                "is_hub": true,
+                "id": 3527
+            },
+            {
+                "name": "Pedro Matos da Silva",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 12,
+                "campus_name": "Cariacica",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.004437,
+                "betweenness_centrality": 0.000527,
+                "clustering_coefficient": 0.357955,
+                "community_id": 109,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 4317
+            },
+            {
+                "name": "Daniela da Gama e Silva Volpe Moreira de Moraes",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 12,
+                "campus_name": "Cariacica",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.006454,
+                "betweenness_centrality": 0.001978,
+                "clustering_coefficient": 0.338652,
+                "community_id": 80,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 5069
+            },
+            {
+                "name": "Denilton Macário de Paula",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 12,
+                "campus_name": "Cariacica",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.005916,
+                "betweenness_centrality": 0.000626,
+                "clustering_coefficient": 0.586681,
+                "community_id": 67,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 5438
+            },
+            {
+                "name": "João Paulo Nascimento Armeloni",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 12,
+                "campus_name": "Cariacica",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.002151,
+                "betweenness_centrality": 0.000194,
+                "clustering_coefficient": 0.375,
+                "community_id": 248,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 6057
+            },
+            {
+                "name": "Luiz Sávio de Araújo Júnior",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 12,
+                "campus_name": "Cariacica",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000807,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 248,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 6058
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2018-08-15",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 146,
+                "target": "research_group:256"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 355,
+                "target": "research_group:256"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2022-12-08",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 3527,
+                "target": "research_group:256"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2021-05-28",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 4317,
+                "target": "research_group:256"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2021-05-28",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 5069,
+                "target": "research_group:256"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2021-05-28",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 5438,
+                "target": "research_group:256"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2018-08-15",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 6057,
+                "target": "research_group:256"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador (Egresso)"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2018-08-16",
+                        "end_date": "2023-09-21"
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 6058,
+                "target": "research_group:256"
+            }
+        ]
+    }
+}

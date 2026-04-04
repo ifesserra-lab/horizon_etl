@@ -25,9 +25,11 @@ def generate_people_relationship_graph_task(output_dir: str):
     )
 
     logger.info(
-        "People Relationship Graph bundle completed. Full graph at {} and {} research-group graph files generated.",
+        "People Relationship Graph bundle completed. Full relationship graph at {}, full collaboration graph at {}, {} collaboration research-group graph files generated, and {} membership research-group graph files generated.",
         export_summary["full_graph_path"],
+        export_summary["collaboration_graph_path"],
         len(export_summary["research_group_exports"]["graphs"]),
+        len(export_summary["research_group_membership_exports"]["graphs"]),
     )
 
 

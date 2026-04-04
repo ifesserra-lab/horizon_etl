@@ -1,0 +1,209 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:19.977898+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 114,
+                "name": "Grupo de estudos e pesquisas Educação e Linguagens",
+                "short_name": "GEPEL",
+                "campus_name": "Piúma",
+                "member_count": 3
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 4,
+        "edges": 3,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 4,
+        "relation_event_totals": {
+            "present_in": 3
+        },
+        "edge_relation_presence": {
+            "present_in": 3
+        },
+        "classification_distribution": {
+            "researcher": 3
+        },
+        "campus_distribution": {
+            "Piúma": 3
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 162,
+                "name": "PRISCILLA GEVIGI DE ANDRADE MAJONI",
+                "classification": "researcher",
+                "campus_name": "Piúma",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 3782,
+                "name": "Renato César Oliveira Junior",
+                "classification": "researcher",
+                "campus_name": "Piúma",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 3783,
+                "name": "Thalyta Botelho Monteiro",
+                "classification": "researcher",
+                "campus_name": "Piúma",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 114,
+                "name": "Grupo de estudos e pesquisas Educação e Linguagens",
+                "short_name": "GEPEL",
+                "description": null,
+                "campus_id": 11,
+                "campus_name": "Piúma",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 3,
+                "degree": 3,
+                "weighted_degree": 3,
+                "classification": null,
+                "id": "research_group:114"
+            },
+            {
+                "name": "PRISCILLA GEVIGI DE ANDRADE MAJONI",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 11,
+                "campus_name": "Piúma",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000134,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 271,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 162
+            },
+            {
+                "name": "Renato César Oliveira Junior",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 11,
+                "campus_name": "Piúma",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000269,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 271,
+                "is_articulation_point": true,
+                "is_hub": false,
+                "id": 3782
+            },
+            {
+                "name": "Thalyta Botelho Monteiro",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 11,
+                "campus_name": "Piúma",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000134,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 271,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 3783
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 162,
+                "target": "research_group:114"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-12-01",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 3782,
+                "target": "research_group:114"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador (Egresso)"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2024-05-08",
+                        "end_date": "2025-12-01"
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 3783,
+                "target": "research_group:114"
+            }
+        ]
+    }
+}

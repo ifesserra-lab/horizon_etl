@@ -1,0 +1,348 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:20.800395+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 247,
+                "name": "Núcleo de Estudo em Materiais de Construção e Estruturas",
+                "short_name": "NEMATEST",
+                "campus_name": "Nova Venécia",
+                "member_count": 6
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 7,
+        "edges": 6,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 7,
+        "relation_event_totals": {
+            "present_in": 6
+        },
+        "edge_relation_presence": {
+            "present_in": 6
+        },
+        "classification_distribution": {
+            "researcher": 6
+        },
+        "campus_distribution": {
+            "Nova Venécia": 5,
+            "Colatina": 1
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 341,
+                "name": "Alexandre Luís Cardoso Bissoli",
+                "classification": "researcher",
+                "campus_name": "Nova Venécia",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 346,
+                "name": "Rodolpho Medeiros Frossard",
+                "classification": "researcher",
+                "campus_name": "Colatina",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 5805,
+                "name": "Larissa Novelli",
+                "classification": "researcher",
+                "campus_name": "Nova Venécia",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 5952,
+                "name": "Aline Antonia Castro",
+                "classification": "researcher",
+                "campus_name": "Nova Venécia",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 5953,
+                "name": "Juliana Corrêa Trindade Leite",
+                "classification": "researcher",
+                "campus_name": "Nova Venécia",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 5954,
+                "name": "Mateus Zimmer Dietrich",
+                "classification": "researcher",
+                "campus_name": "Nova Venécia",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 247,
+                "name": "Núcleo de Estudo em Materiais de Construção e Estruturas",
+                "short_name": "NEMATEST",
+                "description": null,
+                "campus_id": 20,
+                "campus_name": "Nova Venécia",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 6,
+                "degree": 6,
+                "weighted_degree": 6,
+                "classification": null,
+                "id": "research_group:247"
+            },
+            {
+                "name": "Alexandre Luís Cardoso Bissoli",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 20,
+                "campus_name": "Nova Venécia",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.002151,
+                "betweenness_centrality": 0.001628,
+                "clustering_coefficient": 0.783333,
+                "community_id": 123,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 341
+            },
+            {
+                "name": "Rodolpho Medeiros Frossard",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 4,
+                "campus_name": "Colatina",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.007127,
+                "betweenness_centrality": 0.003918,
+                "clustering_coefficient": 0.733672,
+                "community_id": 4,
+                "is_articulation_point": true,
+                "is_hub": false,
+                "id": 346
+            },
+            {
+                "name": "Larissa Novelli",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 20,
+                "campus_name": "Nova Venécia",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.00242,
+                "betweenness_centrality": 0.001759,
+                "clustering_coefficient": 0.633987,
+                "community_id": 123,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 5805
+            },
+            {
+                "name": "Aline Antonia Castro",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 20,
+                "campus_name": "Nova Venécia",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000672,
+                "betweenness_centrality": 0.00013,
+                "clustering_coefficient": 0.6,
+                "community_id": 123,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 5952
+            },
+            {
+                "name": "Juliana Corrêa Trindade Leite",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 20,
+                "campus_name": "Nova Venécia",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000403,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 123,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 5953
+            },
+            {
+                "name": "Mateus Zimmer Dietrich",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 20,
+                "campus_name": "Nova Venécia",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000403,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 123,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 5954
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 341,
+                "target": "research_group:247"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 346,
+                "target": "research_group:247"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2024-08-22",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 5805,
+                "target": "research_group:247"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2024-08-22",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 5952,
+                "target": "research_group:247"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador (Egresso)"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2022-04-11",
+                        "end_date": "2025-12-09"
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 5953,
+                "target": "research_group:247"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador (Egresso)"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2022-04-11",
+                        "end_date": "2025-12-09"
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 5954,
+                "target": "research_group:247"
+            }
+        ]
+    }
+}

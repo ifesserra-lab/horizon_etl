@@ -1,0 +1,256 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:21.346233+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 336,
+                "name": "Tribologia e Engenharia de Superfícies",
+                "short_name": "TriboES",
+                "campus_name": "Aracruz",
+                "member_count": 4
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 5,
+        "edges": 4,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 5,
+        "relation_event_totals": {
+            "present_in": 4
+        },
+        "edge_relation_presence": {
+            "present_in": 4
+        },
+        "classification_distribution": {
+            "researcher": 1,
+            "student": 3
+        },
+        "campus_distribution": {
+            "Aracruz": 4
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 445,
+                "name": "Maycoln Depianti Conci",
+                "classification": "researcher",
+                "campus_name": "Aracruz",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 7454,
+                "name": "Arthur Barbosa Bezerra",
+                "classification": "student",
+                "campus_name": "Aracruz",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 7455,
+                "name": "Gustavo Imberti Rossi",
+                "classification": "student",
+                "campus_name": "Aracruz",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 7456,
+                "name": "João Vitor Saccani da Silva",
+                "classification": "student",
+                "campus_name": "Aracruz",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 336,
+                "name": "Tribologia e Engenharia de Superfícies",
+                "short_name": "TriboES",
+                "description": "O grupo de pesquisa foca no aprimoramento de aços e ligas por meio de tratamentos térmicos, termoquímicos e superficiais, visando melhorar suas propriedades tribológicas. Utiliza parâmetros matemáticos, técnicas experimentais e modelagem computacional para estudar a cinética de transformação de fases e otimizar processos metalúrgicos. Além disso, emprega inteligência artificial e simulações para melhor compreensão e correlação entre microestrutura e propriedades mecânicas, contribuindo para avanços na engenharia de superfícies e tribologia.",
+                "campus_id": 21,
+                "campus_name": "Aracruz",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 4,
+                "degree": 4,
+                "weighted_degree": 4,
+                "classification": null,
+                "id": "research_group:336"
+            },
+            {
+                "name": "Maycoln Depianti Conci",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 21,
+                "campus_name": "Aracruz",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000403,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 259,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 445
+            },
+            {
+                "name": "Arthur Barbosa Bezerra",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 21,
+                "campus_name": "Aracruz",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000403,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 259,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 7454
+            },
+            {
+                "name": "Gustavo Imberti Rossi",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 21,
+                "campus_name": "Aracruz",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000403,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 259,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 7455
+            },
+            {
+                "name": "João Vitor Saccani da Silva",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 21,
+                "campus_name": "Aracruz",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000403,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 259,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 7456
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 445,
+                "target": "research_group:336"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-02-18",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 7454,
+                "target": "research_group:336"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-12-08",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 7455,
+                "target": "research_group:336"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-12-08",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 7456,
+                "target": "research_group:336"
+            }
+        ]
+    }
+}

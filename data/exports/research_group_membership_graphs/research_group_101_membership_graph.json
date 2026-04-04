@@ -1,0 +1,486 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:19.907016+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 101,
+                "name": "Grupo de Estudo e Pesquisa em Tecnologias Educacionais",
+                "short_name": "EduTec",
+                "campus_name": "Vila Velha",
+                "member_count": 9
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 10,
+        "edges": 9,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 10,
+        "relation_event_totals": {
+            "present_in": 9
+        },
+        "edge_relation_presence": {
+            "present_in": 9
+        },
+        "classification_distribution": {
+            "researcher": 2,
+            "student": 7
+        },
+        "campus_distribution": {
+            "Vila Velha": 9
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 140,
+                "name": "Sergio Nicolau Serafim Martins",
+                "classification": "researcher",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 141,
+                "name": "Greice Sabadini Serafim Martins",
+                "classification": "researcher",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 2419,
+                "name": "Pedro Bragatto de Britto",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 3589,
+                "name": "Guilherme Soares Dalfior",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 3590,
+                "name": "João Victor Matias Rodrigues dos Santos",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 3591,
+                "name": "Pablo Paiva Santos de Castro",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 3592,
+                "name": "Paulo Henrique Reis Azevedo",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 3593,
+                "name": "Vitória Carolina Pina Coutinho",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 3594,
+                "name": "Yeda Machado Ferreira",
+                "classification": "student",
+                "campus_name": "Vila Velha",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 101,
+                "name": "Grupo de Estudo e Pesquisa em Tecnologias Educacionais",
+                "short_name": "EduTec",
+                "description": "O grupo tem gerado resultados provenientes da coleta de amostras populacionais, nos municípios da grande Vitória, relacionada à aplicação de Tecnologias Educacionais e RPG como ferramentas complementares ao ensino .",
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 9,
+                "degree": 9,
+                "weighted_degree": 9,
+                "classification": null,
+                "id": "research_group:101"
+            },
+            {
+                "name": "Sergio Nicolau Serafim Martins",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001076,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 207,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 140
+            },
+            {
+                "name": "Greice Sabadini Serafim Martins",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001076,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 207,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 141
+            },
+            {
+                "name": "Pedro Bragatto de Britto",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.005647,
+                "betweenness_centrality": 0.001042,
+                "clustering_coefficient": 0.684088,
+                "community_id": 50,
+                "is_articulation_point": true,
+                "is_hub": false,
+                "id": 2419
+            },
+            {
+                "name": "Guilherme Soares Dalfior",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001076,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 207,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 3589
+            },
+            {
+                "name": "João Victor Matias Rodrigues dos Santos",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001076,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 207,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 3590
+            },
+            {
+                "name": "Pablo Paiva Santos de Castro",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001076,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 207,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 3591
+            },
+            {
+                "name": "Paulo Henrique Reis Azevedo",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001076,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 207,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 3592
+            },
+            {
+                "name": "Vitória Carolina Pina Coutinho",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001076,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 207,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 3593
+            },
+            {
+                "name": "Yeda Machado Ferreira",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 1,
+                "campus_name": "Vila Velha",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001076,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 207,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 3594
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 140,
+                "target": "research_group:101"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 141,
+                "target": "research_group:101"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-09-19",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 2419,
+                "target": "research_group:101"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-09-19",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 3589,
+                "target": "research_group:101"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-09-19",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 3590,
+                "target": "research_group:101"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-09-19",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 3591,
+                "target": "research_group:101"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-09-19",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 3592,
+                "target": "research_group:101"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-09-19",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 3593,
+                "target": "research_group:101"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-09-19",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 3594,
+                "target": "research_group:101"
+            }
+        ]
+    }
+}

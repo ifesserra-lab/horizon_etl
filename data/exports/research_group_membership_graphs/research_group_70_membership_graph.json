@@ -1,0 +1,211 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:19.690536+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 70,
+                "name": "Filosofia, arte e sociedade: grupo de estudos interdisciplinares",
+                "short_name": "FAS",
+                "campus_name": "Aracruz",
+                "member_count": 3
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 4,
+        "edges": 3,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 4,
+        "relation_event_totals": {
+            "present_in": 3
+        },
+        "edge_relation_presence": {
+            "present_in": 3
+        },
+        "classification_distribution": {
+            "researcher": 3
+        },
+        "campus_distribution": {
+            "São Mateus": 1,
+            "Aracruz": 1,
+            "Vitória": 1
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 100,
+                "name": "Rafael Cavalcanti Do Carmo",
+                "classification": "researcher",
+                "campus_name": "Aracruz",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 1908,
+                "name": "ui-button",
+                "classification": "researcher",
+                "campus_name": "Vitória",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 99,
+                "name": "Márcia Rezende De Oliveira",
+                "classification": "researcher",
+                "campus_name": "São Mateus",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 70,
+                "name": "Filosofia, arte e sociedade: grupo de estudos interdisciplinares",
+                "short_name": "FAS",
+                "description": null,
+                "campus_id": 21,
+                "campus_name": "Aracruz",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 3,
+                "degree": 3,
+                "weighted_degree": 3,
+                "classification": null,
+                "id": "research_group:70"
+            },
+            {
+                "name": "Márcia Rezende De Oliveira",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 10,
+                "campus_name": "São Mateus",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.005647,
+                "betweenness_centrality": 0.001339,
+                "clustering_coefficient": 0.636469,
+                "community_id": 85,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 99
+            },
+            {
+                "name": "Rafael Cavalcanti Do Carmo",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 21,
+                "campus_name": "Aracruz",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000269,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 85,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 100
+            },
+            {
+                "name": "ui-button",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 2,
+                "campus_name": "Vitória",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.046524,
+                "betweenness_centrality": 0.179177,
+                "clustering_coefficient": 0.034498,
+                "community_id": 87,
+                "is_articulation_point": false,
+                "is_hub": true,
+                "id": 1908
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 99,
+                "target": "research_group:70"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 100,
+                "target": "research_group:70"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Líder"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 1908,
+                "target": "research_group:70"
+            }
+        ]
+    }
+}

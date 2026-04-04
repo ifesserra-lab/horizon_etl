@@ -1,0 +1,256 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:20.379607+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 179,
+                "name": "Grupo de Pesquisa em Processos Térmicos Reativos",
+                "short_name": null,
+                "campus_name": "Aracruz",
+                "member_count": 4
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 5,
+        "edges": 4,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 5,
+        "relation_event_totals": {
+            "present_in": 4
+        },
+        "edge_relation_presence": {
+            "present_in": 4
+        },
+        "classification_distribution": {
+            "researcher": 4
+        },
+        "campus_distribution": {
+            "Aracruz": 3,
+            "São Mateus": 1
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 2094,
+                "name": "João Alberto Fioresi Altoé",
+                "classification": "researcher",
+                "campus_name": "Aracruz",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 254,
+                "name": "Filipe Arthur Firmino Monhol",
+                "classification": "researcher",
+                "campus_name": "Aracruz",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 255,
+                "name": "Alan Patrick Da Silva Siqueira",
+                "classification": "researcher",
+                "campus_name": "Aracruz",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 4722,
+                "name": "Lucas Henrique Pagoto Deoclecio",
+                "classification": "researcher",
+                "campus_name": "São Mateus",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 179,
+                "name": "Grupo de Pesquisa em Processos Térmicos Reativos",
+                "short_name": null,
+                "description": null,
+                "campus_id": 21,
+                "campus_name": "Aracruz",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 4,
+                "degree": 4,
+                "weighted_degree": 4,
+                "classification": null,
+                "id": "research_group:179"
+            },
+            {
+                "name": "Filipe Arthur Firmino Monhol",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 21,
+                "campus_name": "Aracruz",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000403,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 135,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 254
+            },
+            {
+                "name": "Alan Patrick Da Silva Siqueira",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 21,
+                "campus_name": "Aracruz",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.005916,
+                "betweenness_centrality": 5.8e-05,
+                "clustering_coefficient": 0.641649,
+                "community_id": 6,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 255
+            },
+            {
+                "name": "João Alberto Fioresi Altoé",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": true,
+                "was_staff": true,
+                "campus_id": 21,
+                "campus_name": "Aracruz",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.005379,
+                "betweenness_centrality": 0.001898,
+                "clustering_coefficient": 0.369231,
+                "community_id": 135,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 2094
+            },
+            {
+                "name": "Lucas Henrique Pagoto Deoclecio",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 10,
+                "campus_name": "São Mateus",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.00874,
+                "betweenness_centrality": 0.000761,
+                "clustering_coefficient": 0.399519,
+                "community_id": 38,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 4722
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 254,
+                "target": "research_group:179"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 255,
+                "target": "research_group:179"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2024-03-18",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 2094,
+                "target": "research_group:179"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2023-04-26",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 4722,
+                "target": "research_group:179"
+            }
+        ]
+    }
+}

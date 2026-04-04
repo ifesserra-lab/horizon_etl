@@ -1,0 +1,302 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:20.302576+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 168,
+                "name": "Grupo de Pesquisa em Exercício e Esporte",
+                "short_name": null,
+                "campus_name": "Piúma",
+                "member_count": 5
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 6,
+        "edges": 5,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 6,
+        "relation_event_totals": {
+            "present_in": 5
+        },
+        "edge_relation_presence": {
+            "present_in": 5
+        },
+        "classification_distribution": {
+            "researcher": 4,
+            "student": 1
+        },
+        "campus_distribution": {
+            "Piúma": 5
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 114,
+                "name": "Cristiano Meiga Belem",
+                "classification": "researcher",
+                "campus_name": "Piúma",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 237,
+                "name": "Sandro Dos Santos Ferreira",
+                "classification": "researcher",
+                "campus_name": "Piúma",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 4504,
+                "name": "Eliane Morais de Freitas",
+                "classification": "researcher",
+                "campus_name": "Piúma",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 4505,
+                "name": "Karina Alves de Castro Pinto",
+                "classification": "researcher",
+                "campus_name": "Piúma",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 4506,
+                "name": "Saiane Brandão Sangali De Meira",
+                "classification": "student",
+                "campus_name": "Piúma",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 168,
+                "name": "Grupo de Pesquisa em Exercício e Esporte",
+                "short_name": null,
+                "description": null,
+                "campus_id": 11,
+                "campus_name": "Piúma",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 5,
+                "degree": 5,
+                "weighted_degree": 5,
+                "classification": null,
+                "id": "research_group:168"
+            },
+            {
+                "name": "Cristiano Meiga Belem",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 11,
+                "campus_name": "Piúma",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.006992,
+                "betweenness_centrality": 0.00113,
+                "clustering_coefficient": 0.357466,
+                "community_id": 54,
+                "is_articulation_point": true,
+                "is_hub": false,
+                "id": 114
+            },
+            {
+                "name": "Sandro Dos Santos Ferreira",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 11,
+                "campus_name": "Piúma",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.00121,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 93,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 237
+            },
+            {
+                "name": "Eliane Morais de Freitas",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 11,
+                "campus_name": "Piúma",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000403,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 281,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 4504
+            },
+            {
+                "name": "Karina Alves de Castro Pinto",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 11,
+                "campus_name": "Piúma",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000403,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 281,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 4505
+            },
+            {
+                "name": "Saiane Brandão Sangali De Meira",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "medium",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 11,
+                "campus_name": "Piúma",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000403,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 281,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 4506
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2019-08-20",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 114,
+                "target": "research_group:168"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 237,
+                "target": "research_group:168"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador (Egresso)"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2019-08-20",
+                        "end_date": "2023-09-20"
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 4504,
+                "target": "research_group:168"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador (Egresso)"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2019-08-20",
+                        "end_date": "2023-09-20"
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 4505,
+                "target": "research_group:168"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Estudante (Egresso)"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2019-08-20",
+                        "end_date": "2023-09-20"
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 4506,
+                "target": "research_group:168"
+            }
+        ]
+    }
+}

@@ -1,0 +1,395 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:21.360208+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 349,
+                "name": "Ontology, Data Science and Integration Research Group",
+                "short_name": null,
+                "campus_name": "Serra",
+                "member_count": 7
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 8,
+        "edges": 7,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 8,
+        "relation_event_totals": {
+            "present_in": 7
+        },
+        "edge_relation_presence": {
+            "present_in": 7
+        },
+        "classification_distribution": {
+            "researcher": 4,
+            "student": 3
+        },
+        "campus_distribution": {
+            "Serra": 6,
+            "Colatina": 1
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 308,
+                "name": "Fabiano Borges Ruy",
+                "classification": "researcher",
+                "campus_name": "Serra",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 452,
+                "name": "Felipe Frechiani De Oliveira",
+                "classification": "researcher",
+                "campus_name": "Serra",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 453,
+                "name": "Paulo Sérgio Dos Santos Júnior",
+                "classification": "researcher",
+                "campus_name": "Serra",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 529,
+                "name": "Victorio Albani De Carvalho",
+                "classification": "researcher",
+                "campus_name": "Colatina",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 530,
+                "name": "Mayke Willans Christo Pereira",
+                "classification": "student",
+                "campus_name": "Serra",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 531,
+                "name": "Sofia de Alcantara Silva",
+                "classification": "student",
+                "campus_name": "Serra",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 532,
+                "name": "Marcela Starling Ferreira Lage",
+                "classification": "student",
+                "campus_name": "Serra",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 349,
+                "name": "Ontology, Data Science and Integration Research Group",
+                "short_name": null,
+                "description": "Grupo de Pesquisa importado do SigPesq: Ontology, Data Science and Integration Research Group",
+                "campus_id": 6,
+                "campus_name": "Serra",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 7,
+                "degree": 7,
+                "weighted_degree": 7,
+                "classification": null,
+                "id": "research_group:349"
+            },
+            {
+                "name": "Fabiano Borges Ruy",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 6,
+                "campus_name": "Serra",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.004841,
+                "betweenness_centrality": 0.000231,
+                "clustering_coefficient": 0.412698,
+                "community_id": 34,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 308
+            },
+            {
+                "name": "Felipe Frechiani De Oliveira",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 6,
+                "campus_name": "Serra",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.004034,
+                "betweenness_centrality": 2.3e-05,
+                "clustering_coefficient": 0.588506,
+                "community_id": 34,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 452
+            },
+            {
+                "name": "Paulo Sérgio Dos Santos Júnior",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 6,
+                "campus_name": "Serra",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.019363,
+                "betweenness_centrality": 0.021754,
+                "clustering_coefficient": 0.125971,
+                "community_id": 34,
+                "is_articulation_point": true,
+                "is_hub": true,
+                "id": 453
+            },
+            {
+                "name": "Victorio Albani De Carvalho",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 4,
+                "campus_name": "Colatina",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.011967,
+                "betweenness_centrality": 0.001861,
+                "clustering_coefficient": 0.308478,
+                "community_id": 46,
+                "is_articulation_point": true,
+                "is_hub": true,
+                "id": 529
+            },
+            {
+                "name": "Mayke Willans Christo Pereira",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "high",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 6,
+                "campus_name": "Serra",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.001076,
+                "betweenness_centrality": 6.9e-05,
+                "clustering_coefficient": 0.571429,
+                "community_id": 34,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 530
+            },
+            {
+                "name": "Sofia de Alcantara Silva",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "high",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 6,
+                "campus_name": "Serra",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000807,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 34,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 531
+            },
+            {
+                "name": "Marcela Starling Ferreira Lage",
+                "node_type": "person",
+                "classification": "student",
+                "classification_confidence": "high",
+                "was_student": true,
+                "was_staff": false,
+                "campus_id": 6,
+                "campus_name": "Serra",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000807,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 1.0,
+                "community_id": 34,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 532
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Researcher"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2024-03-01",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 308,
+                "target": "research_group:349"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Researcher"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2024-03-01",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 452,
+                "target": "research_group:349"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Researcher"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2024-03-01",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 453,
+                "target": "research_group:349"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Researcher"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2024-03-01",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 529,
+                "target": "research_group:349"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Student"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2024-03-01",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 530,
+                "target": "research_group:349"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Student"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2024-03-01",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 531,
+                "target": "research_group:349"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Student"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2024-03-01",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 532,
+                "target": "research_group:349"
+            }
+        ]
+    }
+}

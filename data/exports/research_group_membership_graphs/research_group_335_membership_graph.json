@@ -1,0 +1,163 @@
+{
+    "metadata": {
+        "generated_at": "2026-04-04T20:12:21.342467+00:00",
+        "sources": {
+            "researchers": "data/exports/researchers_canonical.json",
+            "initiatives": "data/exports/initiatives_canonical.json",
+            "research_groups": "data/exports/research_groups_canonical.json",
+            "advisorships": "data/exports/advisorships_canonical.json"
+        },
+        "scope": {
+            "type": "research_group",
+            "graph_type": "membership",
+            "research_group": {
+                "id": 335,
+                "name": "Tratamento de minérios",
+                "short_name": "LTM IFES",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "member_count": 2
+            }
+        },
+        "weight_definition": "Each edge represents one present_in relationship from a person node to the research group node.",
+        "relation_types": {
+            "present_in": "Person is present in the research group node."
+        }
+    },
+    "graph_stats": {
+        "nodes": 3,
+        "edges": 2,
+        "isolated_nodes": 0,
+        "connected_components": 1,
+        "largest_component_size": 3,
+        "relation_event_totals": {
+            "present_in": 2
+        },
+        "edge_relation_presence": {
+            "present_in": 2
+        },
+        "classification_distribution": {
+            "researcher": 2
+        },
+        "campus_distribution": {
+            "Cachoeiro de Itapemirim": 2
+        },
+        "top_people_by_weighted_degree": [
+            {
+                "id": 1638,
+                "name": "Tcharllis João da Cunha Demartini",
+                "classification": "researcher",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "weighted_degree": 1,
+                "degree": 1
+            },
+            {
+                "id": 444,
+                "name": "Eliseu Romero Campelo Correia",
+                "classification": "researcher",
+                "campus_name": "Cachoeiro de Itapemirim",
+                "weighted_degree": 1,
+                "degree": 1
+            }
+        ]
+    },
+    "graph": {
+        "directed": true,
+        "multigraph": false,
+        "graph": {},
+        "nodes": [
+            {
+                "node_type": "research_group",
+                "research_group_id": 335,
+                "name": "Tratamento de minérios",
+                "short_name": "LTM IFES",
+                "description": null,
+                "campus_id": 9,
+                "campus_name": "Cachoeiro de Itapemirim",
+                "organization_name": "Instituto Federal do Espirito Santo",
+                "member_count": 2,
+                "degree": 2,
+                "weighted_degree": 2,
+                "classification": null,
+                "id": "research_group:335"
+            },
+            {
+                "name": "Eliseu Romero Campelo Correia",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 9,
+                "campus_name": "Cachoeiro de Itapemirim",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.000134,
+                "betweenness_centrality": 0.0,
+                "clustering_coefficient": 0,
+                "community_id": 20,
+                "is_articulation_point": false,
+                "is_hub": false,
+                "id": 444
+            },
+            {
+                "name": "Tcharllis João da Cunha Demartini",
+                "node_type": "person",
+                "classification": "researcher",
+                "classification_confidence": "high",
+                "was_student": false,
+                "was_staff": true,
+                "campus_id": 9,
+                "campus_name": "Cachoeiro de Itapemirim",
+                "degree": 1,
+                "weighted_degree": 1,
+                "degree_centrality": 0.00632,
+                "betweenness_centrality": 0.00013,
+                "clustering_coefficient": 0.946346,
+                "community_id": 20,
+                "is_articulation_point": true,
+                "is_hub": false,
+                "id": 1638
+            }
+        ],
+        "edges": [
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Leader"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2026-03-30",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 444,
+                "target": "research_group:335"
+            },
+            {
+                "weight": 1,
+                "present_in_count": 1,
+                "membership_count": 1,
+                "group_roles": [
+                    "Pesquisador"
+                ],
+                "membership_periods": [
+                    {
+                        "start_date": "2025-05-27",
+                        "end_date": null
+                    }
+                ],
+                "relation_types": [
+                    "present_in"
+                ],
+                "source": 1638,
+                "target": "research_group:335"
+            }
+        ]
+    }
+}
