@@ -288,7 +288,8 @@ class PeopleRelationshipGraphGenerator:
             relation_descriptions=relation_descriptions,
             include_complex_network_analysis=include_complex_network_analysis,
         )
-        graph_payload = json_graph.node_link_data(graph, edges="edges")
+        complex_network_summary = graph.graph.get("_complex_network_summary")
+        graph_payload = self._build_graph_payload(graph)
         return {
             "metadata": {
                 "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -306,17 +307,32 @@ class PeopleRelationshipGraphGenerator:
             "graph_stats": self._build_graph_stats(
                 graph,
                 relation_descriptions=relation_descriptions,
-                complex_network_summary=graph.graph.get("_complex_network_summary"),
+                complex_network_summary=complex_network_summary,
             ),
             "graph": graph_payload,
         }
+
+    def _build_graph_payload(self, graph: nx.Graph) -> dict[str, Any]:
+        graph_payload = json_graph.node_link_data(graph, edges="edges")
+        graph_metadata = graph_payload.get("graph")
+        if isinstance(graph_metadata, dict):
+            graph_metadata = dict(graph_metadata)
+            graph_metadata.pop("_complex_network_summary", None)
+            graph_payload["graph"] = graph_metadata
+        return graph_payload
 
     def _write_json(self, output_path: str, payload: dict[str, Any]) -> None:
         output_dir = os.path.dirname(output_path)
         if output_dir:
             os.makedirs(output_dir, exist_ok=True)
         with open(output_path, "w", encoding="utf-8") as file_handle:
-            json.dump(payload, file_handle, ensure_ascii=False, indent=4)
+            json.dump(
+                payload,
+                file_handle,
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+            file_handle.write("\n")
 
     def _build_classification_subgraph(
         self, graph: nx.Graph, classification: Optional[str]

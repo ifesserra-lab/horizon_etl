@@ -173,6 +173,7 @@ def test_people_relationship_graph_generator_aggregates_relationships(tmp_path):
         "Serra": 2,
         "null": 1,
     }
+    assert "_complex_network_summary" not in result["graph"]["graph"]
 
     nodes_by_id = {node["id"]: node for node in result["graph"]["nodes"]}
     assert nodes_by_id[1]["weighted_degree"] == 5
