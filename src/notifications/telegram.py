@@ -166,6 +166,11 @@ def _build_etl_report_summary(report: dict[str, Any]) -> str:
     if final_duplicates:
         lines.append(f"Final duplicates: {_format_key_values(final_duplicates)}")
 
+    warnings_by_source = report.get("warnings_by_source") or {}
+    warning_counts = _count_warnings_by_source(warnings_by_source)
+    if warning_counts:
+        lines.append(f"Warnings: {_format_key_values(warning_counts)}")
+
     tracking_totals = (report.get("tracking_summary") or {}).get("totals") or {}
     if tracking_totals:
         lines.append(f"Tracking: {_format_key_values(tracking_totals)}")
@@ -205,6 +210,16 @@ def _sum_saved_entity_deltas(steps: list[dict[str, Any]]) -> dict[str, int]:
 
 def _format_key_values(values: dict[str, Any]) -> str:
     return ", ".join(f"{key}={values[key]}" for key in sorted(values))
+
+
+def _count_warnings_by_source(
+    warnings_by_source: dict[str, list[dict[str, Any]]],
+) -> dict[str, int]:
+    return {
+        source: len(warnings)
+        for source, warnings in warnings_by_source.items()
+        if warnings
+    }
 
 
 def _build_prefect_run_url(run_id: Any) -> str | None:

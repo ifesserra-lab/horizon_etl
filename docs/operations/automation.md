@@ -48,12 +48,24 @@ uma mensagem final com:
 - deltas de entidades salvas
 - totais finais de tabelas
 - resumo de duplicidades
+- warnings estruturados por fonte
 - resumo do tracking, quando disponivel
 
 ## Artefatos publicados
 
 - `data/`
 - `db/horizon.db`
+
+## Politica de versionamento dos artefatos
+
+Os artefatos gerados por `make weekly-flows` sao saida operacional da execucao.
+Na rotina semanal, eles devem ser publicados pelo GitHub Actions como artifacts,
+nao commitados automaticamente no repositorio.
+
+Use commits em `data/exports/` ou `data/reports/` somente quando houver uma
+decisao explicita de versionar um snapshot curado para documentacao, auditoria
+ou reproducao de um caso. O banco `db/horizon.db`, arquivos `.env`, logs e
+configuracoes locais como `lattes.config` continuam sendo artefatos de runtime.
 
 ## Observacoes operacionais
 

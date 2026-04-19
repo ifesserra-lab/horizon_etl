@@ -134,6 +134,22 @@ def test_telegram_report_summary_sends_final_totals(monkeypatch):
         ],
         "final_tables": {"research_groups": 3, "initiatives": 7},
         "final_duplicates": {"persons": 1, "research_groups": 0},
+        "warnings_by_source": {
+            "cnpq": [
+                {
+                    "code": "cnpq_placeholder_member_name",
+                    "message": "Found placeholder member names.",
+                    "count": 2,
+                }
+            ],
+            "duplicate_audit": [
+                {
+                    "code": "duplicate_count_present",
+                    "message": "Duplicate groups remain.",
+                    "count": 1,
+                }
+            ],
+        },
         "tracking_summary": {
             "enabled": True,
             "totals": {"ingestion_runs": 2, "source_records": 10},
@@ -149,6 +165,7 @@ def test_telegram_report_summary_sends_final_totals(monkeypatch):
     assert "Steps: 1 success, 1 failed" in text
     assert "Saved deltas: initiatives=7, research_groups=3" in text
     assert "Final duplicates: persons=1, research_groups=0" in text
+    assert "Warnings: cnpq=1, duplicate_audit=1" in text
     assert "Tracking: ingestion_runs=2, source_records=10" in text
     assert "Failed steps: exports" in text
 

@@ -22,6 +22,12 @@ Contem os relatorios operacionais e de auditoria. Exemplos:
 - `etl_flow_run.md`
 - `etl_load_report.md`
 - `tracking_audit_report.md`
+- `weekly_pipeline_run.json`
+- `weekly_pipeline_run.md`
+
+O report semanal inclui uma secao de warnings por fonte. Ela destaca achados
+estruturados como duplicidades restantes, tracking com status inesperado e
+problemas conhecidos de extracao, por exemplo nomes sentinela vindos do CNPq.
 
 ### `db/horizon.db`
 
@@ -35,3 +41,8 @@ A workflow semanal foi preparada para publicar:
 - o banco `db/horizon.db`
 
 Isso facilita auditoria, download dos resultados e analise posterior da execucao.
+
+Esses arquivos sao saidas de runtime. A politica operacional e consumir os
+artefatos pelo GitHub Actions e evitar commits automaticos de resultados gerados.
+Snapshots em `data/exports/` ou `data/reports/` so devem ser versionados quando
+houver curadoria explicita para documentacao, auditoria ou reproducao de casos.
