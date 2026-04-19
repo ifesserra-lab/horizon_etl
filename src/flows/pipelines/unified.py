@@ -24,11 +24,12 @@ from src.flows.lattes.projects import ingest_lattes_projects_flow
 from src.flows.sigpesq.advisorships import ingest_advisorships_flow
 from src.flows.sigpesq.groups import ingest_research_groups_flow
 from src.flows.sigpesq.projects import ingest_projects_flow
+from src.notifications.telegram import telegram_flow_state_handlers
 
 configure_local_prefect_runtime()
 
 
-@flow(name="Horizon Full Pipeline")
+@flow(name="Horizon Full Pipeline", **telegram_flow_state_handlers())
 def full_ingestion_pipeline(
     campus_name: Optional[str] = None,
     output_dir: str = "data/exports",

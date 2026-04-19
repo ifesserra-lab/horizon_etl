@@ -2,8 +2,9 @@ from prefect import flow, get_run_logger
 from src.flows.lattes.advisorships import ingest_lattes_advisorships_flow
 from src.flows.lattes.download import download_lattes_flow
 from src.flows.lattes.projects import ingest_lattes_projects_flow
+from src.notifications.telegram import telegram_flow_state_handlers
 
-@flow(name="Lattes Complete Pipeline")
+@flow(name="Lattes Complete Pipeline", **telegram_flow_state_handlers())
 def lattes_complete_flow():
     """
     Coordinates the full Lattes pipeline: 

@@ -25,6 +25,7 @@ from research_domain.domain.entities.article import Article, article_authors
 
 from src.core.logic.project_loader import ProjectLoader
 from src.core.logic.strategies.lattes_projects import LattesProjectMappingStrategy
+from src.notifications.telegram import telegram_flow_state_handlers
 from src.tracking.recorder import tracking_recorder
 
 from prefect.cache_policies import NO_CACHE
@@ -525,7 +526,7 @@ def ingest_education_task(education_list: List[Dict], target_researcher: Researc
             logger.warning(f"Failed to ingest education item: {e}")
 
 
-@flow(name="Ingest Lattes Projects Flow")
+@flow(name="Ingest Lattes Projects Flow", **telegram_flow_state_handlers())
 def ingest_lattes_projects_flow():
     base_dir = "data/lattes_json"
     if not os.path.isabs(base_dir):

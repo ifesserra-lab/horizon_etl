@@ -4,6 +4,7 @@ from loguru import logger
 from typing import List, Dict
 from src.core.logic.lattes_generators import LattesConfigGenerator, LattesListGenerator
 from src.core.logic.strategies.script_lattes_mock import ScriptLattesMock
+from src.notifications.telegram import telegram_flow_state_handlers
 # from research_domain_lib.repository.researcher_repository import ResearcherRepository
 
 # Mocking repository access for standalone flow execution if needed, 
@@ -70,7 +71,7 @@ def run_script_lattes_real(config_path: str):
         logger.error(f"scriptLattes execution failed: {e}")
         raise
 
-@flow(name="Download Lattes Curricula")
+@flow(name="Download Lattes Curricula", **telegram_flow_state_handlers())
 def download_lattes_flow():
     # 1. Setup paths
     base_dir = os.path.abspath("data")

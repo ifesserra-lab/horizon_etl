@@ -6,6 +6,7 @@ from research_domain import CampusController, ResearchGroupController
 
 from src.adapters.sources.cnpq_crawler import CnpqCrawlerAdapter
 from src.core.logic.strategies.cnpq_sync import CnpqSyncLogic
+from src.notifications.telegram import telegram_flow_state_handlers
 from src.tracking.recorder import tracking_recorder
 
 load_dotenv()
@@ -138,7 +139,7 @@ def sync_single_group(group_info: dict):
     return True
 
 
-@flow(name="Sync CNPq Research Groups")
+@flow(name="Sync CNPq Research Groups", **telegram_flow_state_handlers())
 def sync_cnpq_groups_flow(campus_name: Optional[str] = None):
     """
     Prefect flow to synchronize research groups with CNPq DGP mirror.

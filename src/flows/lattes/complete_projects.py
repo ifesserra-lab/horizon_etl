@@ -2,8 +2,9 @@ from prefect import flow
 from loguru import logger
 from src.flows.lattes.download import download_lattes_flow
 from src.flows.lattes.projects import ingest_lattes_projects_flow
+from src.notifications.telegram import telegram_flow_state_handlers
 
-@flow(name="Lattes Complete Pipeline")
+@flow(name="Lattes Complete Pipeline", **telegram_flow_state_handlers())
 def lattes_complete_flow():
     """
     Unified flow that:

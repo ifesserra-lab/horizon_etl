@@ -5,9 +5,10 @@ from prefect import flow, get_run_logger
 from src.flows.cnpq.groups import sync_cnpq_groups_flow
 from src.flows.lattes.complete import lattes_complete_flow
 from src.flows.sigpesq.all import ingest_sigpesq_flow
+from src.notifications.telegram import telegram_flow_state_handlers
 
 
-@flow(name="Ingest All Sources")
+@flow(name="Ingest All Sources", **telegram_flow_state_handlers())
 def ingest_all_sources_flow(campus_name: Optional[str] = None) -> None:
     """
     Run all source ingestion flows.

@@ -17,6 +17,7 @@ from src.flows.sigpesq.groups import (
     persist_research_groups,
 )
 from src.flows.sigpesq.projects import ingest_projects_flow, persist_projects
+from src.notifications.telegram import telegram_flow_state_handlers
 
 load_dotenv()
 
@@ -29,7 +30,7 @@ def _download_strategies():
     ]
 
 
-@flow(name="Ingest SigPesq Full")
+@flow(name="Ingest SigPesq Full", **telegram_flow_state_handlers())
 def ingest_sigpesq_flow() -> None:
     """
     Main Prefect Flow for ingesting ALL SigPesq data.

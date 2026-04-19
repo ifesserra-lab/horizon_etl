@@ -10,6 +10,7 @@ from src.flows.exports.people_relationship_graph import (
     export_people_relationship_graph_flow,
 )
 from src.core.logic.research_group_exporter import ResearchGroupExporter
+from src.notifications.telegram import telegram_flow_state_handlers
 
 
 @task(name="export_organizations_task")
@@ -193,7 +194,7 @@ def export_advisorship_analytics_task(output_dir: str):
     exporter.generate_advisorship_mart(input_path, output_path)
 
 
-@flow(name="Export Canonical Data Flow")
+@flow(name="Export Canonical Data Flow", **telegram_flow_state_handlers())
 def export_canonical_data_flow(
     output_dir: str = "data/exports", campus: Optional[str] = None
 ):

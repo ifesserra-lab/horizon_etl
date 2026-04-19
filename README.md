@@ -173,9 +173,46 @@ SIGPESQ_USERNAME=<usuario>
 SIGPESQ_PASSWORD=<senha>
 PREFECT_API_URL=http://127.0.0.1:4200/api
 PREFECT_CLIENT_SERVER_VERSION_CHECK_ENABLED=false
+HORIZON_TELEGRAM_BOT_TOKEN=<token-do-bot>
+HORIZON_TELEGRAM_CHAT_ID=<chat-id-do-grupo-horizon-messages>
 ```
 
 O adapter tambem aceita `SIGPESQ_USER` como alias para `SIGPESQ_USERNAME`.
+
+## Notificacoes Telegram
+
+Todos os flows Prefect registram hooks de conclusao para enviar um relatorio ao
+Telegram quando terminam em estado `Completed`, `Failed`, `Crashed` ou
+`Cancelled`.
+
+O relatorio inclui:
+
+- nome do flow
+- nome/id da execucao
+- estado final
+- horario de conclusao em UTC
+- parametros do flow
+- URL local do run no Prefect quando `PREFECT_API_URL` ou `PREFECT_UI_URL`
+  estiver configurado
+- mensagem final do estado, quando houver
+
+Configuracao para o grupo **Horizon Messages**:
+
+```bash
+HORIZON_TELEGRAM_BOT_TOKEN=<token-do-bot>
+HORIZON_TELEGRAM_CHAT_ID=<chat-id-numerico-do-grupo>
+```
+
+Tambem sao aceitos os aliases genericos:
+
+```bash
+TELEGRAM_BOT_TOKEN=<token-do-bot>
+TELEGRAM_CHAT_ID=<chat-id-numerico-do-grupo>
+```
+
+Observacao: a Bot API do Telegram envia mensagens por `chat_id`, nao pelo nome
+visual do grupo. Adicione o bot ao grupo **Horizon Messages** e configure o ID
+numerico em `HORIZON_TELEGRAM_CHAT_ID`.
 
 ## Validacao
 

@@ -10,6 +10,7 @@ from src.adapters.sources.lattes_parser import LattesParser
 from src.core.logic.project_loader import ProjectLoader
 from src.core.logic.researcher_resolution import resolve_researcher_from_lattes
 from src.core.logic.strategies.lattes_advisorships import LattesAdvisorshipMappingStrategy
+from src.notifications.telegram import telegram_flow_state_handlers
 
 from research_domain.controllers import ResearcherController
 
@@ -73,7 +74,7 @@ def ingest_advisorships_file_task(file_path: str):
     loader.process_records(advisorships, source_file=file_path)
 
 
-@flow(name="Ingest Lattes Advisorships Flow")
+@flow(name="Ingest Lattes Advisorships Flow", **telegram_flow_state_handlers())
 def ingest_lattes_advisorships_flow():
     base_dir = "data/lattes_json"
     if not os.path.isabs(base_dir):

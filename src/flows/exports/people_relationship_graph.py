@@ -5,6 +5,7 @@ from prefect import flow, get_run_logger, task
 from src.core.logic.people_relationship_graph_generator import (
     PeopleRelationshipGraphGenerator,
 )
+from src.notifications.telegram import telegram_flow_state_handlers
 
 
 @task(name="generate_people_relationship_graph_task")
@@ -31,7 +32,7 @@ def generate_people_relationship_graph_task(output_dir: str):
     )
 
 
-@flow(name="Export People Relationship Graph Flow")
+@flow(name="Export People Relationship Graph Flow", **telegram_flow_state_handlers())
 def export_people_relationship_graph_flow(output_dir: str = "data/exports"):
     """
     Flow to generate the people relationship graph JSON from canonical exports.
