@@ -2,11 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import date, datetime
 from typing import Any, Dict, Optional
 
-from eo_lib import (
-    Initiative,
-    InitiativeController,
-    Person,
-)
+from eo_lib import Initiative, InitiativeController, Person
 from eo_lib.domain import Role
 from loguru import logger
 from research_domain import (
@@ -509,13 +505,15 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         session = self.initiative_controller._service._repository._session
         params = {"name": title, "current_id": current_id or -1}
         result = session.execute(
-            text("""
+            text(
+                """
                 SELECT id
                 FROM initiatives
                 WHERE name = :name
                   AND id != :current_id
                 LIMIT 1
-                """),
+                """
+            ),
             params,
         ).scalar()
         return result is not None
@@ -557,12 +555,14 @@ class AdvisorshipHandler(BaseInitiativeHandler):
 
         session = self.initiative_controller._service._repository._session
         initiative_id = session.execute(
-            text("""
+            text(
+                """
                 SELECT id
                 FROM initiatives
                 WHERE name = :name
                 LIMIT 1
-                """),
+                """
+            ),
             {"name": title},
         ).scalar()
         if not initiative_id:

@@ -6,10 +6,10 @@ from prefect import flow, task
 
 from src.adapters.sinks.json_sink import JsonSink
 from src.core.logic.canonical_exporter import CanonicalDataExporter
+from src.core.logic.research_group_exporter import ResearchGroupExporter
 from src.flows.exports.people_relationship_graph import (
     export_people_relationship_graph_flow,
 )
-from src.core.logic.research_group_exporter import ResearchGroupExporter
 from src.notifications.telegram import telegram_flow_state_handlers
 
 
@@ -113,7 +113,9 @@ def export_advisorships_task(output_dir: str):
     logger.info("Starting Advisorships export...")
     sink = JsonSink()
     exporter = CanonicalDataExporter(sink=sink)
-    exporter.export_advisorships(os.path.join(output_dir, "advisorships_canonical.json"))
+    exporter.export_advisorships(
+        os.path.join(output_dir, "advisorships_canonical.json")
+    )
 
 
 @task(name="export_advisorships_tracking_task")

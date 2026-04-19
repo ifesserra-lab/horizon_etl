@@ -1,9 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from src.flows.lattes.projects import (
-    _resolve_sqlalchemy_engine,
-    ingest_file_task,
-)
+from src.flows.lattes.projects import _resolve_sqlalchemy_engine, ingest_file_task
 
 
 def test_resolve_sqlalchemy_engine_prefers_bound_session():
@@ -53,7 +50,10 @@ def test_ingest_file_creates_researcher_when_lattes_match_is_missing(
 
     entity_manager = MagicMock()
 
-    with patch("builtins.open", new_callable=MagicMock), patch("json.load") as mock_json:
+    with (
+        patch("builtins.open", new_callable=MagicMock),
+        patch("json.load") as mock_json,
+    ):
         mock_json.return_value = {"nome": "Leonardo Azevedo Scardua"}
 
         ingest_file_task.fn(

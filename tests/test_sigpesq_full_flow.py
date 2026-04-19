@@ -16,13 +16,21 @@ def test_sigpesq_full_flow_downloads_all_reports_with_single_login():
         patch(
             "src.flows.sigpesq.all.AdvisorshipsDownloadStrategy", create=True
         ) as advisorships_strategy_cls,
-        patch("src.flows.sigpesq.all.persist_research_groups", create=True) as persist_groups,
-        patch("src.flows.sigpesq.all.persist_projects", create=True) as persist_projects,
-        patch("src.flows.sigpesq.all.persist_advisorships", create=True) as persist_advisorships,
+        patch(
+            "src.flows.sigpesq.all.persist_research_groups", create=True
+        ) as persist_groups,
+        patch(
+            "src.flows.sigpesq.all.persist_projects", create=True
+        ) as persist_projects,
+        patch(
+            "src.flows.sigpesq.all.persist_advisorships", create=True
+        ) as persist_advisorships,
         patch(
             "src.flows.sigpesq.all.ingest_research_groups_flow", create=True
         ) as groups_flow,
-        patch("src.flows.sigpesq.all.ingest_projects_flow", create=True) as projects_flow,
+        patch(
+            "src.flows.sigpesq.all.ingest_projects_flow", create=True
+        ) as projects_flow,
         patch(
             "src.flows.sigpesq.all.ingest_advisorships_flow", create=True
         ) as advisorships_flow,

@@ -73,7 +73,7 @@ def persist_advisorships():
     for file_path in files:
         logger.info(f"Loading Advisorships from {file_path}")
         loader.process_file(file_path)
-    
+
     # Final pass: Recalculate parent project dates and status from DB
     loader.recalculate_all_parent_statuses()
 

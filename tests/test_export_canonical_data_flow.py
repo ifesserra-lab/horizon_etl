@@ -66,7 +66,9 @@ def test_export_canonical_data_flow_calls_tracking_exports_individually(tmp_path
             patch("src.flows.exports.canonical_data.export_advisorship_analytics_task")
         )
         people_relationship_graph_flow = stack.enter_context(
-            patch("src.flows.exports.canonical_data.export_people_relationship_graph_flow")
+            patch(
+                "src.flows.exports.canonical_data.export_people_relationship_graph_flow"
+            )
         )
         makedirs = stack.enter_context(patch("os.makedirs"))
         export_canonical_data_flow.fn(output_dir=output_dir, campus="Serra")

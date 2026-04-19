@@ -1,5 +1,5 @@
-from unittest.mock import MagicMock, patch
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 
 def test_source_flow_packages_expose_source_entrypoints():

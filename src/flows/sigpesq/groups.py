@@ -1,4 +1,5 @@
 from typing import Optional
+
 from dotenv import load_dotenv
 from prefect import flow, get_run_logger, task
 

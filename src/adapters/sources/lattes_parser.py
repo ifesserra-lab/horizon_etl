@@ -1,9 +1,12 @@
 import json
 import re
 import unicodedata
-from typing import Any, Dict, List, Optional
-from datetime import date
 from dataclasses import dataclass
+from datetime import date
+from typing import Any, Dict, List, Optional
+
+from loguru import logger
+
 
 @dataclass
 class LattesProject:
@@ -14,7 +17,8 @@ class LattesProject:
     description: str
     nature: str
     type_name: str  # "Research Project", "Extension Project", "Development Project"
-    role: str # "Coordenador", "Integrante"
+    role: str  # "Coordenador", "Integrante"
+
 
 class LattesParser:
     """
@@ -49,7 +53,7 @@ class LattesParser:
         return self._parse_generic_projects(
             json_data, "projetos_desenvolvimento", "Development Project"
         )
-    
+
     def parse_articles(self, data: Dict) -> List[Dict[str, Any]]:
         """Parses 'artigos_periodicos' from JSON."""
         biblio = data.get("producao_bibliografica", {})
@@ -57,17 +61,21 @@ class LattesParser:
         parsed = []
         for item in items:
             title = item.get("titulo")
-            parsed.append({
-                "title": title,
-                "normalized_title": self.normalize_title(title),
-                "year": int(item["ano"]) if str(item.get("ano", "")).isdigit() else None,
-                "journal_conference": item.get("revista"),
-                "volume": item.get("volume"),
-                "pages": item.get("paginas"),
-                "doi": item.get("doi"),
-                "authors_str": item.get("autores"),
-                "type": "Journal"  # lib expectation
-            })
+            parsed.append(
+                {
+                    "title": title,
+                    "normalized_title": self.normalize_title(title),
+                    "year": (
+                        int(item["ano"]) if str(item.get("ano", "")).isdigit() else None
+                    ),
+                    "journal_conference": item.get("revista"),
+                    "volume": item.get("volume"),
+                    "pages": item.get("paginas"),
+                    "doi": item.get("doi"),
+                    "authors_str": item.get("autores"),
+                    "type": "Journal",  # lib expectation
+                }
+            )
         return parsed
 
     def parse_conference_papers(self, data: Dict) -> List[Dict[str, Any]]:
@@ -77,17 +85,21 @@ class LattesParser:
         parsed = []
         for item in items:
             title = item.get("titulo")
-            parsed.append({
-                "title": title,
-                "normalized_title": self.normalize_title(title),
-                "year": int(item["ano"]) if str(item.get("ano", "")).isdigit() else None,
-                "journal_conference": item.get("evento"),
-                "pages": item.get("paginas"),
-                "authors_str": item.get("autores"),
-                "type": "Conference Event"  # lib expectation
-            })
+            parsed.append(
+                {
+                    "title": title,
+                    "normalized_title": self.normalize_title(title),
+                    "year": (
+                        int(item["ano"]) if str(item.get("ano", "")).isdigit() else None
+                    ),
+                    "journal_conference": item.get("evento"),
+                    "pages": item.get("paginas"),
+                    "authors_str": item.get("autores"),
+                    "type": "Conference Event",  # lib expectation
+                }
+            )
         return parsed
-    
+
     def parse_personal_info(self, data: Dict) -> Dict[str, Any]:
         """
         Extracts personal info (name, resume, etc) from JSON.
@@ -98,7 +110,7 @@ class LattesParser:
             "resume": info.get("texto_resumo"),
             "lattes_id": info.get("id_lattes"),
             "citation_names": info.get("nome_citacoes"),
-            "cnpq_url": info.get("url")
+            "cnpq_url": info.get("url"),
         }
 
     def parse_academic_education(self, json_data: dict) -> List[Dict[str, Any]]:
@@ -117,30 +129,30 @@ class LattesParser:
                 course_name = item.get("nome_curso_ingles")
 
                 if not degree:
-                     tipo = item.get("tipo", "")
-                     if " em " in tipo:
-                         parts = tipo.split(" em ", 1)
-                         degree = parts[0]
-                         course_name = parts[1] if not course_name else course_name
-                     else:
-                         degree = tipo or "Unknown"
+                    tipo = item.get("tipo", "")
+                    if " em " in tipo:
+                        parts = tipo.split(" em ", 1)
+                        degree = parts[0]
+                        course_name = parts[1] if not course_name else course_name
+                    else:
+                        degree = tipo or "Unknown"
 
                 # Extract years
                 start_year = None
                 if item.get("ano_inicio"):
-                     try:
-                         start_year = int(item["ano_inicio"])
-                     except ValueError:
-                         pass
+                    try:
+                        start_year = int(item["ano_inicio"])
+                    except ValueError:
+                        pass
 
                 end_year = None
                 if item.get("ano_conclusao") or item.get("ano_fim"):
-                     val = item.get("ano_conclusao") or item.get("ano_fim")
-                     try:
-                         end_year = int(val)
-                     except ValueError:
-                         pass
-                
+                    val = item.get("ano_conclusao") or item.get("ano_fim")
+                    try:
+                        end_year = int(val)
+                    except ValueError:
+                        pass
+
                 # Extract institution
                 institution = item.get("nome_instituicao") or item.get("institution")
 
@@ -151,85 +163,103 @@ class LattesParser:
                 # Extract Description and Thesis Title
                 description = item.get("descricao")
                 thesis_title = None
-                
+
                 if description:
                     # Description is sometimes a list in legacy formats, but usually a string in JSON
-                    # If it's a list, join it? The sample shows it as string inside list in other fields, 
-                    # but for `formacao_academica` strict schema isn't fully clear. 
-                    # Assuming string as per recent observation 
+                    # If it's a list, join it? The sample shows it as string inside list in other fields,
+                    # but for `formacao_academica` strict schema isn't fully clear.
+                    # Assuming string as per recent observation
                     # "descricao": "Título: From Continuous ... , Ano..."
-                    
+
                     # Regex to find title
                     # Pattern: Título: (.*?)(,|Ano de|$)
                     # Adjust regex to capture until comma or known delimeters
-                    match = re.search(r"Título:\s*(.+?)(?:, Ano|,\s*Orientador|\.|$)", description, re.IGNORECASE)
+                    match = re.search(
+                        r"Título:\s*(.+?)(?:, Ano|,\s*Orientador|\.|$)",
+                        description,
+                        re.IGNORECASE,
+                    )
                     if match:
                         thesis_title = match.group(1).strip()
 
-                parsed_items.append({
-                    "degree": degree,
-                    "institution": institution,
-                    "course_name": course_name,
-                    "start_year": start_year,
-                    "end_year": end_year,
-                    "description": description,
-                    "thesis_title": thesis_title
-                })
+                parsed_items.append(
+                    {
+                        "degree": degree,
+                        "institution": institution,
+                        "course_name": course_name,
+                        "start_year": start_year,
+                        "end_year": end_year,
+                        "description": description,
+                        "thesis_title": thesis_title,
+                    }
+                )
             except Exception as e:
                 logger.warning(f"Error parsing education item: {e}")
                 continue
-        
+
         return parsed_items
 
-    def _parse_generic_projects(self, data: Dict, projects_key: str, type_name: str) -> List[Dict]:
+    def _parse_generic_projects(
+        self, data: Dict, projects_key: str, type_name: str
+    ) -> List[Dict]:
         parsed_projects = []
         projects_list = data.get(projects_key, [])
-        
+
         for p in projects_list:
             name = p.get("name") or p.get("nome")
             start_year_str = p.get("ano_inicio")
             end_year_str = p.get("ano_conclusao")
-            
-            start_year = int(start_year_str) if start_year_str and start_year_str.isdigit() else None
-            
+
+            start_year = (
+                int(start_year_str)
+                if start_year_str and start_year_str.isdigit()
+                else None
+            )
+
             end_year = None
             if end_year_str and end_year_str.isdigit():
                 end_year = int(end_year_str)
-            
+
             # Status Inference
             status = "Concluded"
             if end_year_str and end_year_str.lower() == "atual":
                 status = "Active"
                 end_year = None
             elif end_year and end_year >= date.today().year:
-                 # If end year is defined and in future (rare in Lattes manual entry but possible)
-                 pass
+                # If end year is defined and in future (rare in Lattes manual entry but possible)
+                pass
 
             # Description Cleaning
             # Description is often a list with one string containing "Descrição: ... Situação: ... Natureza: ..."
             raw_desc_list = p.get("descricao", [])
-            full_desc_str = " ".join(raw_desc_list) if isinstance(raw_desc_list, list) else str(raw_desc_list)
-            
+            full_desc_str = (
+                " ".join(raw_desc_list)
+                if isinstance(raw_desc_list, list)
+                else str(raw_desc_list)
+            )
+
             description = self._clean_description(full_desc_str)
-            
+
             # Role extraction (self-role for the owner of the CV)
-            # We don't have the Researcher ID here easily without context, 
+            # We don't have the Researcher ID here easily without context,
             # but usually the first member or looking for "Coordenador" match?
             # Actually, the JSON often lists "integrantes" with names and roles.
-            # For this MVP, we will extract the members list as metadata if needed, 
+            # For this MVP, we will extract the members list as metadata if needed,
             # but the key is to return the Project definition.
-            
-            parsed_projects.append({
-                "name": name,
-                "start_year": start_year,
-                "end_year": end_year,
-                "status": status,
-                "description": description,
-                "initiative_type_name": type_name,
-                "raw_members": p.get("integrantes", []),
-                "raw_sponsors": p.get("financiadores", [])
-            })
-            
+
+            parsed_projects.append(
+                {
+                    "name": name,
+                    "start_year": start_year,
+                    "end_year": end_year,
+                    "status": status,
+                    "description": description,
+                    "initiative_type_name": type_name,
+                    "raw_members": p.get("integrantes", []),
+                    "raw_sponsors": p.get("financiadores", []),
+                }
+            )
+
         return parsed_projects
 
     def _clean_description(self, text: str) -> str:
@@ -240,18 +270,18 @@ class LattesParser:
         """
         if not text:
             return ""
-            
+
         # Remove literal "Descrição:" prefix
         clean = re.sub(r"^Descrição:\s*", "", text, flags=re.IGNORECASE)
-        
+
         # Remove Metadata suffix starting with "Situação:" or "Natureza:"
         # We split by these keys and take the first part
         split_markers = ["Situação:", "Natureza:", "Alunos envolvidos:", "Integrantes:"]
-        
+
         for marker in split_markers:
             if marker in clean:
                 clean = clean.split(marker)[0]
-        
+
         return clean.strip().rstrip(".")
 
     def parse_advisorships(self, data: Dict) -> List[Dict[str, Any]]:
@@ -260,44 +290,41 @@ class LattesParser:
         Supports both direct 'orientacoes' dict (scriptLattes style) and 'dados_complementares' list (generic style).
         """
         advisorships = []
-        
+
         # Strategy A: Top-level 'orientacoes' dict (Nested types)
         if "orientacoes" in data and isinstance(data["orientacoes"], dict):
-            sections = {
-                "concluidas": "Concluded",
-                "em_andamento": "In Progress"
-            }
-            
+            sections = {"concluidas": "Concluded", "em_andamento": "In Progress"}
+
             for section_key, status in sections.items():
                 section_data = data["orientacoes"].get(section_key, {})
                 if isinstance(section_data, dict):
                     for type_key, items in section_data.items():
                         if isinstance(items, list):
-                            parsed = self._parse_items(items, status=status, default_type=type_key)
+                            parsed = self._parse_items(
+                                items, status=status, default_type=type_key
+                            )
                             advisorships.extend(parsed)
-            
+
             return advisorships
 
         # Strategy B: 'dados_complementares' flat lists (Fallback)
         # 1. Concluded
         concluded = self._parse_generic_advisorships(
-            data, 
-            "orientacoes_concluidas", 
-            status="Concluded"
+            data, "orientacoes_concluidas", status="Concluded"
         )
         advisorships.extend(concluded)
-        
+
         # 2. In Progress
         in_progress = self._parse_generic_advisorships(
-            data, 
-            "orientacoes_em_andamento", 
-            status="In Progress"
+            data, "orientacoes_em_andamento", status="In Progress"
         )
         advisorships.extend(in_progress)
-        
+
         return advisorships
-    
-    def _parse_items(self, items: List[Dict], status: str, default_type: str = "") -> List[Dict]:
+
+    def _parse_items(
+        self, items: List[Dict], status: str, default_type: str = ""
+    ) -> List[Dict]:
         """
         Parses a list of advisorship items from the 'orientacoes' dict structure.
         """
@@ -306,28 +333,37 @@ class LattesParser:
             title = item.get("titulo")
             # Try specific keys first, then generic
             student_name = item.get("orientando") or item.get("nome_do_orientado")
-            
-            year_str = item.get("ano_conclusao") or item.get("ano_inicio") or item.get("ano")
+
+            year_str = (
+                item.get("ano_conclusao") or item.get("ano_inicio") or item.get("ano")
+            )
             year = int(year_str) if year_str and str(year_str).isdigit() else None
-            
+
             institution = item.get("instituicao") or item.get("nome_instituicao")
-            
+
             # Map type_key to canonical
             nature = (item.get("natureza") or item.get("tipo_trabalho") or "").lower()
             tipo = item.get("tipo", "").lower()
             def_type_lower = default_type.lower()
-            
+
             # Combine all for search
             text_search = f"{nature} {tipo} {def_type_lower}"
-            
+
             canonical_type = "Advisorship"
             if "mestrado" in text_search:
                 canonical_type = "Master's Thesis"
             elif "doutorado" in text_search:
                 canonical_type = "PhD Thesis"
-            elif "iniciacao_cientifica" in text_search or "iniciação científica" in text_search:
+            elif (
+                "iniciacao_cientifica" in text_search
+                or "iniciação científica" in text_search
+            ):
                 canonical_type = "Scientific Initiation"
-            elif "conclusão de curso" in text_search or "tcc" in text_search or "graduacao" in text_search:
+            elif (
+                "conclusão de curso" in text_search
+                or "tcc" in text_search
+                or "graduacao" in text_search
+            ):
                 canonical_type = "Undergraduate Thesis"
             elif "pos_doutorado" in text_search or "pós-doutorado" in text_search:
                 canonical_type = "Post-Doctorate"
@@ -335,27 +371,31 @@ class LattesParser:
                 canonical_type = "Specialization"
             elif "outras" in text_search or "outros" in text_search:
                 canonical_type = "Advisorship"
-            
+
             if title and student_name:
-                parsed.append({
-                    "title": title,
-                    "normalized_title": self.normalize_title(title),
-                    "student_name": student_name,
-                    "year": year,
-                    "institution": institution,
-                    "type": canonical_type,
-                    "status": status,
-                    "nature": nature
-                })
+                parsed.append(
+                    {
+                        "title": title,
+                        "normalized_title": self.normalize_title(title),
+                        "student_name": student_name,
+                        "year": year,
+                        "institution": institution,
+                        "type": canonical_type,
+                        "status": status,
+                        "nature": nature,
+                    }
+                )
         return parsed
 
-    def _parse_generic_advisorships(self, data: Dict, key: str, status: str) -> List[Dict]:
+    def _parse_generic_advisorships(
+        self, data: Dict, key: str, status: str
+    ) -> List[Dict]:
         """
         Helper to parse specific advisorship sections.
         """
         section = data.get("dados_complementares", {}).get(key, [])
         parsed = []
-        
+
         # Mapping of Lattes types to Canonical types
         # This mapping might need refinement based on exact Lattes strings
         type_map = {
@@ -364,20 +404,22 @@ class LattesParser:
             "monografia_de_conclusao_de_curso_aperfeicoamento_e_especializacao": "Specialization",
             "trabalho_de_conclusao_de_curso_graduacao": "Undergraduate Thesis",
             "iniciacao_cientifica": "Scientific Initiation",
-            "supervisao_de_pos_doutorado": "Post-Doc Supervision"
+            "supervisao_de_pos_doutorado": "Post-Doc Supervision",
         }
 
         for item in section:
-            # Type extraction logic can be complex in Lattes. 
+            # Type extraction logic can be complex in Lattes.
             # Usually the key name in the list dictates the type if it's a list of specific objects,
             # but in the JSON export, they are often flattened.
             # We look for specific known keys or 'natureza'.
-            
+
             nature = (item.get("natureza") or item.get("tipo_trabalho", "")).lower()
-            tipo = item.get("tipo", "").lower() # Sometimes 'tipo' holds "MESTRADO", "DOUTORADO"
-            
+            tipo = item.get(
+                "tipo", ""
+            ).lower()  # Sometimes 'tipo' holds "MESTRADO", "DOUTORADO"
+
             canonical_type = "Advisorship"
-            
+
             # Simple heuristic for type
             if "mestrado" in nature or "mestrado" in tipo:
                 canonical_type = "Master's Thesis"
@@ -389,27 +431,31 @@ class LattesParser:
                 canonical_type = "Undergraduate Thesis"
             elif "pós-doutorado" in nature or "pos_doutorado" in nature:
                 canonical_type = "Post-Doc Supervision"
-            
+
             # Extract common fields
             title = item.get("titulo")
             student_name = item.get("orientando") or item.get("nome_do_orientado")
-            
+
             # Year logic: try 'ano_conclusao', then 'ano_inicio', then 'ano'
-            year_str = item.get("ano_conclusao") or item.get("ano_inicio") or item.get("ano")
+            year_str = (
+                item.get("ano_conclusao") or item.get("ano_inicio") or item.get("ano")
+            )
             year = int(year_str) if year_str and str(year_str).isdigit() else None
-            
+
             institution = item.get("instituicao") or item.get("nome_instituicao")
-            
+
             if title and student_name:
-                parsed.append({
-                    "title": title,
-                    "normalized_title": self.normalize_title(title),
-                    "student_name": student_name,
-                    "year": year,
-                    "institution": institution,
-                    "type": canonical_type,
-                    "status": status,
-                    "nature": nature
-                })
-                
+                parsed.append(
+                    {
+                        "title": title,
+                        "normalized_title": self.normalize_title(title),
+                        "student_name": student_name,
+                        "year": year,
+                        "institution": institution,
+                        "type": canonical_type,
+                        "status": status,
+                        "nature": nature,
+                    }
+                )
+
         return parsed

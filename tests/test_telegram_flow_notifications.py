@@ -93,9 +93,7 @@ def test_top_level_flows_register_telegram_completion_hooks():
     from src.flows.exports.initiatives_analytics_mart import (
         export_initiatives_analytics_mart_flow,
     )
-    from src.flows.exports.knowledge_areas_mart import (
-        export_knowledge_areas_mart_flow,
-    )
+    from src.flows.exports.knowledge_areas_mart import export_knowledge_areas_mart_flow
     from src.flows.exports.people_relationship_graph import (
         export_people_relationship_graph_flow,
     )

@@ -107,7 +107,7 @@ def sync_single_group(group_info: dict):
 
     # 3. Extract and sync members
     members = adapter.extract_members(data)
-    
+
     # 3.1 Extract and merge Leaders
     leaders = adapter.extract_leaders(data)
     if leaders:
@@ -116,12 +116,14 @@ def sync_single_group(group_info: dict):
             # Check if leader is already in members list to avoid duplication (though sync_members handles it)
             # We want to ensure they get the 'Líder' role if desired, or just ensure existence.
             # If we add them as 'Líder', they might have double roles (Researcher + Leader), which is fine.
-            members.append({
-                "name": leader_name,
-                "role": "Líder",
-                "data_inicio": None, # Leaders usually started with the group, but we don't have specific data here
-                "data_fim": None
-            })
+            members.append(
+                {
+                    "name": leader_name,
+                    "role": "Líder",
+                    "data_inicio": None,  # Leaders usually started with the group, but we don't have specific data here
+                    "data_fim": None,
+                }
+            )
 
     from collections import Counter
 

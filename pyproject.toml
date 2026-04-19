@@ -28,7 +28,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-cov", "black", "isort", "mypy", "flake8"]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "black==24.10.0",
+    "isort==5.13.2",
+    "mypy",
+    "flake8",
+]
 
 [tool.setuptools]
 include-package-data = true

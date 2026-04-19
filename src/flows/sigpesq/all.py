@@ -1,11 +1,10 @@
-from dotenv import load_dotenv
-from prefect import flow, get_run_logger
-
 from agent_sigpesq.strategies import (
     AdvisorshipsDownloadStrategy,
     ProjectsDownloadStrategy,
     ResearchGroupsDownloadStrategy,
 )
+from dotenv import load_dotenv
+from prefect import flow, get_run_logger
 
 from src.adapters.sources.sigpesq.adapter import SigPesqAdapter
 from src.flows.sigpesq.advisorships import (

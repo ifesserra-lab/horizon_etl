@@ -22,10 +22,11 @@ def test_export_people_relationship_graph_flow_calls_generator_with_expected_pat
 def test_generate_people_relationship_graph_task_calls_generator_bundle(tmp_path):
     output_dir = str(tmp_path / "exports")
 
-    with patch(
-        "src.flows.exports.people_relationship_graph.PeopleRelationshipGraphGenerator"
-    ) as mock_generator_class, patch(
-        "src.flows.exports.people_relationship_graph.get_run_logger"
+    with (
+        patch(
+            "src.flows.exports.people_relationship_graph.PeopleRelationshipGraphGenerator"
+        ) as mock_generator_class,
+        patch("src.flows.exports.people_relationship_graph.get_run_logger"),
     ):
         generate_people_relationship_graph_task.fn(output_dir)
 

@@ -3,7 +3,6 @@ from typing import Optional
 
 from prefect import flow, get_run_logger
 
-from src.core.logic.prefect_runtime import configure_local_prefect_runtime
 from src.core.logic.etl_flow_reporter import (
     ETLFlowReporter,
     probe_cnpq_sync,
@@ -13,6 +12,7 @@ from src.core.logic.etl_flow_reporter import (
     probe_sigpesq_groups,
     probe_sigpesq_projects,
 )
+from src.core.logic.prefect_runtime import configure_local_prefect_runtime
 from src.flows.cnpq.groups import sync_cnpq_groups_flow
 from src.flows.exports.canonical_data import export_canonical_data_flow
 from src.flows.exports.initiatives_analytics_mart import (
@@ -46,7 +46,11 @@ def full_ingestion_pipeline(
     """
     logger = get_run_logger()
     logger.info("Starting Unified Ingestion Pipeline...")
-    reporter = ETLFlowReporter(output_dir="data/reports", run_name="etl_flow_run") if generate_etl_report else None
+    reporter = (
+        ETLFlowReporter(output_dir="data/reports", run_name="etl_flow_run")
+        if generate_etl_report
+        else None
+    )
 
     try:
         logger.info("Step 1/8: Ingesting SigPesq research groups...")
@@ -99,7 +103,9 @@ def full_ingestion_pipeline(
         else:
             ingest_lattes_advisorships_flow()
 
-        logger.info(f"Step 6/8: Syncing CNPq groups (Filter: {campus_name or 'None'})...")
+        logger.info(
+            f"Step 6/8: Syncing CNPq groups (Filter: {campus_name or 'None'})..."
+        )
         if reporter:
             reporter.run_step(
                 step_name="cnpq_sync",
@@ -116,7 +122,9 @@ def full_ingestion_pipeline(
         logger.info(f"Step 8/8: Generating marts at {output_dir}...")
         export_knowledge_areas_mart_flow(output_path=ka_mart_path, campus=campus_name)
 
-        analytics_mart_path = os.path.join(output_dir, "initiatives_analytics_mart.json")
+        analytics_mart_path = os.path.join(
+            output_dir, "initiatives_analytics_mart.json"
+        )
         export_initiatives_analytics_mart_flow(output_path=analytics_mart_path)
         logger.info("Unified Ingestion Pipeline completed successfully.")
     finally:
