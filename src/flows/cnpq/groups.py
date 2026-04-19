@@ -6,6 +6,7 @@ from research_domain import CampusController, ResearchGroupController
 
 from src.adapters.sources.cnpq_crawler import CnpqCrawlerAdapter
 from src.core.logic.strategies.cnpq_sync import CnpqSyncLogic
+from src.notifications.telegram import telegram_flow_state_handlers
 from src.tracking.recorder import tracking_recorder
 
 load_dotenv()
@@ -88,7 +89,12 @@ def sync_single_group(group_info: dict):
     data = adapter.get_group_data(url)
     if not data:
         logger.error(f"Failed to extract data for {group_name}")
-        return False
+        return {
+            "success": False,
+            "group_id": group_id,
+            "group_name": group_name,
+            "url": url,
+        }
     source_record = tracking_recorder.record_source_record(
         source_entity_type="cnpq_group_payload",
         payload=data,
@@ -106,7 +112,7 @@ def sync_single_group(group_info: dict):
 
     # 3. Extract and sync members
     members = adapter.extract_members(data)
-    
+
     # 3.1 Extract and merge Leaders
     leaders = adapter.extract_leaders(data)
     if leaders:
@@ -115,12 +121,14 @@ def sync_single_group(group_info: dict):
             # Check if leader is already in members list to avoid duplication (though sync_members handles it)
             # We want to ensure they get the 'Líder' role if desired, or just ensure existence.
             # If we add them as 'Líder', they might have double roles (Researcher + Leader), which is fine.
-            members.append({
-                "name": leader_name,
-                "role": "Líder",
-                "data_inicio": None, # Leaders usually started with the group, but we don't have specific data here
-                "data_fim": None
-            })
+            members.append(
+                {
+                    "name": leader_name,
+                    "role": "Líder",
+                    "data_inicio": None,  # Leaders usually started with the group, but we don't have specific data here
+                    "data_fim": None,
+                }
+            )
 
     from collections import Counter
 
@@ -135,10 +143,51 @@ def sync_single_group(group_info: dict):
     logger.info(f"Extracted {len(lines)} research lines for {group_name}")
     sync_logic.sync_knowledge_areas(group_id, lines, source_file=url)
 
-    return True
+    return {
+        "success": True,
+        "group_id": group_id,
+        "group_name": group_name,
+        "url": url,
+    }
 
 
-@flow(name="Sync CNPq Research Groups")
+def build_cnpq_sync_summary(results: list[dict]) -> dict:
+    failed_groups = [
+        {
+            "group_id": result.get("group_id"),
+            "group_name": result.get("group_name"),
+            "url": result.get("url"),
+        }
+        for result in results
+        if not result.get("success")
+    ]
+    warnings = []
+    if failed_groups:
+        warnings.append(
+            {
+                "source": "cnpq",
+                "severity": "warning",
+                "code": "cnpq_group_sync_failed",
+                "count": len(failed_groups),
+                "examples": failed_groups[:5],
+                "message": (
+                    f"CNPq sync failed for {len(failed_groups)} group(s); "
+                    "inspect URLs or portal availability."
+                ),
+            }
+        )
+
+    return {
+        "source": "cnpq",
+        "total_groups": len(results),
+        "success_count": len(results) - len(failed_groups),
+        "failed_count": len(failed_groups),
+        "failed_groups": failed_groups,
+        "warnings": warnings,
+    }
+
+
+@flow(name="Sync CNPq Research Groups", **telegram_flow_state_handlers())
 def sync_cnpq_groups_flow(campus_name: Optional[str] = None):
     """
     Prefect flow to synchronize research groups with CNPq DGP mirror.
@@ -153,10 +202,12 @@ def sync_cnpq_groups_flow(campus_name: Optional[str] = None):
         res = sync_single_group(g_info)
         results.append(res)
 
-    success_count = sum(1 for r in results if r)
+    success_count = sum(1 for r in results if r.get("success"))
+    summary = build_cnpq_sync_summary(results)
     logger.info(
         f"Flow finished. Successfully synchronized {success_count}/{len(groups)} groups."
     )
+    return summary
 
 
 if __name__ == "__main__":

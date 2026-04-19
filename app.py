@@ -1,28 +1,27 @@
+import os
 import sys
 
 from dotenv import load_dotenv
 from loguru import logger
 
-from src.flows.export_canonical_data import export_canonical_data_flow
-from src.flows.export_initiatives_analytics_mart import (
+from src.flows.all import ingest_all_sources_flow
+from src.flows.cnpq.groups import sync_cnpq_groups_flow
+from src.flows.exports.canonical_data import export_canonical_data_flow
+from src.flows.exports.initiatives_analytics_mart import (
     export_initiatives_analytics_mart_flow,
 )
-from src.flows.export_knowledge_areas_mart import export_knowledge_areas_mart_flow
-from src.flows.export_people_relationship_graph import (
+from src.flows.exports.knowledge_areas_mart import export_knowledge_areas_mart_flow
+from src.flows.exports.people_relationship_graph import (
     export_people_relationship_graph_flow,
 )
-from src.flows.ingest_sigpesq import ingest_sigpesq_flow
-from src.flows.sync_cnpq_groups import sync_cnpq_groups_flow
-from src.flows.unified_pipeline import full_ingestion_pipeline
-from src.flows.ingest_lattes_projects import ingest_lattes_projects_flow
-from src.flows.lattes_complete_flow import lattes_complete_flow
+from src.flows.lattes.complete_projects import lattes_complete_flow
+from src.flows.lattes.projects import ingest_lattes_projects_flow
+from src.flows.pipelines.unified import full_ingestion_pipeline
+from src.flows.pipelines.weekly import weekly_pipelines_flow
+from src.flows.sigpesq.all import ingest_sigpesq_flow
 
-# Load environment variables
 load_dotenv()
 
-import os
-
-# Ensure connection to the local Prefect Server
 os.environ.setdefault("PREFECT_API_URL", "http://127.0.0.1:4200/api")
 
 
@@ -44,6 +43,21 @@ def main():
                 f"Executing FULL Pipeline (Campus: {campus_filter}, Output: {output_dir})"
             )
             full_ingestion_pipeline(campus_name=campus_filter, output_dir=output_dir)
+
+        elif flow_to_run in ["weekly", "weekly_flows"]:
+            campus_filter = sys.argv[2] if len(sys.argv) > 2 else None
+            output_dir = sys.argv[3] if len(sys.argv) > 3 else "data/exports"
+            logger.info(
+                f"Executing WEEKLY Pipelines (Campus: {campus_filter or 'all'}, Output: {output_dir})"
+            )
+            weekly_pipelines_flow(campus_name=campus_filter, output_dir=output_dir)
+
+        elif flow_to_run == "all_sources":
+            campus_filter = sys.argv[2] if len(sys.argv) > 2 else None
+            logger.info(
+                f"Executing Flow: Ingest All Sources (Campus Filter: {campus_filter})"
+            )
+            ingest_all_sources_flow(campus_name=campus_filter)
 
         elif flow_to_run in ["sigpesq", "all"]:
             logger.info("Executing Flow: Ingest SigPesq")
@@ -116,12 +130,12 @@ def main():
             export_people_relationship_graph_flow(output_dir=output_dir)
 
         if flow_to_run in ["ingest_lattes_projects", "all"]:
-             logger.info("Executing Flow: Ingest Lattes Projects")
-             ingest_lattes_projects_flow()
+            logger.info("Executing Flow: Ingest Lattes Projects")
+            ingest_lattes_projects_flow()
 
         if flow_to_run == "lattes_full":
-             logger.info("Executing Flow: Lattes Complete Pipeline")
-             lattes_complete_flow()
+            logger.info("Executing Flow: Lattes Complete Pipeline")
+            lattes_complete_flow()
 
     except Exception as e:
         logger.error(f"Application failed: {e}")

@@ -1,9 +1,19 @@
-name: Weekly Unified ETL
+name: Weekly Horizon ETL Flows
 
 on:
   schedule:
     - cron: "0 6 * * 6"
   workflow_dispatch:
+    inputs:
+      weekly_campus:
+        description: "Optional campus filter. Leave blank to process all campuses."
+        required: false
+        type: string
+      output_dir:
+        description: "Output directory for generated exports and reports."
+        required: false
+        default: "data/exports"
+        type: string
 
 permissions:
   contents: read
@@ -15,13 +25,18 @@ concurrency:
 jobs:
   run-etl:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 300
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       STORAGE_TYPE: ${{ secrets.STORAGE_TYPE }}
       SIGPESQ_USERNAME: ${{ secrets.SIGPESQ_USERNAME }}
       SIGPESQ_USER: ${{ secrets.SIGPESQ_USERNAME }}
       SIGPESQ_PASSWORD: ${{ secrets.SIGPESQ_PASSWORD }}
+      HORIZON_TELEGRAM_BOT_TOKEN: ${{ secrets.HORIZON_TELEGRAM_BOT_TOKEN }}
+      HORIZON_TELEGRAM_CHAT_ID: ${{ secrets.HORIZON_TELEGRAM_CHAT_ID }}
+      WEEKLY_CAMPUS: ${{ github.event.inputs.weekly_campus }}
+      OUTPUT_DIR: ${{ github.event.inputs.output_dir || 'data/exports' }}
+      PREFECT_UI_URL: http://127.0.0.1:4200
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -47,9 +62,11 @@ jobs:
           test -n "$STORAGE_TYPE" || { echo "Missing GitHub secret: STORAGE_TYPE"; exit 1; }
           test -n "$SIGPESQ_USERNAME" || { echo "Missing GitHub secret: SIGPESQ_USERNAME"; exit 1; }
           test -n "$SIGPESQ_PASSWORD" || { echo "Missing GitHub secret: SIGPESQ_PASSWORD"; exit 1; }
+          test -n "$HORIZON_TELEGRAM_BOT_TOKEN" || { echo "Missing GitHub secret: HORIZON_TELEGRAM_BOT_TOKEN"; exit 1; }
+          test -n "$HORIZON_TELEGRAM_CHAT_ID" || { echo "Missing GitHub secret: HORIZON_TELEGRAM_CHAT_ID"; exit 1; }
 
-      - name: Run weekly full refresh
-        run: make full-refresh
+      - name: Run weekly flows
+        run: make weekly-flows
 
       - name: Upload ETL artifacts
         if: always()

@@ -1,3 +1,4 @@
+import re
 import unicodedata
 from typing import Any, Iterable, Optional
 
@@ -16,6 +17,14 @@ def build_identity_key(parts: Iterable[Any]) -> str:
     normalized_parts = [normalize_text(part) for part in parts]
     normalized_parts = [part for part in normalized_parts if part]
     return "|".join(normalized_parts)
+
+
+def normalize_sigpesq_code(value: Any) -> str:
+    if value is None:
+        return ""
+
+    match = re.search(r"\d+", str(value))
+    return match.group(0) if match else ""
 
 
 def get_existing_initiative_identity(initiative: Any) -> Optional[str]:

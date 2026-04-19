@@ -1,4 +1,5 @@
 from typing import Optional
+
 from dotenv import load_dotenv
 from prefect import flow, get_run_logger, task
 
@@ -12,6 +13,7 @@ from src.core.logic.strategies.sigpesq_excel import (
     SigPesqResearcherStrategy,
     SigPesqRoleStrategy,
 )
+from src.notifications.telegram import telegram_flow_state_handlers
 
 load_dotenv()
 
@@ -46,7 +48,7 @@ def persist_research_groups():
     loader.process_file(latest_file)
 
 
-@flow(name="Ingest SigPesq Research Groups")
+@flow(name="Ingest SigPesq Research Groups", **telegram_flow_state_handlers())
 def ingest_research_groups_flow() -> None:
     """
     Flow specifically for ingesting Research Groups.
