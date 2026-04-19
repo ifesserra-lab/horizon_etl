@@ -24,11 +24,18 @@ dependencies = [
     "sigpesq-agent @ git+https://github.com/ifesserra-lab/sigpesq_agent.git@v0.3.0",
     "dgp-cnpq-lib @ git+https://github.com/ifesserra-lab/dgp.cnqp_lib.git@v0.5.0",
     "scriptLattes @ git+https://github.com/ifesserra-lab/scriptLattes.git@v0.8.0",
-    "research-domain @ git+https://github.com/The-Band-Solution/ResearchDomain.git@v0.14.1",
+    "research-domain @ git+https://github.com/The-Band-Solution/ResearchDomain.git@v0.14.3",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-cov", "black", "isort", "mypy", "flake8"]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "black==24.10.0",
+    "isort==5.13.2",
+    "mypy",
+    "flake8",
+]
 
 [tool.setuptools]
 include-package-data = true

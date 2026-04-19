@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
     
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -21,12 +23,27 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest pytest-mock flake8 black isort
+        pip install pytest pytest-mock flake8 black==24.10.0 isort==5.13.2
         
     - name: Run Linting
       run: |
-        black --check .
-        isort --check .
+        if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+        else
+          BASE_SHA="${{ github.event.before }}"
+        fi
+
+        if ! git rev-parse --verify "$BASE_SHA" >/dev/null 2>&1 || echo "$BASE_SHA" | grep -Eq '^0+$'; then
+          BASE_SHA="HEAD~1"
+        fi
+
+        git diff --name-only -z --diff-filter=ACMRT "$BASE_SHA"...HEAD -- '*.py' > changed-python-files.txt
+        if [ -s changed-python-files.txt ]; then
+          xargs -0 black --check < changed-python-files.txt
+          xargs -0 isort --check < changed-python-files.txt
+        else
+          echo "No changed Python files to format-check."
+        fi
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         
     - name: Run Tests

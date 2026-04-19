@@ -6,9 +6,27 @@ Os pontos de entrada mais relevantes hoje sao:
 
 - `make full-refresh`
 - `make pipeline-serra`
+- `make ingest-sigpesq`
+- `make ingest-lattes-full`
+- `make export-canonical CAMPUS=Serra`
 - `python app.py full_pipeline Serra data/exports`
+- `python app.py all_sources Serra`
 - `python app.py sigpesq`
 - `python app.py cnpq_sync Serra`
+
+## Organizacao dos flows
+
+Os flows agora ficam separados por origem ou responsabilidade:
+
+- `src/flows/sigpesq/`: grupos, projetos, planos de trabalho e flow SigPesq completo.
+- `src/flows/lattes/`: download, projetos, orientacoes e flow Lattes completo.
+- `src/flows/cnpq/`: sincronizacao de grupos CNPq.
+- `src/flows/exports/`: exportacao canonica, marts e grafo de pessoas.
+- `src/flows/pipelines/`: pipelines operacionais que combinam ingestao e exportacao.
+- `src/flows/all.py`: flow geral de ingestao que chama todas as fontes.
+
+Nao ha wrappers de compatibilidade no topo de `src/flows`; use sempre os caminhos
+por pasta, como `src.flows.sigpesq.all` ou `src.flows.exports.canonical_data`.
 
 ## Comando recomendado para refresh completo
 

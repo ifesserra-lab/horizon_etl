@@ -1,7 +1,29 @@
+import re
 from typing import Any, Dict, List, Optional
 
 from dgp_cnpq_lib import CnpqCrawler
 from loguru import logger
+
+IGNORED_PERSON_NAMES = {"ui-button"}
+
+
+def normalize_cnpq_url(url: str) -> str:
+    return re.sub(r"(?<!:)/{2,}", "/", url.strip())
+
+
+def _clean_person_name(value: Any) -> Optional[str]:
+    if not isinstance(value, str):
+        return None
+
+    name = value.strip()
+    if not name:
+        return None
+
+    if name.lower() in IGNORED_PERSON_NAMES:
+        logger.debug(f"Ignoring CNPq placeholder person name: {name}")
+        return None
+
+    return name
 
 
 class CnpqCrawlerAdapter:
@@ -16,12 +38,13 @@ class CnpqCrawlerAdapter:
         """
         Extracts data for a single research group from its mirror URL.
         """
+        normalized_url = normalize_cnpq_url(url)
         try:
-            logger.info(f"Extracting data from CNPq Mirror: {url}")
-            data = self._crawler.get_data(url)
+            logger.info(f"Extracting data from CNPq Mirror: {normalized_url}")
+            data = self._crawler.get_data(normalized_url)
             return data
         except Exception as e:
-            logger.error(f"Failed to extract data from {url}: {e}")
+            logger.error(f"Failed to extract data from {normalized_url}: {e}")
             return None
 
     def extract_members(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -46,6 +69,7 @@ class CnpqCrawlerAdapter:
                     or item.get("nome")
                     or item.get("nome_do_pesquisador")
                 )
+                name = _clean_person_name(name)
                 if name:
                     members.append(
                         {
@@ -68,6 +92,7 @@ class CnpqCrawlerAdapter:
                     or item.get("nome")
                     or item.get("nome_do_estudante")
                 )
+                name = _clean_person_name(name)
                 if name:
                     members.append(
                         {
@@ -90,6 +115,7 @@ class CnpqCrawlerAdapter:
                     or item.get("nome_do_tecnico")
                     or item.get("tecnicos")
                 )
+                name = _clean_person_name(name)
                 if name:
                     members.append(
                         {
@@ -127,6 +153,7 @@ class CnpqCrawlerAdapter:
                         or item.get("nome_do_egresso")
                         or item.get(key)  # Fallback to the table key itself
                     )
+                    name = _clean_person_name(name)
 
                     if name:
                         # Determine base role if generic egresso
@@ -158,7 +185,14 @@ class CnpqCrawlerAdapter:
         Usually found in 'identificacao' under 'lideres_do_grupo'.
         """
         ident_content = data.get("identificacao", {})
-        return ident_content.get("lideres_do_grupo", [])
+        return [
+            name
+            for name in (
+                _clean_person_name(value)
+                for value in ident_content.get("lideres_do_grupo", [])
+            )
+            if name
+        ]
 
     def extract_research_lines(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """

@@ -13,7 +13,6 @@ from src.adapters.sources.lattes_parser import LattesParser
 from src.core.logic.duplicate_auditor import DuplicateAuditor
 from src.tracking.recorder import tracking_recorder
 
-
 TRACKED_TABLES = [
     "persons",
     "researchers",
@@ -41,6 +40,7 @@ TRACKING_TABLES = [
     "attribute_assertions",
     "entity_change_logs",
 ]
+CNPQ_PLACEHOLDER_PERSON_NAMES = ("ui-button",)
 
 
 def _safe_count(conn: sqlite3.Connection, table: str) -> int:
@@ -48,6 +48,14 @@ def _safe_count(conn: sqlite3.Connection, table: str) -> int:
         return conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
     except sqlite3.OperationalError:
         return 0
+
+
+def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+        (table,),
+    ).fetchone()
+    return row is not None
 
 
 def _snapshot_tables(db_path: str) -> dict[str, int]:
@@ -78,9 +86,7 @@ def _tracking_summary(db_path: str) -> dict[str, Any]:
 
     with sqlite3.connect(db_path) as conn:
         conn.row_factory = sqlite3.Row
-        totals = {
-            table: _safe_count(conn, table) for table in TRACKING_TABLES
-        }
+        totals = {table: _safe_count(conn, table) for table in TRACKING_TABLES}
         latest_runs = [
             dict(row)
             for row in conn.execute(
@@ -99,6 +105,177 @@ def _tracking_summary(db_path: str) -> dict[str, Any]:
     }
 
 
+def _step_warnings(
+    *,
+    origin: str | None,
+    before_duplicates: dict[str, int],
+    after_duplicates: dict[str, int],
+) -> list[dict[str, Any]]:
+    warnings = []
+    for metric, after_count in after_duplicates.items():
+        before_count = before_duplicates.get(metric, 0)
+        if after_count <= before_count:
+            continue
+        warnings.append(
+            {
+                "source": origin or "unknown",
+                "severity": "warning",
+                "code": "duplicate_count_increased",
+                "metric": metric,
+                "before": before_count,
+                "after": after_count,
+                "count": after_count - before_count,
+                "message": (
+                    f"Duplicate groups for {metric} increased from "
+                    f"{before_count} to {after_count}."
+                ),
+            }
+        )
+    return warnings
+
+
+def _result_warnings(result: Any, *, default_source: str) -> list[dict[str, Any]]:
+    if not isinstance(result, dict):
+        return []
+
+    warnings: list[dict[str, Any]] = []
+    for warning in result.get("warnings") or []:
+        if not isinstance(warning, dict):
+            continue
+        warning = dict(warning)
+        warning.setdefault("source", default_source)
+        warnings.append(warning)
+
+    for source, source_warnings in (result.get("warnings_by_source") or {}).items():
+        for warning in source_warnings or []:
+            if not isinstance(warning, dict):
+                continue
+            warning = dict(warning)
+            warning.setdefault("source", source)
+            warnings.append(warning)
+
+    return warnings
+
+
+def _warnings_by_source(
+    *,
+    db_path: str,
+    steps: list[dict[str, Any]],
+    final_duplicates: dict[str, int],
+    tracking_summary: dict[str, Any],
+) -> dict[str, list[dict[str, Any]]]:
+    warnings: dict[str, list[dict[str, Any]]] = {}
+
+    for step in steps:
+        for warning in step.get("warnings") or []:
+            source = warning.get("source") or step.get("origin") or "unknown"
+            warnings.setdefault(source, []).append(
+                {key: value for key, value in warning.items() if key != "source"}
+            )
+
+    for warning in _cnpq_data_quality_warnings(db_path):
+        warnings.setdefault("cnpq", []).append(warning)
+
+    duplicate_warnings = _duplicate_data_quality_warnings(final_duplicates)
+    if duplicate_warnings:
+        warnings.setdefault("duplicate_audit", []).extend(duplicate_warnings)
+
+    tracking_warnings = _tracking_data_quality_warnings(tracking_summary)
+    if tracking_warnings:
+        warnings.setdefault("tracking", []).extend(tracking_warnings)
+
+    return {source: rows for source, rows in sorted(warnings.items()) if rows}
+
+
+def _cnpq_data_quality_warnings(db_path: str) -> list[dict[str, Any]]:
+    with sqlite3.connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        if not _table_exists(conn, "persons"):
+            return []
+
+        placeholders = [name.lower() for name in CNPQ_PLACEHOLDER_PERSON_NAMES]
+        query_marks = ", ".join("?" for _ in placeholders)
+        rows = conn.execute(
+            f"""
+            SELECT name, COUNT(*) AS count
+            FROM persons
+            WHERE lower(trim(name)) IN ({query_marks})
+            GROUP BY name
+            ORDER BY count DESC, name
+            """,
+            placeholders,
+        ).fetchall()
+
+    if not rows:
+        return []
+
+    total = sum(row["count"] for row in rows)
+    examples = [row["name"] for row in rows[:5]]
+    return [
+        {
+            "severity": "warning",
+            "code": "cnpq_placeholder_member_name",
+            "count": total,
+            "examples": examples,
+            "message": (
+                "CNPq member extraction produced placeholder person names; "
+                "inspect crawler selectors before using these people as real members."
+            ),
+        }
+    ]
+
+
+def _duplicate_data_quality_warnings(
+    final_duplicates: dict[str, int],
+) -> list[dict[str, Any]]:
+    warnings = []
+    for metric, count in final_duplicates.items():
+        if count <= 0:
+            continue
+        warnings.append(
+            {
+                "severity": "warning",
+                "code": "duplicate_count_present",
+                "metric": metric,
+                "count": count,
+                "message": f"{count} duplicate group(s) remain for {metric}.",
+            }
+        )
+    return warnings
+
+
+def _tracking_data_quality_warnings(
+    tracking_summary: dict[str, Any],
+) -> list[dict[str, Any]]:
+    if not tracking_summary.get("enabled"):
+        return []
+
+    failed_runs = [
+        row
+        for row in tracking_summary.get("latest_runs", [])
+        if str(row.get("status", "")).lower() not in {"success", "completed"}
+    ]
+    if not failed_runs:
+        return []
+
+    return [
+        {
+            "severity": "warning",
+            "code": "tracking_runs_not_successful",
+            "count": len(failed_runs),
+            "examples": [
+                {
+                    "id": row.get("id"),
+                    "source_system": row.get("source_system"),
+                    "status": row.get("status"),
+                }
+                for row in failed_runs[:5]
+            ],
+            "message": "Tracking contains latest runs that did not finish successfully.",
+        }
+    ]
+
+
 def probe_sigpesq_groups() -> dict[str, Any]:
     files = sorted(glob("data/raw/sigpesq/research_group/*.xlsx"))
     if not files:
@@ -115,7 +292,11 @@ def probe_sigpesq_groups() -> dict[str, Any]:
 def probe_sigpesq_projects() -> dict[str, Any]:
     files = sorted(glob("data/raw/sigpesq/research_projects/*.xlsx"))
     if not files:
-        return {"origin": "sigpesq_research_projects", "files": [], "extracted_counts": {}}
+        return {
+            "origin": "sigpesq_research_projects",
+            "files": [],
+            "extracted_counts": {},
+        }
     latest = max(files, key=lambda path: Path(path).stat().st_mtime)
     row_count = len(pd.read_excel(latest))
     return {
@@ -201,7 +382,10 @@ def probe_cnpq_sync(campus_name: Optional[str] = None) -> dict[str, Any]:
                 return {
                     "origin": "cnpq_sync",
                     "files": [],
-                    "extracted_counts": {"groups_to_sync": 0, "campus_name": campus_name},
+                    "extracted_counts": {
+                        "groups_to_sync": 0,
+                        "campus_name": campus_name,
+                    },
                 }
             count = conn.execute(
                 """
@@ -230,7 +414,10 @@ def probe_cnpq_sync(campus_name: Optional[str] = None) -> dict[str, Any]:
     return {
         "origin": "cnpq_sync",
         "files": [],
-        "extracted_counts": {"groups_to_sync": count, "campus_name": campus_name or "all"},
+        "extracted_counts": {
+            "groups_to_sync": count,
+            "campus_name": campus_name or "all",
+        },
     }
 
 
@@ -258,7 +445,11 @@ class ETLFlowReporter:
     ) -> Any:
         before_tables = _snapshot_tables(self.db_path)
         before_duplicates = _duplicate_summary(self.db_path)
-        source_data = source_probe() if source_probe else {"origin": step_name, "files": [], "extracted_counts": {}}
+        source_data = (
+            source_probe()
+            if source_probe
+            else {"origin": step_name, "files": [], "extracted_counts": {}}
+        )
         started = time.time()
         error = None
         result = None
@@ -281,6 +472,17 @@ class ETLFlowReporter:
         finally:
             after_tables = _snapshot_tables(self.db_path)
             after_duplicates = _duplicate_summary(self.db_path)
+            step_warnings = _step_warnings(
+                origin=source_data.get("origin"),
+                before_duplicates=before_duplicates,
+                after_duplicates=after_duplicates,
+            )
+            step_warnings.extend(
+                _result_warnings(
+                    result,
+                    default_source=source_data.get("origin") or step_name,
+                )
+            )
             self.steps.append(
                 {
                     "step_name": step_name,
@@ -294,10 +496,13 @@ class ETLFlowReporter:
                     "saved_entities": self._table_deltas(before_tables, after_tables),
                     "duplicates_before": before_duplicates,
                     "duplicates_after": after_duplicates,
+                    "warnings": step_warnings,
                 }
             )
 
-    def _table_deltas(self, before: dict[str, int], after: dict[str, int]) -> list[dict[str, Any]]:
+    def _table_deltas(
+        self, before: dict[str, int], after: dict[str, int]
+    ) -> list[dict[str, Any]]:
         rows = []
         for table in TRACKED_TABLES:
             before_value = before.get(table, 0)
@@ -315,6 +520,8 @@ class ETLFlowReporter:
         return rows
 
     def write(self) -> tuple[Path, Path]:
+        final_duplicates = _duplicate_summary(self.db_path)
+        tracking_summary = _tracking_summary(self.db_path)
         report = {
             "run_name": self.run_name,
             "run_stamp": self.run_stamp,
@@ -322,16 +529,24 @@ class ETLFlowReporter:
             "finished_at": datetime.now().isoformat(),
             "db_path": self.db_path,
             "steps": self.steps,
-            "final_duplicates": _duplicate_summary(self.db_path),
+            "final_duplicates": final_duplicates,
             "final_tables": _snapshot_tables(self.db_path),
-            "tracking_summary": _tracking_summary(self.db_path),
+            "tracking_summary": tracking_summary,
+            "warnings_by_source": _warnings_by_source(
+                db_path=self.db_path,
+                steps=self.steps,
+                final_duplicates=final_duplicates,
+                tracking_summary=tracking_summary,
+            ),
         }
         self.output_dir.mkdir(parents=True, exist_ok=True)
         json_path = self.output_dir / f"{self.run_name}_{self.run_stamp}.json"
         md_path = self.output_dir / f"{self.run_name}_{self.run_stamp}.md"
         latest_json_path = self.output_dir / f"{self.run_name}.json"
         latest_md_path = self.output_dir / f"{self.run_name}.md"
-        json_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+        json_path.write_text(
+            json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
         md_path.write_text(self._render_markdown(report), encoding="utf-8")
         latest_json_path.write_text(
             json.dumps(report, indent=2, ensure_ascii=False),
@@ -367,11 +582,16 @@ class ETLFlowReporter:
                 lines.append(f"- Tracking run id: **{step['tracking_run_id']}**")
             if step["source_files"]:
                 lines.append(f"- Arquivos de origem: **{len(step['source_files'])}**")
+            if step.get("warnings"):
+                lines.append(f"- Warnings: **{len(step['warnings'])}**")
             lines.append("")
             lines.append("#### Quantidade Extraida")
             lines.append("")
             lines.extend(
-                [f"- `{key}`: **{value}**" for key, value in step["extracted_counts"].items()]
+                [
+                    f"- `{key}`: **{value}**"
+                    for key, value in step["extracted_counts"].items()
+                ]
                 or ["- Nenhuma metrica de extracao registrada."]
             )
             lines.append("")
@@ -387,6 +607,26 @@ class ETLFlowReporter:
             else:
                 lines.append("- Nenhuma entidade teve delta de contagem.")
             lines.append("")
+
+        lines.extend(["## Warnings por Fonte", ""])
+        warnings_by_source = report.get("warnings_by_source", {})
+        if not warnings_by_source:
+            lines.append("- Nenhum warning estruturado registrado.")
+        else:
+            for source, warnings in warnings_by_source.items():
+                lines.extend([f"### {source}", ""])
+                lines.append("| Codigo | Severidade | Contagem | Mensagem |")
+                lines.append("| --- | --- | --- | --- |")
+                for warning in warnings:
+                    lines.append(
+                        "| {code} | {severity} | {count} | {message} |".format(
+                            code=warning.get("code", ""),
+                            severity=warning.get("severity", ""),
+                            count=warning.get("count", ""),
+                            message=warning.get("message", ""),
+                        )
+                    )
+                lines.append("")
 
         lines.extend(
             [
@@ -410,7 +650,15 @@ class ETLFlowReporter:
                 lines.append(f"| {key} | {value} |")
             latest_runs = tracking_summary.get("latest_runs", [])
             if latest_runs:
-                lines.extend(["", "### Ultimos Tracking Runs", "", "| id | source_system | flow_name | status | started_at | finished_at |", "| --- | --- | --- | --- | --- | --- |"])
+                lines.extend(
+                    [
+                        "",
+                        "### Ultimos Tracking Runs",
+                        "",
+                        "| id | source_system | flow_name | status | started_at | finished_at |",
+                        "| --- | --- | --- | --- | --- | --- |",
+                    ]
+                )
                 for row in latest_runs:
                     lines.append(
                         f"| {row.get('id')} | {row.get('source_system')} | {row.get('flow_name')} | {row.get('status')} | {row.get('started_at')} | {row.get('finished_at')} |"
