@@ -1,5 +1,8 @@
+import asyncio
 import os
 import shutil
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 
@@ -20,9 +23,9 @@ def mock_data_dir():
 def test_sigpesq_adapter_extract(mock_data_dir):
     # Arrange
     from unittest.mock import patch
-    
+
     adapter = SigPesqAdapter(download_dir=mock_data_dir)
-    
+
     # Create a dummy file in the 'report' directory
     report_dir = os.path.join(mock_data_dir, "report")
     os.makedirs(report_dir, exist_ok=True)
@@ -31,8 +34,10 @@ def test_sigpesq_adapter_extract(mock_data_dir):
         f.write('{"id": 1, "title": "Mock Project"}')
 
     # Act
-    with patch.object(SigPesqAdapter, "_validate_environment"), \
-         patch.object(SigPesqAdapter, "_trigger_download"):
+    with (
+        patch.object(SigPesqAdapter, "_validate_environment"),
+        patch.object(SigPesqAdapter, "_trigger_download"),
+    ):
         results = adapter.extract()
 
     # Assert
@@ -45,3 +50,38 @@ def test_sigpesq_adapter_extract(mock_data_dir):
     assert os.path.exists(
         os.path.join(mock_data_dir, "report", "mock_project_001.json")
     )
+
+
+def test_sigpesq_adapter_logs_http_429_during_login(tmp_path):
+    class FakePage:
+        def __init__(self):
+            self.handlers = {}
+
+        def on(self, event_name, handler):
+            self.handlers[event_name] = handler
+
+        def remove_listener(self, event_name, handler):
+            assert event_name == "response"
+            assert self.handlers[event_name] is handler
+
+    class FakeService:
+        async def _login(self, page):
+            response = SimpleNamespace(
+                status=429,
+                url="https://sigpesq.ifes.edu.br/Login.aspx",
+            )
+            page.handlers["response"](response)
+            return False
+
+    adapter = SigPesqAdapter(download_dir=str(tmp_path))
+    service = FakeService()
+
+    adapter._attach_http_429_logging(service)
+
+    with patch("src.adapters.sources.sigpesq.adapter.logger.error") as log_error:
+        assert asyncio.run(service._login(FakePage())) is False
+
+    log_message = log_error.call_args.args[0]
+    assert "HTTP 429" in log_message
+    assert "rate limiting" in log_message
+    assert "Login.aspx" in log_message

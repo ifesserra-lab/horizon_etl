@@ -81,6 +81,7 @@ class SigPesqAdapter(ISource):
             service = SigpesqReportService(
                 headless=True, download_dir=self.download_dir, strategies=strategies
             )
+            self._attach_http_429_logging(service)
             return await service.run()
 
         success = asyncio.run(run_agent())
@@ -95,3 +96,37 @@ class SigPesqAdapter(ISource):
                 raise RuntimeError(
                     "SigpesqReportService failed to download reports and no fallback data found."
                 )
+
+    def _attach_http_429_logging(self, service):
+        """
+        Adds rate-limit diagnostics to the agent login without changing agent_sigpesq.
+        """
+        original_login = getattr(service, "_login", None)
+        if original_login is None:
+            return
+
+        async def login_with_http_429_logging(page):
+            logged_rate_limit = False
+
+            def log_rate_limit_response(response):
+                nonlocal logged_rate_limit
+                status = getattr(response, "status", None)
+                if status != 429 or logged_rate_limit:
+                    return
+
+                logged_rate_limit = True
+                url = getattr(response, "url", "unknown URL")
+                logger.error(
+                    "SigPesq portal returned HTTP 429 while logging in at "
+                    f"{url}. The portal is rate limiting login attempts; wait "
+                    "before retrying and avoid running multiple SigPesq login "
+                    "flows in sequence."
+                )
+
+            page.on("response", log_rate_limit_response)
+            try:
+                return await original_login(page)
+            finally:
+                page.remove_listener("response", log_rate_limit_response)
+
+        service._login = login_with_http_429_logging
