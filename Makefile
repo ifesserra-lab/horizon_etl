@@ -109,23 +109,7 @@ pipeline-log: prefect-server logs-dir ## Run the unified pipeline and tee output
 	@$(FLOW_PYTHON) app.py full_pipeline "$(CAMPUS)" "$(OUTPUT_DIR)" 2>&1 | tee logs/pipeline_$(CAMPUS)_$$(date +%Y%m%d_%H%M%S).log
 
 weekly-flows: db-reset prefect-server ## Reset DB and run weekly source flows plus exports
-	@if [ -n "$(WEEKLY_CAMPUS)" ]; then \
-		$(FLOW_PYTHON) app.py all_sources "$(WEEKLY_CAMPUS)"; \
-	else \
-		$(FLOW_PYTHON) app.py all_sources; \
-	fi
-	@if [ -n "$(WEEKLY_CAMPUS)" ]; then \
-		$(FLOW_PYTHON) app.py export_canonical "$(OUTPUT_DIR)" "$(WEEKLY_CAMPUS)"; \
-	else \
-		$(FLOW_PYTHON) app.py export_canonical "$(OUTPUT_DIR)"; \
-	fi
-	@if [ -n "$(WEEKLY_CAMPUS)" ]; then \
-		$(FLOW_PYTHON) app.py ka_mart "$(OUTPUT_DIR)/knowledge_areas_mart.json" "$(WEEKLY_CAMPUS)"; \
-	else \
-		$(FLOW_PYTHON) app.py ka_mart "$(OUTPUT_DIR)/knowledge_areas_mart.json"; \
-	fi
-	@$(FLOW_PYTHON) app.py analytics_mart "$(OUTPUT_DIR)/initiatives_analytics_mart.json"
-	@$(FLOW_PYTHON) app.py people_graph "$(OUTPUT_DIR)"
+	@$(FLOW_PYTHON) app.py weekly "$(WEEKLY_CAMPUS)" "$(OUTPUT_DIR)"
 
 full-refresh: db-reset prefect-server ## Reset DB and run the unified pipeline without campus filter
 	@$(FLOW_PYTHON) -c "from src.prefect_runtime import bootstrap_local_prefect; bootstrap_local_prefect(); from src.flows.pipelines.unified import full_ingestion_pipeline; full_ingestion_pipeline(campus_name=None, output_dir='$(OUTPUT_DIR)')"

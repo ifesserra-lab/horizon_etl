@@ -12,7 +12,7 @@ from src.notifications.telegram import telegram_flow_state_handlers
 def generate_people_relationship_graph_task(output_dir: str):
     logger = get_run_logger()
     logger.info(
-        "Starting People Relationship Graph bundle generation from canonical exports in {}...",
+        "Starting People Relationship Graph bundle generation from canonical exports in %s...",
         output_dir,
     )
 
@@ -26,7 +26,7 @@ def generate_people_relationship_graph_task(output_dir: str):
     )
 
     logger.info(
-        "People Relationship Graph bundle completed. Full graph at {} and {} research-group graph files generated.",
+        "People Relationship Graph bundle completed. Full graph at %s and %s research-group graph files generated.",
         export_summary["full_graph_path"],
         len(export_summary["research_group_exports"]["graphs"]),
     )

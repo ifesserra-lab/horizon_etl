@@ -17,17 +17,12 @@ def test_weekly_etl_workflow_runs_weekly_flows_with_notifications():
     assert "make full-refresh" not in workflow
 
 
-def test_makefile_weekly_flows_runs_sources_then_exports():
+def test_makefile_weekly_flows_runs_weekly_pipeline_entrypoint():
     makefile = Path("Makefile").read_text()
 
     target = makefile[makefile.index("weekly-flows:") : makefile.index("full-refresh:")]
 
     assert "weekly-flows: db-reset prefect-server" in target
-    assert "app.py all_sources" in target
-    assert "app.py export_canonical" in target
-    assert "app.py ka_mart" in target
-    assert (
-        'app.py analytics_mart "$(OUTPUT_DIR)/initiatives_analytics_mart.json"'
-        in target
-    )
-    assert 'app.py people_graph "$(OUTPUT_DIR)"' in target
+    assert 'app.py weekly "$(WEEKLY_CAMPUS)" "$(OUTPUT_DIR)"' in target
+    assert "app.py all_sources" not in target
+    assert "app.py export_canonical" not in target

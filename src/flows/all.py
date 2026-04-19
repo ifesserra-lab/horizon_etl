@@ -20,8 +20,8 @@ def ingest_all_sources_flow(campus_name: Optional[str] = None) -> None:
     logger.info("Starting all source ingestion flows.")
 
     ingest_sigpesq_flow()
-    lattes_complete_flow()
     sync_cnpq_groups_flow(campus_name=campus_name)
+    lattes_complete_flow()
 
     logger.info("All source ingestion flows finished successfully.")
 

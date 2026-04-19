@@ -17,6 +17,7 @@ from src.flows.exports.people_relationship_graph import (
 from src.flows.lattes.complete_projects import lattes_complete_flow
 from src.flows.lattes.projects import ingest_lattes_projects_flow
 from src.flows.pipelines.unified import full_ingestion_pipeline
+from src.flows.pipelines.weekly import weekly_pipelines_flow
 from src.flows.sigpesq.all import ingest_sigpesq_flow
 
 load_dotenv()
@@ -42,6 +43,14 @@ def main():
                 f"Executing FULL Pipeline (Campus: {campus_filter}, Output: {output_dir})"
             )
             full_ingestion_pipeline(campus_name=campus_filter, output_dir=output_dir)
+
+        elif flow_to_run in ["weekly", "weekly_flows"]:
+            campus_filter = sys.argv[2] if len(sys.argv) > 2 else None
+            output_dir = sys.argv[3] if len(sys.argv) > 3 else "data/exports"
+            logger.info(
+                f"Executing WEEKLY Pipelines (Campus: {campus_filter or 'all'}, Output: {output_dir})"
+            )
+            weekly_pipelines_flow(campus_name=campus_filter, output_dir=output_dir)
 
         elif flow_to_run == "all_sources":
             campus_filter = sys.argv[2] if len(sys.argv) > 2 else None
