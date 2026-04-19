@@ -6,7 +6,7 @@ from loguru import logger
 
 sys.path.append(os.getcwd())
 
-from src.flows.ingest_lattes_projects import ingest_file_task
+from src.flows.lattes.projects import ingest_file_task
 from src.core.logic.entity_manager import EntityManager
 from eo_lib import InitiativeController, PersonController
 from eo_lib.infrastructure.database.postgres_client import PostgresClient

@@ -8,19 +8,20 @@ from eo_lib import (
     Person,
 )
 from eo_lib.domain import Role
+from loguru import logger
 from research_domain import (
     CampusController,
     KnowledgeAreaController,
-    ResearchGroupController,
     ResearcherController,
+    ResearchGroupController,
     UniversityController,
 )
+
 # Workaround: Import directly from controllers module since not exported in __init__
 from research_domain.controllers.controllers import (
     AdvisorshipController,
     FellowshipController,
 )
-from loguru import logger
 from sqlalchemy import text
 
 from src.research_domain_compat import (
@@ -38,7 +39,15 @@ class BaseInitiativeHandler(ABC):
         self.initiative_controller = initiative_controller
 
     @abstractmethod
-    def create_or_update(self, project_data: Dict[str, Any], existing_initiative: Optional[Any], initiative_type_name: str, initiative_type_id: int, organization_id: Optional[int], parent_id: Optional[int] = None) -> Any:
+    def create_or_update(
+        self,
+        project_data: Dict[str, Any],
+        existing_initiative: Optional[Any],
+        initiative_type_name: str,
+        initiative_type_id: int,
+        organization_id: Optional[int],
+        parent_id: Optional[int] = None,
+    ) -> Any:
         """Creates or updates the initiative entity."""
         pass
 
@@ -46,12 +55,20 @@ class BaseInitiativeHandler(ABC):
 class StandardProjectHandler(BaseInitiativeHandler):
     """Handler for standard research projects."""
 
-    def create_or_update(self, project_data: Dict[str, Any], existing_initiative: Optional[Any], initiative_type_name: str, initiative_type_id: int, organization_id: Optional[int], parent_id: Optional[int] = None) -> Any:
+    def create_or_update(
+        self,
+        project_data: Dict[str, Any],
+        existing_initiative: Optional[Any],
+        initiative_type_name: str,
+        initiative_type_id: int,
+        organization_id: Optional[int],
+        parent_id: Optional[int] = None,
+    ) -> Any:
         title = project_data["title"]
         metadata = project_data.get("metadata", {}).copy()
         if project_data.get("identity_key"):
             metadata["source_identity"] = project_data["identity_key"]
-        
+
         if existing_initiative:
             logger.debug(f"Updating existing initiative: {title[:50]}...")
             self.initiative_controller.update_initiative(
@@ -88,7 +105,7 @@ class StandardProjectHandler(BaseInitiativeHandler):
             )
             if metadata:
                 initiative.metadata = metadata
-            
+
             self.initiative_controller.create(initiative)
             return initiative
 
@@ -116,13 +133,30 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         try:
             all_fels = self.fel_controller.get_all()
             for f in all_fels:
-                name = f.name if hasattr(f, "name") else f.get("name")
+                name = self._get_fellowship_value(f, "name")
                 if name:
-                    self._fellowships_cache[name] = f
+                    fellowship_data = {"name": name}
+                    sponsor_name = self._get_fellowship_sponsor_name(f)
+                    sponsor_id = self._get_fellowship_value(f, "sponsor_id")
+                    if sponsor_name:
+                        fellowship_data["sponsor_name"] = sponsor_name
+                    self._cache_fellowship(
+                        f,
+                        fellowship_data,
+                        sponsor_id=sponsor_id,
+                    )
         except Exception as e:
             logger.warning(f"Failed to preload fellowships: {e}")
 
-    def create_or_update(self, project_data: Dict[str, Any], existing_initiative: Optional[Any], initiative_type_name: str, initiative_type_id: int, organization_id: Optional[int], parent_id: Optional[int] = None) -> Any:
+    def create_or_update(
+        self,
+        project_data: Dict[str, Any],
+        existing_initiative: Optional[Any],
+        initiative_type_name: str,
+        initiative_type_id: int,
+        organization_id: Optional[int],
+        parent_id: Optional[int] = None,
+    ) -> Any:
         title = project_data["title"]
         metadata = project_data.get("metadata", {}).copy()
         if project_data.get("identity_key"):
@@ -136,7 +170,7 @@ class AdvisorshipHandler(BaseInitiativeHandler):
             existing_initiative = self._find_existing_advisorship_by_title(
                 persisted_title
             )
-        
+
         if existing_initiative:
             # Advisorship update logic (using standard initiative update as base)
             logger.debug(f"Updating existing advisorship: {title[:50]}...")
@@ -159,7 +193,7 @@ class AdvisorshipHandler(BaseInitiativeHandler):
                 self.initiative_controller.update(existing_initiative)
             except Exception:
                 pass
-            
+
             # Update specialized fields
             # If it's a base Initiative, we MUST fetch it as Advisorship to access specialized fields
             target_adv = existing_initiative
@@ -170,10 +204,14 @@ class AdvisorshipHandler(BaseInitiativeHandler):
                     if actual_adv:
                         target_adv = actual_adv
                     else:
-                        logger.warning(f"Initiative {existing_initiative.id} is not an Advisorship in the DB.")
+                        logger.warning(
+                            f"Initiative {existing_initiative.id} is not an Advisorship in the DB."
+                        )
                         return existing_initiative
                 except Exception as e:
-                    logger.warning(f"Failed to fetch Advisorship detail for {existing_initiative.id}: {e}")
+                    logger.warning(
+                        f"Failed to fetch Advisorship detail for {existing_initiative.id}: {e}"
+                    )
                     return existing_initiative
 
             try:
@@ -185,8 +223,10 @@ class AdvisorshipHandler(BaseInitiativeHandler):
                 self._handle_advisorship_details(target_adv, project_data)
                 self.adv_controller.update(target_adv)
             except Exception as e:
-                logger.warning(f"Could not update advisorship-specific details for {title}: {e}")
-                
+                logger.warning(
+                    f"Could not update advisorship-specific details for {title}: {e}"
+                )
+
             return target_adv
         else:
             logger.debug(f"Creating new advisorship: {title[:50]}...")
@@ -200,6 +240,8 @@ class AdvisorshipHandler(BaseInitiativeHandler):
                 fellowship_id=getattr(fellowship, "id", None),
                 start_date=project_data.get("start_date"),
                 end_date=project_data.get("end_date"),
+                cancelled=project_data.get("cancelled", False),
+                cancellation_date=project_data.get("cancellation_date"),
                 description=project_data.get("description"),
                 status=project_data.get("status", "Unknown"),
             )
@@ -273,13 +315,29 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         if not fellowship_data:
             return None
 
+        fellowship_data = fellowship_data.copy()
         f_name = fellowship_data["name"]
-        fellowship = self._fellowships_cache.get(f_name)
+        sponsor_name = self._clean_fellowship_sponsor_name(
+            fellowship_data.get("sponsor_name")
+        )
+        if sponsor_name:
+            fellowship_data["sponsor_name"] = sponsor_name
+        else:
+            fellowship_data.pop("sponsor_name", None)
+
+        cache_key = self._fellowship_cache_key(fellowship_data)
+        fellowship = self._fellowships_cache.get(cache_key)
+        sponsor_id = None
+        if not fellowship and sponsor_name:
+            sponsor_id = self.entity_manager.ensure_organization(name=sponsor_name)
+            sponsor_cache_key = self._fellowship_cache_key(
+                fellowship_data,
+                sponsor_id=sponsor_id,
+            )
+            fellowship = self._fellowships_cache.get(sponsor_cache_key)
 
         if not fellowship:
-            sponsor_name = fellowship_data.get("sponsor_name")
-            sponsor_id = None
-            if sponsor_name:
+            if sponsor_name and sponsor_id is None:
                 sponsor_id = self.entity_manager.ensure_organization(name=sponsor_name)
 
             fellowship = Fellowship(
@@ -289,17 +347,81 @@ class AdvisorshipHandler(BaseInitiativeHandler):
                 description=fellowship_data.get("description"),
             )
             self.fel_controller.create(fellowship)
-            self._fellowships_cache[f_name] = fellowship
+            self._cache_fellowship(
+                fellowship,
+                fellowship_data,
+                sponsor_id=sponsor_id,
+            )
         else:
-            sponsor_name = fellowship_data.get("sponsor_name")
             if sponsor_name and not fellowship.sponsor_id:
                 sponsor_id = self.entity_manager.ensure_organization(name=sponsor_name)
                 if sponsor_id:
                     fellowship.sponsor_id = sponsor_id
                     self.fel_controller.update(fellowship)
-                    self._fellowships_cache[f_name] = fellowship
+                    self._cache_fellowship(
+                        fellowship,
+                        fellowship_data,
+                        sponsor_id=sponsor_id,
+                    )
 
         return fellowship
+
+    def _cache_fellowship(
+        self,
+        fellowship: Fellowship,
+        fellowship_data: Dict[str, Any],
+        *,
+        sponsor_id: Optional[int] = None,
+    ) -> None:
+        self._fellowships_cache[self._fellowship_cache_key(fellowship_data)] = (
+            fellowship
+        )
+        if sponsor_id is not None:
+            self._fellowships_cache[
+                self._fellowship_cache_key(
+                    fellowship_data,
+                    sponsor_id=sponsor_id,
+                )
+            ] = fellowship
+
+    def _fellowship_cache_key(
+        self,
+        fellowship_data: Dict[str, Any],
+        *,
+        sponsor_id: Optional[int] = None,
+    ) -> str:
+        name_key = self._normalize_fellowship_cache_part(fellowship_data["name"])
+        if sponsor_id is not None:
+            sponsor_key = f"id:{sponsor_id}"
+        else:
+            sponsor_key = self._normalize_fellowship_cache_part(
+                fellowship_data.get("sponsor_name")
+            )
+        return f"{name_key}::{sponsor_key}"
+
+    @staticmethod
+    def _clean_fellowship_sponsor_name(sponsor_name: Any) -> Optional[str]:
+        if sponsor_name is None:
+            return None
+        cleaned = str(sponsor_name).strip()
+        return cleaned or None
+
+    @staticmethod
+    def _normalize_fellowship_cache_part(value: Any) -> str:
+        if value is None:
+            return ""
+        return str(value).strip().casefold()
+
+    @staticmethod
+    def _get_fellowship_value(fellowship: Any, key: str) -> Any:
+        if isinstance(fellowship, dict):
+            return fellowship.get(key)
+        return getattr(fellowship, key, None)
+
+    def _get_fellowship_sponsor_name(self, fellowship: Any) -> Optional[str]:
+        sponsor = self._get_fellowship_value(fellowship, "sponsor")
+        sponsor_name = self._get_fellowship_value(sponsor, "name") if sponsor else None
+        return self._clean_fellowship_sponsor_name(sponsor_name)
 
     def _sync_advisorship_member(
         self,
@@ -337,7 +459,9 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         setattr(initiative, legacy_attr, person)
         id_attr = f"{legacy_attr}_id"
         if hasattr(initiative, id_attr):
-            setattr(initiative, id_attr, getattr(person, "id", None) if person else None)
+            setattr(
+                initiative, id_attr, getattr(person, "id", None) if person else None
+            )
 
     def _coerce_to_person(self, person: Optional[Any]) -> Optional[Person]:
         if not person:
@@ -385,15 +509,13 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         session = self.initiative_controller._service._repository._session
         params = {"name": title, "current_id": current_id or -1}
         result = session.execute(
-            text(
-                """
+            text("""
                 SELECT id
                 FROM initiatives
                 WHERE name = :name
                   AND id != :current_id
                 LIMIT 1
-                """
-            ),
+                """),
             params,
         ).scalar()
         return result is not None
@@ -429,22 +551,18 @@ class AdvisorshipHandler(BaseInitiativeHandler):
 
         return f"{title} | Orientacao {' | '.join(suffix_parts)}".strip()
 
-    def _find_existing_advisorship_by_title(
-        self, title: str
-    ) -> Optional[Advisorship]:
+    def _find_existing_advisorship_by_title(self, title: str) -> Optional[Advisorship]:
         if not title:
             return None
 
         session = self.initiative_controller._service._repository._session
         initiative_id = session.execute(
-            text(
-                """
+            text("""
                 SELECT id
                 FROM initiatives
                 WHERE name = :name
                 LIMIT 1
-                """
-            ),
+                """),
             {"name": title},
         ).scalar()
         if not initiative_id:
@@ -470,6 +588,8 @@ class AdvisorshipHandler(BaseInitiativeHandler):
                 project_data
             )
 
+        self._sync_advisorship_cancellation(initiative, project_data)
+
         start_date = project_data.get("start_date")
 
         if project_data.get("student_names") or project_data.get("student_emails"):
@@ -480,7 +600,9 @@ class AdvisorshipHandler(BaseInitiativeHandler):
                 start_date=start_date,
             )
 
-        if project_data.get("coordinator_name") or project_data.get("coordinator_email"):
+        if project_data.get("coordinator_name") or project_data.get(
+            "coordinator_email"
+        ):
             self._sync_advisorship_member(
                 initiative,
                 person=supervisor_person,
@@ -494,3 +616,15 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         if fellowship:
             initiative.fellowship = fellowship
             initiative.fellowship_id = fellowship.id
+
+    @staticmethod
+    def _sync_advisorship_cancellation(
+        initiative: Advisorship,
+        project_data: Dict[str, Any],
+    ) -> None:
+        if "cancelled" in project_data and hasattr(initiative, "cancelled"):
+            initiative.cancelled = bool(project_data["cancelled"])
+        if "cancellation_date" in project_data and hasattr(
+            initiative, "cancellation_date"
+        ):
+            initiative.cancellation_date = project_data["cancellation_date"]

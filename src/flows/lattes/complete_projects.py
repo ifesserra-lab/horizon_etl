@@ -1,7 +1,7 @@
 from prefect import flow
 from loguru import logger
-from src.flows.download_lattes import download_lattes_flow
-from src.flows.ingest_lattes_projects import ingest_lattes_projects_flow
+from src.flows.lattes.download import download_lattes_flow
+from src.flows.lattes.projects import ingest_lattes_projects_flow
 
 @flow(name="Lattes Complete Pipeline")
 def lattes_complete_flow():

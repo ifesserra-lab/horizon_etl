@@ -6,7 +6,7 @@ from prefect import flow, task
 
 from src.adapters.sinks.json_sink import JsonSink
 from src.core.logic.canonical_exporter import CanonicalDataExporter
-from src.flows.export_people_relationship_graph import (
+from src.flows.exports.people_relationship_graph import (
     export_people_relationship_graph_flow,
 )
 from src.core.logic.research_group_exporter import ResearchGroupExporter

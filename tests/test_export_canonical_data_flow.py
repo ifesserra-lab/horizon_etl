@@ -1,7 +1,7 @@
 from contextlib import ExitStack
 from unittest.mock import patch
 
-from src.flows.export_canonical_data import export_canonical_data_flow
+from src.flows.exports.canonical_data import export_canonical_data_flow
 
 
 def test_export_canonical_data_flow_calls_tracking_exports_individually(tmp_path):
@@ -9,64 +9,64 @@ def test_export_canonical_data_flow_calls_tracking_exports_individually(tmp_path
 
     with ExitStack() as stack:
         organizations_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_organizations_task")
+            patch("src.flows.exports.canonical_data.export_organizations_task")
         )
         campuses_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_campuses_task")
+            patch("src.flows.exports.canonical_data.export_campuses_task")
         )
         knowledge_areas_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_knowledge_areas_task")
+            patch("src.flows.exports.canonical_data.export_knowledge_areas_task")
         )
         researchers_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_researchers_task")
+            patch("src.flows.exports.canonical_data.export_researchers_task")
         )
         researchers_tracking_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_researchers_tracking_task")
+            patch("src.flows.exports.canonical_data.export_researchers_tracking_task")
         )
         groups_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_groups_task")
+            patch("src.flows.exports.canonical_data.export_groups_task")
         )
         initiatives_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_initiatives_task")
+            patch("src.flows.exports.canonical_data.export_initiatives_task")
         )
         initiatives_tracking_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_initiatives_tracking_task")
+            patch("src.flows.exports.canonical_data.export_initiatives_tracking_task")
         )
         initiative_types_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_initiative_types_task")
+            patch("src.flows.exports.canonical_data.export_initiative_types_task")
         )
         articles_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_articles_task")
+            patch("src.flows.exports.canonical_data.export_articles_task")
         )
         advisorships_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_advisorships_task")
+            patch("src.flows.exports.canonical_data.export_advisorships_task")
         )
         advisorships_tracking_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_advisorships_tracking_task")
+            patch("src.flows.exports.canonical_data.export_advisorships_tracking_task")
         )
         ingestion_runs_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_ingestion_runs_task")
+            patch("src.flows.exports.canonical_data.export_ingestion_runs_task")
         )
         source_records_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_source_records_task")
+            patch("src.flows.exports.canonical_data.export_source_records_task")
         )
         entity_matches_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_entity_matches_task")
+            patch("src.flows.exports.canonical_data.export_entity_matches_task")
         )
         attribute_assertions_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_attribute_assertions_task")
+            patch("src.flows.exports.canonical_data.export_attribute_assertions_task")
         )
         entity_change_logs_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_entity_change_logs_task")
+            patch("src.flows.exports.canonical_data.export_entity_change_logs_task")
         )
         fellowships_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_fellowships_task")
+            patch("src.flows.exports.canonical_data.export_fellowships_task")
         )
         advisorship_analytics_task = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_advisorship_analytics_task")
+            patch("src.flows.exports.canonical_data.export_advisorship_analytics_task")
         )
         people_relationship_graph_flow = stack.enter_context(
-            patch("src.flows.export_canonical_data.export_people_relationship_graph_flow")
+            patch("src.flows.exports.canonical_data.export_people_relationship_graph_flow")
         )
         makedirs = stack.enter_context(patch("os.makedirs"))
         export_canonical_data_flow.fn(output_dir=output_dir, campus="Serra")

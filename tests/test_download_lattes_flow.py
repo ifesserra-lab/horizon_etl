@@ -1,7 +1,7 @@
 import os
 import shutil
 import pytest
-from src.flows.download_lattes import download_lattes_flow
+from src.flows.lattes.download import download_lattes_flow
 
 def test_download_lattes_flow():
     # Setup

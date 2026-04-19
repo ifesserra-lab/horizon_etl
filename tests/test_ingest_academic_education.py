@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from src.flows.ingest_lattes_projects import ingest_file_task
+from src.flows.lattes.projects import ingest_file_task
 from research_domain.domain.entities.academic_education import AcademicEducation
 
 @pytest.fixture
@@ -15,17 +15,17 @@ def mock_entity_manager():
 
 @pytest.fixture
 def mock_researcher_controller():
-    with patch("src.flows.ingest_lattes_projects.ResearcherController") as mock:
+    with patch("src.flows.lattes.projects.ResearcherController") as mock:
         yield mock
 
 @pytest.fixture
 def mock_education_controller():
-    with patch("src.flows.ingest_lattes_projects.AcademicEducationController") as mock:
+    with patch("src.flows.lattes.projects.AcademicEducationController") as mock:
         yield mock
 
 @pytest.fixture
 def mock_lattes_parser():
-    with patch("src.flows.ingest_lattes_projects.LattesParser") as mock:
+    with patch("src.flows.lattes.projects.LattesParser") as mock:
         yield mock
 
 def test_ingest_academic_education(mock_entity_manager, mock_researcher_controller, mock_education_controller, mock_lattes_parser):

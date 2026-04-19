@@ -1,4 +1,5 @@
 import os
+import shutil
 from typing import Any, Dict, List
 
 from loguru import logger
@@ -24,6 +25,7 @@ class SigPesqAdapter(ISource):
         self._validate_environment()
 
         # Step 1: Download
+        self._clean_download_dir()
         self._trigger_download(download_strategies)
 
         # Step 2: Read
@@ -58,6 +60,18 @@ class SigPesqAdapter(ISource):
                 raise EnvironmentError(f"SigPesq Agent requires: {', '.join(missing)}")
 
         logger.debug("Environment variables for SigPesq verified.")
+
+    def _clean_download_dir(self):
+        """
+        Removes stale SigPesq files before starting a new download batch.
+        """
+        os.makedirs(self.download_dir, exist_ok=True)
+        for entry in os.scandir(self.download_dir):
+            if entry.is_dir(follow_symlinks=False):
+                shutil.rmtree(entry.path)
+            else:
+                os.remove(entry.path)
+        logger.info(f"Cleaned SigPesq download directory: {self.download_dir}")
 
     def _trigger_download(self, download_strategies: list = None):
         """

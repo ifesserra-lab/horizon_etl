@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from src.flows.ingest_lattes_projects import (
+from src.flows.lattes.projects import (
     _resolve_sqlalchemy_engine,
     ingest_file_task,
 )
@@ -16,10 +16,10 @@ def test_resolve_sqlalchemy_engine_prefers_bound_session():
     assert engine is bound_engine
 
 
-@patch("src.flows.ingest_lattes_projects.resolve_or_create_researcher")
-@patch("src.flows.ingest_lattes_projects.resolve_researcher_from_lattes")
-@patch("src.flows.ingest_lattes_projects.ResearcherController")
-@patch("src.flows.ingest_lattes_projects.LattesParser")
+@patch("src.flows.lattes.projects.resolve_or_create_researcher")
+@patch("src.flows.lattes.projects.resolve_researcher_from_lattes")
+@patch("src.flows.lattes.projects.ResearcherController")
+@patch("src.flows.lattes.projects.LattesParser")
 def test_ingest_file_creates_researcher_when_lattes_match_is_missing(
     MockParser,
     MockResearcherController,

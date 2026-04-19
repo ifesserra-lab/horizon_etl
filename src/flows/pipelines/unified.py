@@ -13,15 +13,17 @@ from src.core.logic.etl_flow_reporter import (
     probe_sigpesq_groups,
     probe_sigpesq_projects,
 )
-from .export_canonical_data import export_canonical_data_flow
-from .export_initiatives_analytics_mart import export_initiatives_analytics_mart_flow
-from .export_knowledge_areas_mart import export_knowledge_areas_mart_flow
-from .ingest_lattes_advisorships import ingest_lattes_advisorships_flow
-from .ingest_lattes_projects import ingest_lattes_projects_flow
-from .ingest_sigpesq_advisorships import ingest_advisorships_flow
-from .ingest_sigpesq_groups import ingest_research_groups_flow
-from .ingest_sigpesq_projects import ingest_projects_flow
-from .sync_cnpq_groups import sync_cnpq_groups_flow
+from src.flows.cnpq.groups import sync_cnpq_groups_flow
+from src.flows.exports.canonical_data import export_canonical_data_flow
+from src.flows.exports.initiatives_analytics_mart import (
+    export_initiatives_analytics_mart_flow,
+)
+from src.flows.exports.knowledge_areas_mart import export_knowledge_areas_mart_flow
+from src.flows.lattes.advisorships import ingest_lattes_advisorships_flow
+from src.flows.lattes.projects import ingest_lattes_projects_flow
+from src.flows.sigpesq.advisorships import ingest_advisorships_flow
+from src.flows.sigpesq.groups import ingest_research_groups_flow
+from src.flows.sigpesq.projects import ingest_projects_flow
 
 configure_local_prefect_runtime()
 

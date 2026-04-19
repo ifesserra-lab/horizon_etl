@@ -7,7 +7,7 @@ from sqlalchemy import text
 # Add project root to path
 sys.path.append(os.getcwd())
 
-from src.flows.ingest_sigpesq_advisorships import ingest_file_task
+from src.flows.lattes.projects import ingest_file_task
 from src.core.logic.entity_manager import EntityManager
 from eo_lib import InitiativeController, PersonController, TeamController
 from src.scripts.init_db import init_db

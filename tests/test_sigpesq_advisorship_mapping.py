@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from src.core.logic.initiative_identity import build_identity_key
 from src.core.logic.strategies.sigpesq_advisorships import (
     SigPesqAdvisorshipMappingStrategy,
 )
@@ -41,6 +42,7 @@ def test_sigpesq_advisorship_mapping():
 
 def test_person_matcher_email_matching():
     from unittest.mock import MagicMock
+
     from eo_lib import Person
 
     person_ctrl = MagicMock()
@@ -53,6 +55,7 @@ def test_person_matcher_email_matching():
     person_ctrl.get_all.return_value = [p1]
 
     from src.core.logic.person_matcher import PersonMatcher
+
     matcher = PersonMatcher(person_ctrl)
     matcher.preload_cache()
 
@@ -92,9 +95,77 @@ def test_sigpesq_advisorship_mapping_fellowship_flowship():
     assert mapped["fellowship_data"]["value"] == 500.0
 
 
+def test_sigpesq_advisorship_mapping_uses_cancelado_as_advisorship_cancelled():
+    strategy = SigPesqAdvisorshipMappingStrategy()
+
+    row = {
+        "Id": 10702,
+        "CodPT": "PT     17516",
+        "TituloPT": "Plano cancelado no SigPesq",
+        "CodPJ": "PJ      8748",
+        "TituloPJ": "Projeto pai",
+        "Orientado": "Aluno Cancelado",
+        "Orientador": "Docente Orientador",
+        "Inicio": "01/08/2026",
+        "Fim": "31/07/2027",
+        "Programa": "PIVIC",
+        "Valor": "0,00",
+        "AgFinanciadora": "Voluntário",
+        "Cancelado": True,
+        "CanceladoPor": "Coordenacao",
+    }
+
+    mapped = strategy.map_row(row)
+
+    assert mapped["cancelled"] is True
+    assert mapped["cancellation_date"] is None
+    assert mapped["status"] == "Cancelled"
+    assert mapped["metadata"]["cancelled"] is True
+    assert mapped["metadata"]["cancelled_by"] == "Coordenacao"
+
+
+def test_sigpesq_advisorship_mapping_uses_sigpesq_codes_for_pt_pj_and_fellowship():
+    strategy = SigPesqAdvisorshipMappingStrategy()
+
+    row = {
+        "Id": 10701,
+        "CodPT": "PT     17515",
+        "TituloPT": "Projeto estrutural de um modulo hidroponico",
+        "CodPJ": "PJ      8748",
+        "TituloPJ": "Desenvolvimento de um Modulo de Hidroponia Autonomo",
+        "Orientado": "Aluno Bolsista",
+        "OrientadoEmail": "aluno@example.org",
+        "Orientador": "Docente Orientador",
+        "OrientadorEmail": "docente@example.org",
+        "Inicio": "01-08-26",
+        "Programa": "Pibic",
+        "Valor": "700,00",
+        "AgFinanciadora": "FAPES",
+    }
+
+    mapped = strategy.map_row(row)
+
+    assert mapped["title"] == "Projeto estrutural de um modulo hidroponico"
+    assert (
+        mapped["parent_title"] == "Desenvolvimento de um Modulo de Hidroponia Autonomo"
+    )
+    assert mapped["identity_key"] == build_identity_key(["sigpesq_workplan", "17515"])
+    assert mapped["parent_identity_key"] == build_identity_key(
+        ["sigpesq_project", "8748"]
+    )
+    assert mapped["metadata"]["sigpesq_workplan_code"] == "17515"
+    assert mapped["metadata"]["sigpesq_project_code"] == "8748"
+    assert mapped["fellowship_data"]["sigpesq_workplan_code"] == "17515"
+    assert mapped["fellowship_data"]["sigpesq_project_code"] == "8748"
+    assert mapped["fellowship_data"]["sigpesq_id"] == 10701
+
+
 def test_advisorship_and_fellowship_controllers():
     """Test that Advisorship and Fellowship controllers can be imported and instantiated."""
-    from research_domain.controllers.controllers import AdvisorshipController, FellowshipController
+    from research_domain.controllers.controllers import (
+        AdvisorshipController,
+        FellowshipController,
+    )
 
     adv_ctrl = AdvisorshipController()
     fel_ctrl = FellowshipController()
