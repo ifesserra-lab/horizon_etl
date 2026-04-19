@@ -25,7 +25,7 @@ concurrency:
 jobs:
   run-etl:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 300
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       STORAGE_TYPE: ${{ secrets.STORAGE_TYPE }}

@@ -15,6 +15,7 @@ def test_weekly_etl_workflow_runs_weekly_flows_with_notifications():
     )
     assert "make weekly-flows" in workflow
     assert "make full-refresh" not in workflow
+    assert "timeout-minutes: 300" in workflow
 
 
 def test_makefile_weekly_flows_runs_weekly_pipeline_entrypoint():
