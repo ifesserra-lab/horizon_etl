@@ -134,6 +134,29 @@ def _step_warnings(
     return warnings
 
 
+def _result_warnings(result: Any, *, default_source: str) -> list[dict[str, Any]]:
+    if not isinstance(result, dict):
+        return []
+
+    warnings: list[dict[str, Any]] = []
+    for warning in result.get("warnings") or []:
+        if not isinstance(warning, dict):
+            continue
+        warning = dict(warning)
+        warning.setdefault("source", default_source)
+        warnings.append(warning)
+
+    for source, source_warnings in (result.get("warnings_by_source") or {}).items():
+        for warning in source_warnings or []:
+            if not isinstance(warning, dict):
+                continue
+            warning = dict(warning)
+            warning.setdefault("source", source)
+            warnings.append(warning)
+
+    return warnings
+
+
 def _warnings_by_source(
     *,
     db_path: str,
@@ -453,6 +476,12 @@ class ETLFlowReporter:
                 origin=source_data.get("origin"),
                 before_duplicates=before_duplicates,
                 after_duplicates=after_duplicates,
+            )
+            step_warnings.extend(
+                _result_warnings(
+                    result,
+                    default_source=source_data.get("origin") or step_name,
+                )
             )
             self.steps.append(
                 {

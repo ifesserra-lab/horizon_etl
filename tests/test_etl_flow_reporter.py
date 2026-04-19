@@ -103,3 +103,51 @@ def test_etl_flow_reporter_records_warnings_by_source(tmp_path: Path):
     assert "duplicate_count_increased" in report
     assert "## Warnings por Fonte" in content
     assert "cnpq_placeholder_member_name" in content
+
+
+def test_etl_flow_reporter_records_runner_warnings_by_declared_source(tmp_path: Path):
+    db_path = tmp_path / "audit.db"
+    conn = sqlite3.connect(db_path)
+    conn.executescript(
+        """
+        CREATE TABLE persons (id INTEGER PRIMARY KEY, name TEXT, identification_id TEXT);
+        CREATE TABLE teams (id INTEGER PRIMARY KEY, name TEXT);
+        CREATE TABLE knowledge_areas (id INTEGER PRIMARY KEY, name TEXT);
+        CREATE TABLE person_emails (id INTEGER PRIMARY KEY, person_id INTEGER, email TEXT);
+        CREATE TABLE organizations (id INTEGER PRIMARY KEY, name TEXT);
+        CREATE TABLE organizational_units (id INTEGER PRIMARY KEY, name TEXT, organization_id INTEGER);
+        CREATE TABLE roles (id INTEGER PRIMARY KEY, name TEXT);
+        CREATE TABLE initiative_types (id INTEGER PRIMARY KEY, name TEXT);
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    reporter = ETLFlowReporter(
+        db_path=str(db_path),
+        output_dir=str(tmp_path),
+        run_name="runner_warning_run",
+    )
+
+    def runner():
+        return {
+            "warnings": [
+                {
+                    "source": "cnpq",
+                    "severity": "warning",
+                    "code": "cnpq_group_sync_failed",
+                    "count": 2,
+                    "message": "CNPq sync failed for 2 group(s).",
+                }
+            ]
+        }
+
+    reporter.run_step(step_name="all_sources", runner=runner)
+    json_path, md_path = reporter.write()
+
+    report = json_path.read_text(encoding="utf-8")
+    content = md_path.read_text(encoding="utf-8")
+
+    assert '"cnpq"' in report
+    assert "cnpq_group_sync_failed" in report
+    assert "cnpq_group_sync_failed" in content
