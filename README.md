@@ -111,6 +111,33 @@ data/raw/sigpesq/advisorships/2016/Relatorio_<data>.xlsx
 data/raw/sigpesq/advisorships/2026/Relatorio_<data>.xlsx
 ```
 
+## Fluxo Lattes
+
+O download de curriculos Lattes usa `scriptLattes`, que atualmente depende de
+Selenium e de um `chromedriver` local. Antes da execucao, o flow valida se o
+Chrome/Chromium encontrado tem a mesma versao major do `./chromedriver`.
+
+Quando houver mais de uma instalacao de Chrome/Chromium, ou quando o Chromium do
+sistema vier via Snap, informe um binario explicito:
+
+```bash
+CHROME_BINARY=/caminho/para/chrome make ingest-lattes-download
+CHROME_BINARY=/caminho/para/chrome make ingest-lattes-full
+```
+
+O diretorio `data/lattes_json` e limpo de arquivos `.json` antes de cada novo
+download. Isso evita misturar JSONs antigos com a lista atual de pesquisadores.
+O cache bruto do `scriptLattes` em `cache/` nao e apagado pelo flow.
+
+Por padrao, o flow faz um prefetch paralelo controlado dos curriculos ausentes
+em `cache/` antes de chamar o `scriptLattes` para gerar os JSONs. O limite
+padrao e de 3 downloads simultaneos:
+
+```bash
+HORIZON_LATTES_DOWNLOAD_WORKERS=4 CHROME_BINARY=/caminho/para/chrome make ingest-lattes-download
+HORIZON_LATTES_PREFETCH=0 CHROME_BINARY=/caminho/para/chrome make ingest-lattes-download
+```
+
 ## Fluxos e entrypoints
 
 Comandos principais:
