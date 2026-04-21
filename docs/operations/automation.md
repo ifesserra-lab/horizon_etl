@@ -72,4 +72,9 @@ configuracoes locais como `lattes.config` continuam sendo artefatos de runtime.
 - O job cria sua propria `.venv` apenas para a execucao
 - `.venv` e arquivos `.env` nao sao publicados como artifact
 - A automacao instala Chromium do Playwright porque o `sigpesq-agent` depende dele
+- O download Lattes usa `scriptLattes` via Selenium e exige Chrome/Chromium
+  compativel com `./chromedriver`; use `CHROME_BINARY` se o ambiente tiver mais
+  de um navegador instalado
+- O prefetch paralelo do cache Lattes usa 3 workers por padrao; ajuste com
+  `HORIZON_LATTES_DOWNLOAD_WORKERS` ou desative com `HORIZON_LATTES_PREFETCH=0`
 - O agendamento roda aos sabados, 06:00 UTC, pelo cron `0 6 * * 6`
