@@ -3,7 +3,10 @@ from typing import Any, Dict, List
 import pandas as pd
 from loguru import logger
 
-from src.core.logic.initiative_identity import build_identity_key
+from src.core.logic.initiative_identity import (
+    build_identity_key,
+    normalize_sigpesq_code,
+)
 
 from .base import ProjectMappingStrategy
 
@@ -29,15 +32,29 @@ class SigPesqProjectMappingStrategy(ProjectMappingStrategy):
         # Calculate status based on ParecerDiretoria and dates
         parecer = row.get("ParecerDiretoria", "Unknown")
         end_date = self._parse_date(row.get("Fim"))
-        
+
         status = parecer
         if parecer == "Aprovado":
             from datetime import datetime
+
             if end_date and end_date < datetime.now():
                 status = "Concluded"
             else:
                 status = "Active"
-        
+
+        project_code = normalize_sigpesq_code(row.get("Id"))
+        identity_parts = (
+            ["sigpesq_project", project_code]
+            if project_code
+            else [
+                "sigpesq_project",
+                row.get("Id"),
+                row.get("Titulo", row.get("Título")),
+                row.get("Coordenador"),
+                row.get("Inicio"),
+            ]
+        )
+
         return {
             "title": row.get("Titulo", row.get("Título")),
             "status": status,
@@ -54,18 +71,11 @@ class SigPesqProjectMappingStrategy(ProjectMappingStrategy):
                 "external_research_group": row.get("GrupoPesquisaExterno"),
                 "knowledge_area": row.get("AreaConhecimento"),
                 "keywords": row.get("PalavraChave"),
+                "sigpesq_project_code": project_code,
                 "source_system": "sigpesq_projects",
             },
             "campus_name": row.get("CampusExecucao"),
-            "identity_key": build_identity_key(
-                [
-                    "sigpesq_project",
-                    row.get("Id"),
-                    row.get("Titulo", row.get("Título")),
-                    row.get("Coordenador"),
-                    row.get("Inicio"),
-                ]
-            ),
+            "identity_key": build_identity_key(identity_parts),
         }
 
     def _parse_names(self, names_str: Any) -> List[str]:

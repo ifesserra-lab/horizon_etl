@@ -1,0 +1,426 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
+import re
+import shutil
+import subprocess
+from pathlib import Path
+from platform import system
+from typing import Callable, Dict, List
+
+from loguru import logger
+from prefect import flow, task
+
+from src.core.logic.lattes_generators import LattesConfigGenerator, LattesListGenerator
+from src.notifications.telegram import telegram_flow_state_handlers
+
+LATTES_ID_RE = re.compile(r"(?<!\d)\d{16}(?!\d)")
+DEFAULT_LATTES_PREFETCH_WORKERS = 3
+LATTES_PREFETCH_ENABLED_ENV = "HORIZON_LATTES_PREFETCH"
+LATTES_PREFETCH_WORKERS_ENV = "HORIZON_LATTES_DOWNLOAD_WORKERS"
+LattesDownloader = Callable[[str, str], None]
+
+
+class ScriptLattesRuntimeError(RuntimeError):
+    """Raised when the local browser runtime cannot support scriptLattes."""
+
+
+# from research_domain_lib.repository.researcher_repository import ResearcherRepository
+
+# Mocking repository access for standalone flow execution if needed,
+# but in real scenario this should inject the repo.
+# For now, I'll assume we can get data.
+# Since I cannot easily instantiate the real repository without DB connection in this "one-shot" agent,
+# I'll create a task that *would* fetch from DB, but for now returns mock data or tries to use the repo if available.
+
+
+def clean_lattes_json_output(output_dir: str) -> int:
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    removed_count = 0
+    for json_file in output_path.glob("*.json"):
+        json_file.unlink()
+        removed_count += 1
+
+    return removed_count
+
+
+def is_lattes_prefetch_enabled() -> bool:
+    value = os.environ.get(LATTES_PREFETCH_ENABLED_ENV)
+    if value is None:
+        return True
+
+    return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def get_lattes_prefetch_workers() -> int:
+    value = os.environ.get(LATTES_PREFETCH_WORKERS_ENV)
+    if not value:
+        return DEFAULT_LATTES_PREFETCH_WORKERS
+
+    try:
+        workers = int(value)
+    except ValueError as exc:
+        raise ValueError(f"{LATTES_PREFETCH_WORKERS_ENV} must be an integer") from exc
+
+    if workers < 1:
+        raise ValueError(f"{LATTES_PREFETCH_WORKERS_ENV} must be >= 1")
+
+    return workers
+
+
+def collect_lattes_ids_from_list(list_path: str) -> List[str]:
+    ids = []
+    for line in Path(list_path).read_text().splitlines():
+        match = LATTES_ID_RE.search(line)
+        if match:
+            ids.append(match.group(0))
+    return ids
+
+
+def _read_command_version(command: List[str]) -> str:
+    try:
+        result = subprocess.run(command, capture_output=True, check=False, text=True)
+    except OSError:
+        return ""
+
+    return "\n".join(part for part in [result.stdout, result.stderr] if part)
+
+
+def _major_version(version_output: str) -> str:
+    match = re.search(r"\b(\d{2,3})\.\d+", version_output)
+    return match.group(1) if match else ""
+
+
+def _candidate_chrome_binaries(chrome_binary: str | None = None) -> List[str]:
+    candidates = []
+    if chrome_binary:
+        candidates.append(chrome_binary)
+
+    env_binary = os.environ.get("CHROME_BINARY")
+    if env_binary and env_binary not in candidates:
+        candidates.append(env_binary)
+
+    for command in [
+        "google-chrome",
+        "google-chrome-stable",
+        "chrome",
+        "chromium",
+        "chromium-browser",
+    ]:
+        path = shutil.which(command)
+        if path and path not in candidates:
+            candidates.append(path)
+
+    return candidates
+
+
+def validate_script_lattes_runtime(
+    chromedriver_path: str = "./chromedriver", chrome_binary: str | None = None
+) -> str:
+    driver = Path(chromedriver_path)
+    if not driver.exists():
+        raise ScriptLattesRuntimeError(
+            f"ChromeDriver not found at {driver}. Install a compatible driver before "
+            "running scriptLattes."
+        )
+
+    driver_command = str(driver.resolve())
+    driver_version = _read_command_version([driver_command, "--version"])
+    driver_major = _major_version(driver_version)
+    if not driver_major:
+        raise ScriptLattesRuntimeError(
+            f"Could not detect ChromeDriver version from {driver}."
+        )
+
+    explicit_binary = chrome_binary or os.environ.get("CHROME_BINARY")
+    mismatches = []
+    for candidate in _candidate_chrome_binaries(chrome_binary):
+        browser_version = _read_command_version([candidate, "--version"])
+        browser_major = _major_version(browser_version)
+        if not browser_major:
+            if explicit_binary == candidate:
+                raise ScriptLattesRuntimeError(
+                    f"Could not detect Chrome/Chromium version from {candidate}."
+                )
+            continue
+
+        if browser_major != driver_major:
+            message = (
+                f"{candidate} reports major version {browser_major}, "
+                f"but ./chromedriver reports {driver_major}"
+            )
+            if explicit_binary == candidate:
+                raise ScriptLattesRuntimeError(
+                    f"{message}. Set CHROME_BINARY to a compatible Chrome binary "
+                    "or update ./chromedriver."
+                )
+            mismatches.append(message)
+            continue
+
+        return candidate
+
+    if mismatches:
+        mismatch_details = "; ".join(mismatches)
+        raise ScriptLattesRuntimeError(
+            "No Chrome/Chromium binary matches ./chromedriver. "
+            f"Checked: {mismatch_details}. Set CHROME_BINARY to a compatible "
+            "Chrome binary or update ./chromedriver."
+        )
+
+    raise ScriptLattesRuntimeError(
+        "Could not find a usable Chrome/Chromium binary. Set CHROME_BINARY to a "
+        "Chrome binary compatible with ./chromedriver."
+    )
+
+
+def patch_script_lattes_runtime(chrome_binary: str | None = None) -> None:
+    try:
+        import scriptLattes.baixaLattes as baixa_lattes
+        from selenium import webdriver
+        from selenium.webdriver.chrome.service import Service
+    except ImportError as exc:
+        raise ScriptLattesRuntimeError(
+            "scriptLattes Selenium runtime dependencies are not installed."
+        ) from exc
+
+    if (
+        getattr(baixa_lattes, "_horizon_runtime_patched", False)
+        and getattr(baixa_lattes, "_horizon_runtime_chrome_binary", None)
+        == chrome_binary
+    ):
+        return
+
+    def create_driver(self):
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument("start-maximized")
+        chrome_options.add_argument("--blink-settings=imagesEnabled=false")
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--remote-debugging-port=0")
+        chrome_options.add_argument("--disable-gpu")
+        if chrome_binary:
+            chrome_options.binary_location = chrome_binary
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        chrome_options.add_experimental_option("useAutomationExtension", False)
+        chrome_options.add_experimental_option(
+            "prefs", {"download.default_directory": self.results_dir}
+        )
+
+        if system() == "Windows":
+            chrome_driver_path = os.path.abspath("chromedriver.exe")
+        else:
+            chrome_driver_path = os.path.abspath("chromedriver")
+
+        self.driver = webdriver.Chrome(
+            service=Service(chrome_driver_path), options=chrome_options
+        )
+
+    def get_data(id_lattes, diretorio):
+        rob = baixa_lattes.LattesRobot(
+            driver_path="./chromedriver", results_dir=diretorio
+        )
+        print(
+            f"Baixando CV Lattes: {id_lattes}. "
+            "Este processo pode demorar alguns segundos."
+        )
+        rob.load_codes(id_lattes)
+        rob.check_downloaded_cvs()
+
+        try:
+            rob.create_driver()
+            rob.collect_html_cvs(0, None)
+        finally:
+            if getattr(rob, "driver", None):
+                rob.driver.quit()
+
+    baixa_lattes.LattesRobot.create_driver = create_driver
+    baixa_lattes.__get_data = get_data
+    baixa_lattes._horizon_runtime_patched = True
+    baixa_lattes._horizon_runtime_chrome_binary = chrome_binary
+
+
+def _script_lattes_downloader(lattes_id: str, cache_dir: str) -> None:
+    import scriptLattes.baixaLattes as baixa_lattes
+
+    baixa_lattes.baixaCVLattes(lattes_id, cache_dir)
+
+
+def _download_lattes_to_cache(
+    lattes_id: str, cache_dir: str, downloader: LattesDownloader
+) -> None:
+    downloader(lattes_id, cache_dir)
+
+    cached_file = Path(cache_dir) / lattes_id
+    if not cached_file.exists():
+        raise ScriptLattesRuntimeError(
+            f"scriptLattes did not create the cache file for Lattes ID {lattes_id}"
+        )
+
+
+def prefetch_lattes_cache(
+    lattes_ids: List[str],
+    cache_dir: str,
+    max_workers: int = DEFAULT_LATTES_PREFETCH_WORKERS,
+    chrome_binary: str | None = None,
+    downloader: LattesDownloader | None = None,
+) -> List[str]:
+    if max_workers < 1:
+        raise ValueError("max_workers must be >= 1")
+
+    cache_path = Path(cache_dir)
+    cache_path.mkdir(parents=True, exist_ok=True)
+
+    seen_ids = set()
+    missing_ids = []
+    for lattes_id in lattes_ids:
+        if lattes_id in seen_ids:
+            continue
+        seen_ids.add(lattes_id)
+
+        if not (cache_path / lattes_id).exists():
+            missing_ids.append(lattes_id)
+
+    if not missing_ids:
+        logger.info(f"All {len(seen_ids)} Lattes curricula are already cached.")
+        return []
+
+    if downloader is None:
+        patch_script_lattes_runtime(chrome_binary)
+        downloader = _script_lattes_downloader
+
+    worker_count = min(max_workers, len(missing_ids))
+    logger.info(
+        f"Prefetching {len(missing_ids)} missing Lattes curricula into "
+        f"{cache_dir} with {worker_count} worker(s)."
+    )
+
+    if worker_count == 1:
+        for lattes_id in missing_ids:
+            _download_lattes_to_cache(lattes_id, str(cache_path), downloader)
+        return missing_ids
+
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        futures = {
+            executor.submit(
+                _download_lattes_to_cache, lattes_id, str(cache_path), downloader
+            ): lattes_id
+            for lattes_id in missing_ids
+        }
+        for future in as_completed(futures):
+            future.result()
+
+    return missing_ids
+
+
+@task
+def get_researchers_from_db() -> List[Dict]:
+    """
+    Fetches researchers from the database.
+    For this implementation, we will mock the return to ensure the flow runs
+    without needing a live DB connection if the environment isn't fully set up for it,
+    BUT the goal is to use the DB.
+    Equality, let's try to mock it for the 'mock process' requested.
+    """
+    # In a real scenario:
+    # repo = ResearcherRepository(db_session)
+    # return repo.get_all()
+
+    # Mock return for the scope of this task
+    return [
+        {"name": "Paulo Sergio dos Santos Junior", "lattes_id": "8400407353673370"},
+        {"name": "Daniel Cruz Cavalieri", "lattes_id": "9583314331960942"},
+        {"name": "Monalessa Perini Barcellos", "lattes_id": "8826584877205264"},
+        {"name": "João Paulo Andrade Almeida", "lattes_id": "4332944687727598"},
+        {"name": "Rafael Emerick Zape de Oliveira", "lattes_id": "8365543719828195"},
+        {"name": "Gabriel Tozatto Zago", "lattes_id": "8771088249434104"},
+        {"name": "Renato Tannure Rotta de Almeida", "lattes_id": "6927212610032092"},
+        {"name": "Rodrigo Varejão Andreão", "lattes_id": "5589662366089944"},
+        {"name": "Elton Siqueira Moura", "lattes_id": "7923759097083335"},
+        {"name": "Eduardo Peixoto Costa Rocha", "lattes_id": "8617069437130629"},
+        {"name": "Germana Sagrillo Moro", "lattes_id": "8223626264677830"},
+        {"name": "Celso Alberto Saibel Santos", "lattes_id": "7614206164174151"},
+    ]
+
+
+@task
+def generate_config(output_dir: str, list_path: str, cache_dir: str) -> str:
+    config_gen = LattesConfigGenerator()
+    config_path = os.path.abspath("lattes.config")
+    config_gen.generate(config_path, output_dir, list_path, cache_dir=cache_dir)
+    return config_path
+
+
+@task
+def generate_list(researchers: List[Dict]) -> str:
+    list_gen = LattesListGenerator()
+    list_path = os.path.abspath("lattes.list")
+    list_gen.generate_from_db(list_path, researchers)
+    return list_path
+
+
+@task
+def run_script_lattes_real(config_path: str, chrome_binary: str | None = None):
+    try:
+        from scriptLattes.run import executar_scriptLattes
+
+        patch_script_lattes_runtime(chrome_binary)
+        logger.info(f"Starting real scriptLattes execution with config: {config_path}")
+        # Run with somente_json=True since we are an ETL pipeline
+        executar_scriptLattes(config_path, somente_json=True)
+        logger.info("Real scriptLattes execution finished.")
+    except ImportError:
+        logger.error("scriptLattes library not found. Please install it.")
+        raise
+    except Exception as e:
+        logger.error(f"scriptLattes execution failed: {e}")
+        raise
+
+
+@flow(name="Download Lattes Curricula", **telegram_flow_state_handlers())
+def download_lattes_flow():
+    base_dir = os.path.abspath("data")
+    output_dir = os.path.join(base_dir, "lattes_json")
+    cache_dir = os.path.abspath("cache")
+
+    override_list_path = os.path.abspath("data/lattes_run/lattes.list")
+
+    if os.path.exists(override_list_path):
+        logger.info(f"Using override list file: {override_list_path}")
+        list_path = override_list_path
+    else:
+        logger.info("Using DB researchers for list generation.")
+        researchers = get_researchers_from_db()
+        list_path = generate_list(researchers)
+
+    lattes_ids = collect_lattes_ids_from_list(list_path)
+    if not lattes_ids:
+        raise ValueError(f"No valid 16-digit Lattes IDs found in {list_path}")
+    logger.info(f"Preparing to download {len(lattes_ids)} Lattes curricula.")
+
+    chrome_binary = validate_script_lattes_runtime(os.path.abspath("chromedriver"))
+    logger.info(f"Using Chrome/Chromium binary for scriptLattes: {chrome_binary}")
+
+    removed_jsons = clean_lattes_json_output(output_dir)
+    if removed_jsons:
+        logger.info(
+            f"Removed {removed_jsons} stale Lattes JSON files from {output_dir}"
+        )
+
+    if is_lattes_prefetch_enabled():
+        prefetch_lattes_cache(
+            lattes_ids,
+            cache_dir,
+            max_workers=get_lattes_prefetch_workers(),
+            chrome_binary=chrome_binary,
+        )
+    else:
+        logger.info(f"Lattes cache prefetch disabled by {LATTES_PREFETCH_ENABLED_ENV}.")
+
+    config_path = generate_config(output_dir, list_path, cache_dir)
+    run_script_lattes_real(config_path, chrome_binary)
+
+
+if __name__ == "__main__":
+    download_lattes_flow()
