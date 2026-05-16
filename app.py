@@ -19,10 +19,13 @@ from src.flows.lattes.projects import ingest_lattes_projects_flow
 from src.flows.pipelines.unified import full_ingestion_pipeline
 from src.flows.pipelines.weekly import weekly_pipelines_flow
 from src.flows.sigpesq.all import ingest_sigpesq_flow
+from src.core.logic.pii_session_hook import install_lgpd_session_hooks
 
 load_dotenv()
 
 os.environ.setdefault("PREFECT_API_URL", "http://127.0.0.1:4200/api")
+
+install_lgpd_session_hooks()
 
 
 def main():
@@ -136,6 +139,11 @@ def main():
         if flow_to_run == "lattes_full":
             logger.info("Executing Flow: Lattes Complete Pipeline")
             lattes_complete_flow()
+
+        elif flow_to_run == "anonymize_backfill":
+            from src.flows.maintenance.anonymize_backfill import anonymize_backfill_flow
+            logger.info("Executing Flow: LGPD PII Anonymize Backfill")
+            anonymize_backfill_flow()
 
     except Exception as e:
         logger.error(f"Application failed: {e}")

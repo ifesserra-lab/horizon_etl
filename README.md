@@ -138,6 +138,51 @@ HORIZON_LATTES_DOWNLOAD_WORKERS=4 CHROME_BINARY=/caminho/para/chrome make ingest
 HORIZON_LATTES_PREFETCH=0 CHROME_BINARY=/caminho/para/chrome make ingest-lattes-download
 ```
 
+## Execucao com Docker
+
+Executa o sistema completo (Prefect DB + Prefect Server + ETL app) com Docker Compose.
+
+### Pre-requisitos
+
+- Docker Engine com Compose v2 instalado
+- Arquivo `.env` com as credenciais (copie `.env.example` → `.env` e preencha)
+
+### Iniciar servicos
+
+```bash
+cp .env.example .env
+# Edite .env: defina SIGPESQ_USERNAME, SIGPESQ_PASSWORD e opcionalmente tokens do Telegram
+make docker-up
+```
+
+### Rodar pipelines
+
+```bash
+make docker-pipeline CAMPUS=Serra        # pipeline completo
+make docker-ingest-sigpesq               # apenas SigPesq
+make docker-sync-cnpq CAMPUS=Serra       # apenas CNPq
+make docker-export-canonical CAMPUS=Serra OUTPUT_DIR=data/exports
+make docker-full-refresh                 # recria banco e roda pipeline completo
+```
+
+Os arquivos exportados aparecem em `data/exports/` no host. O banco SQLite
+fica em `db/horizon.db` e pode ser consultado diretamente com ferramentas locais.
+
+### Parar servicos
+
+```bash
+make docker-stop   # para containers; dados persistem nos volumes/bind-mounts
+```
+
+### Reconstruir a imagem apos mudancas de dependencias
+
+```bash
+make docker-build
+```
+
+Consulte `specs/002-docker-compose-app/quickstart.md` para cenarios de teste e
+troubleshooting de containers.
+
 ## Fluxos e entrypoints
 
 Comandos principais:

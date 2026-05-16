@@ -2,7 +2,14 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from src.core.logic.pii_anonymizer import anonymize_cpf, anonymize_email
 from src.core.logic.researcher_creation import create_researcher_with_resume_fallback
+
+_ID_RAW = "alice@ifes.edu.br"
+_EMAIL_RAW = "alice@ifes.edu.br"
+
+_ID_ANON = anonymize_cpf(_ID_RAW)
+_EMAIL_ANON = anonymize_email(_EMAIL_RAW)
 
 
 def test_create_researcher_with_resume_fallback_uses_controller_when_supported():
@@ -13,15 +20,15 @@ def test_create_researcher_with_resume_fallback_uses_controller_when_supported()
     result = create_researcher_with_resume_fallback(
         controller,
         name="Alice",
-        identification_id="alice@ifes.edu.br",
-        emails=["alice@ifes.edu.br"],
+        identification_id=_ID_RAW,
+        emails=[_EMAIL_RAW],
     )
 
     assert result is created
     controller.create_researcher.assert_called_once_with(
         name="Alice",
-        identification_id="alice@ifes.edu.br",
-        emails=["alice@ifes.edu.br"],
+        identification_id=_ID_ANON,
+        emails=[_EMAIL_ANON],
     )
     controller.create.assert_not_called()
 
@@ -34,8 +41,8 @@ def test_create_researcher_with_resume_fallback_uses_direct_create_on_resume_mis
     created = MagicMock()
     created.id = 42
     created.name = "Alice"
-    created.identification_id = "alice@ifes.edu.br"
-    created.emails = [MagicMock(email="alice@ifes.edu.br")]
+    created.identification_id = _ID_ANON
+    created.emails = [MagicMock(email=_EMAIL_ANON)]
     controller._service.create_with_details.return_value = created
     exists_check = MagicMock()
     exists_check.scalar.return_value = False
@@ -48,15 +55,15 @@ def test_create_researcher_with_resume_fallback_uses_direct_create_on_resume_mis
     result = create_researcher_with_resume_fallback(
         controller,
         name="Alice",
-        identification_id="alice@ifes.edu.br",
-        emails=["alice@ifes.edu.br"],
+        identification_id=_ID_RAW,
+        emails=[_EMAIL_RAW],
     )
 
     assert result is created
     controller._service.create_with_details.assert_called_once_with(
         name="Alice",
-        emails=["alice@ifes.edu.br"],
-        identification_id="alice@ifes.edu.br",
+        emails=[_EMAIL_ANON],
+        identification_id=_ID_ANON,
     )
     session = controller._service._repository._session
     assert session.execute.call_count == 2
@@ -72,8 +79,8 @@ def test_create_researcher_with_resume_fallback_does_not_swallow_unrelated_type_
         create_researcher_with_resume_fallback(
             controller,
             name="Alice",
-            identification_id="alice@ifes.edu.br",
-            emails=["alice@ifes.edu.br"],
+            identification_id=_ID_RAW,
+            emails=[_EMAIL_RAW],
         )
 
     controller.create.assert_not_called()
@@ -102,20 +109,20 @@ def test_create_researcher_with_resume_fallback_retries_without_emails_on_person
     result = create_researcher_with_resume_fallback(
         controller,
         name="Alice",
-        identification_id="alice@ifes.edu.br",
-        emails=["alice@ifes.edu.br"],
+        identification_id=_ID_RAW,
+        emails=[_EMAIL_RAW],
     )
 
     assert result is controller.get_by_id.return_value
     assert controller.create_researcher.call_args_list[0].kwargs == {
         "name": "Alice",
-        "emails": ["alice@ifes.edu.br"],
-        "identification_id": "alice@ifes.edu.br",
+        "emails": [_EMAIL_ANON],
+        "identification_id": _ID_ANON,
     }
     assert controller.create_researcher.call_args_list[1].kwargs == {
         "name": "Alice",
         "emails": None,
-        "identification_id": "alice@ifes.edu.br",
+        "identification_id": _ID_ANON,
     }
     session.rollback.assert_called_once()
     assert session.execute.call_count == 4
