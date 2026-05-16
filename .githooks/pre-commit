@@ -1,0 +1,42 @@
+#!/bin/sh
+set -eu
+
+blocked_paths='(^|/)db/.*\.db(-.*)?$|^data/exports/.*\.json$'
+max_export_bytes=50000000
+
+staged_paths=$(git diff --cached --name-only --diff-filter=ACMR)
+
+if [ -z "$staged_paths" ]; then
+  exit 0
+fi
+
+blocked=$(printf '%s\n' "$staged_paths" | grep -E "$blocked_paths" || true)
+
+if [ -n "$blocked" ]; then
+  printf '%s\n' "Commit bloqueado: arquivos sensiveis/gerados nao devem ir para o Git:"
+  printf '%s\n' "$blocked"
+  printf '%s\n' "Use storage/artifact externo ou mantenha esses arquivos apenas localmente."
+  exit 1
+fi
+
+large_exports=""
+for path in $staged_paths; do
+  case "$path" in
+    data/exports/*)
+      if [ -f "$path" ]; then
+        size=$(wc -c < "$path" | tr -d ' ')
+        if [ "$size" -gt "$max_export_bytes" ]; then
+          large_exports="${large_exports}${path} (${size} bytes)
+"
+        fi
+      fi
+      ;;
+  esac
+done
+
+if [ -n "$large_exports" ]; then
+  printf '%s\n' "Commit bloqueado: export grande demais para versionar:"
+  printf '%s' "$large_exports"
+  printf '%s\n' "Limite: ${max_export_bytes} bytes."
+  exit 1
+fi
