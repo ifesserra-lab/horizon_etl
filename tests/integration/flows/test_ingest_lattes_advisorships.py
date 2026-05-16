@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.flows.ingest_lattes_advisorships import ingest_advisorships_file_task
+from src.flows.lattes.advisorships import ingest_advisorships_file_task
 
 
 @pytest.fixture
@@ -34,12 +34,12 @@ def mock_lattes_data(tmp_path):
     return str(file_path)
 
 
-@patch("src.flows.ingest_lattes_advisorships.get_run_logger")
-@patch("src.flows.ingest_lattes_advisorships.ProjectLoader")
-@patch("src.flows.ingest_lattes_advisorships.LattesAdvisorshipMappingStrategy")
-@patch("src.flows.ingest_lattes_advisorships.LattesParser")
-@patch("src.flows.ingest_lattes_advisorships.resolve_researcher_from_lattes")
-@patch("src.flows.ingest_lattes_advisorships.ResearcherController")
+@patch("src.flows.lattes.advisorships.get_run_logger")
+@patch("src.flows.lattes.advisorships.ProjectLoader")
+@patch("src.flows.lattes.advisorships.LattesAdvisorshipMappingStrategy")
+@patch("src.flows.lattes.advisorships.LattesParser")
+@patch("src.flows.lattes.advisorships.resolve_researcher_from_lattes")
+@patch("src.flows.lattes.advisorships.ResearcherController")
 def test_ingest_advisorships_file_task(
     MockResearcherCtrl,
     mock_resolve_researcher,

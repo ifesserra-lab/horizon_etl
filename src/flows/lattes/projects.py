@@ -1,33 +1,38 @@
-import os
-import json
 import glob
-from typing import List, Dict, Any
+import json
+import os
 import re
+from typing import Any, Dict, List
 
-from prefect import flow, task
+from eo_lib import InitiativeController, PersonController, TeamController
 from loguru import logger
+from prefect import flow, task
+from prefect.cache_policies import NO_CACHE
+from research_domain.controllers import (
+    AcademicEducationController,
+    ArticleController,
+    ResearcherController,
+)
+from research_domain.domain.entities.academic_education import (
+    AcademicEducation,
+    EducationType,
+    academic_education_knowledge_areas,
+)
+from research_domain.domain.entities.article import Article, article_authors
+from research_domain.domain.entities.researcher import Researcher
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
 from src.adapters.sources.lattes_parser import LattesParser
 from src.core.logic.entity_manager import EntityManager
-from src.core.logic.researcher_resolution import resolve_researcher_from_lattes
-from src.core.logic.researcher_resolution import resolve_or_create_researcher
-from eo_lib import InitiativeController, PersonController, TeamController
-from research_domain.controllers import (
-    ResearcherController,
-    AcademicEducationController,
-    ArticleController
-)
-from research_domain.domain.entities.academic_education import AcademicEducation, EducationType, academic_education_knowledge_areas
-from research_domain.domain.entities.researcher import Researcher
-from research_domain.domain.entities.article import Article, article_authors
-
 from src.core.logic.project_loader import ProjectLoader
+from src.core.logic.researcher_resolution import (
+    resolve_or_create_researcher,
+    resolve_researcher_from_lattes,
+)
 from src.core.logic.strategies.lattes_projects import LattesProjectMappingStrategy
+from src.notifications.telegram import telegram_flow_state_handlers
 from src.tracking.recorder import tracking_recorder
-
-from prefect.cache_policies import NO_CACHE
 
 
 def _resolve_sqlalchemy_engine(init_ctrl: InitiativeController) -> Engine:
@@ -80,7 +85,7 @@ def _ingest_researcher_file(
         except Exception as e:
             logger.error(f"Failed to load JSON {file_path}: {e}")
             return
-            
+
         personal_info = parser.parse_personal_info(data)
 
         json_name = data.get("nome") or data.get("name")
@@ -103,7 +108,7 @@ def _ingest_researcher_file(
             json_name=json_name,
             session=session,
         )
-            
+
         if not target_researcher:
             target_researcher = resolve_or_create_researcher(
                 researcher_ctrl,
@@ -115,7 +120,7 @@ def _ingest_researcher_file(
             raise RuntimeError(
                 f"Unable to resolve or create researcher for Lattes ID {lattes_id}."
             )
-            
+
         # 1. Update Personal Info
         needs_update = False
         if personal_info.get("citation_names"):
@@ -127,7 +132,7 @@ def _ingest_researcher_file(
         if personal_info.get("resume"):
             target_researcher.resume = personal_info["resume"]
             needs_update = True
-            
+
         if needs_update:
             try:
                 researcher_ctrl.update(target_researcher)
@@ -176,14 +181,16 @@ def _ingest_researcher_file(
             except Exception as e:
                 logger.warning(f"Failed to update researcher data for {lattes_id}: {e}")
 
-        logger.info(f"Processing data for researcher: {target_researcher.name} (Lattes: {lattes_id})")
+        logger.info(
+            f"Processing data for researcher: {target_researcher.name} (Lattes: {lattes_id})"
+        )
 
         # 2. Extract Projects
         projects = []
         projects.extend(parser.parse_research_projects(data))
         projects.extend(parser.parse_extension_projects(data))
         projects.extend(parser.parse_development_projects(data))
-        
+
         # Deduplicate projects by name
         seen_names = set()
         unique_projects = []
@@ -195,13 +202,17 @@ def _ingest_researcher_file(
                 seen_names.add(p_name)
 
         if unique_projects:
-            logger.info(f"Ingesting {len(unique_projects)} projects with ProjectLoader for {target_researcher.name}")
+            logger.info(
+                f"Ingesting {len(unique_projects)} projects with ProjectLoader for {target_researcher.name}"
+            )
             # Identify researcher roles prior to loading
             researcher_roles = {p["name"]: p.get("role") for p in unique_projects}
-            
-            mapping_strategy = LattesProjectMappingStrategy(target_researcher.name, researcher_roles)
+
+            mapping_strategy = LattesProjectMappingStrategy(
+                target_researcher.name, researcher_roles
+            )
             loader = ProjectLoader(mapping_strategy=mapping_strategy)
-            
+
             loader.process_records(unique_projects, source_file=file_path)
 
         # 3. Handle Articles
@@ -209,12 +220,21 @@ def _ingest_researcher_file(
         articles.extend(parser.parse_articles(data))
         articles.extend(parser.parse_conference_papers(data))
         if articles:
-            ingest_articles_task(articles, target_researcher, all_researchers, parser, file_path)
+            ingest_articles_task(
+                articles, target_researcher, all_researchers, parser, file_path
+            )
 
         # 4. Handle Academic Education
         education_list = parser.parse_academic_education(data)
         if education_list:
-            ingest_education_task(education_list, target_researcher, all_researchers, entity_manager, researcher_ctrl, file_path)
+            ingest_education_task(
+                education_list,
+                target_researcher,
+                all_researchers,
+                entity_manager,
+                researcher_ctrl,
+                file_path,
+            )
 
     except Exception as e:
         logger.error(f"Failed to process file {file_path}: {e}")
@@ -234,19 +254,25 @@ def ingest_file_task(file_path: str, entity_manager: EntityManager):
     _ingest_researcher_file(file_path, entity_manager, parser)
 
 
-def ingest_articles_task(articles: List[Dict], target_researcher: Researcher, all_researchers: List[Researcher], parser: LattesParser, source_file: str):
+def ingest_articles_task(
+    articles: List[Dict],
+    target_researcher: Researcher,
+    all_researchers: List[Researcher],
+    parser: LattesParser,
+    source_file: str,
+):
     logger.info(f"Processing {len(articles)} articles for {target_researcher.name}...")
     article_ctrl = ArticleController()
     researcher_ctrl = ResearcherController()
-    
+
     try:
         all_db_articles = article_ctrl.get_all()
         doi_map = {a.doi: a for a in all_db_articles if getattr(a, "doi", None)}
-        
+
         def get_art_key(title, year):
             norm_t = parser.normalize_title(title)
             return f"{norm_t}_{year}"
-        
+
         title_year_map = {get_art_key(a.title, a.year): a for a in all_db_articles}
     except Exception as cache_err:
         logger.warning(f"Failed to build article lookup cache: {cache_err}")
@@ -265,7 +291,7 @@ def ingest_articles_task(articles: List[Dict], target_researcher: Researcher, al
                 source_file=source_file,
                 source_path=source_file,
             )
-            
+
             existing_art = None
             if doi and doi in doi_map:
                 existing_art = doi_map[doi]
@@ -284,7 +310,7 @@ def ingest_articles_task(articles: List[Dict], target_researcher: Researcher, al
                     doi=doi,
                     journal_conference=art.get("journal_conference"),
                     volume=art.get("volume"),
-                    pages=art.get("pages")
+                    pages=art.get("pages"),
                 )
                 if doi:
                     doi_map[doi] = paper
@@ -294,7 +320,14 @@ def ingest_articles_task(articles: List[Dict], target_researcher: Researcher, al
                     canonical_entity_type="article",
                     canonical_entity_id=paper.id,
                     operation="create",
-                    changed_fields=["title", "year", "doi", "journal_conference", "volume", "pages"],
+                    changed_fields=[
+                        "title",
+                        "year",
+                        "doi",
+                        "journal_conference",
+                        "volume",
+                        "pages",
+                    ],
                     after={
                         "title": title,
                         "year": year,
@@ -329,7 +362,9 @@ def ingest_articles_task(articles: List[Dict], target_researcher: Researcher, al
             )
 
             # Link primary author
-            current_author_ids = [getattr(auth, "id") for auth in getattr(paper, "authors", [])]
+            current_author_ids = [
+                getattr(auth, "id") for auth in getattr(paper, "authors", [])
+            ]
             if target_researcher.id not in current_author_ids:
                 try:
                     _attach_article_author(
@@ -344,7 +379,12 @@ def ingest_articles_task(articles: List[Dict], target_researcher: Researcher, al
             logger.error(f"Failed to ingest article {art.get('title')}: {art_err}")
 
 
-def _attach_article_author(article_ctrl: ArticleController, researcher_ctrl: ResearcherController, article_id: int, researcher_id: int) -> None:
+def _attach_article_author(
+    article_ctrl: ArticleController,
+    researcher_ctrl: ResearcherController,
+    article_id: int,
+    researcher_id: int,
+) -> None:
     """Attach article author while tolerating controller/service version mismatches."""
     try:
         article_ctrl.add_author(article_id, researcher_id)
@@ -358,7 +398,9 @@ def _attach_article_author(article_ctrl: ArticleController, researcher_ctrl: Res
     if not article or not researcher:
         return
 
-    current_author_ids = [getattr(author, "id", None) for author in getattr(article, "authors", [])]
+    current_author_ids = [
+        getattr(author, "id", None) for author in getattr(article, "authors", [])
+    ]
     if researcher_id in current_author_ids:
         return
 
@@ -366,8 +408,17 @@ def _attach_article_author(article_ctrl: ArticleController, researcher_ctrl: Res
     article_ctrl.update(article)
 
 
-def ingest_education_task(education_list: List[Dict], target_researcher: Researcher, all_researchers: List[Researcher], entity_manager: EntityManager, researcher_ctrl: ResearcherController, source_file: str):
-    logger.info(f"Processing {len(education_list)} education entries for {target_researcher.name}...")
+def ingest_education_task(
+    education_list: List[Dict],
+    target_researcher: Researcher,
+    all_researchers: List[Researcher],
+    entity_manager: EntityManager,
+    researcher_ctrl: ResearcherController,
+    source_file: str,
+):
+    logger.info(
+        f"Processing {len(education_list)} education entries for {target_researcher.name}..."
+    )
     session = researcher_ctrl._service._repository._session
 
     for edu_data in education_list:
@@ -394,14 +445,16 @@ def ingest_education_task(education_list: List[Dict], target_researcher: Researc
             type_name = edu_data.get("degree") or "Unknown"
             type_id = entity_manager.ensure_education_type(name=type_name)
             if not type_id:
-                 continue
+                continue
 
             advisor_id = None
             co_advisor_id = None
             description = edu_data.get("description", "")
-            
+
             if description:
-                adv_match = re.search(r"Orientador:\s*([^.;)]+)", description, re.IGNORECASE)
+                adv_match = re.search(
+                    r"Orientador:\s*([^.;)]+)", description, re.IGNORECASE
+                )
                 if adv_match:
                     adv_name = adv_match.group(1).strip()
                     adv_res = resolve_or_create_researcher(
@@ -412,7 +465,9 @@ def ingest_education_task(education_list: List[Dict], target_researcher: Researc
                     if adv_res:
                         advisor_id = getattr(adv_res, "id")
 
-                co_match = re.search(r"Co-?orientador:\s*([^.;)]+)", description, re.IGNORECASE)
+                co_match = re.search(
+                    r"Co-?orientador:\s*([^.;)]+)", description, re.IGNORECASE
+                )
                 if co_match:
                     co_name = co_match.group(1).strip()
                     co_res = resolve_or_create_researcher(
@@ -468,17 +523,19 @@ def ingest_education_task(education_list: List[Dict], target_researcher: Researc
                     match_confidence=1.0,
                 )
                 continue
-            
-            education = entity_manager.academic_edu_controller.create_academic_education(
-                researcher_id=target_researcher.id,
-                education_type_id=type_id,
-                title=title,
-                institution_id=org_id,
-                start_year=start_val,
-                end_year=end_year,
-                thesis_title=thesis_title,
-                advisor_id=advisor_id,
-                co_advisor_id=co_advisor_id
+
+            education = (
+                entity_manager.academic_edu_controller.create_academic_education(
+                    researcher_id=target_researcher.id,
+                    education_type_id=type_id,
+                    title=title,
+                    institution_id=org_id,
+                    start_year=start_val,
+                    end_year=end_year,
+                    thesis_title=thesis_title,
+                    advisor_id=advisor_id,
+                    co_advisor_id=co_advisor_id,
+                )
             )
             tracking_recorder.record_entity_match(
                 source_record_id=getattr(source_record, "id", None),
@@ -508,7 +565,16 @@ def ingest_education_task(education_list: List[Dict], target_researcher: Researc
                 canonical_entity_type="academic_education",
                 canonical_entity_id=education.id,
                 operation="create",
-                changed_fields=["institution", "degree", "title", "start_year", "end_year", "thesis_title", "advisor_id", "co_advisor_id"],
+                changed_fields=[
+                    "institution",
+                    "degree",
+                    "title",
+                    "start_year",
+                    "end_year",
+                    "thesis_title",
+                    "advisor_id",
+                    "co_advisor_id",
+                ],
                 after={
                     "institution": inst_name,
                     "degree": type_name,
@@ -525,15 +591,15 @@ def ingest_education_task(education_list: List[Dict], target_researcher: Researc
             logger.warning(f"Failed to ingest education item: {e}")
 
 
-@flow(name="Ingest Lattes Projects Flow")
+@flow(name="Ingest Lattes Projects Flow", **telegram_flow_state_handlers())
 def ingest_lattes_projects_flow():
     base_dir = "data/lattes_json"
     if not os.path.isabs(base_dir):
         base_dir = os.path.join(os.getcwd(), base_dir)
-        
+
     json_files = glob.glob(os.path.join(base_dir, "*.json"))
     logger.info(f"Found {len(json_files)} files in {base_dir}")
-    
+
     if not json_files:
         return
 
@@ -541,7 +607,7 @@ def ingest_lattes_projects_flow():
     person_ctrl = PersonController()
     entity_manager = EntityManager(init_ctrl, person_ctrl)
     parser = LattesParser()
-    
+
     from eo_lib.domain.base import Base
 
     engine = _resolve_sqlalchemy_engine(init_ctrl)

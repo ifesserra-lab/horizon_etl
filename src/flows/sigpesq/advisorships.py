@@ -9,6 +9,7 @@ from src.core.logic.project_loader import ProjectLoader
 from src.core.logic.strategies.sigpesq_advisorships import (
     SigPesqAdvisorshipMappingStrategy,
 )
+from src.notifications.telegram import telegram_flow_state_handlers
 
 load_dotenv()
 
@@ -72,12 +73,12 @@ def persist_advisorships():
     for file_path in files:
         logger.info(f"Loading Advisorships from {file_path}")
         loader.process_file(file_path)
-    
+
     # Final pass: Recalculate parent project dates and status from DB
     loader.recalculate_all_parent_statuses()
 
 
-@flow(name="Ingest SigPesq Advisorships")
+@flow(name="Ingest SigPesq Advisorships", **telegram_flow_state_handlers())
 def ingest_advisorships_flow() -> None:
     """
     Prefect flow for ingesting Advisorships (Bolsistas) from SigPesq.

@@ -1,5 +1,5 @@
 from datetime import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 from research_domain.domain.entities import Advisorship
 
@@ -179,3 +179,122 @@ def test_advisorship_handler_supports_legacy_student_and_supervisor_fields(
     assert initiative.student_id == 11
     assert initiative.supervisor is supervisor
     assert initiative.supervisor_id == 12
+
+
+@patch("src.core.logic.initiative_handlers.FellowshipController")
+@patch("src.core.logic.initiative_handlers.AdvisorshipController")
+def test_advisorship_handler_reuses_fellowships_by_program_and_sponsor_across_workplans(
+    _MockAdvisorshipController,
+    MockFellowshipController,
+):
+    initiative_controller = MagicMock()
+    person_matcher = MagicMock()
+    entity_manager = MagicMock()
+
+    MockFellowshipController.return_value.get_all.return_value = []
+    entity_manager.ensure_organization.side_effect = [101, 102]
+    session = MagicMock()
+    initiative_controller._service._repository._session = session
+    person_matcher.person_controller._service._repository._session = session
+
+    handler = AdvisorshipHandler(
+        initiative_controller=initiative_controller,
+        person_matcher=person_matcher,
+        entity_manager=entity_manager,
+    )
+
+    first = handler._ensure_fellowship(
+        {
+            "fellowship_data": {
+                "name": "PIVIC",
+                "sponsor_name": "Voluntario",
+                "value": 700.0,
+                "sigpesq_workplan_code": "17515",
+                "sigpesq_project_code": "8748",
+            }
+        }
+    )
+    second = handler._ensure_fellowship(
+        {
+            "fellowship_data": {
+                "name": "PIVIC",
+                "sponsor_name": "Voluntario",
+                "value": 700.0,
+                "sigpesq_workplan_code": "17548",
+                "sigpesq_project_code": "8752",
+            }
+        }
+    )
+    again_first = handler._ensure_fellowship(
+        {
+            "fellowship_data": {
+                "name": "PIVIC",
+                "sponsor_name": "Voluntario",
+                "value": 700.0,
+                "sigpesq_workplan_code": "17515",
+                "sigpesq_project_code": "8748",
+            }
+        }
+    )
+    cnpq = handler._ensure_fellowship(
+        {
+            "fellowship_data": {
+                "name": "PIVIC",
+                "sponsor_name": "CNPq",
+                "value": 700.0,
+                "sigpesq_workplan_code": "17549",
+                "sigpesq_project_code": "8753",
+            }
+        }
+    )
+
+    assert second is first
+    assert again_first is first
+    assert cnpq is not first
+    assert first.sponsor_id == 101
+    assert cnpq.sponsor_id == 102
+    entity_manager.ensure_organization.assert_has_calls(
+        [call(name="Voluntario"), call(name="CNPq")]
+    )
+    assert MockFellowshipController.return_value.create.call_count == 2
+
+
+@patch("src.core.logic.initiative_handlers.FellowshipController")
+@patch("src.core.logic.initiative_handlers.AdvisorshipController")
+def test_advisorship_handler_sets_cancelled_on_created_advisorship(
+    MockAdvisorshipController,
+    MockFellowshipController,
+):
+    initiative_controller = MagicMock()
+    person_matcher = MagicMock()
+    entity_manager = MagicMock()
+
+    MockFellowshipController.return_value.get_all.return_value = []
+    session = MagicMock()
+    session.execute.return_value.scalar.return_value = None
+    initiative_controller._service._repository._session = session
+    person_matcher.person_controller._service._repository._session = session
+
+    handler = AdvisorshipHandler(
+        initiative_controller=initiative_controller,
+        person_matcher=person_matcher,
+        entity_manager=entity_manager,
+    )
+
+    created = handler.create_or_update(
+        project_data={
+            "title": "Plano cancelado",
+            "status": "Cancelled",
+            "cancelled": True,
+            "cancellation_date": None,
+        },
+        existing_initiative=None,
+        initiative_type_name="Advisorship",
+        initiative_type_id=7,
+        organization_id=9,
+        parent_id=10,
+    )
+
+    assert created.cancelled is True
+    assert created.cancellation_date is None
+    MockAdvisorshipController.return_value.create.assert_called_once_with(created)

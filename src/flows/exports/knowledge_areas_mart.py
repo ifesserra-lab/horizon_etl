@@ -4,6 +4,7 @@ from typing import Optional
 from prefect import flow, get_run_logger, task
 
 from src.core.logic.mart_generator import KnowledgeAreaMartGenerator
+from src.notifications.telegram import telegram_flow_state_handlers
 
 
 @task(name="generate_ka_mart_task")
@@ -17,7 +18,7 @@ def generate_ka_mart_task(output_path: str, campus: Optional[str] = None):
     logger.info("Knowledge Area Mart generation task completed.")
 
 
-@flow(name="Export Knowledge Area Mart Flow")
+@flow(name="Export Knowledge Area Mart Flow", **telegram_flow_state_handlers())
 def export_knowledge_areas_mart_flow(
     output_path: str = "data/exports/knowledge_areas_mart.json",
     campus: Optional[str] = None,
