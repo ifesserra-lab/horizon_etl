@@ -1,8 +1,12 @@
+import faulthandler
+import gc
 import glob
 import json
 import os
 import re
 from typing import Any, Dict, List
+
+faulthandler.enable()
 
 from eo_lib import InitiativeController, PersonController, TeamController
 from loguru import logger
@@ -606,6 +610,7 @@ def ingest_lattes_projects_flow():
 
     for json_file in json_files:
         ingest_researcher_data(json_file, entity_manager, parser)
+        gc.collect()
 
 
 if __name__ == "__main__":
