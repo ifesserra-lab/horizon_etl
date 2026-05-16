@@ -265,20 +265,6 @@ def ingest_articles_task(
     article_ctrl = ArticleController()
     researcher_ctrl = ResearcherController()
 
-    try:
-        all_db_articles = article_ctrl.get_all()
-        doi_map = {a.doi: a for a in all_db_articles if getattr(a, "doi", None)}
-
-        def get_art_key(title, year):
-            norm_t = parser.normalize_title(title)
-            return f"{norm_t}_{year}"
-
-        title_year_map = {get_art_key(a.title, a.year): a for a in all_db_articles}
-    except Exception as cache_err:
-        logger.warning(f"Failed to build article lookup cache: {cache_err}")
-        doi_map = {}
-        title_year_map = {}
-
     for art in articles:
         try:
             title = art["title"]
@@ -293,12 +279,10 @@ def ingest_articles_task(
             )
 
             existing_art = None
-            if doi and doi in doi_map:
-                existing_art = doi_map[doi]
+            if doi:
+                existing_art = article_ctrl.get_by_doi(doi)
             if not existing_art:
-                art_key = get_art_key(title, year)
-                if art_key in title_year_map:
-                    existing_art = title_year_map[art_key]
+                existing_art = article_ctrl.get_by_title_year(title, year)
 
             if existing_art:
                 paper = existing_art
@@ -312,9 +296,6 @@ def ingest_articles_task(
                     volume=art.get("volume"),
                     pages=art.get("pages"),
                 )
-                if doi:
-                    doi_map[doi] = paper
-                title_year_map[get_art_key(title, year)] = paper
                 tracking_recorder.record_change(
                     source_record_id=getattr(source_record, "id", None),
                     canonical_entity_type="article",
