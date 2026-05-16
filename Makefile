@@ -25,30 +25,40 @@ PREFECT_SERVER_SERVICE ?= server
 PREFECT_DB_SERVICE ?= database
 
 .PHONY: help setup logs-dir \
-	db-clean db-init db-reset clean-db init-db reset-db \
+	db-clean db-init db-reset \
 	prefect-server prefect-stop prefect-status \
-	pipeline pipeline-serra pipeline-unified pipeline-log weekly-flows full-refresh full-refresh-serra \
-	ingest-sigpesq sigpesq ingest-groups ingest-projects ingest-advisorships \
-	ingest-lattes-download ingest-lattes-projects ingest-lattes-advisorships ingest-lattes-full \
-	sync-cnpq sync-cnpq-serra \
-	export export-canonical export-serra export-knowledge-areas-mart export-initiatives-analytics-mart export-people-graph export-advisorships export-advisorship-analytics export-analytics \
-	test test-advisorships test-coverage lint format format-check ci-check dev-cycle \
-	verify-status verify-exports audit-duplicates harden-db consolidate-duplicates consolidate-duplicates-dry \
-	etl-report etl-report-md tracking-audit-report tracking-query status clean all
+	pipeline pipeline-log weekly-flows full-refresh \
+	ingest-sigpesq \
+	ingest-lattes-download ingest-lattes-projects ingest-lattes-full \
+	sync-cnpq \
+	export-canonical export-knowledge-areas-mart export-initiatives-analytics-mart export-people-graph \
+	anonymize-backfill anonymize-check \
+	test test-coverage lint format format-check ci-check \
+	audit-duplicates consolidate-duplicates \
+	status clean \
+	docker-up docker-stop docker-build \
+	docker-pipeline docker-weekly-flows docker-full-refresh \
+	docker-ingest-sigpesq docker-sync-cnpq \
+	docker-export-canonical \
+	docker-db-reset
 
 help: ## Show available commands
 	@echo "Horizon ETL commands"
 	@echo "===================="
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "%-34s %s\n", $$1, $$2}'
 
+# --- Setup ---
+
 setup: ## Create venv, install dependencies, and create local folders
 	@python3 -m venv .venv
 	@$(PYTHON_BIN) -m pip install --upgrade pip
 	@$(PYTHON_BIN) -m pip install -r requirements.txt
-	@mkdir -p logs data/exports
+	@mkdir -p logs data/exports data/reports
 
-logs-dir: ## Create the logs directory
+logs-dir:
 	@mkdir -p logs
+
+# --- Database ---
 
 db-clean: ## Delete the local SQLite database
 	@rm -f db/horizon.db
@@ -58,11 +68,7 @@ db-init: ## Initialize database schema and base data
 
 db-reset: db-clean db-init ## Recreate the local database from scratch
 
-clean-db: db-clean ## Alias for db-clean
-
-init-db: db-init ## Alias for db-init
-
-reset-db: db-reset ## Alias for db-reset
+# --- Prefect Server ---
 
 prefect-server: logs-dir ## Start local Prefect server with Docker Compose
 	@if $(DOCKER_COMPOSE) ps --services --status running | grep -qx "$(PREFECT_SERVER_SERVICE)"; then \
@@ -97,138 +103,139 @@ prefect-status: ## Show local Prefect server status
 		echo "Prefect server is not running"; \
 	fi
 
-pipeline: pipeline-unified ## Run the unified pipeline for CAMPUS
+# --- Pipelines ---
 
-pipeline-serra: prefect-server ## Run the unified pipeline for Serra
-	@$(FLOW_PYTHON) app.py full_pipeline Serra "$(OUTPUT_DIR)"
-
-pipeline-unified: prefect-server ## Run the unified pipeline for CAMPUS
+pipeline: prefect-server ## Run the unified ingestion pipeline (CAMPUS=Serra)
 	@$(FLOW_PYTHON) app.py full_pipeline "$(CAMPUS)" "$(OUTPUT_DIR)"
 
 pipeline-log: prefect-server logs-dir ## Run the unified pipeline and tee output to logs/
 	@$(FLOW_PYTHON) app.py full_pipeline "$(CAMPUS)" "$(OUTPUT_DIR)" 2>&1 | tee logs/pipeline_$(CAMPUS)_$$(date +%Y%m%d_%H%M%S).log
 
+full-refresh: db-reset prefect-server ## Reset DB and run full pipeline for all campuses
+	@$(FLOW_PYTHON) app.py full_pipeline "" "$(OUTPUT_DIR)"
+
 weekly-flows: db-reset prefect-server ## Reset DB and run weekly source flows plus exports
 	@$(FLOW_PYTHON) app.py weekly "$(WEEKLY_CAMPUS)" "$(OUTPUT_DIR)"
 
-full-refresh: db-reset prefect-server ## Reset DB and run the unified pipeline without campus filter
-	@$(FLOW_PYTHON) -c "from src.prefect_runtime import bootstrap_local_prefect; bootstrap_local_prefect(); from src.flows.pipelines.unified import full_ingestion_pipeline; full_ingestion_pipeline(campus_name=None, output_dir='$(OUTPUT_DIR)')"
+# --- Ingestion ---
 
-full-refresh-serra: db-reset pipeline-serra ## Reset DB and run the Serra pipeline
-
-ingest-sigpesq: prefect-server ## Ingest all SigPesq reports with one login
+ingest-sigpesq: prefect-server ## Ingest all SigPesq reports (groups, projects, advisorships)
 	@$(FLOW_PYTHON) app.py sigpesq
 
-sigpesq: ingest-sigpesq ## Alias for ingest-sigpesq
-
-ingest-groups: prefect-server ## Ingest SigPesq research groups only
-	@$(FLOW_PYTHON) -m src.flows.sigpesq.groups
-
-ingest-projects: prefect-server ## Ingest SigPesq projects only
-	@$(FLOW_PYTHON) -m src.flows.sigpesq.projects
-
-ingest-advisorships: prefect-server ## Ingest SigPesq advisorships only
-	@$(FLOW_PYTHON) -m src.flows.sigpesq.advisorships
-
-ingest-lattes-download: prefect-server ## Download Lattes curricula only
+ingest-lattes-download: prefect-server ## Download Lattes curricula via scriptLattes
 	@$(FLOW_PYTHON) -m src.flows.lattes.download
 
-ingest-lattes-projects: prefect-server ## Ingest Lattes projects/articles/education only
+ingest-lattes-projects: prefect-server ## Ingest Lattes projects, articles, and education
 	@$(FLOW_PYTHON) -m src.flows.lattes.projects
 
-ingest-lattes-advisorships: prefect-server ## Ingest Lattes advisorships only
-	@$(FLOW_PYTHON) -m src.flows.lattes.advisorships
-
-ingest-lattes-full: prefect-server ## Run the complete Lattes ingestion flow
+ingest-lattes-full: prefect-server ## Run complete Lattes ingestion (download + projects + advisorships)
 	@$(FLOW_PYTHON) -m src.flows.lattes.complete
 
-sync-cnpq: prefect-server ## Sync CNPq data for CAMPUS
+sync-cnpq: prefect-server ## Sync CNPq research groups (CAMPUS=Serra)
 	@$(FLOW_PYTHON) app.py cnpq_sync "$(CAMPUS)"
 
-sync-cnpq-serra: prefect-server ## Sync CNPq data for Serra
-	@$(FLOW_PYTHON) app.py cnpq_sync Serra
+# --- Exports ---
 
-export: export-canonical ## Alias for export-canonical
-
-export-canonical: prefect-server ## Export canonical data for CAMPUS
+export-canonical: prefect-server ## Export all canonical data to OUTPUT_DIR
 	@$(FLOW_PYTHON) app.py export_canonical "$(OUTPUT_DIR)" "$(CAMPUS)"
 
-export-serra: prefect-server ## Export canonical data for Serra
-	@$(FLOW_PYTHON) app.py export_canonical "$(OUTPUT_DIR)" Serra
-
-export-knowledge-areas-mart: prefect-server ## Export the knowledge areas mart
+export-knowledge-areas-mart: prefect-server ## Export knowledge areas mart JSON
 	@$(FLOW_PYTHON) app.py ka_mart "$(OUTPUT_DIR)/knowledge_areas_mart.json" "$(CAMPUS)"
 
-export-initiatives-analytics-mart: prefect-server ## Export the initiatives analytics mart
+export-initiatives-analytics-mart: prefect-server ## Export initiatives analytics mart JSON
 	@$(FLOW_PYTHON) app.py analytics_mart "$(OUTPUT_DIR)/initiatives_analytics_mart.json"
 
-export-people-graph: prefect-server ## Export the people relationship graph
+export-people-graph: prefect-server ## Export people relationship graph JSON
 	@$(FLOW_PYTHON) app.py people_graph "$(OUTPUT_DIR)"
 
-export-advisorships: ## Export advisorships canonical data only
-	@$(PYTHON) -c "from src.core.logic.canonical_exporter import CanonicalDataExporter; from src.adapters.database.postgres_client import PostgresClient; from src.adapters.sinks.json_sink import JsonSink; CanonicalDataExporter(PostgresClient(), JsonSink()).export_advisorships('$(OUTPUT_DIR)/advisorships_canonical.json')"
+# --- LGPD ---
 
-export-advisorship-analytics: ## Export advisorship analytics only
-	@$(PYTHON) -c "from src.core.logic.canonical_exporter import CanonicalDataExporter; from src.adapters.database.postgres_client import PostgresClient; from src.adapters.sinks.json_sink import JsonSink; CanonicalDataExporter(PostgresClient(), JsonSink()).generate_advisorship_mart('$(OUTPUT_DIR)/advisorship_analytics.json')"
+anonymize-backfill: ## Anonymize PII (CPF/email) in existing DB records (LGPD — irreversible)
+	@$(FLOW_PYTHON) app.py anonymize_backfill
 
-export-analytics: export-advisorship-analytics ## Alias for export-advisorship-analytics
+anonymize-check: ## Audit DB for unmasked PII fields
+	@$(PYTHON) -c 'from src.flows.maintenance.anonymize_backfill import audit_pii; audit_pii()'
+
+# --- Quality ---
 
 test: prefect-server ## Run all tests
 	@$(PYTHON) -m pytest -q
 
-test-advisorships: prefect-server ## Run advisorship-related tests
-	@$(PYTHON) -m pytest -q -k "advisorship"
-
-test-coverage: prefect-server ## Run tests with coverage
+test-coverage: prefect-server ## Run tests with HTML coverage report
 	@$(PYTHON) -m pytest --cov=src --cov-report=html --cov-report=term
 
-lint: ## Run flake8 if available
+lint: ## Run flake8
 	@$(PYTHON) -m flake8 src tests
 
-format: ## Format Python code
+format: ## Format code with black and isort
 	@$(PYTHON) -m black src tests
 	@$(PYTHON) -m isort src tests
 
-format-check: ## Check Python formatting
+format-check: ## Check formatting without modifying files
 	@$(PYTHON) -m black --check src tests
 	@$(PYTHON) -m isort --check src tests
 
-ci-check: format-check lint test ## Run CI checks
+ci-check: format-check lint test ## Run all CI checks
 
-dev-cycle: format lint test ## Format, lint, and test
+# --- Data Quality ---
 
-verify-status: ## Print sample advisorship statuses from canonical export
-	@grep -B 3 '"end_date": "2017' $(OUTPUT_DIR)/advisorships_canonical.json | grep status | head -3
-	@grep -B 3 '"end_date": "2026' $(OUTPUT_DIR)/advisorships_canonical.json | grep status | head -3
-
-verify-exports: ## List generated export files
-	@ls -lh $(OUTPUT_DIR)/*.json
-
-audit-duplicates: ## Audit duplicate candidates in the current database
+audit-duplicates: ## Audit duplicate candidates in the database
 	@$(PYTHON) src/scripts/audit_duplicates.py
-
-harden-db: ## Create safe indexes/constraints for duplicate prevention
-	@$(PYTHON) src/scripts/harden_db_indices.py
 
 consolidate-duplicates: ## Consolidate duplicate persons, teams, and knowledge areas
 	@$(PYTHON) src/scripts/consolidate_duplicates.py --entity all
 
-consolidate-duplicates-dry: ## Preview duplicate consolidations without changing the database
-	@$(PYTHON) src/scripts/consolidate_duplicates.py --entity all --dry-run
+# --- Docker ---
 
-etl-report: ## Generate ETL extraction vs load reconciliation report
-	@$(PYTHON) src/scripts/etl_load_report.py
+docker-up: ## Start Prefect DB + server in Docker (required before docker-* pipeline targets)
+	@mkdir -p db data/exports data/lattes_json data/raw/sigpesq cache logs
+	@if $(DOCKER_COMPOSE) ps --services --status running | grep -qx "$(PREFECT_SERVER_SERVICE)"; then \
+		echo "Prefect server already running at $(PREFECT_API_URL)"; \
+	else \
+		echo "Starting Prefect server via Docker..."; \
+		$(DOCKER_COMPOSE) up -d $(PREFECT_DB_SERVICE) $(PREFECT_SERVER_SERVICE); \
+		for i in `seq 1 30`; do \
+			if curl -fsS "http://127.0.0.1:$(PREFECT_PORT)/api/health" >/dev/null 2>&1; then \
+				echo "Prefect server ready at http://127.0.0.1:$(PREFECT_PORT)"; \
+				exit 0; \
+			fi; \
+			sleep 2; \
+		done; \
+		echo "Prefect server did not become ready."; \
+		$(DOCKER_COMPOSE) logs --tail=30 $(PREFECT_SERVER_SERVICE); \
+		exit 1; \
+	fi
 
-etl-report-md: ## Generate Markdown from the ETL JSON report
-	@$(PYTHON) src/scripts/etl_report_markdown.py
+docker-stop: ## Stop all Docker services
+	@$(DOCKER_COMPOSE) stop
 
-tracking-audit-report: ## Generate tracking-domain audit report
-	@$(PYTHON) src/scripts/tracking_audit_report.py
+docker-build: ## Build the ETL app Docker image
+	@$(DOCKER_COMPOSE) build app
 
-tracking-query: ## Query tracking data with QUERY_ARGS
-	@$(PYTHON) src/scripts/tracking_query.py $(QUERY_ARGS)
+docker-pipeline: docker-up ## Run full pipeline in Docker (CAMPUS=Serra)
+	@$(DOCKER_COMPOSE) run --rm --no-deps app app.py full_pipeline "$(CAMPUS)" "$(OUTPUT_DIR)"
 
-status: ## Show local database and export status
+docker-weekly-flows: docker-up ## Run weekly flows in Docker
+	@$(DOCKER_COMPOSE) run --rm --no-deps app app.py weekly "$(WEEKLY_CAMPUS)" "$(OUTPUT_DIR)"
+
+docker-db-reset: ## Reset the ETL database inside Docker
+	@$(DOCKER_COMPOSE) run --rm --no-deps app db/create_db.py
+
+docker-full-refresh: docker-db-reset docker-up ## Reset DB and run all sources in Docker
+	@$(DOCKER_COMPOSE) run --rm --no-deps app
+
+docker-ingest-sigpesq: docker-up ## Ingest SigPesq in Docker
+	@$(DOCKER_COMPOSE) run --rm --no-deps app app.py sigpesq
+
+docker-sync-cnpq: docker-up ## Sync CNPq groups in Docker (CAMPUS=Serra)
+	@$(DOCKER_COMPOSE) run --rm --no-deps app app.py cnpq_sync "$(CAMPUS)"
+
+docker-export-canonical: docker-up ## Export canonical data in Docker
+	@$(DOCKER_COMPOSE) run --rm --no-deps app app.py export_canonical "$(OUTPUT_DIR)" "$(CAMPUS)"
+
+# --- Utilities ---
+
+status: ## Show database and export status
 	@echo "Database:"
 	@ls -lh db/horizon.db 2>/dev/null || echo "  not initialized"
 	@echo "Exports:"
@@ -236,8 +243,6 @@ status: ## Show local database and export status
 	@echo "Last pipeline log:"
 	@ls -lt logs/pipeline_*.log 2>/dev/null | head -1 || echo "  no logs found"
 
-clean: db-clean ## Remove generated caches and local database
+clean: db-clean ## Remove database, caches, and compiled files
 	@rm -rf .pytest_cache .coverage htmlcov
 	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-
-all: full-refresh verify-status ## Reset, run full refresh, and verify exports

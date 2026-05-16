@@ -86,7 +86,7 @@ class SigPesqAdapter(ISource):
         from agent_sigpesq.strategies import ResearchGroupsDownloadStrategy
 
         async def run_agent():
-            # Default to ResearchGroups if nothing specified, to maintain backward compatibility
+            self._patch_browser_factory()
             strategies = (
                 download_strategies
                 if download_strategies
@@ -110,6 +110,35 @@ class SigPesqAdapter(ISource):
                 raise RuntimeError(
                     "SigpesqReportService failed to download reports and no fallback data found."
                 )
+
+    def _patch_browser_factory(self):
+        """
+        On macOS --disable-gpu blocks JS rendering and breaks login.
+        On Linux (including Docker) the original BrowserFactory args are correct.
+        Only apply the simplified launch on macOS.
+        """
+        import sys
+        if sys.platform != "darwin":
+            return
+        try:
+            from agent_sigpesq.core import browser_factory as _bf_mod
+            from playwright.async_api import Playwright
+
+            async def _safe_create_browser_context(playwright: Playwright, headless: bool = True):
+                browser = await playwright.chromium.launch(headless=headless)
+                context = await browser.new_context(
+                    viewport={"width": 1920, "height": 1080},
+                    user_agent=(
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/120.0.0.0 Safari/537.36"
+                    ),
+                )
+                return context
+
+            _bf_mod.BrowserFactory.create_browser_context = staticmethod(_safe_create_browser_context)
+        except Exception as exc:
+            logger.warning(f"Could not patch BrowserFactory: {exc}")
 
     def _attach_http_429_logging(self, service):
         """

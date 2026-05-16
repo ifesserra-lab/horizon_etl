@@ -1,0 +1,45 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Sensitive / local config
+.env
+.env.*
+!.env.example
+
+# Data and generated artifacts (bind-mounted at runtime)
+db/
+data/
+cache/
+logs/
+
+# Dev tooling output
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# Git and spec tooling
+.git/
+specs/
+.specify/
+
+# macOS / editors
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Chromedriver (platform-specific binary — installed in image via apt)
+chromedriver
+chromedriver.exe
+
+# Log files
+*.log

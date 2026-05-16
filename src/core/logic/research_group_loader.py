@@ -9,6 +9,7 @@ from research_domain import (
     UniversityController,
 )
 from src.core.logic.initiative_identity import normalize_text
+from src.core.logic.pii_anonymizer import anonymize_person_data
 from src.tracking.recorder import tracking_recorder
 
 from .strategies.base import (
@@ -100,6 +101,7 @@ class ResearchGroupLoader:
         if cache_key in self._researcher_cache:
             return self._researcher_cache[cache_key]
 
+        email = anonymize_person_data({"email": email})["email"]
         researcher = self.researcher_strategy.ensure(self.researcher_ctrl, name, email)
         if researcher:
             self._researcher_cache[cache_key] = researcher

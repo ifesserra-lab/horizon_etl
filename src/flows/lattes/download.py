@@ -211,7 +211,9 @@ def patch_script_lattes_runtime(chrome_binary: str | None = None) -> None:
         if system() == "Windows":
             chrome_driver_path = os.path.abspath("chromedriver.exe")
         else:
-            chrome_driver_path = os.path.abspath("chromedriver")
+            chrome_driver_path = os.environ.get(
+                "CHROMEDRIVER_PATH", os.path.abspath("chromedriver")
+            )
 
         self.driver = webdriver.Chrome(
             service=Service(chrome_driver_path), options=chrome_options
@@ -399,7 +401,10 @@ def download_lattes_flow():
         raise ValueError(f"No valid 16-digit Lattes IDs found in {list_path}")
     logger.info(f"Preparing to download {len(lattes_ids)} Lattes curricula.")
 
-    chrome_binary = validate_script_lattes_runtime(os.path.abspath("chromedriver"))
+    chromedriver_path = os.environ.get(
+        "CHROMEDRIVER_PATH", os.path.abspath("chromedriver")
+    )
+    chrome_binary = validate_script_lattes_runtime(chromedriver_path)
     logger.info(f"Using Chrome/Chromium binary for scriptLattes: {chrome_binary}")
 
     removed_jsons = clean_lattes_json_output(output_dir)

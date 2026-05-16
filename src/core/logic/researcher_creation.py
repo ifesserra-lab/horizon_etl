@@ -5,6 +5,8 @@ from typing import Optional
 from loguru import logger
 from sqlalchemy import text
 
+from src.core.logic.pii_anonymizer import anonymize_person_data
+
 
 def create_researcher_with_resume_fallback(
     researcher_ctrl,
@@ -20,6 +22,11 @@ def create_researcher_with_resume_fallback(
     When that specific mismatch happens, call the underlying service method
     without `resume`, then ensure the joined-table `researchers` row exists.
     """
+
+    pii = anonymize_person_data({"identification_id": identification_id})
+    identification_id = pii["identification_id"]
+    if emails:
+        emails = [anonymize_person_data({"email": e})["email"] for e in emails if e] or None
 
     try:
         return researcher_ctrl.create_researcher(
@@ -106,6 +113,7 @@ def _ensure_person_emails(
         for email in emails:
             if not email:
                 continue
+            email = anonymize_person_data({"email": email})["email"]
             exists = session.execute(
                 text(
                     """
