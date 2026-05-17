@@ -40,6 +40,7 @@ jobs:
       PREFECT_UI_URL: http://127.0.0.1:4200
       CHROME_BINARY: /usr/bin/chromium-browser
       CHROMEDRIVER_PATH: /usr/bin/chromedriver
+      RAPIDFUZZ_IMPLEMENTATION: fallback
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
