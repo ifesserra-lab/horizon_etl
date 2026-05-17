@@ -78,6 +78,17 @@ def collect_lattes_ids_from_list(list_path: str) -> List[str]:
     return ids
 
 
+def _check_playwright_chromium() -> bool:
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            browser.close()
+        return True
+    except Exception:
+        return False
+
+
 def _read_command_version(command: List[str]) -> str:
     try:
         result = subprocess.run(command, capture_output=True, check=False, text=True)
@@ -118,111 +129,35 @@ def _candidate_chrome_binaries(chrome_binary: str | None = None) -> List[str]:
 def validate_script_lattes_runtime(
     chromedriver_path: str = "./chromedriver", chrome_binary: str | None = None
 ) -> str:
-    driver = Path(chromedriver_path)
-    if not driver.exists():
+    """Validate that Playwright Chromium is available for scriptLattes."""
+    try:
+        from playwright.sync_api import sync_playwright  # noqa: F401
+    except ImportError as exc:
         raise ScriptLattesRuntimeError(
-            f"ChromeDriver not found at {driver}. Install a compatible driver before "
-            "running scriptLattes."
+            "Playwright is not installed. Run: pip install playwright && playwright install chromium"
+        ) from exc
+
+    if not _check_playwright_chromium():
+        raise ScriptLattesRuntimeError(
+            "Playwright Chromium is not installed. Run: playwright install chromium"
         )
 
-    driver_command = str(driver.resolve())
-    driver_version = _read_command_version([driver_command, "--version"])
-    driver_major = _major_version(driver_version)
-    if not driver_major:
-        raise ScriptLattesRuntimeError(
-            f"Could not detect ChromeDriver version from {driver}."
-        )
-
-    explicit_binary = chrome_binary or os.environ.get("CHROME_BINARY")
-    mismatches = []
-    for candidate in _candidate_chrome_binaries(chrome_binary):
-        browser_version = _read_command_version([candidate, "--version"])
-        browser_major = _major_version(browser_version)
-        if not browser_major:
-            if explicit_binary == candidate:
-                raise ScriptLattesRuntimeError(
-                    f"Could not detect Chrome/Chromium version from {candidate}."
-                )
-            continue
-
-        if browser_major != driver_major:
-            message = (
-                f"{candidate} reports major version {browser_major}, "
-                f"but ./chromedriver reports {driver_major}"
-            )
-            if explicit_binary == candidate:
-                raise ScriptLattesRuntimeError(
-                    f"{message}. Set CHROME_BINARY to a compatible Chrome binary "
-                    "or update ./chromedriver."
-                )
-            mismatches.append(message)
-            continue
-
-        return candidate
-
-    if mismatches:
-        mismatch_details = "; ".join(mismatches)
-        raise ScriptLattesRuntimeError(
-            "No Chrome/Chromium binary matches ./chromedriver. "
-            f"Checked: {mismatch_details}. Set CHROME_BINARY to a compatible "
-            "Chrome binary or update ./chromedriver."
-        )
-
-    raise ScriptLattesRuntimeError(
-        "Could not find a usable Chrome/Chromium binary. Set CHROME_BINARY to a "
-        "Chrome binary compatible with ./chromedriver."
-    )
+    return "playwright-chromium"
 
 
 def patch_script_lattes_runtime(chrome_binary: str | None = None) -> None:
     try:
         import scriptLattes.baixaLattes as baixa_lattes
-        from selenium import webdriver
-        from selenium.webdriver.chrome.service import Service
     except ImportError as exc:
         raise ScriptLattesRuntimeError(
-            "scriptLattes Selenium runtime dependencies are not installed."
+            "scriptLattes is not installed."
         ) from exc
 
-    if (
-        getattr(baixa_lattes, "_horizon_runtime_patched", False)
-        and getattr(baixa_lattes, "_horizon_runtime_chrome_binary", None)
-        == chrome_binary
-    ):
+    if getattr(baixa_lattes, "_horizon_runtime_patched", False):
         return
 
-    def create_driver(self):
-        chrome_options = webdriver.ChromeOptions()
-        chrome_options.add_argument("start-maximized")
-        chrome_options.add_argument("--blink-settings=imagesEnabled=false")
-        chrome_options.add_argument("--headless")
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--remote-debugging-port=0")
-        chrome_options.add_argument("--disable-gpu")
-        if chrome_binary:
-            chrome_options.binary_location = chrome_binary
-        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        chrome_options.add_experimental_option("useAutomationExtension", False)
-        chrome_options.add_experimental_option(
-            "prefs", {"download.default_directory": self.results_dir}
-        )
-
-        if system() == "Windows":
-            chrome_driver_path = os.path.abspath("chromedriver.exe")
-        else:
-            chrome_driver_path = os.environ.get(
-                "CHROMEDRIVER_PATH", os.path.abspath("chromedriver")
-            )
-
-        self.driver = webdriver.Chrome(
-            service=Service(chrome_driver_path), options=chrome_options
-        )
-
     def get_data(id_lattes, diretorio):
-        rob = baixa_lattes.LattesRobot(
-            driver_path="./chromedriver", results_dir=diretorio
-        )
+        rob = baixa_lattes.LattesRobot(results_dir=diretorio)
         print(
             f"Baixando CV Lattes: {id_lattes}. "
             "Este processo pode demorar alguns segundos."
@@ -231,16 +166,16 @@ def patch_script_lattes_runtime(chrome_binary: str | None = None) -> None:
         rob.check_downloaded_cvs()
 
         try:
-            rob.create_driver()
+            rob.create_browser()
             rob.collect_html_cvs(0, None)
         finally:
-            if getattr(rob, "driver", None):
-                rob.driver.quit()
+            if getattr(rob, "browser", None):
+                rob.browser.close()
+            if getattr(rob, "playwright", None):
+                rob.playwright.stop()
 
-    baixa_lattes.LattesRobot.create_driver = create_driver
     baixa_lattes.__get_data = get_data
     baixa_lattes._horizon_runtime_patched = True
-    baixa_lattes._horizon_runtime_chrome_binary = chrome_binary
 
 
 def _script_lattes_downloader(lattes_id: str, cache_dir: str) -> None:
@@ -265,7 +200,6 @@ def prefetch_lattes_cache(
     lattes_ids: List[str],
     cache_dir: str,
     max_workers: int = DEFAULT_LATTES_PREFETCH_WORKERS,
-    chrome_binary: str | None = None,
     downloader: LattesDownloader | None = None,
 ) -> List[str]:
     if max_workers < 1:
@@ -289,7 +223,7 @@ def prefetch_lattes_cache(
         return []
 
     if downloader is None:
-        patch_script_lattes_runtime(chrome_binary)
+        patch_script_lattes_runtime()
         downloader = _script_lattes_downloader
 
     worker_count = min(max_workers, len(missing_ids))
@@ -299,10 +233,18 @@ def prefetch_lattes_cache(
     )
 
     if worker_count == 1:
+        failed_ids = []
         for lattes_id in missing_ids:
-            _download_lattes_to_cache(lattes_id, str(cache_path), downloader)
-        return missing_ids
+            try:
+                _download_lattes_to_cache(lattes_id, str(cache_path), downloader)
+            except Exception as exc:
+                logger.warning(f"Failed to download Lattes {lattes_id}, skipping: {exc}")
+                failed_ids.append(lattes_id)
+        if failed_ids:
+            logger.warning(f"Skipped {len(failed_ids)} curricula due to download errors: {failed_ids}")
+        return [lid for lid in missing_ids if lid not in failed_ids]
 
+    failed_ids = []
     with ThreadPoolExecutor(max_workers=worker_count) as executor:
         futures = {
             executor.submit(
@@ -311,9 +253,17 @@ def prefetch_lattes_cache(
             for lattes_id in missing_ids
         }
         for future in as_completed(futures):
-            future.result()
+            lattes_id = futures[future]
+            try:
+                future.result()
+            except Exception as exc:
+                logger.warning(f"Failed to download Lattes {lattes_id}, skipping: {exc}")
+                failed_ids.append(lattes_id)
 
-    return missing_ids
+    if failed_ids:
+        logger.warning(f"Skipped {len(failed_ids)} curricula due to download errors: {failed_ids}")
+
+    return [lid for lid in missing_ids if lid not in failed_ids]
 
 
 @task
@@ -363,11 +313,11 @@ def generate_list(researchers: List[Dict]) -> str:
 
 
 @task
-def run_script_lattes_real(config_path: str, chrome_binary: str | None = None):
+def run_script_lattes_real(config_path: str):
     try:
         from scriptLattes.run import executar_scriptLattes
 
-        patch_script_lattes_runtime(chrome_binary)
+        patch_script_lattes_runtime()
         logger.info(f"Starting real scriptLattes execution with config: {config_path}")
         # Run with somente_json=True since we are an ETL pipeline
         executar_scriptLattes(config_path, somente_json=True)
@@ -401,11 +351,8 @@ def download_lattes_flow():
         raise ValueError(f"No valid 16-digit Lattes IDs found in {list_path}")
     logger.info(f"Preparing to download {len(lattes_ids)} Lattes curricula.")
 
-    chromedriver_path = os.environ.get(
-        "CHROMEDRIVER_PATH", os.path.abspath("chromedriver")
-    )
-    chrome_binary = validate_script_lattes_runtime(chromedriver_path)
-    logger.info(f"Using Chrome/Chromium binary for scriptLattes: {chrome_binary}")
+    validate_script_lattes_runtime()
+    logger.info("Playwright Chromium runtime validated for scriptLattes.")
 
     removed_jsons = clean_lattes_json_output(output_dir)
     if removed_jsons:
@@ -413,18 +360,30 @@ def download_lattes_flow():
             f"Removed {removed_jsons} stale Lattes JSON files from {output_dir}"
         )
 
+    effective_list_path = list_path
     if is_lattes_prefetch_enabled():
         prefetch_lattes_cache(
             lattes_ids,
             cache_dir,
             max_workers=get_lattes_prefetch_workers(),
-            chrome_binary=chrome_binary,
         )
+        cache_path = Path(cache_dir)
+        failed_ids = {lid for lid in lattes_ids if not (cache_path / lid).exists()}
+        if failed_ids:
+            tmp_list = os.path.abspath("lattes_effective.list")
+            with open(tmp_list, "w") as f:
+                for line in Path(list_path).read_text().splitlines():
+                    match = LATTES_ID_RE.search(line)
+                    if match and match.group(0) in failed_ids:
+                        continue
+                    f.write(line + "\n")
+            effective_list_path = tmp_list
+            logger.info(f"Excluded {len(failed_ids)} failed IDs from scriptLattes run: {failed_ids}")
     else:
         logger.info(f"Lattes cache prefetch disabled by {LATTES_PREFETCH_ENABLED_ENV}.")
 
-    config_path = generate_config(output_dir, list_path, cache_dir)
-    run_script_lattes_real(config_path, chrome_binary)
+    config_path = generate_config(output_dir, effective_list_path, cache_dir)
+    run_script_lattes_real(config_path)
 
 
 if __name__ == "__main__":
