@@ -7,8 +7,26 @@ from prefect import flow, task
 from src.adapters.sinks.json_sink import JsonSink
 from src.core.logic.canonical_exporter import CanonicalDataExporter
 from src.core.logic.research_group_exporter import ResearchGroupExporter
+from src.flows.exports.null_researchers_collaboration_graph import (
+    export_null_researchers_collaboration_graph_flow,
+)
+from src.flows.exports.outside_ifes_collaboration_graph import (
+    export_outside_ifes_collaboration_graph_flow,
+)
+from src.flows.exports.people_collaboration_graph import (
+    export_people_collaboration_graph_flow,
+)
 from src.flows.exports.people_relationship_graph import (
     export_people_relationship_graph_flow,
+)
+from src.flows.exports.research_group_membership_graphs_manifest import (
+    export_research_group_membership_graphs_manifest_flow,
+)
+from src.flows.exports.researchers_collaboration_graph import (
+    export_researchers_collaboration_graph_flow,
+)
+from src.flows.exports.students_collaboration_graph import (
+    export_students_collaboration_graph_flow,
 )
 from src.notifications.telegram import telegram_flow_state_handlers
 
@@ -235,6 +253,12 @@ def export_canonical_data_flow(
     export_fellowships_task(output_dir)
     export_advisorship_analytics_task(output_dir)
     export_people_relationship_graph_flow(output_dir=output_dir)
+    export_people_collaboration_graph_flow(output_dir=output_dir)
+    export_researchers_collaboration_graph_flow(output_dir=output_dir)
+    export_students_collaboration_graph_flow(output_dir=output_dir)
+    export_outside_ifes_collaboration_graph_flow(output_dir=output_dir)
+    export_null_researchers_collaboration_graph_flow(output_dir=output_dir)
+    export_research_group_membership_graphs_manifest_flow(output_dir=output_dir)
 
 
 if __name__ == "__main__":
