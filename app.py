@@ -14,6 +14,9 @@ from src.flows.exports.knowledge_areas_mart import export_knowledge_areas_mart_f
 from src.flows.exports.people_relationship_graph import (
     export_people_relationship_graph_flow,
 )
+from src.flows.exports.people_collaboration_graph import (
+    export_people_collaboration_graph_flow,
+)
 from src.flows.lattes.complete_projects import lattes_complete_flow
 from src.flows.lattes.projects import ingest_lattes_projects_flow
 from src.flows.pipelines.unified import full_ingestion_pipeline
@@ -131,6 +134,17 @@ def main():
                 f"Executing Flow: Export People Relationship Graph (Output Dir: {output_dir})"
             )
             export_people_relationship_graph_flow(output_dir=output_dir)
+
+        if flow_to_run in ["collaboration_graph", "all"]:
+            output_dir = (
+                sys.argv[2]
+                if len(sys.argv) > 2 and flow_to_run == "collaboration_graph"
+                else "data/exports"
+            )
+            logger.info(
+                f"Executing Flow: Export People Collaboration Graph (Output Dir: {output_dir})"
+            )
+            export_people_collaboration_graph_flow(output_dir=output_dir)
 
         if flow_to_run in ["ingest_lattes_projects", "all"]:
             logger.info("Executing Flow: Ingest Lattes Projects")

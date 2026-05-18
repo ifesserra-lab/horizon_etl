@@ -31,7 +31,7 @@ PREFECT_DB_SERVICE ?= database
 	ingest-sigpesq \
 	ingest-lattes-download ingest-lattes-projects ingest-lattes-full \
 	sync-cnpq \
-	export-canonical export-knowledge-areas-mart export-initiatives-analytics-mart export-people-graph \
+	export-canonical export-knowledge-areas-mart export-initiatives-analytics-mart export-people-graph export-collaboration-graph \
 	anonymize-backfill anonymize-check \
 	test test-coverage lint format format-check ci-check \
 	audit-duplicates consolidate-duplicates \
@@ -147,6 +147,9 @@ export-initiatives-analytics-mart: prefect-server ## Export initiatives analytic
 
 export-people-graph: prefect-server ## Export people relationship graph JSON
 	@$(FLOW_PYTHON) app.py people_graph "$(OUTPUT_DIR)"
+
+export-collaboration-graph: prefect-server ## Export people collaboration graph JSON
+	@$(FLOW_PYTHON) app.py collaboration_graph "$(OUTPUT_DIR)"
 
 # --- LGPD ---
 
