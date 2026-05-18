@@ -20,6 +20,9 @@ from src.flows.exports.people_collaboration_graph import (
 from src.flows.exports.null_researchers_collaboration_graph import (
     export_null_researchers_collaboration_graph_flow,
 )
+from src.flows.exports.students_collaboration_graph import (
+    export_students_collaboration_graph_flow,
+)
 from src.flows.exports.outside_ifes_collaboration_graph import (
     export_outside_ifes_collaboration_graph_flow,
 )
@@ -143,6 +146,17 @@ def main():
                 f"Executing Flow: Export People Relationship Graph (Output Dir: {output_dir})"
             )
             export_people_relationship_graph_flow(output_dir=output_dir)
+
+        if flow_to_run in ["students_collaboration_graph", "all"]:
+            output_dir = (
+                sys.argv[2]
+                if len(sys.argv) > 2 and flow_to_run == "students_collaboration_graph"
+                else "data/exports"
+            )
+            logger.info(
+                f"Executing Flow: Export Students Collaboration Graph (Output Dir: {output_dir})"
+            )
+            export_students_collaboration_graph_flow(output_dir=output_dir)
 
         if flow_to_run in ["null_researchers_collaboration_graph", "all"]:
             output_dir = (
