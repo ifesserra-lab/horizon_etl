@@ -18,12 +18,22 @@ class PeopleCollaborationGraphGenerator:
     Edge weight: initiative_count + article_count + advisorship_count.
     """
 
-    def generate(self, researchers_path: str, output_path: str) -> dict[str, Any]:
+    def generate(
+        self,
+        researchers_path: str,
+        output_path: str,
+        node_filter=None,
+        node_filter_label: str | None = None,
+    ) -> dict[str, Any]:
         logger.info("Building people collaboration graph from {}", researchers_path)
 
         with open(researchers_path) as f:
             raw = json.load(f)
         people = raw["data"] if "data" in raw else raw
+        if node_filter is not None:
+            before = len(people)
+            people = [p for p in people if node_filter(p)]
+            logger.info("Node filter '{}': {} → {} people", node_filter_label or "custom", before, len(people))
 
         G = nx.Graph()
 
@@ -82,6 +92,7 @@ class PeopleCollaborationGraphGenerator:
             "metadata": {
                 "generated_at": datetime.now(timezone.utc).isoformat(),
                 "source": researchers_path,
+                **({"node_filter": node_filter_label} if node_filter_label else {}),
                 "weight_definition": (
                     "Edge weight = initiative_count + article_count + advisorship_count. "
                     "Each shared initiative, co-authored article, or advisorship adds 1."
