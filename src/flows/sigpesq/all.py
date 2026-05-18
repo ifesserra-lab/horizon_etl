@@ -29,6 +29,12 @@ def _download_strategies():
     ]
 
 
+def download_all_sigpesq_reports() -> None:
+    """Download all SigPesq reports using a single login session (no persist)."""
+    adapter = SigPesqAdapter()
+    adapter.extract(download_strategies=_download_strategies())
+
+
 @flow(name="Ingest SigPesq Full", **telegram_flow_state_handlers())
 def ingest_sigpesq_flow() -> None:
     """

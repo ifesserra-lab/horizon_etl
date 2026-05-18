@@ -21,9 +21,10 @@ from src.flows.exports.initiatives_analytics_mart import (
 from src.flows.exports.knowledge_areas_mart import export_knowledge_areas_mart_flow
 from src.flows.lattes.advisorships import ingest_lattes_advisorships_flow
 from src.flows.lattes.projects import ingest_lattes_projects_flow
-from src.flows.sigpesq.advisorships import ingest_advisorships_flow
-from src.flows.sigpesq.groups import ingest_research_groups_flow
-from src.flows.sigpesq.projects import ingest_projects_flow
+from src.flows.sigpesq.advisorships import persist_advisorships
+from src.flows.sigpesq.all import download_all_sigpesq_reports
+from src.flows.sigpesq.groups import persist_research_groups
+from src.flows.sigpesq.projects import persist_projects
 from src.notifications.telegram import telegram_flow_state_handlers
 
 configure_local_prefect_runtime()
@@ -53,37 +54,40 @@ def full_ingestion_pipeline(
     )
 
     try:
-        logger.info("Step 1/8: Ingesting SigPesq research groups...")
+        logger.info("Step 1/8: Downloading all SigPesq reports (single login)...")
+        download_all_sigpesq_reports()
+
+        logger.info("Step 2/8: Persisting SigPesq research groups...")
         if reporter:
             reporter.run_step(
                 step_name="sigpesq_research_groups",
-                runner=ingest_research_groups_flow,
+                runner=persist_research_groups,
                 source_probe=probe_sigpesq_groups,
             )
         else:
-            ingest_research_groups_flow()
+            persist_research_groups()
 
-        logger.info("Step 2/8: Ingesting SigPesq projects...")
+        logger.info("Step 3/8: Persisting SigPesq projects...")
         if reporter:
             reporter.run_step(
                 step_name="sigpesq_projects",
-                runner=ingest_projects_flow,
+                runner=persist_projects,
                 source_probe=probe_sigpesq_projects,
             )
         else:
-            ingest_projects_flow()
+            persist_projects()
 
-        logger.info("Step 3/8: Ingesting SigPesq advisorships...")
+        logger.info("Step 4/8: Persisting SigPesq advisorships...")
         if reporter:
             reporter.run_step(
                 step_name="sigpesq_advisorships",
-                runner=ingest_advisorships_flow,
+                runner=persist_advisorships,
                 source_probe=probe_sigpesq_advisorships,
             )
         else:
-            ingest_advisorships_flow()
+            persist_advisorships()
 
-        logger.info("Step 4/8: Ingesting Lattes projects/articles/education...")
+        logger.info("Step 5/9: Ingesting Lattes projects/articles/education...")
         if reporter:
             reporter.run_step(
                 step_name="lattes_projects",
@@ -93,7 +97,7 @@ def full_ingestion_pipeline(
         else:
             ingest_lattes_projects_flow()
 
-        logger.info("Step 5/8: Ingesting Lattes advisorships...")
+        logger.info("Step 6/9: Ingesting Lattes advisorships...")
         if reporter:
             reporter.run_step(
                 step_name="lattes_advisorships",
@@ -104,7 +108,7 @@ def full_ingestion_pipeline(
             ingest_lattes_advisorships_flow()
 
         logger.info(
-            f"Step 6/8: Syncing CNPq groups (Filter: {campus_name or 'None'})..."
+            f"Step 7/9: Syncing CNPq groups (Filter: {campus_name or 'None'})..."
         )
         if reporter:
             reporter.run_step(
@@ -115,11 +119,11 @@ def full_ingestion_pipeline(
         else:
             sync_cnpq_groups_flow(campus_name=campus_name)
 
-        logger.info(f"Step 7/8: Exporting canonical data to {output_dir}...")
+        logger.info(f"Step 8/9: Exporting canonical data to {output_dir}...")
         export_canonical_data_flow(output_dir=output_dir, campus=campus_name)
 
         ka_mart_path = os.path.join(output_dir, "knowledge_areas_mart.json")
-        logger.info(f"Step 8/8: Generating marts at {output_dir}...")
+        logger.info(f"Step 9/9: Generating marts at {output_dir}...")
         export_knowledge_areas_mart_flow(output_path=ka_mart_path, campus=campus_name)
 
         analytics_mart_path = os.path.join(
