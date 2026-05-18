@@ -25,6 +25,7 @@ CLASSIFICATION_GRAPH_EXPORTS: tuple[tuple[Optional[str], str], ...] = (
 
 RESEARCH_GROUP_GRAPH_DIRECTORY = "research_group_relationship_graphs"
 RESEARCH_GROUP_GRAPH_MANIFEST = "research_group_relationship_graphs_manifest.json"
+RESEARCH_GROUP_MEMBERSHIP_GRAPH_DIRECTORY = "research_group_membership_graphs"
 
 
 class PeopleRelationshipGraphGenerator:
@@ -108,6 +109,12 @@ class PeopleRelationshipGraphGenerator:
             sources=sources,
             output_dir=output_dir,
         )
+
+        membership_alias = os.path.join(output_dir, RESEARCH_GROUP_MEMBERSHIP_GRAPH_DIRECTORY)
+        if os.path.islink(membership_alias):
+            os.unlink(membership_alias)
+        if not os.path.exists(membership_alias):
+            os.symlink(RESEARCH_GROUP_GRAPH_DIRECTORY, membership_alias)
 
         logger.info(
             "People Relationship Graph bundle generated with {} classification graphs and {} research-group graphs",
