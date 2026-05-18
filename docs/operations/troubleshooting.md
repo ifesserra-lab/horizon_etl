@@ -36,6 +36,41 @@ Acao recomendada:
 - configurar as variaveis no `.env` local
 - ou configurar os secrets correspondentes no GitHub
 
+## SigPesq retorna HTTP 429 (rate limit no login)
+
+Sintoma comum:
+
+```
+ERROR | SigPesq portal returned HTTP 429 while logging in at https://sigpesq.ifes.edu.br/Login.aspx.
+```
+
+Causa:
+
+- o portal bloqueia logins rapidos consecutivos (rate limit por IP ou conta)
+
+Comportamento automatico:
+
+O adapter reintenta o download com backoff exponencial antes de falhar:
+
+| Tentativa | Espera antes |
+|-----------|-------------|
+| 1         | —           |
+| 2         | 60s         |
+| 3         | 120s        |
+
+Configuravel via `.env`:
+
+```env
+SIGPESQ_429_WAIT_SECONDS=60   # base de espera entre tentativas (default: 60)
+SIGPESQ_MAX_RETRIES=3         # maximo de tentativas (default: 3)
+```
+
+Se o problema persistir apos todas as tentativas:
+
+- verificar se ha outra instancia do pipeline rodando em paralelo
+- aguardar alguns minutos antes de reiniciar manualmente
+- o pipeline completo (`make full-pipeline`) usa um unico login — nunca chamar os flows individuais (`ingest_research_groups_flow`, `ingest_projects_flow`, `ingest_advisorships_flow`) em sequencia separada
+
 ## Playwright sem browser instalado
 
 Sintoma comum:

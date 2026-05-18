@@ -326,11 +326,27 @@ PY
 
 ## Troubleshooting
 
-### Login SigPesq falha
+### Login SigPesq falha (HTTP 429 — rate limit)
 
-Verifique credenciais e se nao ha varias execucoes simultaneas tentando logar
-no portal. O adapter registra explicitamente HTTP 429 quando o portal aplica
-rate limit.
+O portal SigPesq aplica rate limit em logins rapidos consecutivos e retorna HTTP 429.
+
+O adapter detecta automaticamente o 429 e reintenta com backoff exponencial:
+
+| Tentativa | Espera antes |
+|-----------|-------------|
+| 1         | —           |
+| 2         | 60s         |
+| 3         | 120s        |
+
+Configuravel via `.env`:
+
+```env
+SIGPESQ_429_WAIT_SECONDS=60   # base de espera (default: 60)
+SIGPESQ_MAX_RETRIES=3         # maximo de tentativas (default: 3)
+```
+
+Se o 429 persistir apos todas as tentativas, verifique se ha outra instancia do
+pipeline rodando em paralelo ou se o portal esta temporariamente bloqueando o IP.
 
 ### Relatorios antigos aparecem na carga
 
