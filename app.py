@@ -20,6 +20,9 @@ from src.flows.exports.people_collaboration_graph import (
 from src.flows.exports.null_researchers_collaboration_graph import (
     export_null_researchers_collaboration_graph_flow,
 )
+from src.flows.exports.research_group_membership_graphs_manifest import (
+    export_research_group_membership_graphs_manifest_flow,
+)
 from src.flows.exports.students_collaboration_graph import (
     export_students_collaboration_graph_flow,
 )
@@ -146,6 +149,17 @@ def main():
                 f"Executing Flow: Export People Relationship Graph (Output Dir: {output_dir})"
             )
             export_people_relationship_graph_flow(output_dir=output_dir)
+
+        if flow_to_run in ["rg_membership_manifest", "all"]:
+            output_dir = (
+                sys.argv[2]
+                if len(sys.argv) > 2 and flow_to_run == "rg_membership_manifest"
+                else "data/exports"
+            )
+            logger.info(
+                f"Executing Flow: Export Research Group Membership Graphs Manifest (Output Dir: {output_dir})"
+            )
+            export_research_group_membership_graphs_manifest_flow(output_dir=output_dir)
 
         if flow_to_run in ["students_collaboration_graph", "all"]:
             output_dir = (
