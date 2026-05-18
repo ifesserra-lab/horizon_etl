@@ -1,8 +1,13 @@
+import asyncio
 import os
 import shutil
+import time
 from typing import Any, Dict, List
 
 from loguru import logger
+
+_SIGPESQ_429_WAIT_SECONDS = int(os.getenv("SIGPESQ_429_WAIT_SECONDS", "60"))
+_SIGPESQ_MAX_RETRIES = int(os.getenv("SIGPESQ_MAX_RETRIES", "3"))
 
 from src.core.logic.loaders import SigPesqFileLoader
 from src.core.ports.source import ISource
@@ -76,40 +81,59 @@ class SigPesqAdapter(ISource):
     def _trigger_download(self, download_strategies: list = None):
         """
         Calls the external lib to download files.
+        Retries up to _SIGPESQ_MAX_RETRIES times with exponential backoff when
+        HTTP 429 rate-limiting is detected on login.
         """
         logger.info(f"Triggering sigpesq_agent in {self.download_dir}...")
-
-        # Attempt to import and run the agent
-        import asyncio
 
         from agent_sigpesq.services.reports_service import SigpesqReportService
         from agent_sigpesq.strategies import ResearchGroupsDownloadStrategy
 
-        async def run_agent():
-            self._patch_browser_factory()
-            strategies = (
-                download_strategies
-                if download_strategies
-                else [ResearchGroupsDownloadStrategy()]
-            )
-            service = SigpesqReportService(
-                headless=True, download_dir=self.download_dir, strategies=strategies
-            )
-            self._attach_http_429_logging(service)
-            return await service.run()
+        strategies = (
+            download_strategies
+            if download_strategies
+            else [ResearchGroupsDownloadStrategy()]
+        )
 
-        success = asyncio.run(run_agent())
+        for attempt in range(1, _SIGPESQ_MAX_RETRIES + 1):
+            rate_limited = {"seen": False}
 
-        if not success:
-            # Check if we have at least some files to work with
+            async def run_agent():
+                self._patch_browser_factory()
+                service = SigpesqReportService(
+                    headless=True,
+                    download_dir=self.download_dir,
+                    strategies=strategies,
+                )
+                self._attach_http_429_logging(service, rate_limited)
+                return await service.run()
+
+            success = asyncio.run(run_agent())
+
+            if success:
+                return
+
+            if rate_limited["seen"] and attempt < _SIGPESQ_MAX_RETRIES:
+                wait = _SIGPESQ_429_WAIT_SECONDS * (2 ** (attempt - 1))
+                logger.warning(
+                    "HTTP 429 on attempt {}/{}. Waiting {}s before retry...",
+                    attempt,
+                    _SIGPESQ_MAX_RETRIES,
+                    wait,
+                )
+                time.sleep(wait)
+                self._clean_download_dir()
+                continue
+
+            # Non-429 failure or last attempt
             if os.path.exists(os.path.join(self.download_dir, "research_group")):
                 logger.warning(
                     "SigpesqReportService failed to download all reports, but proceeding with existing files."
                 )
-            else:
-                raise RuntimeError(
-                    "SigpesqReportService failed to download reports and no fallback data found."
-                )
+                return
+            raise RuntimeError(
+                f"SigpesqReportService failed after {attempt} attempt(s). No fallback data found."
+            )
 
     def _patch_browser_factory(self):
         """
@@ -140,30 +164,24 @@ class SigPesqAdapter(ISource):
         except Exception as exc:
             logger.warning(f"Could not patch BrowserFactory: {exc}")
 
-    def _attach_http_429_logging(self, service):
+    def _attach_http_429_logging(self, service, rate_limited: dict | None = None):
         """
-        Adds rate-limit diagnostics to the agent login without changing agent_sigpesq.
+        Wraps the agent login to detect HTTP 429 and signal callers via rate_limited dict.
         """
         original_login = getattr(service, "_login", None)
         if original_login is None:
             return
 
         async def login_with_http_429_logging(page):
-            logged_rate_limit = False
-
             def log_rate_limit_response(response):
-                nonlocal logged_rate_limit
-                status = getattr(response, "status", None)
-                if status != 429 or logged_rate_limit:
+                if getattr(response, "status", None) != 429:
                     return
-
-                logged_rate_limit = True
+                if rate_limited is not None:
+                    rate_limited["seen"] = True
                 url = getattr(response, "url", "unknown URL")
                 logger.error(
                     "SigPesq portal returned HTTP 429 while logging in at "
-                    f"{url}. The portal is rate limiting login attempts; wait "
-                    "before retrying and avoid running multiple SigPesq login "
-                    "flows in sequence."
+                    f"{url}. Rate limiting detected — will retry with backoff."
                 )
 
             page.on("response", log_rate_limit_response)
