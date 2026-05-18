@@ -87,28 +87,8 @@ def full_ingestion_pipeline(
         else:
             persist_advisorships()
 
-        logger.info("Step 5/9: Ingesting Lattes projects/articles/education...")
-        if reporter:
-            reporter.run_step(
-                step_name="lattes_projects",
-                runner=ingest_lattes_projects_flow,
-                source_probe=probe_lattes_projects,
-            )
-        else:
-            ingest_lattes_projects_flow()
-
-        logger.info("Step 6/9: Ingesting Lattes advisorships...")
-        if reporter:
-            reporter.run_step(
-                step_name="lattes_advisorships",
-                runner=ingest_lattes_advisorships_flow,
-                source_probe=probe_lattes_advisorships,
-            )
-        else:
-            ingest_lattes_advisorships_flow()
-
         logger.info(
-            f"Step 7/9: Syncing CNPq groups (Filter: {campus_name or 'None'})..."
+            f"Step 5/9: Syncing CNPq groups (Filter: {campus_name or 'None'})..."
         )
         if reporter:
             reporter.run_step(
@@ -118,6 +98,26 @@ def full_ingestion_pipeline(
             )
         else:
             sync_cnpq_groups_flow(campus_name=campus_name)
+
+        logger.info("Step 6/9: Ingesting Lattes projects/articles/education...")
+        if reporter:
+            reporter.run_step(
+                step_name="lattes_projects",
+                runner=ingest_lattes_projects_flow,
+                source_probe=probe_lattes_projects,
+            )
+        else:
+            ingest_lattes_projects_flow()
+
+        logger.info("Step 7/9: Ingesting Lattes advisorships...")
+        if reporter:
+            reporter.run_step(
+                step_name="lattes_advisorships",
+                runner=ingest_lattes_advisorships_flow,
+                source_probe=probe_lattes_advisorships,
+            )
+        else:
+            ingest_lattes_advisorships_flow()
 
         logger.info(f"Step 8/9: Exporting canonical data to {output_dir}...")
         export_canonical_data_flow(output_dir=output_dir, campus=campus_name)
