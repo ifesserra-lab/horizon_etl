@@ -328,7 +328,9 @@ def sync_cnpq_groups_flow(campus_name: Optional[str] = None, max_parallel_downlo
     logger = get_run_logger()
     logger.info(f"Starting CNPq Synchronization Flow (Filter: {campus_name or 'None'}, max_parallel={max_parallel_downloads})")
 
-    with tracking_recorder.run_context(source_system="cnpq", flow_name="sync_cnpq_groups"):
+    with tracking_recorder.run_context(
+        source_system="cnpq", flow_name="sync_cnpq_groups"
+    ):
         groups = get_groups_to_sync(campus_name=campus_name)
 
     if not groups:
