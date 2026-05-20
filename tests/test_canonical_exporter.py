@@ -229,6 +229,7 @@ def test_export_researchers_tracking_builds_parallel_payload():
         exporter = CanonicalDataExporter(sink=mock_sink)
 
     class FakeResult:
+
         def __init__(self, rows):
             self._rows = rows
 
@@ -236,6 +237,7 @@ def test_export_researchers_tracking_builds_parallel_payload():
             return self._rows
 
     class FakeSession:
+
         def execute(self, statement, params=None):
             statement_text = getattr(statement, "text", str(statement))
             if (
@@ -336,6 +338,7 @@ def test_export_tracking_entities_builds_canonical_files():
         exporter = CanonicalDataExporter(sink=mock_sink)
 
     class FakeQuery:
+
         def __init__(self, rows):
             self._rows = rows
 
@@ -346,6 +349,7 @@ def test_export_tracking_entities_builds_canonical_files():
             return self._rows
 
     class FakeSession:
+
         def __init__(self, rows_by_model):
             self._rows_by_model = rows_by_model
 
@@ -457,6 +461,7 @@ def test_export_advisorships_preserves_person_and_supervisor_fields_from_members
         exporter = CanonicalDataExporter(sink=mock_sink)
 
     class FakeResult:
+
         def __init__(self, rows):
             self._rows = rows
 
@@ -464,6 +469,7 @@ def test_export_advisorships_preserves_person_and_supervisor_fields_from_members
             return self._rows
 
     class FakeSession:
+
         def execute(self, statement, params=None):
             statement_text = getattr(statement, "text", str(statement))
             assert "FROM advisorship_members" in statement_text
@@ -544,6 +550,7 @@ def test_export_advisorships_falls_back_to_legacy_person_and_supervisor_columns(
         exporter = CanonicalDataExporter(sink=mock_sink)
 
     class FakeResult:
+
         def __init__(self, rows):
             self._rows = rows
 
@@ -551,6 +558,7 @@ def test_export_advisorships_falls_back_to_legacy_person_and_supervisor_columns(
             return self._rows
 
     class FakeSession:
+
         def __init__(self):
             self.members_query_attempted = False
 
@@ -604,7 +612,9 @@ def test_export_advisorships_falls_back_to_legacy_person_and_supervisor_columns(
 
 
 def test_fetch_researcher_advisorship_rows_returns_person_id_from_members_query():
+
     class FakeResult:
+
         def __init__(self, rows):
             self._rows = rows
 
@@ -612,6 +622,7 @@ def test_fetch_researcher_advisorship_rows_returns_person_id_from_members_query(
             return self._rows
 
     class FakeSession:
+
         def execute(self, statement, params=None):
             statement_text = getattr(statement, "text", str(statement))
             assert "am_std.student_id AS person_id" in statement_text
@@ -824,6 +835,7 @@ def test_export_researchers_backfills_group_only_participants_from_people():
         exporter = CanonicalDataExporter(sink=mock_sink)
 
         class FakeResult:
+
             def __init__(self, rows):
                 self._rows = rows
 
@@ -831,6 +843,7 @@ def test_export_researchers_backfills_group_only_participants_from_people():
                 return self._rows
 
         class FakeSession:
+
             def execute(self, statement, params=None):
                 statement_text = getattr(statement, "text", str(statement))
                 if "SELECT tm.person_id, rg.id, t.name" in statement_text:
