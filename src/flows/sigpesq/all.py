@@ -51,9 +51,7 @@ def ingest_sigpesq_flow() -> None:
     logger = get_run_logger()
     logger.info("Initializing SigPesq Full Ingestion Flow")
 
-    with tracking_recorder.run_context(
-        source_system="sigpesq", flow_name="ingest_sigpesq_full"
-    ):
+    with tracking_recorder.run_context(source_system="sigpesq", flow_name="ingest_sigpesq_full"):
         adapter = SigPesqAdapter()
         logger.info("Extracting all SigPesq reports with a single login...")
         adapter.extract(download_strategies=_download_strategies())
@@ -66,7 +64,6 @@ def ingest_sigpesq_flow() -> None:
 
         logger.info("Persisting SigPesq advisorships...")
         persist_advisorships()
-
         logger.info("Flow finished successfully.")
 
 
@@ -112,7 +109,6 @@ def ingest_sigpesq_parallel_flow() -> None:
         logger.error("Skipping Advisorships persistence due to download failure.")
 
     logger.info("Parallel Ingestion Flow finished.")
-
 
 
 if __name__ == "__main__":
