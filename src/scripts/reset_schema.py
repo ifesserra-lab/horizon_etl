@@ -16,6 +16,7 @@ from eo_lib.infrastructure.database.postgres_client import PostgresClient
 # )
 
 
+
 def reset_schema():
     logger.info("Resetting AcademicEducation schema...")
     client = PostgresClient()

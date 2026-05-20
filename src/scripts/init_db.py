@@ -11,6 +11,7 @@ from eo_lib.infrastructure.database.postgres_client import PostgresClient  # noq
 from research_domain.domain.entities import *  # noqa E402
 
 
+
 def init_db():
     print("Initializing database...")
     client = PostgresClient()
