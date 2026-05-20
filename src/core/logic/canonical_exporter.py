@@ -895,7 +895,9 @@ class CanonicalDataExporter:
                     "source_file": record.get("source_file"),
                     "source_path": record.get("source_path"),
                     "changed_at": record.get("changed_at"),
-                    "changed_fields": sanitize_payload(record.get("changed_fields_json")),
+                    "changed_fields": sanitize_payload(
+                        record.get("changed_fields_json")
+                    ),
                     "before": sanitize_payload(record.get("before_json")),
                     "after": sanitize_payload(record.get("after_json")),
                     "reason": record.get("reason"),
@@ -1009,15 +1011,23 @@ class CanonicalDataExporter:
         entity_type: Optional[str] = None,
     ) -> None:
         data = self._load_tracking_entities(model, entity_name)
+
         logger.info(f"Exporting {len(data)} {entity_name}...")
         try:
             export_data = []
             for item in data:
                 item_dict = self._item_to_export_dict(item)
-                for key in ["raw_payload_json", "value_json", "changed_fields_json", "before_json", "after_json"]:
+                for key in [
+                    "raw_payload_json",
+                    "value_json",
+                    "changed_fields_json",
+                    "before_json",
+                    "after_json",
+                ]:
                     if key in item_dict and item_dict[key] is not None:
                         item_dict[key] = sanitize_payload(item_dict[key])
                 export_data.append(item_dict)
+
             export_data = self._enrich_export_rows(export_data, entity_type=entity_type)
             self.sink.export(export_data, output_path)
             logger.info(f"Successfully exported {entity_name} to {output_path}")
