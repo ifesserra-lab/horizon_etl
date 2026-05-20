@@ -14,8 +14,7 @@ def check_db():
 
     # 2. Exporter Query Logic (Replicating exactly what is in canonical_exporter.py)
     # Note: I'm using the query from the file as I remember it (with person join)
-    query = text(
-        """
+    query = text("""
                 SELECT
                     ae.researcher_id,
                     org.name as institution,
@@ -31,8 +30,7 @@ def check_db():
                 LEFT JOIN researchers adv ON ae.advisor_id = adv.id
                 LEFT JOIN persons p_adv ON adv.id = p_adv.id
                 WHERE ae.researcher_id = 604
-    """
-    )
+    """)
 
     results = session.execute(query).fetchall()
     print(f"Exporter Query Count for 604: {len(results)}")

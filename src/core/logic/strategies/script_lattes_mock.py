@@ -16,9 +16,7 @@ class ScriptLattesMock:
         Reads the config to find the output dir, reads the list file to get researchers,
         and generates dummy JSON files for each researcher.
         """
-        logger.info(
-            f"Mocking scriptLattes execution with config={config_file} and list={list_file}"
-        )
+        logger.info(f"Mocking scriptLattes execution with config={config_file} and list={list_file}")
 
         # 1. Read Config to get output directory
         output_dir = "data"  # Default
@@ -41,7 +39,7 @@ class ScriptLattesMock:
                     if not line:
                         continue
 
-                    parts = line.split(",")
+                    parts = line.split(',')
                     if len(parts) >= 2:
                         lattes_id = parts[0].strip()
                         name = parts[1].strip()

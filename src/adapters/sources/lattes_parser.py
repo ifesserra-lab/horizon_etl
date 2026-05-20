@@ -8,6 +8,8 @@ from loguru import logger
 
 
 @dataclass
+
+
 class LattesProject:
     name: str
     start_year: Optional[int]
@@ -525,7 +527,6 @@ class LattesParser:
         """
         section = data.get("dados_complementares", {}).get(key, [])
         parsed = []
-
 
 
         for item in section:
