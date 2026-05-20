@@ -285,6 +285,8 @@ def _ingest_researcher_file(
 
 
 @task(name="Ingest Lattes Researcher Data", cache_policy=NO_CACHE)
+
+
 def ingest_researcher_data(
     file_path: str,
     entity_manager: EntityManager,
@@ -830,6 +832,8 @@ def ingest_technical_productions_task(productions, target_researcher, session):
 
 
 @flow(name="Ingest Lattes Projects Flow", **telegram_flow_state_handlers())
+
+
 def ingest_lattes_projects_flow():
     base_dir = "data/lattes_json"
     if not os.path.isabs(base_dir):
