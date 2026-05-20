@@ -168,8 +168,7 @@ class InitiativeAnalyticsMartGenerator:
                 # This is a bit internal-dependent but necessary without eager loading support in generic controller
                 session = self.initiative_ctrl._service._repository._session
 
-                i_query = text(
-                    """
+                i_query = text("""
                     SELECT ika.initiative_id, ka.id, ka.name
                     FROM initiative_knowledge_areas ika
                     JOIN knowledge_areas ka ON ika.area_id = ka.id
@@ -183,9 +182,7 @@ class InitiativeAnalyticsMartGenerator:
                         initiative_kas_map[iid] = []
                     initiative_kas_map[iid].append({"id": row[1], "name": row[2]})
 
-                logger.info(
-                    f"Pre-fetched KAs for {len(initiative_kas_map)} initiatives."
-                )
+                logger.info(f"Pre-fetched KAs for {len(initiative_kas_map)} initiatives.")
             except Exception as e:
                 logger.warning(
                     f"Failed to fetch Knowledge Area mappings for analytics: {e}"
@@ -363,7 +360,7 @@ class InitiativeAnalyticsMartGenerator:
                                         or "coordenador" in role_name
                                     ):
                                         year_researchers.add(m.person_id)
-                        except:
+                        except Exception:
                             pass
 
                 # Apply partition priority per year (Student > Researcher)

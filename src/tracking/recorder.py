@@ -36,15 +36,17 @@ SENSITIVE_FIELD_PATTERNS = re.compile(
 )
 
 # Fields that are explicitly sensitive and MUST be removed
-EXPLICIT_SENSITIVE_FIELDS = frozenset({
-    "OrientadorEmail",
-    "CelularOrientador",
-    "OrientadoEmail",
-    "OrientadoCpf",
-    "CelularOrientado",
-    "cpf",
-    "CPF",
-})
+EXPLICIT_SENSITIVE_FIELDS = frozenset(
+    {
+        "OrientadorEmail",
+        "CelularOrientador",
+        "OrientadoEmail",
+        "OrientadoCpf",
+        "CelularOrientado",
+        "cpf",
+        "CPF",
+    }
+)
 
 
 def _json_default(value: Any) -> Any:
@@ -105,8 +107,10 @@ def sanitize_payload(payload: Any) -> Any:
             sanitized[key] = sanitize_payload(value)
         elif isinstance(value, (list, tuple)):
             sanitized[key] = [
-                sanitize_payload(item) if isinstance(item, dict) else (
-                    _redact_email(item) if isinstance(item, str) else item
+                (
+                    sanitize_payload(item)
+                    if isinstance(item, dict)
+                    else (_redact_email(item) if isinstance(item, str) else item)
                 )
                 for item in value
             ]
