@@ -606,9 +606,7 @@ def ingest_lattes_projects_flow():
     if not json_files:
         return
 
-    with tracking_recorder.run_context(
-        source_system="lattes", flow_name="ingest_lattes_projects"
-    ):
+    with tracking_recorder.run_context(source_system="lattes", flow_name="ingest_lattes_projects"):
         init_ctrl = InitiativeController()
         person_ctrl = PersonController()
         entity_manager = EntityManager(init_ctrl, person_ctrl)
