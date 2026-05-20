@@ -21,8 +21,7 @@ def check_titles():
     for t in titles_to_check:
         # Use LOWER() for case-insensitive match in SQLite
         # JOIN with initiatives to access 'name' column
-        query = text(
-            """
+        query = text("""
             SELECT a.id, a.type
             FROM advisorships a
             JOIN initiatives i ON a.id = i.id

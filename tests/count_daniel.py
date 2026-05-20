@@ -12,8 +12,7 @@ def count_daniel_advisorships():
     # Daniel's ID is 465 (from previous debugging) or search by name
     supervisor_id = 465
 
-    query = text(
-        """
+    query = text("""
        SELECT a.type, COUNT(*)
        FROM advisorships a
        JOIN advisorship_members am ON am.advisorship_id = a.id

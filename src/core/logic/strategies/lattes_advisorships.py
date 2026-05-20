@@ -74,9 +74,7 @@ class LattesAdvisorshipMappingStrategy(ProjectMappingStrategy):
 
         return {
             "title": row.get("title") or "Untitled Advisorship",
-            "status": row.get(
-                "status"
-            ),  # Lattes parser standardizes to Active/Concluded
+            "status": row.get("status"),  # Lattes parser standardizes to Active/Concluded
             "start_date": start_date,
             "end_date": end_date,
             "description": row.get("type_name", ""),

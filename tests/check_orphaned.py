@@ -8,7 +8,7 @@ def check_orphaned_initiatives():
     session = exporter.initiative_ctrl._service._repository._session
 
     # Title known to have failed:
-    title = "Desenvolvimento de Materiais Didáticos Inovadores Para o Ensino de Disciplinas Técnicas com Tecnologias da Indústria 4.0"
+    title = 'Desenvolvimento de Materiais Didáticos Inovadores Para o Ensino de Disciplinas Técnicas com Tecnologias da Indústria 4.0'
 
     print(f"Checking Title: {title}")
 
