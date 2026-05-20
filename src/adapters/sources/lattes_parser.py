@@ -526,6 +526,8 @@ class LattesParser:
         section = data.get("dados_complementares", {}).get(key, [])
         parsed = []
 
+
+
         for item in section:
             # Type extraction logic can be complex in Lattes.
             # Usually the key name in the list dictates the type if it's a list of specific objects,
