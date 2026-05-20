@@ -413,10 +413,9 @@ class CnpqSyncLogic:
                                     )
 
                                     # Use direct SQL update for safety and to avoid ORM complexity with composite keys/relationships
-                                    upd_query = text(
-                                        """
-                                        UPDATE team_members 
-                                        SET end_date = :end_dt 
+                                    upd_query = text("""
+                                        UPDATE team_members
+                                        SET end_date = :end_dt
                                         WHERE team_id = :gid AND person_id = :pid
                                     """
                                     )
@@ -592,7 +591,7 @@ class CnpqSyncLogic:
                     # Safe pattern:
                     try:
                         session.rollback()
-                    except:
+                    except Exception:
                         pass
 
             session.commit()
@@ -638,5 +637,5 @@ class CnpqSyncLogic:
             logger.error(f"Failed to sync knowledge areas for {group_id}: {e}")
             try:
                 self.rg_ctrl._service._repository._session.rollback()
-            except:
+            except Exception:
                 pass
