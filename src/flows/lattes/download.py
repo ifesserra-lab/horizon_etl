@@ -670,6 +670,8 @@ def _batch_prefetch(
 
 
 @task
+
+
 def get_researchers_from_db() -> List[Dict]:
     import zipfile
 
@@ -717,6 +719,8 @@ def get_researchers_from_db() -> List[Dict]:
 
 
 @task
+
+
 def generate_config(output_dir: str, list_path: str, cache_dir: str) -> str:
     config_gen = LattesConfigGenerator()
     config_path = os.path.abspath("cache/lattes.config")
@@ -725,6 +729,8 @@ def generate_config(output_dir: str, list_path: str, cache_dir: str) -> str:
 
 
 @task
+
+
 def generate_list(researchers: List[Dict]) -> str:
     list_gen = LattesListGenerator()
     list_path = os.path.abspath("cache/lattes.list")
@@ -781,6 +787,8 @@ def _patch_grupo_carregar_parallel(max_workers: int) -> None:
 
 
 @task
+
+
 def run_script_lattes_real(config_path: str):
     try:
         from scriptLattes.run import executar_scriptLattes
@@ -803,6 +811,8 @@ def run_script_lattes_real(config_path: str):
 
 
 @flow(name="Download Lattes Curricula", **telegram_flow_state_handlers())
+
+
 def download_lattes_flow():
     base_dir = os.path.abspath("data")
     output_dir = os.path.join(base_dir, "lattes_json")
