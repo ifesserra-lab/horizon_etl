@@ -606,10 +606,11 @@ def ingest_lattes_projects_flow():
     if not json_files:
         return
 
-    init_ctrl = InitiativeController()
-    person_ctrl = PersonController()
-    entity_manager = EntityManager(init_ctrl, person_ctrl)
-    parser = LattesParser()
+    with tracking_recorder.run_context(source_system="lattes", flow_name="ingest_lattes_projects"):
+        init_ctrl = InitiativeController()
+        person_ctrl = PersonController()
+        entity_manager = EntityManager(init_ctrl, person_ctrl)
+        parser = LattesParser()
 
     # Instantiate controllers once before the loop to avoid memory leaks
     researcher_ctrl = ResearcherController()
@@ -618,7 +619,7 @@ def ingest_lattes_projects_flow():
 
     from eo_lib.domain.base import Base
 
-    engine = _resolve_sqlalchemy_engine(init_ctrl)
+        engine = _resolve_sqlalchemy_engine(init_ctrl)
 
     # Ingestion is idempotent (articles dedup by DOI/title+year, educations by
     # natural key), so tables are never dropped here: a partial run must not
@@ -628,6 +629,5 @@ def ingest_lattes_projects_flow():
     for json_file in json_files:
         _ingest_researcher_file(json_file, entity_manager, parser, all_researchers, article_ctrl, researcher_ctrl)
         gc.collect()
-        
 if __name__ == "__main__":
     ingest_lattes_projects_flow()
