@@ -11,7 +11,6 @@ from eo_lib.infrastructure.database.postgres_client import PostgresClient
 # from research_domain.domain.entities import *
 
 
-
 def recreate_db():
     print("Dropping all tables...")
     client = PostgresClient()
