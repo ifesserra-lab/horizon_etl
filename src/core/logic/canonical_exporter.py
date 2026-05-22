@@ -26,7 +26,6 @@ from src.tracking.entities import (
     SourceRecord,
 )
 from src.tracking.recorder import sanitize_payload
-from sqlalchemy import text
 
 try:
     from research_domain.controllers import ArticleController

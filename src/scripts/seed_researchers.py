@@ -4,7 +4,7 @@ import sys
 # Add project root to path
 sys.path.append(os.getcwd())
 
-from research_domain import ResearcherController, Researcher
+from research_domain import Researcher, ResearcherController
 
 
 def seed_researchers():

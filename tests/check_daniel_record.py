@@ -26,7 +26,8 @@ def check_daniel_status():
     title = "CLASSIFICAÇÃO DE NOTAS MUSICAIS UTILIZANDO A TRANSFORMADA WAVELET E REDES NEURAIS ARTIFICIAIS"
     print(f"\nChecking Title: {title}")
 
-    query = text("""
+    query = text(
+        """
         SELECT i.id, i.name, a.type, am.person_id AS supervisor_id
         FROM initiatives i
         LEFT JOIN advisorships a ON a.id = i.id

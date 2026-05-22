@@ -5,8 +5,8 @@ from eo_lib import Initiative, InitiativeController, PersonController, TeamContr
 from loguru import logger
 from research_domain import (  # CampusController,; KnowledgeAreaController,; Workaround: Import directly from controllers module since not exported in __init__
     ResearchGroupController,
-)  # Workaround: Import directly from controllers module since not exported in __init__
-from research_domain.controllers.controllers import (
+)
+from research_domain.controllers.controllers import (  # FellowshipController,
     AdvisorshipController,
 )
 from research_domain.domain.entities import Advisorship
@@ -85,7 +85,7 @@ class ProjectLoader:
             logger.error(f"Failed to read Excel file {file_path}: {e}")
             return
 
-        records = df.to_dict('records')
+        records = df.to_dict("records")
         self.process_records(records, source_file=file_path)
 
     def process_records(
@@ -140,15 +140,19 @@ class ProjectLoader:
         based on the persisted advisorships in the database.
         This fixes orphans and ensures consistency across all years.
         """
-        logger.info("Recalculating dates and status for all parent projects from Database...")
+        logger.info(
+            "Recalculating dates and status for all parent projects from Database..."
+        )
+
+        from datetime import date, datetime
 
         from sqlalchemy import text
-        from datetime import datetime, date
 
         session = self.controller._service._repository._session
 
         # Aggregate dates for all parents that have advisorships
-        query = text("""
+        query = text(
+            """
             SELECT
                 i.parent_id,
                 MIN(i.start_date) as min_start,
@@ -157,7 +161,8 @@ class ProjectLoader:
             JOIN initiatives i ON a.id = i.id
             WHERE i.parent_id IS NOT NULL
             GROUP BY i.parent_id
-        """)
+        """
+        )
 
         results = session.execute(query).fetchall()
 
@@ -256,7 +261,9 @@ class ProjectLoader:
                 self.controller.update(parent)
                 updated_count += 1
 
-        logger.info(f"Recalculation complete. Processed {processed_count} parents, updated {updated_count}.")
+        logger.info(
+            f"Recalculation complete. Processed {processed_count} parents, updated {updated_count}."
+        )
 
     def _process_row(
         self,
@@ -307,13 +314,15 @@ class ProjectLoader:
                 logger.info(f"Creating parent Research Project: {parent_title}")
 
                 # Ensure we have the "Research Project" type for the parent
-                res_proj_type = self.entity_manager.ensure_initiative_type("Research Project")
+                res_proj_type = self.entity_manager.ensure_initiative_type(
+                    "Research Project"
+                )
 
                 # Initial creation without dates - will be fixed by recalculate_all_parent_statuses
                 parent_initiative = self.handlers[Initiative].create_or_update(
                     project_data={
                         "title": parent_title,
-                        "status": "Unknown"  # Temporary
+                        "status": "Unknown",  # Temporary
                     },
                     existing_initiative=None,
                     initiative_type_name="Research Project",
@@ -441,8 +450,11 @@ class ProjectLoader:
             rg_name = project_data.get("research_group_name")
             if rg_name and isinstance(rg_name, str) and rg_name.strip():
                 self.linker.link_research_group(
-                    initiative, rg_name, project_data,
-                    project_data.get("campus_name"), self.org_id
+                    initiative,
+                    rg_name,
+                    project_data,
+                    project_data.get("campus_name"),
+                    self.org_id,
                 )
 
             # Knowledge Areas / Keywords
