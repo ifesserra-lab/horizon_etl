@@ -10,7 +10,6 @@ from loguru import logger
 from networkx.readwrite import json_graph
 
 from src.core.logic.atomic_io import atomic_write_json
-
 RELATION_DESCRIPTIONS = {
     "initiative": "People who appear together in the same initiative team.",
     "research_group": "People who belong to the same research group.",
