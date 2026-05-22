@@ -1,7 +1,7 @@
-import os
 import json
-from datetime import datetime
+import os
 from collections import Counter, defaultdict
+from datetime import datetime
 from typing import Any, List, Optional
 
 from eo_lib import InitiativeController, OrganizationController, PersonController
@@ -12,10 +12,11 @@ from research_domain import (
     ResearcherController,
     ResearchGroupController,
 )
-from src.research_domain_compat import AdvisorshipRole
+from sqlalchemy import text
 
-from src.core.ports.export_sink import IExportSink
 from src.core.logic.export_campus_resolver import ExportCampusResolver
+from src.core.ports.export_sink import IExportSink
+from src.research_domain_compat import AdvisorshipRole
 from src.tracking.entities import (
     AttributeAssertion,
     EntityChangeLog,
@@ -24,7 +25,6 @@ from src.tracking.entities import (
     SourceRecord,
 )
 from src.tracking.recorder import sanitize_payload
-from sqlalchemy import text
 
 try:
     from research_domain.controllers import ArticleController
