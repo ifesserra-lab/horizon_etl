@@ -8,8 +8,6 @@ from src.core.logic.person_matcher import PersonMatcher
 
 
 @dataclass
-
-
 class DuplicateGroup:
     canonical_name: str
     winner_id: int

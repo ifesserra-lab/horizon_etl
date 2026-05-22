@@ -201,7 +201,9 @@ class InitiativeLinker:
                         organization_id=org_id,
                         campus_id=campus_id,
                     )
-                    logger.info(f"Created new Research Group: {rg_name} (Campus ID: {campus_id})")
+                    logger.info(
+                        f"Created new Research Group: {rg_name} (Campus ID: {campus_id})"
+                    )
 
                     # RF-15: Auto-populate members for newly created groups
                     self._populate_group_members(target_group, initiative, project_data)

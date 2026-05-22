@@ -2,7 +2,6 @@ import argparse
 import json
 import sqlite3
 
-
 DB_PATH = "db/horizon.db"
 
 
