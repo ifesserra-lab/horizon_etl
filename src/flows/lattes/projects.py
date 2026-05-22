@@ -8,12 +8,12 @@ from typing import Dict, List
 
 faulthandler.enable()
 
-from eo_lib import InitiativeController, PersonController
-from eo_lib.domain.base import Base
-from loguru import logger
-from prefect import flow, task
-from prefect.cache_policies import NO_CACHE
-from research_domain.controllers import (
+from eo_lib import InitiativeController, PersonController  # noqa E402
+from eo_lib.domain.base import Base  # noqa E402
+from loguru import logger  # noqa E402
+from prefect import flow, task  # noqa E402
+from prefect.cache_policies import NO_CACHE  # noqa E402
+from research_domain.controllers import (  # noqa E402
     ArticleController,
     ResearcherController,
 )
@@ -248,8 +248,6 @@ def _ingest_researcher_file(
 
 
 @task(name="Ingest Lattes Researcher Data", cache_policy=NO_CACHE)
-
-
 def ingest_researcher_data(
     file_path: str,
     entity_manager: EntityManager,
@@ -597,8 +595,6 @@ def ingest_education_task(
 
 
 @flow(name="Ingest Lattes Projects Flow", **telegram_flow_state_handlers())
-
-
 def ingest_lattes_projects_flow():
     base_dir = "data/lattes_json"
     if not os.path.isabs(base_dir):

@@ -8,8 +8,6 @@ from src.core.logic.person_matcher import PersonMatcher
 
 
 @dataclass
-
-
 class DuplicateGroup:
     canonical_name: str
     winner_id: int
@@ -262,6 +260,7 @@ class PersonConsolidator:
                 if self._table_exists(conn, "proficiencies"):
                     self._merge_proficiencies(conn, winner_id, loser_id)
                 self._remap_lineage(conn, winner_id, loser_id)
+>>>>>>> b21a95e (ending lint)
                 conn.execute("DELETE FROM researchers WHERE id = ?", (loser_id,))
                 conn.execute("DELETE FROM persons WHERE id = ?", (loser_id,))
 
