@@ -23,8 +23,6 @@ class MockTeam:
 
 
 @pytest.fixture
-
-
 def project_loader():
     with (
         patch("src.core.logic.entity_manager.PostgresClient"),
@@ -66,11 +64,7 @@ def test_create_initiative_team_idempotent(project_loader):
 
 
 @patch("src.core.logic.entity_manager.PostgresClient")
-
-
 @patch("src.core.logic.entity_manager.RoleController")
-
-
 def test_ensure_roles_exist(mock_role_ctrl, mock_pg_client, project_loader):
     """Test that mandatory roles are ensured to exist."""
     session = MagicMock()

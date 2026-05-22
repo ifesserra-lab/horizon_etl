@@ -1,6 +1,6 @@
 import sqlite3
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from loguru import logger
 
@@ -8,8 +8,6 @@ from src.core.logic.person_matcher import PersonMatcher
 
 
 @dataclass
-
-
 class DuplicateGroup:
     canonical_name: str
     winner_id: int
