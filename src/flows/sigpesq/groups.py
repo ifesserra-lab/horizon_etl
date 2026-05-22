@@ -1,5 +1,3 @@
-
-
 from dotenv import load_dotenv
 from prefect import flow, get_run_logger, task
 
@@ -70,8 +68,6 @@ def persist_research_groups():
 
 
 @flow(name="Ingest SigPesq Research Groups", **telegram_flow_state_handlers())
-
-
 def ingest_research_groups_flow() -> None:
     """
     Flow specifically for ingesting Research Groups.

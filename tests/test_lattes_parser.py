@@ -4,15 +4,11 @@ from src.adapters.sources.lattes_parser import LattesParser
 
 
 @pytest.fixture
-
-
 def parser():
     return LattesParser()
 
 
 @pytest.fixture
-
-
 def sample_data():
     return {
         "projetos_pesquisa": [
