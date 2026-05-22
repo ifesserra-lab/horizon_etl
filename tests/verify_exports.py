@@ -6,7 +6,9 @@ def verify_exports():
     with open("data/exports/researchers_canonical.json", "r") as f:
         researchers = json.load(f)
 
-    daniel = next((r for r in researchers if "Daniel Cruz Cavalieri" in r["name"]), None)
+    daniel = next(
+        (r for r in researchers if "Daniel Cruz Cavalieri" in r["name"]), None
+    )
 
     if not daniel:
         print("ERROR: Daniel not found in researchers_canonical.json")
