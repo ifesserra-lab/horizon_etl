@@ -1859,15 +1859,36 @@ class CanonicalDataExporter:
             data, output_path, "Initiative Types", entity_type="initiative_type"
         )
 
-    def export_articles(self, output_path: str):
+    def export_articles(self, output_path: str, batch_size: int = 1000):
         """
-        Exports all articles to a JSON file.
+        Exports all articles to a JSON file using batched processing.
 
         Args:
             output_path (str): The destination file path.
+            batch_size (int): Number of records to process per batch.
         """
-        data = self.article_ctrl.get_all()
-        self._export_entities(data, output_path, "Articles", entity_type="article")
+        from research_domain.domain.entities.article import Article
+
+        service = self.article_ctrl._service
+        repository = service._repository
+        session = repository._session
+
+        total = session.query(Article).count()
+        logger.info(f"Exporting {total} Articles in batches of {batch_size}...")
+
+        all_data = []
+        for offset in range(0, total, batch_size):
+            batch = (
+                session.query(Article)
+                .order_by(Article.id)
+                .offset(offset)
+                .limit(batch_size)
+                .all()
+            )
+            all_data.extend(batch)
+            logger.info(f"Fetched batch: offset={offset}, size={len(batch)}")
+
+        self._export_entities(all_data, output_path, "Articles", entity_type="article")
 
     def _export_via_orm(self, model, output_path, label, entity_type=None):
         """Exports every row of an ORM `model` (used for entities without a
