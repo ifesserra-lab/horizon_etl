@@ -16,6 +16,7 @@ from src.research_domain_compat import AdvisorshipRole
 
 from src.core.ports.export_sink import IExportSink
 from src.core.logic.export_campus_resolver import ExportCampusResolver
+from src.core.logic.pii_anonymizer import scrub_pii_deep, scrub_source_record_phones
 from src.tracking.entities import (
     AttributeAssertion,
     EntityChangeLog,
@@ -942,6 +943,11 @@ class CanonicalDataExporter:
         for row in rows:
             item = dict(row)
             item.setdefault("campus", self._resolve_record_campus(item, entity_type))
+            item = scrub_pii_deep(item)
+            if entity_type == "source_record":
+                payload = item.get("raw_payload_json")
+                if isinstance(payload, dict):
+                    item["raw_payload_json"] = scrub_source_record_phones(payload)
             enriched.append(item)
         return enriched
 
