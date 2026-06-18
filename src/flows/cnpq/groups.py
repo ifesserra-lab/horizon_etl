@@ -1,8 +1,9 @@
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
-from concurrent.futures import ThreadPoolExecutor
-from itertools import islice
 
 from dotenv import load_dotenv
+from loguru import logger
 from prefect import flow, get_run_logger, task
 from research_domain import CampusController, ResearchGroupController
 
@@ -72,12 +73,11 @@ def get_groups_to_sync(
     return sync_list
 
 
-@task
-def download_cnpq_group_data(group_info: dict) -> dict:
+def _download_cnpq_group_impl(group_info: dict) -> dict:
     """
-    Downloads CNPq data for a single research group (I/O-bound - can run in parallel).
+    Core download logic for a single CNPq group (no Prefect dependency).
+    Uses loguru for logging so it can run in any thread/executor.
     """
-    logger = get_run_logger()
     url = group_info["url"]
     group_id = group_info["id"]
     group_name = group_info["name"]
@@ -86,48 +86,29 @@ def download_cnpq_group_data(group_info: dict) -> dict:
 
     adapter = CnpqCrawlerAdapter()
 
-    # 1. Extract data (I/O-bound - network request)
     data = adapter.get_group_data(url)
     if not data:
         logger.error(f"Failed to download data for {group_name}")
-        return {
-            "downloaded": False,
-            "group_id": group_id,
-            "group_name": group_name,
-            "url": url,
-            "data": None,
-        }
+        return {"downloaded": False, "group_id": group_id, "group_name": group_name, "url": url, "data": None}
 
-    # 2. Extract parsed data (CPU-bound, but fast)
     members = adapter.extract_members(data)
     leaders = adapter.extract_leaders(data)
     lines = adapter.extract_research_lines(data)
 
-    # Merge leaders into members
     if leaders:
         for leader_name in leaders:
-            members.append(
-                {
-                    "name": leader_name,
-                    "role": "Líder",
-                    "data_inicio": None,
-                    "data_fim": None,
-                }
-            )
+            members.append({"name": leader_name, "role": "Líder", "data_inicio": None, "data_fim": None})
 
-    logger.info(
-        f"Downloaded {group_name}: {len(members)} members, {len(lines)} lines"
-    )
+    logger.info(f"Downloaded {group_name}: {len(members)} members, {len(lines)} lines")
 
-    return {
-        "downloaded": True,
-        "group_id": group_id,
-        "group_name": group_name,
-        "url": url,
-        "data": data,
-        "members": members,
-        "lines": lines,
-    }
+    return {"downloaded": True, "group_id": group_id, "group_name": group_name, "url": url, "data": data,
+            "members": members, "lines": lines}
+
+
+@task
+def download_cnpq_group_data(group_info: dict) -> dict:
+    """Prefect task wrapper around _download_cnpq_group_impl."""
+    return _download_cnpq_group_impl(group_info)
 
 
 @task
@@ -305,15 +286,8 @@ def build_cnpq_sync_summary(results: list[dict]) -> dict:
     }
 
 
-def _chunks(iterable, size):
-    """Yield successive chunks from iterable."""
-    it = iter(iterable)
-    while chunk := list(islice(it, size)):
-        yield chunk
-
-
 @flow(name="Sync CNPq Research Groups", **telegram_flow_state_handlers())
-def sync_cnpq_groups_flow(campus_name: Optional[str] = None, max_parallel_downloads: int = 5):
+def sync_cnpq_groups_flow(campus_name: Optional[str] = None, max_parallel_downloads: Optional[int] = None):
     """
     Prefect flow to synchronize research groups with CNPq DGP mirror.
 
@@ -325,6 +299,9 @@ def sync_cnpq_groups_flow(campus_name: Optional[str] = None, max_parallel_downlo
         campus_name: Optional campus name to filter groups.
         max_parallel_downloads: Maximum number of concurrent downloads per batch.
     """
+    if max_parallel_downloads is None:
+        max_parallel_downloads = int(os.environ.get("CNPQ_MAX_PARALLEL", "5"))
+
     logger = get_run_logger()
     logger.info(f"Starting CNPq Synchronization Flow (Filter: {campus_name or 'None'}, max_parallel={max_parallel_downloads})")
 
@@ -337,28 +314,30 @@ def sync_cnpq_groups_flow(campus_name: Optional[str] = None, max_parallel_downlo
         logger.warning("No groups to synchronize.")
         return {"total_groups": 0, "success_count": 0, "failed_count": 0}
 
-    BATCH_SIZE = max_parallel_downloads * 2  # Process in small batches to control memory
-
     all_results = []
 
-    # Process in batches: parallel download + sequential DB write per batch
-    group_chunks = list(_chunks(groups, BATCH_SIZE))
-    total_batches = len(group_chunks)
+    # Stream: parallel downloads via thread pool, sequential DB writes as each finishes
+    logger.info(f"Downloading {len(groups)} groups with up to {max_parallel_downloads} parallel workers...")
 
-    for batch_idx, group_chunk in enumerate(group_chunks, 1):
-        logger.info(f"Processing batch {batch_idx}/{total_batches} ({len(group_chunk)} groups)...")
+    with ThreadPoolExecutor(max_workers=max_parallel_downloads) as executor:
+        fut_map = {executor.submit(_download_cnpq_group_impl, g): g for g in groups}
 
-        # Step 1: Parallel download within batch
-        logger.debug(f"Batch {batch_idx}: Downloading {len(group_chunk)} groups in parallel...")
-        download_results = download_cnpq_group_data.map(group_chunk)
-
-        # Step 2: Sequential processing within batch
-        logger.debug(f"Batch {batch_idx}: Writing {len(group_chunk)} groups to DB (sequential)...")
-        for download_result in download_results:
-            result = process_cnpq_group_data(download_result)
+        for future in as_completed(fut_map):
+            group_info = fut_map[future]
+            try:
+                download_result = future.result()
+                result = process_cnpq_group_data(download_result)
+            except Exception:
+                logger.exception(f"Download failed for {group_info['name']}")
+                result = {
+                    "success": False,
+                    "group_id": group_info["id"],
+                    "group_name": group_info["name"],
+                    "url": group_info["url"],
+                }
+            finally:
+                del fut_map[future]
             all_results.append(result)
-
-        logger.info(f"Batch {batch_idx}/{total_batches} completed.")
 
     success_count = sum(1 for r in all_results if r.get("success"))
     summary = build_cnpq_sync_summary(all_results)
