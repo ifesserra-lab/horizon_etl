@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Veículos de Publicação — IFES Campus Serra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#16241a; --ink2:#3c4f42; --muted:#71857a;
+  --line:#e3ece5; --line2:#cfddd3;
+  --paper:#ffffff; --bg:#f4f8f5; --soft:#eef5f0;
+  --brand:#0f7a40; --brand-d:#0a5c30; --brand-l:#e7f4ec;
+  --blue:#2f6fb0; --blue-l:#e8f0f8;
+  --amber:#b8860b; --amber-l:#f7f0dd;
+  --rose:#b5455f;
+  --shadow:0 1px 2px rgba(16,40,24,.04),0 6px 20px rgba(16,40,24,.06);
+  --font:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+  --serif:'Georgia','Times New Roman',serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);
+     line-height:1.55;font-size:15px;}
+.page{max-width:980px;margin:0 auto;padding:0 28px 80px;}
+
+/* hero */
+.hero{padding:64px 0 44px;border-bottom:3px solid var(--brand);margin-bottom:48px;}
+.kicker{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;
+        letter-spacing:.14em;text-transform:uppercase;color:var(--brand);
+        background:var(--brand-l);padding:6px 14px;border-radius:999px;margin-bottom:22px;}
+.hero h1{font-family:var(--serif);font-size:clamp(30px,5.2vw,50px);line-height:1.08;
+         font-weight:700;letter-spacing:-.01em;color:var(--ink);max-width:18ch;}
+.hero .lede{font-size:19px;color:var(--ink2);margin-top:20px;max-width:62ch;}
+.hero .meta{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:28px;font-size:13px;color:var(--muted);}
+.hero .meta b{color:var(--ink);font-weight:600;}
+
+/* section scaffolding */
+.section{margin:56px 0;}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+         color:var(--brand);margin-bottom:10px;}
+.section h2{font-family:var(--serif);font-size:27px;font-weight:700;color:var(--ink);
+            letter-spacing:-.01em;margin-bottom:8px;}
+.section .desc{font-size:15px;color:var(--ink2);max-width:64ch;margin-bottom:26px;}
+
+/* KPI strip */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.kpi{background:var(--paper);border:1px solid var(--line);border-radius:16px;
+     padding:24px 22px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.kpi::after{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--brand);}
+.kpi .n{font-size:42px;font-weight:800;letter-spacing:-.02em;color:var(--brand-d);line-height:1;}
+.kpi .u{font-size:15px;font-weight:600;color:var(--ink);margin-top:8px;}
+.kpi .s{font-size:13px;color:var(--muted);margin-top:4px;}
+
+/* findings */
+.findings{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.finding{background:var(--paper);border:1px solid var(--line);border-radius:16px;
+         padding:26px 26px 24px;box-shadow:var(--shadow);}
+.finding .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;
+              text-transform:uppercase;padding:4px 10px;border-radius:6px;margin-bottom:14px;}
+.tag.eq{background:var(--brand-l);color:var(--brand-d);}
+.tag.sp{background:var(--amber-l);color:var(--amber);}
+.tag.rs{background:var(--blue-l);color:var(--blue);}
+.finding h3{font-size:18px;font-weight:700;color:var(--ink);margin-bottom:8px;line-height:1.3;}
+.finding p{font-size:14.5px;color:var(--ink2);}
+.finding .big{display:flex;align-items:baseline;gap:10px;margin:4px 0 14px;}
+.finding .big .v{font-size:34px;font-weight:800;color:var(--brand-d);letter-spacing:-.02em;}
+.finding .big .vs{font-size:15px;color:var(--muted);}
+
+/* bars */
+.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;
+      padding:26px 28px;box-shadow:var(--shadow);}
+.card h3{font-size:16px;font-weight:700;margin-bottom:18px;color:var(--ink);}
+.brow{display:grid;grid-template-columns:160px 1fr 118px;align-items:center;gap:14px;margin-bottom:15px;}
+.brow .bl{font-size:13.5px;color:var(--ink);font-weight:500;line-height:1.25;}
+.btrack{height:18px;background:var(--soft);border-radius:9px;overflow:hidden;position:relative;}
+.bfill{height:100%;border-radius:9px;min-width:6px;}
+.brow .bv{font-size:13.5px;color:var(--ink);font-weight:700;text-align:right;white-space:nowrap;}
+.brow .bv .bv-sub{color:var(--muted);font-weight:500;}
+/* stacked bars (concluídas + em andamento) */
+.btrack.stack{display:flex;}
+.btrack.stack .seg{height:100%;min-width:3px;transition:none;}
+.card-head{display:flex;align-items:center;justify-content:space-between;
+           gap:16px;margin-bottom:18px;flex-wrap:wrap;}
+.card-head h3{margin-bottom:0;}
+.legend{display:flex;gap:18px;font-size:12.5px;color:var(--ink2);}
+.legend span{display:inline-flex;align-items:center;gap:7px;}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block;}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+
+/* comparison stat row */
+.cmp{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.cmp .c{background:var(--paper);border:1px solid var(--line);border-radius:14px;
+        padding:22px 20px;text-align:center;box-shadow:var(--shadow);border-top:4px solid var(--line2);}
+.cmp .c.win{border-top-color:var(--brand);background:linear-gradient(180deg,var(--brand-l),#fff 60%);}
+.cmp .c .lab{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:10px;}
+.cmp .c .v{font-size:38px;font-weight:800;letter-spacing:-.02em;line-height:1;}
+.cmp .c .v.g{color:var(--brand-d);} .cmp .c .v.b{color:var(--blue);} .cmp .c .v.a{color:var(--amber);}
+.cmp .c .sub{font-size:12.5px;color:var(--muted);margin-top:7px;}
+
+/* callout */
+.callout{background:linear-gradient(135deg,var(--brand-d),var(--brand));color:#fff;
+         border-radius:18px;padding:38px 40px;box-shadow:var(--shadow);}
+.callout .k{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+            opacity:.85;margin-bottom:14px;}
+.callout h2{font-family:var(--serif);font-size:28px;color:#fff;margin-bottom:14px;line-height:1.2;}
+.callout p{font-size:16px;opacity:.95;max-width:70ch;}
+.callout .row{display:flex;flex-wrap:wrap;gap:34px;margin-top:26px;}
+.callout .row .it .n{font-size:34px;font-weight:800;}
+.callout .row .it .l{font-size:13px;opacity:.9;}
+
+/* table */
+table{width:100%;border-collapse:collapse;font-size:14px;}
+th,td{padding:11px 14px;text-align:right;border-bottom:1px solid var(--line);}
+th:first-child,td:first-child{text-align:left;}
+thead th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700;}
+tbody tr:last-child td{border-bottom:none;}
+.tot td{font-weight:700;background:var(--soft);}
+
+/* recommendations */
+.recs{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.rec{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:22px 24px;
+     box-shadow:var(--shadow);display:flex;gap:16px;}
+.rec .num{flex-shrink:0;width:34px;height:34px;border-radius:10px;background:var(--brand-l);
+          color:var(--brand-d);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.rec h4{font-size:15.5px;font-weight:700;margin-bottom:5px;color:var(--ink);}
+.rec p{font-size:13.5px;color:var(--ink2);}
+
+.foot{margin-top:64px;padding-top:24px;border-top:1px solid var(--line);
+      font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.note-line{font-size:12.5px;color:var(--muted);margin-top:14px;font-style:italic;}
+
+@media (max-width:760px){
+  .kpis,.findings,.grid2,.cmp,.recs{grid-template-columns:1fr;}
+  .brow{grid-template-columns:110px 1fr 70px;}
+}
+@media print{
+  body{background:#fff;font-size:12px;}
+  .page{max-width:none;padding:0 8mm;}
+  .section{margin:26px 0;page-break-inside:avoid;}
+  .kpi,.finding,.card,.cmp .c,.callout,.rec{box-shadow:none;}
+  .hero{padding:14px 0 24px;}
+  .callout{background:var(--brand-d) !important;}
+}
+</style></head><body><div class="page">
+  <div class="hero">
+    <span class="kicker">IFES Campus Serra · Análise de Veículos</span>
+    <h1>Onde a pesquisa do campus é publicada</h1>
+    <p class="lede">Revistas e congressos dos docentes, classificados por impacto internacional
+    (SJR/SCImago) e Qualis CAPES.</p>
+    <div class="meta"><span><b>324</b> revistas</span>
+      <span><b>478</b> artigos</span>
+      <span><b>612</b> congressos</span>
+      <span>Fonte: Lattes + SJR + Qualis</span></div>
+  </div>
+  
+    <section class="section"><div class="kpis">
+      <div class="kpi"><div class="n">324</div>
+        <div class="u">revistas distintas</div><div class="s">478 artigos em periódicos</div></div>
+      <div class="kpi"><div class="n">56%</div>
+        <div class="u">indexado no Scopus</div><div class="s">268 de 478 artigos com SJR</div></div>
+      <div class="kpi"><div class="n">121</div>
+        <div class="u">artigos em Q1</div><div class="s">topo mundial · 25% do total</div></div>
+      <div class="kpi"><div class="n">612</div>
+        <div class="u">congressos distintos</div><div class="s">1305 trabalhos completos</div></div>
+    </div></section>
+    <section class="section">
+      <div class="eyebrow">Impacto internacional</div>
+      <h2>Qualidade dos periódicos — SCImago Journal Rank (SJR)</h2>
+      <p class="desc">Distribuição dos 478 artigos pelo quartil do periódico no SJR
+      (métrica internacional derivada do Scopus). <b>199</b> artigos (42%)
+      em Q1+Q2; 210 em periódicos fora do Scopus (majoritariamente nacionais).</p>
+      <div class="card"><div class="card-head"><h3>Artigos por quartil SJR</h3><div class="legend"><span><i style="background:var(--brand)"></i>Q1</span><span><i style="background:var(--blue)"></i>Q2</span><span><i style="background:var(--amber)"></i>Q3</span><span><i style="background:var(--rose)"></i>Q4</span><span><i style="background:var(--line2)"></i>sem SJR</span></div></div>
+        <div class="brow"><span class="bl">Q1</span><div class="btrack"><div class="bfill" style="width:57.6%;background:var(--brand);"></div></div><span class="bv">121 <span style="color:var(--muted);font-weight:500;">· 25%</span></span></div><div class="brow"><span class="bl">Q2</span><div class="btrack"><div class="bfill" style="width:37.1%;background:var(--blue);"></div></div><span class="bv">78 <span style="color:var(--muted);font-weight:500;">· 16%</span></span></div><div class="brow"><span class="bl">Q3</span><div class="btrack"><div class="bfill" style="width:21.4%;background:var(--amber);"></div></div><span class="bv">45 <span style="color:var(--muted);font-weight:500;">· 9%</span></span></div><div class="brow"><span class="bl">Q4</span><div class="btrack"><div class="bfill" style="width:11.4%;background:var(--rose);"></div></div><span class="bv">24 <span style="color:var(--muted);font-weight:500;">· 5%</span></span></div><div class="brow"><span class="bl">—</span><div class="btrack"><div class="bfill" style="width:100.0%;background:var(--line2);"></div></div><span class="bv">210 <span style="color:var(--muted);font-weight:500;">· 44%</span></span></div></div>
+    </section>
+    <section class="section">
+      <div class="eyebrow">Classificação nacional</div>
+      <h2>Qualis CAPES/CNPq (2017–2020, melhor estrato)</h2>
+      <p class="desc">Estrato Qualis dos 478 artigos — melhor classificação do periódico
+      entre todas as áreas de avaliação. <b>280</b> artigos em estratos A (A1–A4);
+      278 das 324 revistas têm Qualis.</p>
+      <div class="card"><div class="card-head"><h3>Artigos por estrato Qualis</h3><div class="legend"><span><i style="background:var(--brand-d)"></i>A1–A4</span><span><i style="background:var(--blue)"></i>B1–B2</span><span><i style="background:var(--amber)"></i>B3–B5</span><span><i style="background:var(--rose)"></i>C</span><span><i style="background:var(--line2)"></i>sem Qualis</span></div></div>
+        <div class="brow"><span class="bl">A1</span><div class="btrack"><div class="bfill" style="width:100.0%;background:var(--brand-d);"></div></div><span class="bv">82 <span style="color:var(--muted);font-weight:500;">· 17%</span></span></div><div class="brow"><span class="bl">A2</span><div class="btrack"><div class="bfill" style="width:89.0%;background:var(--brand);"></div></div><span class="bv">73 <span style="color:var(--muted);font-weight:500;">· 15%</span></span></div><div class="brow"><span class="bl">A3</span><div class="btrack"><div class="bfill" style="width:74.4%;background:#3f9d63;"></div></div><span class="bv">61 <span style="color:var(--muted);font-weight:500;">· 13%</span></span></div><div class="brow"><span class="bl">A4</span><div class="btrack"><div class="bfill" style="width:78.0%;background:#6bbf86;"></div></div><span class="bv">64 <span style="color:var(--muted);font-weight:500;">· 13%</span></span></div><div class="brow"><span class="bl">B1</span><div class="btrack"><div class="bfill" style="width:42.7%;background:var(--blue);"></div></div><span class="bv">35 <span style="color:var(--muted);font-weight:500;">· 7%</span></span></div><div class="brow"><span class="bl">B2</span><div class="btrack"><div class="bfill" style="width:34.1%;background:#5b8fc0;"></div></div><span class="bv">28 <span style="color:var(--muted);font-weight:500;">· 6%</span></span></div><div class="brow"><span class="bl">B3</span><div class="btrack"><div class="bfill" style="width:25.6%;background:var(--amber);"></div></div><span class="bv">21 <span style="color:var(--muted);font-weight:500;">· 4%</span></span></div><div class="brow"><span class="bl">B4</span><div class="btrack"><div class="bfill" style="width:22.0%;background:#c9a13b;"></div></div><span class="bv">18 <span style="color:var(--muted);font-weight:500;">· 4%</span></span></div><div class="brow"><span class="bl">C</span><div class="btrack"><div class="bfill" style="width:40.2%;background:var(--rose);"></div></div><span class="bv">33 <span style="color:var(--muted);font-weight:500;">· 7%</span></span></div><div class="brow"><span class="bl">—</span><div class="btrack"><div class="bfill" style="width:76.8%;background:var(--line2);"></div></div><span class="bv">63 <span style="color:var(--muted);font-weight:500;">· 13%</span></span></div></div>
+    </section>
+    <section class="section">
+      <div class="eyebrow">Quem publica com mais impacto</div>
+      <h2>Top 10 docentes por impacto Qualis</h2>
+      <p class="desc">Pontuação = soma dos pesos Qualis dos artigos em periódicos
+      (A1=100, A2=85, A3=70, A4=55, B1=40…C=3; melhor estrato entre áreas). Congressos
+      não entram (sem Qualis oficial); Q1+Q2 (SJR) ao lado como validação internacional.</p>
+      <table><thead><tr><th>#</th><th>Docente</th><th>Área</th><th>Score Qualis</th>
+      <th>Artigos A1–A4</th><th>Q1+Q2 SJR</th><th>Artigos</th></tr></thead>
+      <tbody><tr><td>1</td><td>Geraldo Andrade de Oliveira</td><td>Engenharias</td><td>1685</td><td>22 <span style="color:var(--muted);font-size:12px;">A1:5 A2:5 A3:4 A4:8</span></td><td>7</td><td>23</td></tr><tr><td>2</td><td>Marco Antonio de Souza Leite Cuadros</td><td>Engenharias</td><td>1587</td><td>17 <span style="color:var(--muted);font-size:12px;">A1:4 A2:8 A3:4 A4:1</span></td><td>13</td><td>29</td></tr><tr><td>3</td><td>Adilson Ribeiro Prado</td><td>Engenharias</td><td>1495</td><td>18 <span style="color:var(--muted);font-size:12px;">A1:6 A2:4 A3:3 A4:5</span></td><td>21</td><td>32</td></tr><tr><td>4</td><td>Thiago Meireles Paixão</td><td>Ciências Exatas e da Terra</td><td>1348</td><td>15 <span style="color:var(--muted);font-size:12px;">A1:5 A2:7 A3:3 A4:0</span></td><td>13</td><td>19</td></tr><tr><td>5</td><td>Gustavo Maia de Almeida</td><td>Engenharias</td><td>1308</td><td>16 <span style="color:var(--muted);font-size:12px;">A1:3 A2:6 A3:6 A4:1</span></td><td>9</td><td>22</td></tr><tr><td>6</td><td>Pablo Rodrigues Muniz</td><td>Engenharias</td><td>1118</td><td>12 <span style="color:var(--muted);font-size:12px;">A1:2 A2:3 A3:4 A4:3</span></td><td>8</td><td>27</td></tr><tr><td>7</td><td>Reginaldo Barbosa Nunes</td><td>Engenharias</td><td>1118</td><td>12 <span style="color:var(--muted);font-size:12px;">A1:3 A2:6 A3:2 A4:1</span></td><td>10</td><td>18</td></tr><tr><td>8</td><td>Daniel Cruz Cavalieri</td><td>Engenharias</td><td>1108</td><td>12 <span style="color:var(--muted);font-size:12px;">A1:4 A2:2 A3:3 A4:3</span></td><td>13</td><td>17</td></tr><tr><td>9</td><td>Karin Satie Komati</td><td>Ciências Exatas e da Terra</td><td>1003</td><td>9 <span style="color:var(--muted);font-size:12px;">A1:3 A2:2 A3:1 A4:3</span></td><td>6</td><td>29</td></tr><tr><td>10</td><td>Cristina Klippel Dominicini</td><td>Engenharias</td><td>960</td><td>11 <span style="color:var(--muted);font-size:12px;">A1:6 A2:1 A3:3 A4:1</span></td><td>11</td><td>12</td></tr></tbody></table>
+    </section>
+    <section class="section">
+      <div class="eyebrow">Qualidade acima de quantidade</div>
+      <h2>Impacto médio por artigo (nota Qualis)</h2>
+      <p class="desc">Ranking por <b>qualidade</b>, não volume: nota = média do peso Qualis
+      por artigo em periódico (100 = só A1, 85 = A2, 70 = A3, 55 = A4…). Favorece quem publica
+      pouco mas em estratos altos. Inclui apenas docentes com ≥5 artigos com Qualis
+      (para a média ser confiável). "%A" = fração em A1–A4.</p>
+      <table><thead><tr><th>#</th><th>Docente</th><th>Sub-área</th><th>Nota Qualis (0–100)</th>
+      <th>%A</th><th>A1–A4 / c/ Qualis</th><th>Q1+Q2 SJR</th></tr></thead>
+      <tbody><tr><td>1</td><td>João Vitor Ferreira Duque</td><td>Engenharia Mecânica</td><td><b>89</b></td><td>100%</td><td>7/7</td><td>7</td></tr><tr><td>2</td><td>Sérgio Nery Simões</td><td>Probabilidade e Estatística</td><td><b>88</b></td><td>89%</td><td>8/9</td><td>10</td></tr><tr><td>3</td><td>Leonardo Azevedo Scardua</td><td>Engenharia Elétrica</td><td><b>85</b></td><td>100%</td><td>6/6</td><td>4</td></tr><tr><td>4</td><td>Francisco de Assis Boldt</td><td>Ciência da Computação</td><td><b>82</b></td><td>80%</td><td>8/10</td><td>9</td></tr><tr><td>5</td><td>Cristina Klippel Dominicini</td><td>Engenharia Elétrica</td><td><b>80</b></td><td>92%</td><td>11/12</td><td>11</td></tr><tr><td>6</td><td>Maxwell Eduardo Monteiro</td><td>Ciência da Computação</td><td><b>76</b></td><td>92%</td><td>11/12</td><td>10</td></tr><tr><td>7</td><td>Ricardo Ramos Costa</td><td>Educação</td><td><b>75</b></td><td>83%</td><td>5/6</td><td>1</td></tr><tr><td>8</td><td>Thiago Meireles Paixão</td><td>Ciência da Computação</td><td><b>75</b></td><td>83%</td><td>15/18</td><td>13</td></tr><tr><td>9</td><td>Geraldo Andrade de Oliveira</td><td>Engenharia Elétrica</td><td><b>73</b></td><td>96%</td><td>22/23</td><td>7</td></tr><tr><td>10</td><td>Cassius Zanetti Resende</td><td>Engenharia Elétrica</td><td><b>71</b></td><td>80%</td><td>4/5</td><td>3</td></tr><tr><td>11</td><td>Paulo Sergio dos Santos Junior</td><td>Ciência da Computação</td><td><b>71</b></td><td>80%</td><td>4/5</td><td>3</td></tr><tr><td>12</td><td>Gustavo Maia de Almeida</td><td>—</td><td><b>69</b></td><td>84%</td><td>16/19</td><td>9</td></tr></tbody></table>
+    </section>
+    <section class="section">
+      <div class="eyebrow">Trajetória de crescimento</div>
+      <h2>Pesquisadores em ascensão</h2>
+      <p class="desc">Variação da <b>qualidade média</b> (peso Qualis por artigo) entre a janela
+      <b>2016–2020</b> e <b>2021–2025</b>. Δ positivo = passou a publicar em estratos mais altos.
+      Inclui apenas quem tem ≥2 artigos com Qualis em cada janela. "Artigos" = nº antigo→recente.</p>
+      <table><thead><tr><th>#</th><th>Docente</th><th>Sub-área</th>
+      <th>Nota 2016–20</th><th>Nota 2021–25</th><th>Δ qualidade</th><th>Artigos</th></tr></thead>
+      <tbody><tr><td>1</td><td>Leandro Colombi Resendo</td><td>Engenharia de Produção</td><td>52</td><td>85</td><td style='color:var(--brand);font-weight:700;'>▲ +34</td><td>2→2</td></tr><tr><td>2</td><td>Emmanuel Marques Silva</td><td>Administração</td><td>37</td><td>70</td><td style='color:var(--brand);font-weight:700;'>▲ +33</td><td>3→10</td></tr><tr><td>3</td><td>Jefferson Oliveira Andrade</td><td>Ciência da Computação</td><td>3</td><td>30</td><td style='color:var(--brand);font-weight:700;'>▲ +27</td><td>3→9</td></tr><tr><td>4</td><td>Thiago Meireles Paixão</td><td>Ciência da Computação</td><td>63</td><td>86</td><td style='color:var(--brand);font-weight:700;'>▲ +24</td><td>3→11</td></tr><tr><td>5</td><td>Karin Satie Komati</td><td>Ciência da Computação</td><td>26</td><td>48</td><td style='color:var(--brand);font-weight:700;'>▲ +22</td><td>8→13</td></tr><tr><td>6</td><td>Renner Sartório Camargo</td><td>Engenharia Elétrica</td><td>58</td><td>78</td><td style='color:var(--brand);font-weight:700;'>▲ +20</td><td>2→2</td></tr><tr><td>7</td><td>Marco Antonio de Souza Leite Cuadros</td><td>Engenharia Elétrica</td><td>42</td><td>59</td><td style='color:var(--brand);font-weight:700;'>▲ +18</td><td>3→21</td></tr><tr><td>8</td><td>João Vitor Ferreira Duque</td><td>Engenharia Mecânica</td><td>80</td><td>96</td><td style='color:var(--brand);font-weight:700;'>▲ +16</td><td>3→4</td></tr><tr><td>9</td><td>Pablo Rodrigues Muniz</td><td>Engenharia Elétrica</td><td>35</td><td>43</td><td style='color:var(--brand);font-weight:700;'>▲ +8</td><td>9→11</td></tr><tr><td>10</td><td>Adelson Pereira do Nascimento</td><td>Administração</td><td>48</td><td>55</td><td style='color:var(--brand);font-weight:700;'>▲ +8</td><td>4→2</td></tr><tr><td>11</td><td>Maikon Chaider Silva Scaldaferro</td><td>Filosofia</td><td>54</td><td>61</td><td style='color:var(--brand);font-weight:700;'>▲ +7</td><td>6→5</td></tr></tbody></table>
+    </section>
+    <section class="section">
+      <div class="eyebrow">Liderança por grande área</div>
+      <h2>Líderes por grande área</h2>
+      <p class="desc">Docente de maior <b>score Qualis</b> (volume × qualidade) em cada grande
+      área de conhecimento.</p>
+      <table><thead><tr><th>Grande área</th><th>Líder</th><th>Score Qualis</th><th>A1–A4</th></tr></thead>
+      <tbody><tr><td>Engenharias</td><td>Geraldo Andrade de Oliveira</td><td>1685</td><td>22</td></tr><tr><td>Ciências Exatas e da Terra</td><td>Thiago Meireles Paixão</td><td>1348</td><td>15</td></tr><tr><td>Ciências Sociais Aplicadas</td><td>Emmanuel Marques Silva</td><td>830</td><td>10</td></tr><tr><td>Ciências Humanas</td><td>Maikon Chaider Silva Scaldaferro</td><td>691</td><td>8</td></tr><tr><td>Ciências Agrárias</td><td>Luciano de Oliveira Toledo</td><td>360</td><td>2</td></tr><tr><td>Lingüística, Letras e Artes</td><td>Adrianna Machado Meneguelli</td><td>40</td><td>0</td></tr></tbody></table>
+
+      <h3 style="font-family:var(--serif);font-size:20px;margin:28px 0 8px;">Por qualidade (nota média), não volume</h3>
+      <p class="desc">Líder por <b>nota Qualis média</b> por artigo (100 = só A1), entre quem tem
+      ≥5 artigos com Qualis na área — destaca quem publica em estratos altos,
+      independente do volume.</p>
+      <table><thead><tr><th>Grande área</th><th>Líder por qualidade</th><th>Nota (0–100)</th>
+      <th>%A</th><th>A1–A4 / c/ Qualis</th></tr></thead>
+      <tbody><tr><td>Engenharias</td><td>João Vitor Ferreira Duque</td><td><b>89</b></td><td>100%</td><td>7/7</td></tr><tr><td>Ciências Exatas e da Terra</td><td>Sérgio Nery Simões</td><td><b>88</b></td><td>89%</td><td>8/9</td></tr><tr><td>Ciências Humanas</td><td>Ricardo Ramos Costa</td><td><b>75</b></td><td>83%</td><td>5/6</td></tr><tr><td>Ciências Sociais Aplicadas</td><td>Emmanuel Marques Silva</td><td><b>59</b></td><td>71%</td><td>10/14</td></tr><tr><td>Ciências Agrárias</td><td>Luciano de Oliveira Toledo</td><td><b>36</b></td><td>20%</td><td>2/10</td></tr></tbody></table>
+      <div class="note-line"><b>Ressalva:</b> congressos não entram no score — a CAPES
+      descontinuou o Qualis Eventos (2019) e não há ISSN para casar. O ranking é por
+      periódicos; Q1+Q2 (SJR) serve como validação internacional.</div>
+    </section>
+    <section class="section">
+      <div class="eyebrow">Impacto por sub-área</div>
+      <h2>Top docentes em cada sub-área de conhecimento</h2>
+      <p class="desc">Score Qualis (volume × qualidade) separado pela sub-área de atuação
+      predominante do docente (campo "área" do Lattes — ex.: Ciência da Computação,
+      Engenharia Elétrica). Top 5 por sub-área.</p>
+      <div class="card" style="margin-bottom:16px;"><h3>Engenharia Elétrica <span style="color:var(--muted);font-weight:500;font-size:13px;">· 24 docentes</span></h3><table><thead><tr><th>Docente</th><th>Score Qualis</th><th>A1–A4</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Geraldo Andrade de Oliveira</td><td>1685</td><td>22</td><td>7</td></tr><tr><td>Marco Antonio de Souza Leite Cuadros</td><td>1587</td><td>17</td><td>13</td></tr><tr><td>Adilson Ribeiro Prado</td><td>1495</td><td>18</td><td>21</td></tr><tr><td>Pablo Rodrigues Muniz</td><td>1118</td><td>12</td><td>8</td></tr><tr><td>Reginaldo Barbosa Nunes</td><td>1118</td><td>12</td><td>10</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Ciência da Computação <span style="color:var(--muted);font-weight:500;font-size:13px;">· 28 docentes</span></h3><table><thead><tr><th>Docente</th><th>Score Qualis</th><th>A1–A4</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Thiago Meireles Paixão</td><td>1348</td><td>15</td><td>13</td></tr><tr><td>Karin Satie Komati</td><td>1003</td><td>9</td><td>6</td></tr><tr><td>Maxwell Eduardo Monteiro</td><td>908</td><td>11</td><td>10</td></tr><tr><td>Francisco de Assis Boldt</td><td>815</td><td>8</td><td>9</td></tr><tr><td>Luiz Alberto Pinto</td><td>458</td><td>5</td><td>2</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>— <span style="color:var(--muted);font-weight:500;font-size:13px;">· 11 docentes</span></h3><table><thead><tr><th>Docente</th><th>Score Qualis</th><th>A1–A4</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Gustavo Maia de Almeida</td><td>1308</td><td>16</td><td>9</td></tr><tr><td>Marta Talitha Carvalho Freire Mendes</td><td>125</td><td>2</td><td>1</td></tr><tr><td>Rosiane Ribeiro Rocha</td><td>100</td><td>1</td><td>1</td></tr><tr><td>Rafael Peixoto Derenzi Vivacqua</td><td>85</td><td>1</td><td>3</td></tr><tr><td>Adriana Padua Lovatte</td><td>0</td><td>0</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Administração <span style="color:var(--muted);font-weight:500;font-size:13px;">· 4 docentes</span></h3><table><thead><tr><th>Docente</th><th>Score Qualis</th><th>A1–A4</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Emmanuel Marques Silva</td><td>830</td><td>10</td><td>1</td></tr><tr><td>Adelson Pereira do Nascimento</td><td>445</td><td>3</td><td>0</td></tr><tr><td>Francisco José Casarim Rapchan</td><td>143</td><td>1</td><td>0</td></tr><tr><td>Ronaldo Aparecida Marques</td><td>10</td><td>0</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Engenharia de Produção <span style="color:var(--muted);font-weight:500;font-size:13px;">· 3 docentes</span></h3><table><thead><tr><th>Docente</th><th>Score Qualis</th><th>A1–A4</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Leandro Colombi Resendo</td><td>698</td><td>8</td><td>4</td></tr><tr><td>Renata Gomes de Jesus</td><td>530</td><td>6</td><td>1</td></tr><tr><td>Giovani Freire Azeredo</td><td>6</td><td>0</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Probabilidade e Estatística <span style="color:var(--muted);font-weight:500;font-size:13px;">· 2 docentes</span></h3><table><thead><tr><th>Docente</th><th>Score Qualis</th><th>A1–A4</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Sérgio Nery Simões</td><td>790</td><td>8</td><td>10</td></tr><tr><td>Gabriel Tozatto Zago</td><td>368</td><td>5</td><td>3</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Engenharia Mecânica <span style="color:var(--muted);font-weight:500;font-size:13px;">· 2 docentes</span></h3><table><thead><tr><th>Docente</th><th>Score Qualis</th><th>A1–A4</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>João Vitor Ferreira Duque</td><td>625</td><td>7</td><td>7</td></tr><tr><td>Adriano Márcio Sgrancio</td><td>170</td><td>2</td><td>2</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Educação <span style="color:var(--muted);font-weight:500;font-size:13px;">· 5 docentes</span></h3><table><thead><tr><th>Docente</th><th>Score Qualis</th><th>A1–A4</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Ricardo Ramos Costa</td><td>450</td><td>5</td><td>1</td></tr><tr><td>Milainy Ludmila Santos Goulart</td><td>180</td><td>2</td><td>1</td></tr><tr><td>Wagner Kirmse Caldas</td><td>40</td><td>0</td><td>0</td></tr><tr><td>Elinario Santos Costa</td><td>30</td><td>0</td><td>0</td></tr><tr><td>Bruno Ramos Gonzaga</td><td>20</td><td>0</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Filosofia <span style="color:var(--muted);font-weight:500;font-size:13px;">· 1 docentes</span></h3><table><thead><tr><th>Docente</th><th>Score Qualis</th><th>A1–A4</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Maikon Chaider Silva Scaldaferro</td><td>691</td><td>8</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Física <span style="color:var(--muted);font-weight:500;font-size:13px;">· 2 docentes</span></h3><table><thead><tr><th>Docente</th><th>Score Qualis</th><th>A1–A4</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Rosilene de Sá Ribeiro</td><td>195</td><td>3</td><td>4</td></tr><tr><td>Geovane de Araújo Ceolin</td><td>180</td><td>3</td><td>2</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Recursos Florestais e Engenharia Florestal <span style="color:var(--muted);font-weight:500;font-size:13px;">· 1 docentes</span></h3><table><thead><tr><th>Docente</th><th>Score Qualis</th><th>A1–A4</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Luciano de Oliveira Toledo</td><td>360</td><td>2</td><td>4</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Ciência Política <span style="color:var(--muted);font-weight:500;font-size:13px;">· 1 docentes</span></h3><table><thead><tr><th>Docente</th><th>Score Qualis</th><th>A1–A4</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Amarildo Mendes Lemos</td><td>295</td><td>3</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Química <span style="color:var(--muted);font-weight:500;font-size:13px;">· 2 docentes</span></h3><table><thead><tr><th>Docente</th><th>Score Qualis</th><th>A1–A4</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Nauvia Maria Cancelieri</td><td>213</td><td>3</td><td>1</td></tr><tr><td>Raquel da Silva Xavier Guizia Matos</td><td>0</td><td>0</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Matemática <span style="color:var(--muted);font-weight:500;font-size:13px;">· 4 docentes</span></h3><table><thead><tr><th>Docente</th><th>Score Qualis</th><th>A1–A4</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Paulo Cezar Camargo Guedes</td><td>70</td><td>1</td><td>0</td></tr><tr><td>Augusto Cesar Machado Ramos</td><td>30</td><td>0</td><td>0</td></tr><tr><td>Graziela Barboza Guaitolini Ramos</td><td>0</td><td>0</td><td>0</td></tr><tr><td>Valeria Vieira de Lima Feu</td><td>0</td><td>0</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Letras <span style="color:var(--muted);font-weight:500;font-size:13px;">· 1 docentes</span></h3><table><thead><tr><th>Docente</th><th>Score Qualis</th><th>A1–A4</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Adrianna Machado Meneguelli</td><td>40</td><td>0</td><td>0</td></tr></tbody></table></div>
+
+      <h3 style="font-family:var(--serif);font-size:22px;margin:34px 0 8px;">Por qualidade (nota média), não volume</h3>
+      <p class="desc">Mesmas sub-áreas, agora ordenando pela <b>nota Qualis média</b> por artigo
+      (100 = só A1), entre quem tem ≥5 artigos com Qualis — destaca consistência de
+      estrato alto, não quantidade.</p>
+      <div class="card" style="margin-bottom:16px;"><h3>Engenharia Elétrica</h3><table><thead><tr><th>Docente</th><th>Nota Qualis</th><th>%A</th><th>A1–A4 / c/ Qualis</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Leonardo Azevedo Scardua</td><td><b>85</b></td><td>100%</td><td>6/6</td><td>4</td></tr><tr><td>Cristina Klippel Dominicini</td><td><b>80</b></td><td>92%</td><td>11/12</td><td>11</td></tr><tr><td>Geraldo Andrade de Oliveira</td><td><b>73</b></td><td>96%</td><td>22/23</td><td>7</td></tr><tr><td>Cassius Zanetti Resende</td><td><b>71</b></td><td>80%</td><td>4/5</td><td>3</td></tr><tr><td>Adilson Ribeiro Prado</td><td><b>68</b></td><td>82%</td><td>18/22</td><td>21</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Ciência da Computação</h3><table><thead><tr><th>Docente</th><th>Nota Qualis</th><th>%A</th><th>A1–A4 / c/ Qualis</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Francisco de Assis Boldt</td><td><b>82</b></td><td>80%</td><td>8/10</td><td>9</td></tr><tr><td>Maxwell Eduardo Monteiro</td><td><b>76</b></td><td>92%</td><td>11/12</td><td>10</td></tr><tr><td>Thiago Meireles Paixão</td><td><b>75</b></td><td>83%</td><td>15/18</td><td>13</td></tr><tr><td>Paulo Sergio dos Santos Junior</td><td><b>71</b></td><td>80%</td><td>4/5</td><td>3</td></tr><tr><td>Victorio Albani de Carvalho</td><td><b>64</b></td><td>83%</td><td>5/6</td><td>3</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>—</h3><table><thead><tr><th>Docente</th><th>Nota Qualis</th><th>%A</th><th>A1–A4 / c/ Qualis</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Gustavo Maia de Almeida</td><td><b>69</b></td><td>84%</td><td>16/19</td><td>9</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Administração</h3><table><thead><tr><th>Docente</th><th>Nota Qualis</th><th>%A</th><th>A1–A4 / c/ Qualis</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Emmanuel Marques Silva</td><td><b>59</b></td><td>71%</td><td>10/14</td><td>1</td></tr><tr><td>Adelson Pereira do Nascimento</td><td><b>44</b></td><td>30%</td><td>3/10</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Engenharia de Produção</h3><table><thead><tr><th>Docente</th><th>Nota Qualis</th><th>%A</th><th>A1–A4 / c/ Qualis</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Renata Gomes de Jesus</td><td><b>59</b></td><td>67%</td><td>6/9</td><td>1</td></tr><tr><td>Leandro Colombi Resendo</td><td><b>58</b></td><td>67%</td><td>8/12</td><td>4</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Probabilidade e Estatística</h3><table><thead><tr><th>Docente</th><th>Nota Qualis</th><th>%A</th><th>A1–A4 / c/ Qualis</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Sérgio Nery Simões</td><td><b>88</b></td><td>89%</td><td>8/9</td><td>10</td></tr><tr><td>Gabriel Tozatto Zago</td><td><b>61</b></td><td>83%</td><td>5/6</td><td>3</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Engenharia Mecânica</h3><table><thead><tr><th>Docente</th><th>Nota Qualis</th><th>%A</th><th>A1–A4 / c/ Qualis</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>João Vitor Ferreira Duque</td><td><b>89</b></td><td>100%</td><td>7/7</td><td>7</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Educação</h3><table><thead><tr><th>Docente</th><th>Nota Qualis</th><th>%A</th><th>A1–A4 / c/ Qualis</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Ricardo Ramos Costa</td><td><b>75</b></td><td>83%</td><td>5/6</td><td>1</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Filosofia</h3><table><thead><tr><th>Docente</th><th>Nota Qualis</th><th>%A</th><th>A1–A4 / c/ Qualis</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Maikon Chaider Silva Scaldaferro</td><td><b>49</b></td><td>57%</td><td>8/14</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Recursos Florestais e Engenharia Florestal</h3><table><thead><tr><th>Docente</th><th>Nota Qualis</th><th>%A</th><th>A1–A4 / c/ Qualis</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Luciano de Oliveira Toledo</td><td><b>36</b></td><td>20%</td><td>2/10</td><td>4</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Ciência Política</h3><table><thead><tr><th>Docente</th><th>Nota Qualis</th><th>%A</th><th>A1–A4 / c/ Qualis</th><th>Q1+Q2 SJR</th></tr></thead><tbody><tr><td>Amarildo Mendes Lemos</td><td><b>49</b></td><td>50%</td><td>3/6</td><td>0</td></tr></tbody></table></div>
+    </section>
+    <section class="section">
+      <div class="eyebrow">Onde publicam</div>
+      <h2>Principais revistas</h2>
+      <p class="desc">Top 20 periódicos ordenados por quartil SJR e, dentro do quartil,
+      pelo índice SJR (do maior impacto ao menor). Coluna "Artigos" = nº de artigos dos docentes.</p>
+      <table><thead><tr><th>Revista</th><th>Artigos</th><th>SJR</th><th>Índice SJR</th><th>H</th><th>Qualis</th></tr></thead>
+      <tbody><tr><td>EUROPEAN HEART JOURNAL</td><td>1</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>5.326</td><td>385</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand-d);color:#fff;">A1</span></td></tr><tr><td>AUTOMATICA</td><td>1</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>3.360</td><td>343</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand-d);color:#fff;">A1</span></td></tr><tr><td>IEEE Transactions on Neural Networks and Learning Syst</td><td>1</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>3.153</td><td>284</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand-d);color:#fff;">A1</span></td></tr><tr><td>IEEE COMMUNICATIONS MAGAZINE</td><td>1</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>2.924</td><td>306</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand-d);color:#fff;">A1</span></td></tr><tr><td>APPLIED ENERGY</td><td>1</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>2.864</td><td>354</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand-d);color:#fff;">A1</span></td></tr><tr><td>IEEE Transactions on Industrial Electronics (1982. Pri</td><td>1</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>2.820</td><td>375</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand-d);color:#fff;">A1</span></td></tr><tr><td>IEEE Transactions on Intelligent Transportation System</td><td>1</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>2.608</td><td>244</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--line2);color:var(--muted);">—</span></td></tr><tr><td>IEEE Network</td><td>1</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>2.580</td><td>167</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand-d);color:#fff;">A1</span></td></tr><tr><td>IEEE Transactions on Information Forensics and Securit</td><td>1</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>2.193</td><td>195</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--line2);color:var(--muted);">—</span></td></tr><tr><td>PATTERN RECOGNITION</td><td>1</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>2.147</td><td>267</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand-d);color:#fff;">A1</span></td></tr><tr><td>ENERGY</td><td>2</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>2.060</td><td>293</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand-d);color:#fff;">A1</span></td></tr><tr><td>Advanced Engineering Informatics</td><td>1</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>2.021</td><td>136</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">A2</span></td></tr><tr><td>EXPERT SYSTEMS WITH APPLICATIONS</td><td>8</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>1.939</td><td>315</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand-d);color:#fff;">A1</span></td></tr><tr><td>ENGINEERING APPLICATIONS OF ARTIFICIAL INTELLIGENCE</td><td>3</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>1.782</td><td>169</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand-d);color:#fff;">A1</span></td></tr><tr><td>KNOWLEDGE-BASED SYSTEMS</td><td>1</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>1.753</td><td>206</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand-d);color:#fff;">A1</span></td></tr><tr><td>IEEE TRANSACTIONS ON INDUSTRY APPLICATIONS</td><td>1</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>1.685</td><td>243</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand-d);color:#fff;">A1</span></td></tr><tr><td>COMPUTERS & INDUSTRIAL ENGINEERING</td><td>1</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>1.588</td><td>187</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand-d);color:#fff;">A1</span></td></tr><tr><td>Applied Thermal Engineering</td><td>1</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>1.556</td><td>238</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand-d);color:#fff;">A1</span></td></tr><tr><td>NEURAL NETWORKS</td><td>1</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>1.545</td><td>197</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand-d);color:#fff;">A1</span></td></tr><tr><td>IEEE Transactions on Neural Systems and Rehabilitation</td><td>1</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand);color:#fff;">Q1</span></td><td>1.531</td><td>179</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--brand-d);color:#fff;">A1</span></td></tr></tbody></table>
+    </section>
+    <section class="section">
+      <div class="eyebrow">Eventos · impacto</div>
+      <h2>Congressos e seu Qualis (CC)</h2>
+      <p class="desc">Em Computação, conferências são canal primário de publicação. Aqui cada
+      evento é casado por acrônimo/nome ao <b>Qualis de Conferências da Computação</b>
+      (A1–B5). 174 dos 612 eventos têm
+      Qualis CC; o restante são congressos de Engenharia/Educação fora da lista de CC.
+      Edições são fundidas (removidos ano e número).</p>
+      <div class="card"><div class="card-head"><h3>Trabalhos por estrato Qualis CC</h3></div>
+        <div class="brow"><span class="bl">A1</span><div class="btrack"><div class="bfill" style="width:2.4%;background:var(--brand-d);"></div></div><span class="bv">22 <span style="color:var(--muted);font-weight:500;">· 2%</span></span></div><div class="brow"><span class="bl">A2</span><div class="btrack"><div class="bfill" style="width:1.5%;background:var(--brand);"></div></div><span class="bv">13 <span style="color:var(--muted);font-weight:500;">· 1%</span></span></div><div class="brow"><span class="bl">B1</span><div class="btrack"><div class="bfill" style="width:7.8%;background:var(--blue);"></div></div><span class="bv">71 <span style="color:var(--muted);font-weight:500;">· 5%</span></span></div><div class="brow"><span class="bl">B2</span><div class="btrack"><div class="bfill" style="width:7.5%;background:#5b8fc0;"></div></div><span class="bv">69 <span style="color:var(--muted);font-weight:500;">· 5%</span></span></div><div class="brow"><span class="bl">B3</span><div class="btrack"><div class="bfill" style="width:3.6%;background:var(--amber);"></div></div><span class="bv">33 <span style="color:var(--muted);font-weight:500;">· 3%</span></span></div><div class="brow"><span class="bl">B4</span><div class="btrack"><div class="bfill" style="width:10.7%;background:#c9a13b;"></div></div><span class="bv">98 <span style="color:var(--muted);font-weight:500;">· 8%</span></span></div><div class="brow"><span class="bl">B5</span><div class="btrack"><div class="bfill" style="width:9.1%;background:#d8b56b;"></div></div><span class="bv">83 <span style="color:var(--muted);font-weight:500;">· 6%</span></span></div><div class="brow"><span class="bl">—</span><div class="btrack"><div class="bfill" style="width:100.0%;background:var(--line2);"></div></div><span class="bv">916 <span style="color:var(--muted);font-weight:500;">· 70%</span></span></div></div>
+      <h3 style="font-family:var(--serif);font-size:20px;margin:26px 0 8px;">Principais congressos</h3>
+      <table><thead><tr><th>Congresso / Evento</th><th>Qualis CC</th><th>Trabalhos</th><th>Docentes</th></tr></thead>
+      <tbody><tr><td>Congresso Brasileiro de Automática</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--line2);color:var(--muted);">—</span></td><td>53</td><td>20</td></tr><tr><td>IEEE International Conference on Industry Applications (INDU</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--line2);color:var(--muted);">—</span></td><td>46</td><td>15</td></tr><tr><td>Ibero-Latin American Congress on Computational Methods in En</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--line2);color:var(--muted);">—</span></td><td>37</td><td>15</td></tr><tr><td>Simpósio Brasileiro de Automação Inteligente</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:#d8b56b;color:#fff;">B5</span></td><td>30</td><td>18</td></tr><tr><td>Congresso Brasileiro de Educação em Engenharia</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--line2);color:var(--muted);">—</span></td><td>29</td><td>8</td></tr><tr><td>Seminário de Pesquisa em Administração</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--line2);color:var(--muted);">—</span></td><td>20</td><td>1</td></tr><tr><td>Encontro Nacional de Inteligência Artificial e Computacional</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:#c9a13b;color:#fff;">B4</span></td><td>18</td><td>8</td></tr><tr><td>Congresso Brasileiro de Automática - CBA</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--line2);color:var(--muted);">—</span></td><td>17</td><td>9</td></tr><tr><td>IEEE/IAS International Conference on Industry Applications</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:#c9a13b;color:#fff;">B4</span></td><td>16</td><td>6</td></tr><tr><td>Workshop de Visão Computacional</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:#d8b56b;color:#fff;">B5</span></td><td>16</td><td>7</td></tr><tr><td>Congresso Brasileiro de Engenharia Biomédica</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--line2);color:var(--muted);">—</span></td><td>14</td><td>7</td></tr><tr><td>CILAMCE</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--line2);color:var(--muted);">—</span></td><td>14</td><td>3</td></tr><tr><td>Simpósio Brasileiro de Pesquisa Operacional</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:#c9a13b;color:#fff;">B4</span></td><td>13</td><td>6</td></tr><tr><td>Congresso Brasileiro de Educação em Engenharia - COBENGE</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--line2);color:var(--muted);">—</span></td><td>13</td><td>4</td></tr><tr><td>Escola Regional de Informática do Espírito Santo</td><td><span style="display:inline-block;min-width:30px;text-align:center;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:700;background:var(--line2);color:var(--muted);">—</span></td><td>12</td><td>5</td></tr></tbody></table>
+    </section>
+    <section class="section">
+      <div class="eyebrow">Visão integrada</div>
+      <h2>Impacto combinado — revistas + congressos</h2>
+      <p class="desc">Score total = soma dos pesos Qualis dos <b>periódicos</b> (por ISSN) e dos
+      <b>congressos</b> (Qualis CC, por acrônimo/nome). Reconhece quem publica forte em
+      conferências — padrão da Computação — além dos periódicos.</p>
+      <table><thead><tr><th>#</th><th>Docente</th><th>Sub-área</th><th>Score revistas</th>
+      <th>Score congressos</th><th>Score total</th><th>Itens c/ Qualis</th></tr></thead>
+      <tbody><tr><td>1</td><td>Thiago Meireles Paixão</td><td>Ciência da Computação</td><td>1348</td><td>900</td><td><b>2248</b></td><td>18 art · 14 conf</td></tr><tr><td>2</td><td>Marco Antonio de Souza Leite Cuadros</td><td>Engenharia Elétrica</td><td>1587</td><td>565</td><td><b>2152</b></td><td>28 art · 32 conf</td></tr><tr><td>3</td><td>Gustavo Maia de Almeida</td><td>—</td><td>1308</td><td>485</td><td><b>1793</b></td><td>19 art · 32 conf</td></tr><tr><td>4</td><td>Hilário Tomaz Alves de Oliveira</td><td>Ciência da Computação</td><td>370</td><td>1390</td><td><b>1760</b></td><td>4 art · 38 conf</td></tr><tr><td>5</td><td>Cristina Klippel Dominicini</td><td>Engenharia Elétrica</td><td>960</td><td>735</td><td><b>1695</b></td><td>12 art · 23 conf</td></tr><tr><td>6</td><td>Geraldo Andrade de Oliveira</td><td>Engenharia Elétrica</td><td>1685</td><td>0</td><td><b>1685</b></td><td>23 art · 0 conf</td></tr><tr><td>7</td><td>Karin Satie Komati</td><td>Ciência da Computação</td><td>1003</td><td>620</td><td><b>1623</b></td><td>26 art · 41 conf</td></tr><tr><td>8</td><td>Adilson Ribeiro Prado</td><td>Engenharia Elétrica</td><td>1495</td><td>0</td><td><b>1495</b></td><td>22 art · 0 conf</td></tr><tr><td>9</td><td>Maxwell Eduardo Monteiro</td><td>Ciência da Computação</td><td>908</td><td>420</td><td><b>1328</b></td><td>12 art · 10 conf</td></tr><tr><td>10</td><td>Francisco de Assis Boldt</td><td>Ciência da Computação</td><td>815</td><td>500</td><td><b>1315</b></td><td>10 art · 22 conf</td></tr><tr><td>11</td><td>Pablo Rodrigues Muniz</td><td>Engenharia Elétrica</td><td>1118</td><td>110</td><td><b>1228</b></td><td>25 art · 3 conf</td></tr><tr><td>12</td><td>Daniel Cruz Cavalieri</td><td>Engenharia Elétrica</td><td>1108</td><td>75</td><td><b>1183</b></td><td>17 art · 9 conf</td></tr></tbody></table>
+
+      <h3 style="font-family:var(--serif);font-size:22px;margin:34px 0 8px;">Por qualidade (nota média combinada), não volume</h3>
+      <p class="desc">Nota = score total ÷ itens com Qualis (periódicos + congressos): a média do
+      estrato considerando os dois canais (100 = só A1). Destaca consistência de alto estrato,
+      não volume. Inclui quem tem ≥5 itens com Qualis somando revistas e congressos.</p>
+      <table><thead><tr><th>#</th><th>Docente</th><th>Sub-área</th><th>Nota combinada (0–100)</th>
+      <th>Score total</th><th>Itens c/ Qualis</th></tr></thead>
+      <tbody><tr><td>1</td><td>João Vitor Ferreira Duque</td><td>Engenharia Mecânica</td><td><b>89</b></td><td>625</td><td>7 art · 0 conf</td></tr><tr><td>2</td><td>Ricardo Ramos Costa</td><td>Educação</td><td><b>75</b></td><td>450</td><td>6 art · 0 conf</td></tr><tr><td>3</td><td>Leonardo Azevedo Scardua</td><td>Engenharia Elétrica</td><td><b>74</b></td><td>515</td><td>6 art · 1 conf</td></tr><tr><td>4</td><td>Geraldo Andrade de Oliveira</td><td>Engenharia Elétrica</td><td><b>73</b></td><td>1685</td><td>23 art · 0 conf</td></tr><tr><td>5</td><td>Thiago Meireles Paixão</td><td>Ciência da Computação</td><td><b>70</b></td><td>2248</td><td>18 art · 14 conf</td></tr><tr><td>6</td><td>Adilson Ribeiro Prado</td><td>Engenharia Elétrica</td><td><b>68</b></td><td>1495</td><td>22 art · 0 conf</td></tr><tr><td>7</td><td>Maxwell Eduardo Monteiro</td><td>Ciência da Computação</td><td><b>60</b></td><td>1328</td><td>12 art · 10 conf</td></tr><tr><td>8</td><td>Emmanuel Marques Silva</td><td>Administração</td><td><b>59</b></td><td>830</td><td>14 art · 0 conf</td></tr><tr><td>9</td><td>Renata Gomes de Jesus</td><td>Engenharia de Produção</td><td><b>59</b></td><td>530</td><td>9 art · 0 conf</td></tr><tr><td>10</td><td>Sérgio Nery Simões</td><td>Probabilidade e Estatística</td><td><b>59</b></td><td>940</td><td>9 art · 7 conf</td></tr><tr><td>11</td><td>Dirceu Soares Junior</td><td>Engenharia Elétrica</td><td><b>58</b></td><td>290</td><td>3 art · 2 conf</td></tr><tr><td>12</td><td>Fidelis Zanetti de Castro</td><td>Ciência da Computação</td><td><b>56</b></td><td>393</td><td>4 art · 3 conf</td></tr></tbody></table>
+
+      <h3 style="font-family:var(--serif);font-size:22px;margin:34px 0 8px;">Líderes por grande área (score combinado)</h3>
+      <p class="desc">Docente de maior score total (revistas + congressos) em cada grande área.</p>
+      <table><thead><tr><th>Grande área</th><th>Líder</th><th>Score total</th>
+      <th>Revistas</th><th>Congressos</th></tr></thead><tbody><tr><td>Ciências Exatas e da Terra</td><td>Thiago Meireles Paixão</td><td><b>2248</b></td><td>1348</td><td>900</td></tr><tr><td>Engenharias</td><td>Marco Antonio de Souza Leite Cuadros</td><td><b>2152</b></td><td>1587</td><td>565</td></tr><tr><td>Ciências Sociais Aplicadas</td><td>Emmanuel Marques Silva</td><td><b>830</b></td><td>830</td><td>0</td></tr><tr><td>Ciências Humanas</td><td>Maikon Chaider Silva Scaldaferro</td><td><b>691</b></td><td>691</td><td>0</td></tr><tr><td>Ciências Agrárias</td><td>Luciano de Oliveira Toledo</td><td><b>360</b></td><td>360</td><td>0</td></tr><tr><td>Lingüística, Letras e Artes</td><td>Adrianna Machado Meneguelli</td><td><b>40</b></td><td>40</td><td>0</td></tr></tbody></table>
+
+      <h3 style="font-family:var(--serif);font-size:22px;margin:34px 0 8px;">Top docentes por sub-área (score combinado)</h3>
+      <p class="desc">Top 5 por sub-área, pelo score total (revistas + congressos).</p>
+      <div class="card" style="margin-bottom:16px;"><h3>Engenharia Elétrica</h3><table><thead><tr><th>Docente</th><th>Score total</th><th>Revistas</th><th>Congressos</th></tr></thead><tbody><tr><td>Marco Antonio de Souza Leite Cuadros</td><td><b>2152</b></td><td>1587</td><td>565</td></tr><tr><td>Cristina Klippel Dominicini</td><td><b>1695</b></td><td>960</td><td>735</td></tr><tr><td>Geraldo Andrade de Oliveira</td><td><b>1685</b></td><td>1685</td><td>0</td></tr><tr><td>Adilson Ribeiro Prado</td><td><b>1495</b></td><td>1495</td><td>0</td></tr><tr><td>Pablo Rodrigues Muniz</td><td><b>1228</b></td><td>1118</td><td>110</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Ciência da Computação</h3><table><thead><tr><th>Docente</th><th>Score total</th><th>Revistas</th><th>Congressos</th></tr></thead><tbody><tr><td>Thiago Meireles Paixão</td><td><b>2248</b></td><td>1348</td><td>900</td></tr><tr><td>Hilário Tomaz Alves de Oliveira</td><td><b>1760</b></td><td>370</td><td>1390</td></tr><tr><td>Karin Satie Komati</td><td><b>1623</b></td><td>1003</td><td>620</td></tr><tr><td>Maxwell Eduardo Monteiro</td><td><b>1328</b></td><td>908</td><td>420</td></tr><tr><td>Francisco de Assis Boldt</td><td><b>1315</b></td><td>815</td><td>500</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>—</h3><table><thead><tr><th>Docente</th><th>Score total</th><th>Revistas</th><th>Congressos</th></tr></thead><tbody><tr><td>Gustavo Maia de Almeida</td><td><b>1793</b></td><td>1308</td><td>485</td></tr><tr><td>Marta Talitha Carvalho Freire Mendes</td><td><b>265</b></td><td>125</td><td>140</td></tr><tr><td>Rosiane Ribeiro Rocha</td><td><b>120</b></td><td>100</td><td>20</td></tr><tr><td>Rafael Peixoto Derenzi Vivacqua</td><td><b>90</b></td><td>85</td><td>5</td></tr><tr><td>Geraldo Simonetti Bello</td><td><b>10</b></td><td>0</td><td>10</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Engenharia de Produção</h3><table><thead><tr><th>Docente</th><th>Score total</th><th>Revistas</th><th>Congressos</th></tr></thead><tbody><tr><td>Leandro Colombi Resendo</td><td><b>1068</b></td><td>698</td><td>370</td></tr><tr><td>Renata Gomes de Jesus</td><td><b>530</b></td><td>530</td><td>0</td></tr><tr><td>Giovani Freire Azeredo</td><td><b>6</b></td><td>6</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Administração</h3><table><thead><tr><th>Docente</th><th>Score total</th><th>Revistas</th><th>Congressos</th></tr></thead><tbody><tr><td>Emmanuel Marques Silva</td><td><b>830</b></td><td>830</td><td>0</td></tr><tr><td>Adelson Pereira do Nascimento</td><td><b>445</b></td><td>445</td><td>0</td></tr><tr><td>Francisco José Casarim Rapchan</td><td><b>163</b></td><td>143</td><td>20</td></tr><tr><td>Ronaldo Aparecida Marques</td><td><b>10</b></td><td>10</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Probabilidade e Estatística</h3><table><thead><tr><th>Docente</th><th>Score total</th><th>Revistas</th><th>Congressos</th></tr></thead><tbody><tr><td>Sérgio Nery Simões</td><td><b>940</b></td><td>790</td><td>150</td></tr><tr><td>Gabriel Tozatto Zago</td><td><b>423</b></td><td>368</td><td>55</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Engenharia Mecânica</h3><table><thead><tr><th>Docente</th><th>Score total</th><th>Revistas</th><th>Congressos</th></tr></thead><tbody><tr><td>João Vitor Ferreira Duque</td><td><b>625</b></td><td>625</td><td>0</td></tr><tr><td>Adriano Márcio Sgrancio</td><td><b>170</b></td><td>170</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Educação</h3><table><thead><tr><th>Docente</th><th>Score total</th><th>Revistas</th><th>Congressos</th></tr></thead><tbody><tr><td>Ricardo Ramos Costa</td><td><b>450</b></td><td>450</td><td>0</td></tr><tr><td>Milainy Ludmila Santos Goulart</td><td><b>180</b></td><td>180</td><td>0</td></tr><tr><td>Wagner Kirmse Caldas</td><td><b>40</b></td><td>40</td><td>0</td></tr><tr><td>Elinario Santos Costa</td><td><b>30</b></td><td>30</td><td>0</td></tr><tr><td>Bruno Ramos Gonzaga</td><td><b>20</b></td><td>20</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Filosofia</h3><table><thead><tr><th>Docente</th><th>Score total</th><th>Revistas</th><th>Congressos</th></tr></thead><tbody><tr><td>Maikon Chaider Silva Scaldaferro</td><td><b>691</b></td><td>691</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Física</h3><table><thead><tr><th>Docente</th><th>Score total</th><th>Revistas</th><th>Congressos</th></tr></thead><tbody><tr><td>Rosilene de Sá Ribeiro</td><td><b>195</b></td><td>195</td><td>0</td></tr><tr><td>Geovane de Araújo Ceolin</td><td><b>180</b></td><td>180</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Recursos Florestais e Engenharia Florestal</h3><table><thead><tr><th>Docente</th><th>Score total</th><th>Revistas</th><th>Congressos</th></tr></thead><tbody><tr><td>Luciano de Oliveira Toledo</td><td><b>360</b></td><td>360</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Ciência Política</h3><table><thead><tr><th>Docente</th><th>Score total</th><th>Revistas</th><th>Congressos</th></tr></thead><tbody><tr><td>Amarildo Mendes Lemos</td><td><b>295</b></td><td>295</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Química</h3><table><thead><tr><th>Docente</th><th>Score total</th><th>Revistas</th><th>Congressos</th></tr></thead><tbody><tr><td>Nauvia Maria Cancelieri</td><td><b>213</b></td><td>213</td><td>0</td></tr><tr><td>Raquel da Silva Xavier Guizia Matos</td><td><b>0</b></td><td>0</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Matemática</h3><table><thead><tr><th>Docente</th><th>Score total</th><th>Revistas</th><th>Congressos</th></tr></thead><tbody><tr><td>Paulo Cezar Camargo Guedes</td><td><b>70</b></td><td>70</td><td>0</td></tr><tr><td>Augusto Cesar Machado Ramos</td><td><b>30</b></td><td>30</td><td>0</td></tr><tr><td>Graziela Barboza Guaitolini Ramos</td><td><b>0</b></td><td>0</td><td>0</td></tr><tr><td>Valeria Vieira de Lima Feu</td><td><b>0</b></td><td>0</td><td>0</td></tr></tbody></table></div><div class="card" style="margin-bottom:16px;"><h3>Letras</h3><table><thead><tr><th>Docente</th><th>Score total</th><th>Revistas</th><th>Congressos</th></tr></thead><tbody><tr><td>Adrianna Machado Meneguelli</td><td><b>40</b></td><td>40</td><td>0</td></tr></tbody></table></div>
+      <div class="note-line">Congressos casados apenas na área de Computação (lista Qualis-CC 2016);
+      eventos de Engenharia/Educação não pontuam — ainda subestima docentes dessas áreas.</div>
+    </section>
+    <section class="section">
+      <div class="eyebrow">Metodologia e fontes</div>
+      <h2>Como esta análise foi feita</h2>
+      <div class="findings">
+        <div class="finding"><span class="tag rs">Coleta</span>
+          <h3>1. Veículos a partir do Lattes</h3>
+          <p>As revistas e congressos vêm dos currículos <b>Lattes</b> dos 93 docentes do campus (seções
+          <i>artigos em periódicos</i> e <i>trabalhos completos em congressos</i>).
+          Cada artigo traz o <b>ISSN</b> do periódico —
+          a chave de cruzamento com as bases de impacto. Edições de um mesmo congresso são
+          unificadas removendo ano e número de edição (15th, XLIV, II…).</p>
+        </div>
+        <div class="finding"><span class="tag eq">Impacto internacional</span>
+          <h3>2. SJR (SCImago) por ISSN</h3>
+          <p>Cada revista é casada por <b>ISSN</b> com a base <b>SCImago Journal Rank (SJR)</b>,
+          métrica internacional derivada do Scopus. Dela vêm o <b>quartil Q1–Q4</b> (melhor
+          quartil do periódico), o índice SJR e o H-index. Revistas fora do Scopus ficam "sem SJR".</p>
+        </div>
+        <div class="finding"><span class="tag sp">Classificação nacional</span>
+          <h3>3. Qualis CAPES por ISSN</h3>
+          <p>O mesmo <b>ISSN</b> é casado com a tabela <b>Qualis Periódicos da CAPES
+          (quadriênio 2017–2020)</b>. Como o Qualis varia por área de avaliação, usamos o
+          <b>melhor estrato</b> do periódico entre todas as áreas (A1 é o topo). Por isso o
+          Qualis cobre mais revistas que o SJR — inclui periódicos nacionais não indexados no Scopus.</p>
+        </div>
+        <div class="finding"><span class="tag sp">Congressos (Computação)</span>
+          <h3>4. Qualis de Conferências CC</h3>
+          <p>Como em Computação a conferência é canal primário, casamos cada congresso (por
+          <b>acrônimo</b> ou nome) ao <b>Qualis de Conferências da Computação</b> (lista CC 2016,
+          A1–B5). É o único ranking de eventos disponível — a CAPES descontinuou o Qualis
+          Eventos geral em 2019. Cobre os eventos de CC; os de Engenharia/Educação ficam de fora.</p>
+        </div>
+        <div class="finding"><span class="tag eq">Ranking de docentes</span>
+          <h3>5. Score de impacto</h3>
+          <p>O score de cada docente é a <b>soma dos pesos Qualis</b> (A1=100, A2=85, A3=70,
+          A4=55, B1=40, B2=30, B3=20, B4=10, C=3). O <b>score total</b> soma periódicos +
+          congressos CC. A divisão por sub-área usa o campo "área" do Lattes.</p>
+        </div>
+      </div>
+      <div class="note-line">
+        <b>Limitações:</b> o Qualis de conferências cobre só Computação (lista CC 2016) — congressos
+        de Engenharia/Educação não pontuam, subestimando esses docentes. Casamento de congressos é
+        por nome/acrônimo (sem ISSN), sujeito a erro. Artigos em periódicos fora do Scopus não
+        recebem quartil SJR. O "melhor estrato entre áreas" é leitura otimista do Qualis de periódicos.
+      </div>
+      <div class="card" style="margin-top:18px;">
+        <h3>Fontes dos dados</h3>
+        <table>
+          <thead><tr><th>Dado</th><th>Fonte</th><th>Link</th></tr></thead>
+          <tbody>
+            <tr><td>Veículos de publicação (revistas, congressos, ISSN)</td>
+              <td>Plataforma Lattes (CNPq)</td>
+              <td><a href="http://lattes.cnpq.br/">lattes.cnpq.br</a></td></tr>
+            <tr><td>Impacto internacional (quartil SJR, índice, H-index)</td>
+              <td>SCImago Journal &amp; Country Rank</td>
+              <td><a href="https://www.scimagojr.com/journalrank.php">scimagojr.com</a></td></tr>
+            <tr><td>Qualis Periódicos 2017–2020 (estrato por ISSN)</td>
+              <td>CAPES / Plataforma Sucupira</td>
+              <td><a href="https://sucupira.capes.gov.br/">sucupira.capes.gov.br</a></td></tr>
+            <tr><td>Qualis de Conferências CC (estrato por acrônimo/nome)</td>
+              <td>CAPES (lista CC 2016) · portal UFMT</td>
+              <td><a href="https://qualis.ic.ufmt.br/">qualis.ic.ufmt.br</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  <div class="foot"><span>Gerado em 2026-06-21 12:51 · veículos: Lattes ·
+  impacto: SCImago Journal Rank (SJR), casado por ISSN · qualis: CAPES/CNPq, casado por ISSN</span></div>
+</div></body></html>

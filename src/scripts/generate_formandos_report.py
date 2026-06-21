@@ -118,6 +118,14 @@ DATA_EXPORTS = BASE / "data" / "exports"
 OUT_DIR = DATA_EXPORTS / "formandos"
 BOLSISTAS_FILE = DATA_EXPORTS / "bolsistas" / "ifes-campus-serra-bolsistas.json"
 
+# Fontes integradas (cruzamento formandos × projetos × mestrado).
+FAPES_PROJ_FILE = (
+    DATA_EXPORTS / "projetos-fapes"
+    / "ifes-campus-serra-projetos-concluidos-em-andamento.json"
+)
+FACTO_PROJ_FILE = DATA_EXPORTS / "projetos-facto" / "facto_projects_full.json"
+MESTRADO_BASE_FILE = DATA_EXPORTS / "mestrado" / "ppcomp_base_analitico.json"
+
 SEMESTER_FILE_MAP = {
     "2020_1": "formados_2020_1.xlsx",
     "2020_2": "formados_2020_2.xlsx",
@@ -365,6 +373,203 @@ def load_lattes() -> dict[str, list[dict]]:
                     "status": status,
                 })
     return {"ic": ic, "tcc": tcc}
+
+
+# ---------------------------------------------------------------------------
+# Fontes integradas: projetos FAPES, projetos FACTO, mestrado PPComp
+# ---------------------------------------------------------------------------
+
+def _xkey(name: str | None) -> str:
+    """Chave de cruzamento entre fontes: ascii minúsculo, espaços colapsados.
+
+    Junta nomes grafados de forma divergente entre SigPesq, FAPES e FACTO
+    (acentos, caixa, espaços duplos).
+    """
+    if not name:
+        return ""
+    s = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
+    return re.sub(r"\s+", " ", s).strip().lower()
+
+
+# Coordenadores excluídos da análise de projetos de pesquisa (recorte da gestão).
+# Casado por substring sobre a _xkey do coordenador, para tolerar variações de grafia.
+_EXCLUDED_COORD_SUBSTR = ("elton",)
+
+
+def _is_excluded_coord(name: str | None) -> bool:
+    k = _xkey(name)
+    return any(sub in k for sub in _EXCLUDED_COORD_SUBSTR)
+
+
+def _br_money(value: Any) -> float:
+    """Converte '1.256.355,65' (pt-BR) ou número em float. 0.0 se vazio/inválido."""
+    if value is None:
+        return 0.0
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        return float(str(value).replace(".", "").replace(",", "."))
+    except ValueError:
+        return 0.0
+
+
+def load_fapes_projects() -> dict:
+    """Projetos FAPES do IFES Serra por status/prazo. {} se ausente."""
+    if not FAPES_PROJ_FILE.exists():
+        return {}
+    return json.loads(FAPES_PROJ_FILE.read_text())
+
+
+def load_facto_projects() -> dict:
+    """Projetos da fundação FACTO (IFES institucional). {} se ausente."""
+    if not FACTO_PROJ_FILE.exists():
+        return {}
+    return json.loads(FACTO_PROJ_FILE.read_text())
+
+
+def load_mestrado_base() -> dict:
+    """Base analítica do mestrado PPComp. {} se ausente."""
+    if not MESTRADO_BASE_FILE.exists():
+        return {}
+    return json.loads(MESTRADO_BASE_FILE.read_text())
+
+
+def compute_integrated(sup_formando_counts: dict[str, int],
+                       ic_grad_invest: float,
+                       bolsistas_alocado: float) -> dict:
+    """Cruza formandos × projetos FAPES/FACTO × mestrado PPComp.
+
+    Produz três blocos:
+      - fapes_ecosystem: orientadores de formandos que coordenam projetos FAPES,
+        com formandos mentorados × portfólio (orçamento, bolsas).
+      - mestrado_pipeline: funil graduação → mestrado PPComp + bolsas de pós.
+      - fomento_panel: escala de fomento — bolsa de IC (semente) vs projetos
+        FAPES (R$48M) vs fundação FACTO.
+
+    Cruzamento de orientadores por nome normalizado (_xkey). Junção de ALUNOS
+    não é feita aqui — exige ID comum (Lattes/SigPesq), ver nota nas seções.
+    """
+    fapes = load_fapes_projects()
+    facto = load_facto_projects()
+    mestrado = load_mestrado_base()
+
+    integrated: dict = {}
+
+    # ---- A. Ecossistema do orientador (formandos × portfólio FAPES) ----
+    if fapes:
+        coord_portfolio: dict[str, dict] = {}
+        for _cat, projetos in (fapes.get("projetos") or {}).items():
+            for p in projetos:
+                ck = _xkey(p.get("coordenador_nome"))
+                if not ck or _is_excluded_coord(p.get("coordenador_nome")):
+                    continue
+                d = coord_portfolio.setdefault(ck, {
+                    "nome": p.get("coordenador_nome"),
+                    "n_proj": 0, "orcamento": 0.0, "bolsa_val": 0.0, "bolsa_q": 0,
+                })
+                d["n_proj"] += 1
+                d["orcamento"] += _br_money(p.get("orcamento_contratado"))
+                d["bolsa_val"] += _br_money(p.get("valor_bolsas"))
+                d["bolsa_q"] += p.get("quantidade_bolsas") or 0
+
+        # chave de cruzamento dos orientadores de formandos
+        sup_xkey = {_xkey(name): (name, n) for name, n in sup_formando_counts.items()}
+
+        rows = []
+        for ck, port in coord_portfolio.items():
+            if ck not in sup_xkey:
+                continue  # coordenador FAPES que não orientou formando casado
+            disp_name, n_form = sup_xkey[ck]
+            rows.append({
+                "nome": disp_name,
+                "formandos": n_form,
+                "n_proj": port["n_proj"],
+                "orcamento": round(port["orcamento"], 2),
+                "bolsa_val": round(port["bolsa_val"], 2),
+                "bolsa_q": port["bolsa_q"],
+            })
+        rows.sort(key=lambda r: -r["orcamento"])
+
+        resumo = fapes.get("resumo", {}).get("total_status_ou_prazo", {})
+        campus_orc = resumo.get("orcamento_contratado_total", 0) or 0
+        sum_orc = sum(r["orcamento"] for r in rows)
+        integrated["fapes_ecosystem"] = {
+            "rows": rows,
+            "n_orientadores": len(rows),
+            "n_coord_total": len(coord_portfolio),
+            "total_orc": round(sum_orc, 2),
+            "total_bolsa": round(sum(r["bolsa_val"] for r in rows), 2),
+            "total_bolsa_q": sum(r["bolsa_q"] for r in rows),
+            "campus_orc": campus_orc,
+            "campus_bolsa": resumo.get("valor_bolsas_total", 0) or 0,
+            "campus_proj": resumo.get("quantidade_projetos", 0) or 0,
+            "pct_orc": round(sum_orc / campus_orc * 100, 1) if campus_orc else 0,
+        }
+
+    # ---- B. Pipeline graduação → mestrado PPComp ----
+    if mestrado:
+        pipe = mestrado.get("pipeline", {})
+        bolsas = mestrado.get("bolsas", {})
+        integrated["mestrado_pipeline"] = {
+            "total": mestrado.get("total", 0),
+            "defendidos": mestrado.get("defendidos", 0),
+            "ativos": mestrado.get("ativos", 0),
+            "evasao": mestrado.get("evasao", 0),
+            "taxa_defesa": mestrado.get("taxa_defesa_desfecho", 0),
+            "tempo_medio": mestrado.get("tempo_medio_anos", 0),
+            "pipe_n": pipe.get("total", 0),
+            "pipe_pct": pipe.get("pct", 0),
+            "pipe_def": pipe.get("defendidos", 0),
+            "pipe_ativos": pipe.get("ativos", 0),
+            "pipe_situacao": pipe.get("por_situacao", {}),
+            "bolsas_fapes": bolsas.get("fapes", 0),
+            "bolsas_facto": bolsas.get("facto", 0),
+            "bolsas_uniao": bolsas.get("uniao", 0),
+            "bolsas_valor_fapes": bolsas.get("valor_fapes", 0),
+            "bolsas_por_situacao": bolsas.get("por_situacao", {}),
+        }
+
+    # ---- C. Painel de fomento (escala: semente IC → projetos) ----
+    panel: dict = {
+        "ic_grad_invest": round(ic_grad_invest, 2),
+        "bolsistas_alocado": round(bolsistas_alocado, 2),
+    }
+    if fapes:
+        r = fapes.get("resumo", {})
+        panel["fapes_total"] = r.get("total_status_ou_prazo", {})
+        panel["fapes_concluidos"] = r.get("concluidos", {})
+        panel["fapes_andamento"] = r.get("em_andamento_por_status_e_prazo", {})
+        panel["fapes_prazo_encerrado"] = r.get("status_em_andamento_prazo_encerrado", {})
+    if facto:
+        # Recorte IFES Serra: a base FACTO é institucional (Reitoria + todos os
+        # campi). Mantém apenas projetos cuja instituição executora menciona Serra.
+        tot = 0.0
+        n_ok = 0
+        for p in facto.get("projects", []):
+            if p.get("_error"):
+                continue
+            is_serra = False
+            is_excluded = False
+            p_tot = 0.0
+            for fn, linhas in (p.get("csv") or {}).items():
+                if "Informa" in fn:
+                    for linha in linhas:
+                        if "serra" in _xkey(linha.get("Instituição executora")):
+                            is_serra = True
+                        if _is_excluded_coord(linha.get("Coordenador")):
+                            is_excluded = True
+                        p_tot += _br_money(linha.get("Valor aprovado"))
+            if is_serra and not is_excluded:
+                n_ok += 1
+                tot += p_tot
+        panel["facto_aprovado"] = round(tot, 2)
+        panel["facto_proj"] = n_ok
+        panel["facto_portal"] = facto.get("_portal", "")
+    if mestrado:
+        panel["mestrado_fapes_val"] = mestrado.get("bolsas", {}).get("valor_fapes", 0)
+    integrated["fomento_panel"] = panel
+
+    return integrated
 
 
 # ---------------------------------------------------------------------------
@@ -1334,6 +1539,14 @@ def compute(formandos: list[dict], adv_projects: list[dict],
         },
     }
 
+    # ---- integrated cross-source stats (FAPES / FACTO / mestrado PPComp) ----
+    _sup_formando_counts = {name: len(pids) for name, pids in sup_unique.items()}
+    _ic_grad_invest = sum(sponsor_investment.values())
+    _bolsistas_alocado = bolsistas_cross.get("valor_alocado_total", 0) or 0
+    integrated = compute_integrated(
+        _sup_formando_counts, _ic_grad_invest, _bolsistas_alocado
+    )
+
     return {
         "total": total,
         "admission": admission,
@@ -1376,6 +1589,7 @@ def compute(formandos: list[dict], adv_projects: list[dict],
         "fellowship_value_impact": fellowship_value_impact,
         "ic_continuity": ic_continuity,
         "ic_tcc_pipeline": ic_tcc_pipeline,
+        "integrated": integrated,
     }
 
 
@@ -1452,6 +1666,11 @@ header p { color:var(--sub); font-size:14px; }
 .note { font-size:11px; color:var(--sub); line-height:1.6; padding:10px 12px;
         background:#f7faf8; border-left:3px solid var(--sub); border-radius:4px; margin-top:12px; }
 .note strong { color:var(--text); }
+.decision { font-size:11px; color:var(--text); line-height:1.65; padding:11px 13px;
+            background:#eef4fb; border-left:3px solid var(--blue); border-radius:4px; margin-top:14px; }
+.decision .d-lead { font-weight:700; color:var(--blue); text-transform:uppercase;
+                    letter-spacing:.05em; font-size:10px; display:block; margin-bottom:4px; }
+.decision strong { color:var(--text); }
 .list-row { display:flex; justify-content:space-between; font-size:11px;
             padding:4px 8px; background:#f7faf8; border-radius:3px; margin-bottom:4px; }
 footer { text-align:center; margin-top:48px; font-size:11px; color:var(--sub); }
@@ -1500,13 +1719,125 @@ def mini_card_agency(name: str, color: str, count: int,
     </div>"""
 
 
-def section(title: str, sub: str, body: str, border_color: str = "") -> str:
+# Texto interpretativo por seção: o que o dado significa + como usar para decidir.
+# Indexado pelo título exato passado a section(); aplicado automaticamente.
+DECISIONS: dict[str, str] = {
+    "Distribuição por curso":
+        "<strong>O que é:</strong> quantos formandos cada curso entrega e que fração fez pesquisa. "
+        "<strong>Como decidir:</strong> compare a <em>proporção</em> com pesquisa (não o número absoluto — os cursos têm tamanhos diferentes). "
+        "Curso com baixa adesão à IC é alvo prioritário de campanha de captação e de novas cotas de bolsa.",
+    "Forma de ingresso (cotas)":
+        "<strong>O que é:</strong> participação em pesquisa por forma de ingresso (cotistas × ampla concorrência). "
+        "<strong>Como decidir:</strong> se cotistas têm menos IC ou menos bolsa <em>paga</em>, há barreira de equidade — "
+        "direcione editais e bolsas afirmativas para igualar o acesso à pesquisa.",
+    "Tipo de bolsa":
+        "<strong>O que é:</strong> mix de modalidades (PIBIC/PIVIC/PIBITI…). "
+        "<strong>Como decidir:</strong> muito voluntário (PIVIC/PIVITI) revela demanda reprimida por bolsa paga — "
+        "use como argumento quantitativo para pleitear mais cotas remuneradas.",
+    "Agências de fomento":
+        "<strong>O que é:</strong> quem financia (CNPq, Ifes, Fapes) e o volume de cada uma. "
+        "<strong>Como decidir:</strong> dependência forte de uma única agência é risco — diversifique. "
+        "Onde o valor captado é baixo, concentre esforço de submissão.",
+    "Curso × agência de fomento":
+        "<strong>O que é:</strong> qual curso capta de qual agência. "
+        "<strong>Como decidir:</strong> curso sem acesso a determinada agência deve ser orientado a submeter lá; "
+        "replique a prática de quem já capta bem.",
+    "Progressão de bolsa":
+        "<strong>O que é:</strong> alunos que mudaram de status (voluntário→pago, entre agências). "
+        "<strong>Como decidir:</strong> vol→pago é trajetória saudável de retenção; "
+        "pago→voluntário pode sinalizar perda de financiamento a investigar.",
+    "Orientadores por formando":
+        "<strong>O que é:</strong> quantos orientadores diferentes cada aluno teve. "
+        "<strong>Como decidir:</strong> 1 orientador indica vínculo estável; muitos podem indicar troca/abandono. "
+        "Pesquisa concentrada em poucos orientadores é risco de sobrecarga e de dependência — distribua a mentoria.",
+    "Grupos de pesquisa":
+        "<strong>O que é:</strong> grupos que mais formam pesquisadores, com divisão pago/voluntário/cotista. "
+        "<strong>Como decidir:</strong> grupos ativos são onde o investimento em bolsa rende mais; "
+        "grupos com muito voluntário são candidatos diretos a novas cotas pagas.",
+    "Áreas de conhecimento":
+        "<strong>O que é:</strong> temas em que a pesquisa dos formandos se concentra. "
+        "<strong>Como decidir:</strong> alinhe editais e contratação docente às áreas fortes; "
+        "área ausente ou rarefeita é lacuna estratégica a cobrir.",
+    "Produção científica":
+        "<strong>O que é:</strong> artigos registrados no sistema para os formandos. "
+        "<strong>Como decidir:</strong> baixa produção registrada quase sempre é subnotificação — "
+        "cruze com o Lattes e melhore o cadastro antes de concluir que há pouca produção.",
+    "Quando os formandos entraram na IC":
+        "<strong>O que é:</strong> em que ponto do curso o aluno começou a iniciação científica. "
+        "<strong>Como decidir:</strong> entrada tardia desperdiça tempo de pesquisa — "
+        "antecipe a divulgação da IC para os primeiros períodos.",
+    "Bolsistas FAPES formados":
+        "<strong>O que é:</strong> bolsistas FAPES que já se formaram, por curso e tipo de bolsa. "
+        "<strong>Como decidir:</strong> é a medida de retorno do investimento FAPES — "
+        "bolsista que se formou é sucesso; cruze com a continuidade no mestrado para ver o efeito de longo prazo.",
+    "Recuperação de alunos com IC via Lattes":
+        "<strong>O que é:</strong> alunos com IC que o SigPesq não capturou, recuperados via Lattes. "
+        "<strong>Como decidir:</strong> mede o buraco de registro do SigPesq — "
+        "a cobertura real de pesquisa é maior que a do sistema; priorize a melhoria do cadastro.",
+    "Cruzamento Lattes × SigPesq":
+        "<strong>O que é:</strong> o quanto o Lattes amplia os projetos por formando além do SigPesq. "
+        "<strong>Como decidir:</strong> delta grande = SigPesq subnotifica de forma relevante; "
+        "justifica investir na integração automática das duas bases.",
+    "Tempo de formação":
+        "<strong>O que é:</strong> atraso sobre o currículo de <em>cada</em> curso (SI 8 sem · ECA 12 sem) — não o tempo absoluto. "
+        "<strong>Como decidir:</strong> compare sempre pelo atraso (a régua absoluta mistura cursos e engana). "
+        "Concentração de atraso longo pede revisão de oferta de disciplinas e pré-requisitos.",
+    "Análise de coorte por ano de ingresso":
+        "<strong>O que é:</strong> desempenho por turma de entrada, cada curso na própria régua. "
+        "<strong>Como decidir:</strong> atraso que cresce em coortes recentes aponta problema sistêmico daquele período "
+        "(mudança curricular, evasão) — investigue a turma, não o aluno.",
+    "Impacto do orientador no tempo de formação":
+        "<strong>O que é:</strong> tempo médio de formação dos alunos de cada orientador. "
+        "<strong>Como decidir:</strong> <em>não</em> é ranking de qualidade — reflete o perfil dos alunos orientados tanto quanto o orientador. "
+        "Use para identificar quem precisa de apoio e para difundir boas práticas dos mais eficientes.",
+    "Investimento em bolsa × tempo de formação":
+        "<strong>O que é:</strong> tempo de formação por faixa de valor recebido em bolsa. "
+        "<strong>Como decidir:</strong> se mais investimento corresponde a formação mais rápida, "
+        "há base para ampliar valor e duração das bolsas — não só o número de cotas.",
+    "Continuidade na IC × tempo de formação":
+        "<strong>O que é:</strong> desfecho de quem fez 1 projeto de IC versus vários. "
+        "<strong>Como decidir:</strong> se a continuidade melhora o resultado, incentive a <em>renovação</em> de projetos, "
+        "não apenas a primeira entrada na IC.",
+    "Pipeline IC → TCC":
+        "<strong>O que é:</strong> quantos seguem da IC para o TCC e se mantêm o mesmo orientador. "
+        "<strong>Como decidir:</strong> alta continuidade com mesmo orientador indica vínculo forte e maturação; "
+        "baixa continuidade é oportunidade de integrar IC e TCC numa trilha única.",
+    "Bolsa × tempo de formação":
+        "<strong>O que é:</strong> comparação do tempo de formação entre quem teve bolsa e quem não teve. "
+        "<strong>Como decidir:</strong> se a bolsa acelera a formação, é argumento direto para ampliar a oferta de bolsas.",
+    "Ecossistema do orientador — IC × projetos FAPES":
+        "<strong>O que é:</strong> orientadores de IC dos formandos que também coordenam grandes projetos FAPES. "
+        "<strong>Como decidir:</strong> são os professores-chave que ligam a graduação ao fomento de grande porte — "
+        "proteja e amplie a capacidade deles. Forte concentração em poucos nomes é risco de continuidade a mitigar.",
+    "Pipeline graduação → mestrado (PPComp)":
+        "<strong>O que é:</strong> quantos formandos seguem para o mestrado e o desfecho do programa. "
+        "<strong>Como decidir:</strong> pipeline fino pede trilha explícita IC→TCC→mestrado; "
+        "evasão alta no mestrado pede revisão de acolhimento e de bolsas de pós.",
+    "Painel de fomento — da semente IC ao portfólio":
+        "<strong>O que é:</strong> a escala do fomento — bolsa de IC frente aos projetos FAPES/FACTO. "
+        "<strong>Como decidir:</strong> a IC é semente barata com alto efeito alavanca; proteja o orçamento dela. "
+        "O alerta de projetos com prazo vencido é ação imediata de gestão.",
+}
+
+
+def _decision_box(text: str | None) -> str:
+    if not text:
+        return ""
+    return (
+        f'<div class="decision"><span class="d-lead">▸ Como ler e decidir</span>{text}</div>'
+    )
+
+
+def section(title: str, sub: str, body: str, border_color: str = "",
+            decision: str | None = None) -> str:
     style = f' style="border-color:{border_color};"' if border_color else ""
+    dbox = _decision_box(decision if decision is not None else DECISIONS.get(title, ""))
     return (
         f'<div class="section"{style}>'
         f'<h2>{title}</h2>'
         f'<div class="sub">{sub}</div>'
         f'{body}'
+        f'{dbox}'
         f'</div>'
     )
 
@@ -1538,7 +1869,13 @@ def _sec_stats(s: dict) -> str:
       <div class="number">{s['sem_registro']}</div>
       <div class="label">sem registro no SigPesq</div>
     </div>
-  </div>"""
+  </div>
+  {_decision_box(
+      "<strong>O que é:</strong> o panorama macro — total de formandos e a fatia que passou por pesquisa. "
+      "<strong>Como decidir:</strong> o <strong>% com pesquisa</strong> é o indicador-chave da instituição; "
+      "defina meta de elevação ano a ano. Atenção: &lsquo;sem informação&rsquo; não é o mesmo que &lsquo;sem pesquisa&rsquo; — "
+      "parte é apenas falta de registro, então trate a cobertura de cadastro antes de ler como baixa adesão."
+  )}"""
 
 
 def _sec_curso(s: dict) -> str:
@@ -2010,7 +2347,13 @@ def _sec_projects_duration(s: dict) -> str:
         f'<div class="section" style="margin-bottom:0;">'
         f'<h2>Projetos por formando</h2>'
         f'<div class="sub">dentre formandos com projetos registrados</div>'
-        f'{proj_bars}{proj_note}</div>'
+        f'{proj_bars}{proj_note}'
+        + _decision_box(
+            "<strong>O que é:</strong> quantos projetos de IC cada formando acumulou. "
+            "<strong>Como decidir:</strong> mais projetos = mais maturação científica e maior chance de seguir para a pós. "
+            "Predomínio de 1 projeto só indica espaço para incentivar renovação e continuidade."
+        )
+        + '</div>'
     )
 
     # duration
@@ -2040,7 +2383,13 @@ def _sec_projects_duration(s: dict) -> str:
         f'padding:10px;text-align:center;">'
         f'<div style="font-size:20px;font-weight:700;color:var(--green2);">{s["dur_median"]}d</div>'
         f'<div style="font-size:10px;color:var(--sub);">mediana (~{s["dur_median"]//30} meses)</div></div>'
-        f'</div></div>'
+        f'</div>'
+        + _decision_box(
+            "<strong>O que é:</strong> por quanto tempo a bolsa durou. "
+            "<strong>Como decidir:</strong> bolsas de 7–12 meses dão tempo para resultado; "
+            "concentração em ≤6 meses indica fragmentação que reduz a efetividade — prefira menos bolsas, porém mais longas."
+        )
+        + '</div>'
     )
 
     return f'<div class="grid2" style="margin-bottom:24px;">{proj_col}{dur_col}</div>'
@@ -2275,8 +2624,16 @@ def _sec_ic_timing(s: dict) -> str:
         for yr, v in sorted(yd.items())
     )
 
+    def _subhead(title: str, sub: str) -> str:
+        return (
+            f'<div style="font-size:12px;font-weight:700;color:var(--text);'
+            f'text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">{title}</div>'
+            f'<div style="font-size:11px;color:var(--sub);margin-bottom:14px;">{sub}</div>'
+        )
+
     charts = (
-        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:16px;">'
+        _subhead("Visão geral", "Todos os cursos somados")
+        + f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:16px;">'
 
         f'<div><div style="font-size:11px;color:var(--sub);text-transform:uppercase;'
         f'letter-spacing:.05em;margin-bottom:10px;">Semestre do curso na 1ª IC</div>'
@@ -2287,6 +2644,56 @@ def _sec_ic_timing(s: dict) -> str:
         f'{year_bars}</div>'
 
         f'</div>'
+    )
+
+    # -- subseção por curso (a partir dos records, que já trazem o curso) --
+    by_curso_recs: dict[str, list[int]] = defaultdict(list)
+    for r in t.get("records", []):
+        by_curso_recs[r.get("curso") or "—"].append(r.get("semesters_after", 0))
+
+    def _curso_timing_block(curso: str, vals: list[int]) -> str:
+        if not vals:
+            return ""
+        short = ("ECA — Eng. Controle e Automação" if "Controle" in curso
+                 else "SI — Sistemas de Informação" if "Sistemas" in curso else curso)
+        nn = len(vals)
+        avg_c = round(sum(vals) / nn, 1)
+        e = sum(1 for v in vals if v <= 2)
+        m = sum(1 for v in vals if 3 <= v <= 5)
+        lt = sum(1 for v in vals if v >= 6)
+        dist_c = Counter(vals)
+        maxd = max(dist_c.values()) if dist_c else 1
+        bars_c = "".join(
+            f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">'
+            f'<span style="font-size:10px;color:var(--text);width:64px;flex-shrink:0;">{k}º sem</span>'
+            f'<div style="flex:1;height:12px;background:#e7efe9;border-radius:3px;overflow:hidden;">'
+            f'<div style="width:{round(v/maxd*100)}%;height:100%;background:{_period_color(k)};"></div></div>'
+            f'<span style="font-size:10px;font-weight:600;color:{_period_color(k)};width:20px;text-align:right;">{v}</span>'
+            f'</div>'
+            for k, v in sorted(dist_c.items())
+        )
+        return (
+            f'<div style="background:#f7faf8;border:1px solid var(--border);border-radius:8px;padding:14px;">'
+            f'<div style="font-size:12px;font-weight:600;margin-bottom:6px;">{short}</div>'
+            f'<div style="font-size:11px;color:var(--sub);margin-bottom:10px;">'
+            f'média <strong style="color:var(--green);">{avg_c}</strong> sem até 1ª IC · n={nn} · '
+            f'<span style="color:var(--green);">{e} cedo</span> · '
+            f'<span style="color:var(--amber);">{m} interm.</span> · '
+            f'<span style="color:var(--sub);">{lt} tarde</span></div>'
+            f'{bars_c}</div>'
+        )
+
+    curso_blocks_t = "".join(
+        _curso_timing_block(c, by_curso_recs[c]) for c in sorted(by_curso_recs)
+    )
+    curso_subsec = (
+        f'<div style="border-top:1px solid var(--border);margin:18px 0 14px;padding-top:16px;">'
+        + _subhead(
+            "Por curso",
+            "Mesmo recorte separado por currículo (SI 8 sem · ECA 12 sem) — "
+            "entrada tardia pesa mais no curso mais curto, onde sobra menos tempo de pesquisa."
+          )
+        + f'<div class="grid2">{curso_blocks_t}</div></div>'
     )
 
     note = (
@@ -2304,7 +2711,7 @@ def _sec_ic_timing(s: dict) -> str:
     return section(
         "Quando os formandos entraram na IC",
         f"Tempo entre matrícula e 1ª iniciação científica — média: {avg} semestres · base: {n} formandos",
-        kpi_cards + charts + note,
+        kpi_cards + charts + curso_subsec + note,
     )
 
 
@@ -2352,9 +2759,7 @@ def _sec_bolsistas(s: dict) -> str:
                 f'<td style="padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px;text-align:center;">'
                 f'{x["formados"]}</td>'
                 f'<td style="padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px;text-align:right;">'
-                f'{faixa}<span style="color:var(--sub);font-size:10px;">/mês</span></td>'
-                f'<td style="padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px;text-align:right;color:var(--amber);">'
-                f'{_brl(x["valor_alocado"])}</td></tr>'
+                f'{faixa}<span style="color:var(--sub);font-size:10px;">/mês</span></td></tr>'
             )
         bolsa_block = (
             '<div style="font-size:12px;font-weight:600;margin:6px 0 10px;">'
@@ -2365,7 +2770,6 @@ def _sec_bolsistas(s: dict) -> str:
             '<th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);color:var(--sub);font-size:11px;">modalidade</th>'
             '<th style="padding:6px 10px;border-bottom:1px solid var(--border);color:var(--sub);font-size:11px;">formados</th>'
             '<th style="text-align:right;padding:6px 10px;border-bottom:1px solid var(--border);color:var(--sub);font-size:11px;">valor/mês</th>'
-            '<th style="text-align:right;padding:6px 10px;border-bottom:1px solid var(--border);color:var(--sub);font-size:11px;">alocado</th>'
             f'</tr></thead><tbody>{brows}</tbody></table>'
         )
 
@@ -2397,8 +2801,6 @@ def _sec_bolsistas(s: dict) -> str:
             f'{m["nome"]}</td>'
             f'<td style="padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px;text-align:center;">{short}</td>'
             f'<td style="padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px;text-align:center;">{ic}</td>'
-            f'<td style="padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px;text-align:right;">'
-            f'{_brl(m["valor_alocado"])}</td>'
             f'<td style="padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px;text-align:right;color:var(--sub);">'
             f'{m["total_projetos"]}p · {m["total_alocacoes"]}a</td></tr>'
         )
@@ -2411,7 +2813,6 @@ def _sec_bolsistas(s: dict) -> str:
         'color:var(--sub);font-size:11px;">bolsista</th>'
         '<th style="padding:6px 10px;border-bottom:1px solid var(--border);color:var(--sub);font-size:11px;">curso</th>'
         '<th style="padding:6px 10px;border-bottom:1px solid var(--border);color:var(--sub);font-size:11px;">IC</th>'
-        '<th style="text-align:right;padding:6px 10px;border-bottom:1px solid var(--border);color:var(--sub);font-size:11px;">alocado</th>'
         '<th style="text-align:right;padding:6px 10px;border-bottom:1px solid var(--border);color:var(--sub);font-size:11px;">proj·aloc</th>'
         f'</tr></thead><tbody>{rows}</tbody></table>'
     )
@@ -2648,50 +3049,72 @@ def _sec_graduation_time(s: dict) -> str:
     median_sem = overall["median"]
     n = overall["n"]
     total = s["total"]
-    n_transfers = cats.get("transfers", 0)
-    n_regular   = cats.get("regular", 0)
-    n_extended  = cats.get("extended", 0)
+
+    # Métrica comparável entre cursos = ATRASO (semestres além do previsto),
+    # pois SI tem 8 semestres de currículo e ECA tem 12. A média absoluta
+    # (10,3 sem) mistura as duas réguas e não significa nada isolada.
+    od = gt.get("overall_delay", {})
+    delay_mean = od.get("mean", 0) or 0
+    delay_median = od.get("median", 0) or 0
+    _dd = {int(k): v for k, v in od.get("dist", {}).items()}
+    n_on  = sum(v for k, v in _dd.items() if k <= 0)   # no prazo / adiantado
+    n_mod = sum(v for k, v in _dd.items() if 1 <= k <= 5)
+    n_long = sum(v for k, v in _dd.items() if k >= 6)
+    pct_on = round(n_on / n * 100, 1) if n else 0
+    expected_map = gt.get("expected", {})
+
+    _dcolor = ("var(--green)" if delay_mean <= 1
+               else "var(--amber)" if delay_mean <= 3 else "var(--red)")
+    _dval = f"{delay_mean:+.1f}".replace("+0.0", "0,0").replace(".", ",")
+    _dlabel = ("no prazo médio" if delay_mean <= 0
+               else f"{_dval} sem além do previsto")
 
     kpi = (
-        f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">'
-        f'<div style="background:#f7faf8;border:1px solid var(--green);border-radius:8px;padding:14px;text-align:center;">'
-        f'<div style="font-size:28px;font-weight:700;color:var(--green);">{mean_sem}</div>'
-        f'<div style="font-size:10px;color:var(--sub);margin-top:4px;">semestres médios<br>({mean_sem / 2:.1f} anos)</div>'
+        f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:8px;">'
+        f'<div style="background:#f7faf8;border:1px solid {_dcolor};border-radius:8px;padding:14px;text-align:center;">'
+        f'<div style="font-size:28px;font-weight:700;color:{_dcolor};">{_dval}</div>'
+        f'<div style="font-size:10px;color:var(--sub);margin-top:4px;">atraso médio (sem)<br>{_dlabel}</div>'
         f'</div>'
         f'<div style="background:#f7faf8;border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;">'
-        f'<div style="font-size:28px;font-weight:700;color:var(--green2);">{median_sem}</div>'
-        f'<div style="font-size:10px;color:var(--sub);margin-top:4px;">mediana<br>({median_sem / 2:.1f} anos)</div>'
+        f'<div style="font-size:28px;font-weight:700;color:var(--green);">{pct_on}%</div>'
+        f'<div style="font-size:10px;color:var(--sub);margin-top:4px;">no prazo ou adiantado<br>(≤ duração prevista do curso)</div>'
         f'</div>'
         f'<div style="background:#f7faf8;border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;">'
         f'<div style="font-size:28px;font-weight:700;color:var(--sub);">{n}</div>'
         f'<div style="font-size:10px;color:var(--sub);margin-top:4px;">formandos<br>com matrícula interpretável</div>'
         f'</div>'
         f'</div>'
+        f'<div class="note" style="margin-bottom:16px;">'
+        f'Currículo previsto: <strong>SI {expected_map.get("Sistemas de Informação", 8)} sem</strong> · '
+        f'<strong>ECA {expected_map.get("Engenharia de Controle e Automação", 12)} sem</strong>. '
+        f'O <strong>atraso</strong> (semestres além do previsto de cada curso) é a métrica comparável — '
+        f'a média absoluta de {str(mean_sem).replace(".", ",")} sem mistura as duas réguas e induz a erro.'
+        f'</div>'
     )
 
-    # Category breakdown row
+    # Category breakdown row — relativo ao currículo de CADA curso (via atraso)
     cat_row = (
         f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">'
 
-        f'<div style="background:#eef5f0;border:1px solid var(--blue);border-radius:6px;padding:12px;text-align:center;">'
-        f'<div style="font-size:22px;font-weight:700;color:var(--blue);">{n_transfers}</div>'
-        f'<div style="font-size:10px;color:var(--sub);margin-top:3px;">Ingresso acelerado<br>'
-        f'<span style="color:var(--blue);">&lt; 4 semestres</span></div>'
-        f'<div style="font-size:10px;color:var(--sub);margin-top:3px;">provável transferência ou aproveitamento</div>'
-        f'</div>'
-
         f'<div style="background:#eef5f0;border:1px solid var(--green);border-radius:6px;padding:12px;text-align:center;">'
-        f'<div style="font-size:22px;font-weight:700;color:var(--green);">{n_regular}</div>'
-        f'<div style="font-size:10px;color:var(--sub);margin-top:3px;">Tempo regular<br>'
-        f'<span style="color:var(--green);">4–24 semestres</span></div>'
-        f'<div style="font-size:10px;color:var(--sub);margin-top:3px;">faixa esperada do currículo</div>'
+        f'<div style="font-size:22px;font-weight:700;color:var(--green);">{n_on}</div>'
+        f'<div style="font-size:10px;color:var(--sub);margin-top:3px;">No prazo ou adiantado<br>'
+        f'<span style="color:var(--green);">atraso ≤ 0 sem</span></div>'
+        f'<div style="font-size:10px;color:var(--sub);margin-top:3px;">formou dentro da duração prevista do curso</div>'
         f'</div>'
 
         f'<div style="background:#eef5f0;border:1px solid var(--amber);border-radius:6px;padding:12px;text-align:center;">'
-        f'<div style="font-size:22px;font-weight:700;color:var(--amber);">{n_extended}</div>'
-        f'<div style="font-size:10px;color:var(--sub);margin-top:3px;">Graduação prolongada<br>'
-        f'<span style="color:var(--amber);">&gt; 24 semestres</span></div>'
-        f'<div style="font-size:10px;color:var(--sub);margin-top:3px;">provável trancamento prolongado</div>'
+        f'<div style="font-size:22px;font-weight:700;color:var(--amber);">{n_mod}</div>'
+        f'<div style="font-size:10px;color:var(--sub);margin-top:3px;">Atraso moderado<br>'
+        f'<span style="color:var(--amber);">1–5 sem além do previsto</span></div>'
+        f'<div style="font-size:10px;color:var(--sub);margin-top:3px;">reprovações ou trancamentos pontuais</div>'
+        f'</div>'
+
+        f'<div style="background:#eef5f0;border:1px solid var(--red);border-radius:6px;padding:12px;text-align:center;">'
+        f'<div style="font-size:22px;font-weight:700;color:var(--red);">{n_long}</div>'
+        f'<div style="font-size:10px;color:var(--sub);margin-top:3px;">Atraso longo<br>'
+        f'<span style="color:var(--red);">≥ 6 sem além do previsto</span></div>'
+        f'<div style="font-size:10px;color:var(--sub);margin-top:3px;">trancamento prolongado ou retomada tardia</div>'
         f'</div>'
 
         f'</div>'
@@ -2727,17 +3150,25 @@ def _sec_graduation_time(s: dict) -> str:
             f'</div>'
             for k, v in sorted(dist.items())
         )
+        ci = gt.get("cohort_impact", {}).get(curso, {})
+        atraso_m = ci.get("atraso_mean")
+        atraso_med = ci.get("atraso_median")
+        _am = f"{atraso_m:+.1f}".replace(".", ",") if atraso_m is not None else "—"
+        _amed = f"{atraso_med:+d}" if isinstance(atraso_med, int) else "—"
+        _ac = ("var(--green)" if (atraso_m or 0) <= 1
+               else "var(--amber)" if (atraso_m or 0) <= 3 else "var(--red)")
         cat_summary = ""
-        if cc.get("transfers"):
-            cat_summary += f' · <span style="color:var(--blue);">{cc["transfers"]} acelerado</span>'
-        if cc.get("extended"):
-            cat_summary += f' · <span style="color:var(--red);">{cc["extended"]} prolongado</span>'
+        if ci.get("on_time"):
+            cat_summary += f' · <span style="color:var(--green);">{ci["on_time"]} no prazo</span>'
+        if ci.get("late"):
+            cat_summary += f' · <span style="color:var(--amber);">{ci["late"]} atrasados</span>'
         curso_blocks += (
             f'<div style="background:#f7faf8;border:1px solid var(--border);border-radius:6px;padding:14px;">'
-            f'<div style="font-size:12px;font-weight:600;margin-bottom:4px;">{short}</div>'
-            f'<div style="font-size:11px;color:var(--sub);margin-bottom:10px;">'
-            f'média {cstats["mean"]} sem ({cstats["mean"] / 2:.1f} anos) · '
-            f'mediana {cstats["median"]} sem · n={cstats["n"]}'
+            f'<div style="font-size:12px;font-weight:600;margin-bottom:4px;">{short} '
+            f'<span style="font-weight:400;color:var(--sub);">· previsto {expected} sem</span></div>'
+            f'<div style="font-size:11px;color:var(--sub);margin-bottom:4px;">'
+            f'atraso médio <strong style="color:{_ac};">{_am} sem</strong> (mediana {_amed}) · '
+            f'média absoluta {cstats["mean"]} sem · n={cstats["n"]}'
             f'{cat_summary}</div>'
             f'{dist_bars}</div>'
         )
@@ -3250,7 +3681,10 @@ def _sec_graduation_time(s: dict) -> str:
             + adm_block + note)
     return section(
         "Tempo de formação",
-        f"Semestres do ingresso até a colação — geral: média {mean_sem} sem ({mean_sem / 2:.1f} anos) · base: {n} formandos",
+        f"Ingresso até a colação, medido como atraso sobre o currículo de cada curso "
+        f"(SI {expected_map.get('Sistemas de Informação', 8)} sem · "
+        f"ECA {expected_map.get('Engenharia de Controle e Automação', 12)} sem) — "
+        f"atraso médio {_dval} sem · base: {n} formandos",
         body,
     )
 
@@ -3478,29 +3912,47 @@ def _sec_ic_tcc_pipeline(s: dict) -> str:
     both_pct = p.get("both_pct", 0)
     ic_only = p.get("ic_only", 0)
     tcc_only = p.get("tcc_only", 0)
+    same_sup = p.get("same_sup", 0)
+    same_sup_pct = p.get("same_sup_pct", 0)
     ic_total = both + ic_only
+    total = s.get("total", 0)
     records = p.get("pipeline_records", [])
 
+    # ---- gráfico de funil: cada etapa retém uma fração da anterior ----
+    stages = [
+        {"label": "Formandos (turmas analisadas)", "value": total, "color": "var(--gray)"},
+        {"label": "Com IC registrada (SigPesq)", "value": ic_total, "color": "var(--blue)"},
+        {"label": "IC + TCC no Lattes", "value": both, "color": "var(--green2)"},
+        {"label": "Continuidade: mesmo orientador IC→TCC", "value": same_sup, "color": "var(--green)"},
+    ]
+    top_v = stages[0]["value"] or 1
+    funnel_rows = ""
+    prev_v = None
+    for st in stages:
+        v = st["value"]
+        w = max(round(v / top_v * 100), 14)  # largura mínima p/ legibilidade
+        pct_top = round(v / top_v * 100, 1)
+        if prev_v is not None:
+            conv = round(v / prev_v * 100, 1) if prev_v else 0
+            funnel_rows += (
+                f'<div style="text-align:center;font-size:10px;color:var(--sub);margin:3px 0;">'
+                f'▼ <strong style="color:var(--text);">{conv}%</strong> seguem para a próxima etapa</div>'
+            )
+        funnel_rows += (
+            f'<div style="width:{w}%;min-width:150px;margin:0 auto;background:{st["color"]};'
+            f'border-radius:6px;padding:11px 16px;display:flex;justify-content:space-between;'
+            f'align-items:center;gap:12px;color:#fff;box-shadow:0 1px 3px rgba(16,40,24,.12);">'
+            f'<span style="font-size:11px;font-weight:600;line-height:1.25;">{st["label"]}</span>'
+            f'<span style="font-size:18px;font-weight:800;white-space:nowrap;">{v}'
+            f'<span style="font-size:10px;font-weight:600;opacity:.85;"> · {pct_top}%</span></span>'
+            f'</div>'
+        )
+        prev_v = v
     funnel = (
-        f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">'
-
-        f'<div style="background:#eef5f0;border:1px solid var(--green);border-radius:8px;padding:14px;text-align:center;">'
-        f'<div style="font-size:32px;font-weight:700;color:var(--green);">{ic_total}</div>'
-        f'<div style="font-size:11px;color:var(--sub);margin-top:4px;">formandos com IC<br>(SigPesq)</div>'
-        f'</div>'
-
-        f'<div style="background:#eef5f0;border:1px solid var(--green2);border-radius:8px;padding:14px;text-align:center;">'
-        f'<div style="font-size:32px;font-weight:700;color:var(--green2);">{both}</div>'
-        f'<div style="font-size:11px;color:var(--sub);margin-top:4px;">também têm TCC<br>registrado no Lattes</div>'
-        f'<div style="font-size:13px;font-weight:700;color:var(--green2);margin-top:6px;">{both_pct}%</div>'
-        f'</div>'
-
-        f'<div style="background:#eef5f0;border:1px solid var(--sub);border-radius:8px;padding:14px;text-align:center;">'
-        f'<div style="font-size:32px;font-weight:700;color:var(--sub);">{ic_only}</div>'
-        f'<div style="font-size:11px;color:var(--sub);margin-top:4px;">IC apenas<br>(sem TCC no Lattes)</div>'
-        f'</div>'
-
-        f'</div>'
+        f'<div style="margin-bottom:16px;padding:4px 0;">{funnel_rows}'
+        f'<div style="text-align:center;font-size:10px;color:var(--sub);margin-top:8px;">'
+        f'% ao lado de cada barra = fração do topo (formandos); % entre barras = conversão da etapa anterior.'
+        f'</div></div>'
     )
 
     names_block = ""
@@ -3525,7 +3977,8 @@ def _sec_ic_tcc_pipeline(s: dict) -> str:
         f'<div class="note" style="border-color:var(--green2);margin-top:12px;">'
         f'<strong>{both_pct}% dos formandos com IC também têm TCC registrado no Lattes</strong> — '
         f'alta taxa de conversão IC→TCC. '
-        f'Isso indica que o vínculo de orientação tende a se prolongar do projeto de IC até o trabalho de conclusão. '
+        f'E <strong>{same_sup_pct}%</strong> desses ({same_sup} de {both}) mantiveram o <strong>mesmo orientador</strong> '
+        f'da IC até o TCC — o vínculo de orientação se prolonga do projeto de iniciação ao trabalho de conclusão. '
         + (f'{p.get("tcc_only", 0)} formandos têm TCC mas não aparecem no SigPesq — '
            f'possível subregistro de IC ou orientações informais.' if tcc_only else "")
         + f'</div>'
@@ -3732,6 +4185,200 @@ _SEM_PERIOD = {
     "2": ("Agosto",    "Dezembro"),
 }
 
+def _fmt_brl(value: float, cents: bool = False) -> str:
+    """Formata número em moeda pt-BR: 48547973.83 → 'R$ 48.547.974'."""
+    try:
+        v = float(value or 0)
+    except (TypeError, ValueError):
+        v = 0.0
+    if cents:
+        s = f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    else:
+        s = f"{round(v):,}".replace(",", ".")
+    return f"R$ {s}"
+
+
+def _sec_fapes_ecosystem(s: dict) -> str:
+    """Orientadores de formandos que também coordenam projetos FAPES."""
+    eco = s.get("integrated", {}).get("fapes_ecosystem", {})
+    rows = sorted(eco.get("rows", []),
+                  key=lambda r: (-r["formandos"], -r["n_proj"]))
+    if not rows:
+        return ""
+    max_form = max((r["formandos"] for r in rows), default=0) or 1
+
+    body = (
+        '<div style="overflow-x:auto;">'
+        '<div style="display:flex;font-size:10px;color:var(--sub);font-weight:600;'
+        'padding:0 0 6px;border-bottom:1px solid #e7efe9;margin-bottom:8px;">'
+        '<span style="width:240px;flex-shrink:0;">Orientador</span>'
+        '<span style="flex:1;min-width:160px;text-align:right;">formandos mentorados</span>'
+        '<span style="width:90px;text-align:right;">projetos FAPES</span>'
+        '</div>'
+    )
+    for r in rows:
+        w = round(r["formandos"] / max_form * 100)
+        body += (
+            '<div style="display:flex;align-items:center;font-size:11px;'
+            'margin-bottom:5px;">'
+            f'<span style="width:240px;flex-shrink:0;color:var(--text);">{r["nome"]}</span>'
+            '<span style="flex:1;min-width:160px;display:flex;align-items:center;gap:6px;justify-content:flex-end;">'
+            '<span style="flex:1;height:10px;background:#e7efe9;border-radius:2px;overflow:hidden;max-width:200px;">'
+            f'<span style="display:block;width:{w}%;height:100%;background:var(--green);"></span></span>'
+            f'<span style="font-weight:700;color:var(--green);width:36px;text-align:right;">{r["formandos"]}</span></span>'
+            f'<span style="width:90px;text-align:right;color:var(--sub);">{r["n_proj"]}</span>'
+            '</div>'
+        )
+    body += '</div>'
+
+    note = (
+        f'<div class="note" style="border-color:var(--blue);margin-top:14px;">'
+        f'<strong>{eco["n_orientadores"]} dos orientadores de IC dos formandos também coordenam projetos FAPES</strong> '
+        f'(de {eco["n_coord_total"]} coordenadores FAPES no campus). '
+        f'Somam <strong>{_fmt_brl(eco["total_orc"])}</strong> em orçamento contratado — '
+        f'<strong>{eco["pct_orc"]}% dos {_fmt_brl(eco["campus_orc"])}</strong> do portfólio FAPES do campus — '
+        f'e {_fmt_brl(eco["total_bolsa"])} em bolsas ({eco["total_bolsa_q"]} cotas). '
+        f'A bolsa de IC é a porta de entrada de um ecossistema de pesquisa muito maior: '
+        f'os mesmos professores que mentoram graduandos comandam os projetos de grande porte. '
+        f'<br><span style="color:var(--sub);">Cruzamento por nome normalizado entre orientadores SigPesq e coordenadores FAPES. '
+        f'Recorte exclui os projetos de um coordenador específico, por decisão da gestão.</span>'
+        f'</div>'
+    )
+    return section(
+        "Ecossistema do orientador — IC × projetos FAPES",
+        "Orientadores de formandos cruzados com o portfólio de projetos FAPES que coordenam",
+        body + note,
+        border_color="var(--blue)",
+    )
+
+
+def _sec_mestrado_pipeline(s: dict) -> str:
+    """Funil graduação → mestrado PPComp + bolsas de pós-graduação."""
+    mp = s.get("integrated", {}).get("mestrado_pipeline", {})
+    if not mp:
+        return ""
+
+    def card(label, value, sub, color):
+        return (
+            '<div style="flex:1;min-width:120px;background:#f4f9f5;border-radius:8px;'
+            'padding:14px 12px;text-align:center;">'
+            f'<div style="font-size:26px;font-weight:800;color:{color};line-height:1;">{value}</div>'
+            f'<div style="font-size:11px;font-weight:600;color:var(--text);margin-top:5px;">{label}</div>'
+            f'<div style="font-size:10px;color:var(--sub);margin-top:2px;">{sub}</div>'
+            '</div>'
+        )
+
+    cards = (
+        '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;">'
+        + card("Formandos → PPComp", mp["pipe_n"], f'{mp["pipe_pct"]}% dos formandos', "var(--green)")
+        + card("Já defenderam", mp["pipe_def"], "do pipeline", "var(--blue)")
+        + card("Ainda ativos", mp["pipe_ativos"], "do pipeline", "var(--amber)")
+        + card("Mestrado (total)", mp["total"], f'taxa defesa {mp["taxa_defesa"]}%', "var(--text)")
+        + card("Tempo médio", f'{mp["tempo_medio"]}a', "até a defesa", "var(--sub)")
+        + '</div>'
+    )
+
+    # mestrado situação geral
+    fapes = mp["bolsas_fapes"]; facto = mp["bolsas_facto"]; uniao = mp["bolsas_uniao"]
+    bolsas_line = (
+        '<div style="display:flex;gap:18px;flex-wrap:wrap;font-size:12px;'
+        'padding:10px 0;border-top:1px solid #e7efe9;margin-top:4px;">'
+        f'<span><strong>{uniao}</strong> bolsistas de pós (FAPES {fapes} · FACTO {facto})</span>'
+        f'<span style="color:var(--sub);">valor FAPES mestrado: <strong style="color:var(--text);">{_fmt_brl(mp["bolsas_valor_fapes"])}</strong></span>'
+        f'<span style="color:var(--sub);">defendidos {mp["defendidos"]} · ativos {mp["ativos"]} · evasão {mp["evasao"]}</span>'
+        '</div>'
+    )
+
+    note = (
+        '<div class="note" style="border-color:var(--green);margin-top:12px;">'
+        f'<strong>O funil de pesquisa não termina no TCC.</strong> '
+        f'{mp["pipe_n"]} formandos do Serra ({mp["pipe_pct"]}%) seguiram para o mestrado PPComp — '
+        f'estendendo a trajetória IC → TCC → pós. Apenas 2 desse grupo evadiram. '
+        f'A continuidade de <em>bolsa</em> (bolsista IC → bolsista mestrado) ainda é invisível: '
+        f'exige chave de junção por aluno (Lattes/SigPesq), não só por nome. '
+        f'<br><span style="color:var(--sub);">Fonte: mestrado/ppcomp_base_analitico.json (campo pipeline).</span>'
+        '</div>'
+    )
+    return section(
+        "Pipeline graduação → mestrado (PPComp)",
+        "Quantos formandos seguiram para o mestrado e o desfecho do programa",
+        cards + bolsas_line + note,
+        border_color="var(--green)",
+    )
+
+
+def _sec_fomento_panel(s: dict) -> str:
+    """Escala de fomento: da semente IC ao portfólio de projetos."""
+    fp = s.get("integrated", {}).get("fomento_panel", {})
+    if not fp:
+        return ""
+
+    steps = []
+    steps.append(("Bolsa IC (graduação)", fp.get("ic_grad_invest", 0),
+                  "investimento em bolsas de IC dos formandos", "var(--sub)"))
+    if fp.get("bolsistas_alocado"):
+        steps.append(("Bolsistas FAPES (alocado)", fp["bolsistas_alocado"],
+                      "valor alocado a bolsistas do campus", "var(--gray)"))
+    if fp.get("fapes_total"):
+        ft = fp["fapes_total"]
+        steps.append(("Projetos FAPES — Serra", ft.get("orcamento_contratado_total", 0),
+                      f'{ft.get("quantidade_projetos", 0)} projetos · {_fmt_brl(ft.get("valor_bolsas_total", 0))} em bolsas · {ft.get("quantidade_bolsas_total", 0)} cotas',
+                      "var(--blue)"))
+    if fp.get("facto_aprovado"):
+        _fp_n = fp.get("facto_proj", 0)
+        steps.append(("Fundação FACTO — IFES Serra", fp["facto_aprovado"],
+                      f'{_fp_n} projeto{"s" if _fp_n != 1 else ""} executado{"s" if _fp_n != 1 else ""} pelo Campus Serra (valor aprovado)',
+                      "var(--green)"))
+
+    max_v = max((v for _, v, _, _ in steps), default=0) or 1
+    bars = ""
+    for label, value, sub, color in steps:
+        # escala log-ish: usar raiz para não esmagar a barra da IC
+        w = round((value / max_v) ** 0.45 * 100)
+        bars += (
+            '<div style="margin-bottom:12px;">'
+            '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px;">'
+            f'<span style="font-size:12px;font-weight:600;color:{color};">{label}</span>'
+            f'<span style="font-size:14px;font-weight:800;color:{color};">{_fmt_brl(value)}</span>'
+            '</div>'
+            '<div style="height:14px;background:#e7efe9;border-radius:3px;overflow:hidden;">'
+            f'<div style="width:{max(w, 2)}%;height:100%;background:{color};"></div></div>'
+            f'<div style="font-size:10px;color:var(--sub);margin-top:2px;">{sub}</div>'
+            '</div>'
+        )
+
+    # flag de gestão: projetos em andamento com prazo encerrado
+    flag = ""
+    enc = fp.get("fapes_prazo_encerrado") or {}
+    if enc.get("quantidade_projetos"):
+        flag = (
+            '<div class="note" style="border-color:var(--amber);margin-top:8px;">'
+            f'<strong>Alerta de gestão:</strong> {enc["quantidade_projetos"]} projetos FAPES '
+            f'constam "Em Andamento" mas com prazo já encerrado — '
+            f'{_fmt_brl(enc.get("orcamento_contratado_total", 0))} contratados, '
+            f'{enc.get("quantidade_bolsas_total", 0)} bolsas. Divergência status × prazo a revisar.'
+            '</div>'
+        )
+
+    note = (
+        '<div class="note" style="border-color:var(--blue);margin-top:12px;">'
+        '<strong>A IC é a semente, não a árvore.</strong> '
+        'A escala (eixo comprimido por raiz para caber a IC) mostra que a bolsa de iniciação '
+        'científica é uma fração mínima do fomento à pesquisa — os projetos FAPES do campus '
+        'movem dezenas de milhões, comandados em boa parte pelos mesmos orientadores de IC. '
+        'Apenas os projetos FACTO executados pelo Campus Serra entram no recorte (a base FACTO original é institucional). '
+        '<br><span style="color:var(--sub);">FACTO = valor aprovado (não executado), filtrado por instituição executora = Campus Serra. '
+        'Fontes: projetos-fapes, projetos-facto, bolsistas, formandos.</span>'
+        '</div>'
+    )
+    return section(
+        "Painel de fomento — da semente IC ao portfólio",
+        "Escala comparada: bolsa de IC vs projetos FAPES vs fundação FACTO — recorte IFES Serra",
+        bars + flag + note,
+        border_color="var(--blue)",
+    )
+
+
 def _sem_full_period(semester: str) -> str:
     """'2024_1' → '1º Semestre de 2024 (Fevereiro – Julho)'"""
     try:
@@ -3775,6 +4422,9 @@ def render_html(s: dict, semester: str, generated_at: str,
         _sec_ic_recovery(s),
         _sec_bolsistas(s),
         _sec_lattes_cross(s),
+        _sec_fapes_ecosystem(s),
+        _sec_mestrado_pipeline(s),
+        _sec_fomento_panel(s),
     ]
     body = "\n".join(p for p in body_parts if p)
 

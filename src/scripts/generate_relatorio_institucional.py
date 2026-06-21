@@ -51,6 +51,14 @@ def _professores_campus() -> dict[str, str]:
     return profs
 
 
+# Coordenadores excluídos da análise de projetos (recorte da gestão).
+_EXCLUDED_COORD_SUBSTR = ("elton",)
+
+
+def _is_excluded_coord(name: str | None) -> bool:
+    return any(sub in _match_key(name) for sub in _EXCLUDED_COORD_SUBSTR)
+
+
 def _facto_info(p: dict) -> dict:
     for k, rows in (p.get("csv") or {}).items():
         if k.endswith("Informaçoes do projeto.csv") and rows:
@@ -97,6 +105,8 @@ def facto_section() -> str:
     prof_proj = defaultdict(lambda: {"coord": set(), "membro": set()})
     for p in d["projects"]:
         i = _facto_info(p)
+        if _is_excluded_coord(i.get("Coordenador")):
+            continue  # remove projetos do coordenador excluído (recorte da gestão)
         found = {"coord": set(), "membro": set()}
         c = _match_key(i.get("Coordenador"))
         if c in profs:
