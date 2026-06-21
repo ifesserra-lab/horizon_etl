@@ -147,13 +147,32 @@ def compute(G: nx.Graph) -> dict:
     # layout determinístico. Pesos amortecidos (log) p/ laços fortes não colapsarem
     # o núcleo; k maior espalha; isolados num anel externo p/ não amontoar.
     import math
-    H = nx.Graph()  # só arestas → só nós conectados entram (isolados ficam fora)
-    for a, b, d in G.edges(data=True):
-        H.add_edge(a, b, weight=1.0 + math.log1p(d.get("weight", 1)))
-    nc = max(H.number_of_nodes(), 1)
-    pos = (nx.spring_layout(H, weight="weight", seed=42,
-                            k=3.2 / math.sqrt(nc), iterations=400)
-           if H.number_of_edges() else {})
+    # Layout POR COMUNIDADE: cada comunidade ocupa um setor próprio (centro num
+    # círculo grande) e é desenhada com spring local. Evita o "blob" único —
+    # os grupos densos ficam separados na tela.
+    groups: dict[int, list] = defaultdict(list)
+    for n, ci in comm_map.items():
+        groups[ci].append(n)
+    pos: dict = {}
+    if groups:
+        ncomm = len(groups)
+        maxsz = max(len(v) for v in groups.values())
+        ordered = sorted(groups.items(), key=lambda kv: -len(kv[1]))
+        Rcirc = 1.0 if ncomm > 1 else 0.0
+        for idx, (ci, members) in enumerate(ordered):
+            ang = 2 * math.pi * idx / ncomm
+            ccx, ccy = Rcirc * math.cos(ang), Rcirc * math.sin(ang)
+            sub = G.subgraph(members)
+            if sub.number_of_edges():
+                sp = nx.spring_layout(sub, seed=42,
+                                      k=3.0 / math.sqrt(max(len(members), 1)),
+                                      iterations=300)
+            else:
+                sp = {m: (0.0, 0.0) for m in members}
+            r = 0.34 * math.sqrt(len(members) / maxsz)  # raio do cluster ~ tamanho
+            for m in members:
+                x, y = sp.get(m, (0.0, 0.0))
+                pos[m] = (ccx + x * r, ccy + y * r)
     return {"deg": deg, "wdeg": wdeg, "btw": btw, "pr": pr, "comm": comm_map, "pos": pos}
 
 
@@ -213,30 +232,47 @@ def collect_projects(id2name: dict) -> tuple[Counter, Counter]:
     return pair, pcount
 
 
-def analyze_patterns(G, m, id2name, areas, proj_pair: Counter, proj_count: Counter) -> dict:
+def analyze_patterns(G, m, id2name, areas, proj_pair: Counter, proj_count: Counter,
+                     impact: dict | None = None) -> dict:
+    impact = impact or {}     # id -> {score, qualidade, estrato_A, sjr_q1q2, artigos_qualis}
+
+    def imp(x):
+        return impact.get(x, {})
     comm = m["comm"]
-    # ---- perfis de comunidade ----
+    # ---- perfis de comunidade (ordenados por RELEVÂNCIA = impacto Qualis) ----
     groups: dict[int, list] = defaultdict(list)
     for lid, ci in comm.items():
         groups[ci].append(lid)
     comm_profiles = []
-    for ci, members in sorted(groups.items(), key=lambda kv: -len(kv[1])):
+    for ci, members in groups.items():
         gareas = Counter(areas.get(x, ("—", "—"))[0] for x in members)
         gsub = Counter(areas.get(x, ("—", "—"))[1] for x in members)
         internal = sum(1 for a, b in G.edges(members)
                        if comm.get(a) == ci and comm.get(b) == ci)
-        top = sorted(members, key=lambda x: -m["wdeg"].get(x, 0))[:4]
-        bridge = max(members, key=lambda x: m["btw"].get(x, 0))
         n = len(members)
         dens = round(2 * internal / (n * (n - 1)), 3) if n > 1 else 0
+        # relevância: soma dos pesos Qualis; qualidade média; estrato A; Q1+Q2
+        score_tot = sum(imp(x).get("score", 0) for x in members)
+        a_tot = sum(imp(x).get("estrato_A", 0) for x in members)
+        q1q2_tot = sum(imp(x).get("sjr_q1q2", 0) for x in members)
+        com_pub = [x for x in members if imp(x).get("artigos_qualis", 0) > 0]
+        qmean = round(sum(imp(x).get("qualidade", 0) for x in com_pub) / len(com_pub), 1) if com_pub else 0
+        # top membros por IMPACTO (score Qualis), não por volume
+        top = sorted(members, key=lambda x: -imp(x).get("score", 0))[:4]
+        bridge = max(members, key=lambda x: m["btw"].get(x, 0))
         comm_profiles.append({
             "id": ci + 1, "n": n,
             "area": gareas.most_common(1)[0][0],
             "subareas": [f"{k} ({v})" for k, v in gsub.most_common(3)],
             "lacos_internos": internal, "densidade": dens,
-            "membros_top": [id2name[x] for x in top],
+            "score": score_tot, "qualidade_media": qmean,
+            "estrato_A": a_tot, "q1q2": q1q2_tot,
+            "membros_top": [f"{id2name[x]} ({imp(x).get('score',0)})" for x in top],
             "ponte": id2name[bridge],
         })
+    comm_profiles.sort(key=lambda c: -c["score"])
+    for i, c in enumerate(comm_profiles, 1):
+        c["rank"] = i
 
     # ---- padrão por ÁREA (homofilia) ----
     area_mat: Counter = Counter()
@@ -350,6 +386,10 @@ def _html(payload: dict) -> str:
  --font:'Inter','Segoe UI',system-ui,sans-serif;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--ink);font-family:var(--font);}
+.dev-banner{background:#b8860b;color:#fff;text-align:center;font-size:13px;font-weight:600;
+ padding:7px 12px;letter-spacing:.02em;}
+.devtag{display:inline-block;background:#f7f0dd;color:#b8860b;font-size:11px;font-weight:700;
+ padding:3px 9px;border-radius:999px;vertical-align:middle;margin-left:8px;text-transform:uppercase;letter-spacing:.05em;}
 header{padding:22px 28px;border-bottom:3px solid var(--green);background:var(--paper);}
 header h1{font-size:22px;} header p{color:var(--sub);font-size:13px;margin-top:4px;}
 .search{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
@@ -372,8 +412,9 @@ header h1{font-size:22px;} header p{color:var(--sub);font-size:13px;margin-top:4
 .legend{position:absolute;bottom:12px;left:12px;font-size:11px;color:var(--sub);background:rgba(255,255,255,.85);
  padding:8px 10px;border-radius:8px;border:1px solid var(--line);}
 </style></head><body>
+<div class="dev-banner">🚧 Under development — versão preliminar, dados e métricas em validação</div>
 <header>
- <h1>Rede de Colaboração dos Docentes — IFES Campus Serra</h1>
+ <h1>Rede de Colaboração dos Docentes — IFES Campus Serra <span class="devtag">Under development</span></h1>
  <p>Coautoria entre docentes (artigos + congressos no Lattes). Tamanho do nó = trabalhos em coautoria; cor = comunidade; espessura da aresta = nº de trabalhos juntos.</p>
  <div class="search">
    <input id="q" list="names" placeholder="Digite um pesquisador..." autocomplete="off">
@@ -405,7 +446,7 @@ const dl=document.getElementById('names');
 N.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(n=>{const o=document.createElement('option');o.value=n.name;dl.appendChild(o);});
 let W,H,sel=null;
 const maxW=Math.max(1,...N.map(n=>n.wdeg||0));
-const topHubs=new Set(N.slice().sort((a,b)=>(b.wdeg||0)-(a.wdeg||0)).slice(0,12).map(n=>n.id));
+const topHubs=new Set(N.slice().sort((a,b)=>(b.wdeg||0)-(a.wdeg||0)).slice(0,6).map(n=>n.id));
 const conn=N.filter(n=>!n.isolado), iso=N.filter(n=>n.isolado);
 // coords de MUNDO (independem da tela). Conectados via layout; isolados em grade ao pé.
 const BASE=1300; let spread=1;
@@ -520,8 +561,14 @@ cv.addEventListener('wheel',ev=>{ev.preventDefault();if(sel)return;
 },{passive:false});
 document.getElementById('zin').onclick=()=>{view.s=Math.min(8,view.s*1.25);draw();};
 document.getElementById('zout').onclick=()=>{view.s=Math.max(0.1,view.s/1.25);draw();};
-document.getElementById('spr').onclick=()=>{spread*=1.25;if(!sel)fit();draw();};
-document.getElementById('cmp').onclick=()=>{spread=Math.max(0.4,spread/1.25);if(!sel)fit();draw();};
+// espalhar: aumenta o "mundo" em torno do centro da tela SEM re-encaixar (senão anula)
+function applySpread(f){
+  if(sel)return; const cx=W/2,cy=H/2;
+  const wx=(cx-view.tx)/view.s, wy=(cy-view.ty)/view.s;  // ponto-mundo no centro
+  spread*=f; view.tx=cx-wx*f*view.s; view.ty=cy-wy*f*view.s; draw();
+}
+document.getElementById('spr').onclick=()=>applySpread(1.3);
+document.getElementById('cmp').onclick=()=>{if(spread/1.3>=0.4)applySpread(1/1.3);};
 document.getElementById('rst').onclick=()=>{spread=1;clearSel();};
 resize();
 </script></body></html>""".replace("__DATA__", data).replace("__PATTERNS__", _patterns_html(payload.get("patterns") or {}))
@@ -549,9 +596,11 @@ table.an-t{width:100%;border-collapse:collapse;font-size:13px;background:var(--p
  padding:11px 13px;font-size:13px;line-height:1.6;margin:10px 0 16px;color:var(--ink);}
 .exp b{color:var(--ink);}
 </style>"""
-    # comunidades
+    # comunidades (ordenadas por relevância / impacto Qualis)
     comm = "".join(
-        f"<div class='cc'><h3>Comunidade #{c['id']} <span class='tag'>· {c['n']} docentes · {c['area']}</span></h3>"
+        f"<div class='cc'><h3>#{c['rank']} · Comunidade <span class='tag'>· {c['n']} docentes · {c['area']}</span></h3>"
+        f"<div class='tag' style='color:var(--green);font-weight:700;'>Impacto Qualis {c.get('score',0)} · "
+        f"nota média {c.get('qualidade_media',0)} · {c.get('estrato_A',0)} artigos A · {c.get('q1q2',0)} Q1+Q2</div>"
         f"<div class='tag'>{' · '.join(c['subareas'])}</div>"
         f"<ul>" + "".join(f"<li>{x}</li>" for x in c['membros_top']) + "</ul>"
         f"<div class='mini'>{c['lacos_internos']} laços internos · densidade {c['densidade']} · ponte: <b>{c['ponte']}</b></div></div>"
@@ -575,12 +624,15 @@ table.an-t{width:100%;border-collapse:collapse;font-size:13px;background:var(--p
     pjtop = "".join(f"<tr><td>{x['name']}</td><td class='n'>{x['n']}</td></tr>" for x in pj.get("top", []))
     return css + f"""
 <div class="an">
-  <h2>Comunidades identificadas (Louvain)</h2>
-  <div class="exp"><b>O que é:</b> o algoritmo de Louvain agrupa quem coautora muito entre si (alta
-  <b>modularidade</b>) — são os "grupos de pesquisa de fato", emergindo dos dados, não do organograma.
-  <b>Como ler:</b> <b>densidade</b> alta = grupo coeso (quase todos publicam com quase todos);
-  a <b>ponte</b> é o docente que mais conecta este grupo aos outros — se ele sai, o grupo se isola.
-  <b>Decisão:</b> grupos coesos são núcleos a fortalecer; pontes são pessoas-chave a proteger.</div>
+  <h2>Comunidades por relevância (impacto, não volume)</h2>
+  <div class="exp"><b>O que é:</b> os grupos de colaboração (Louvain) ordenados pela <b>relevância da
+  produção</b>, não pelo tamanho nem pelo volume de coautoria. <b>Impacto Qualis</b> = soma dos pesos
+  Qualis (A1=100, A2=85… C=3) das publicações dos membros; <b>nota média</b> = qualidade média por
+  artigo (100 = só A1); <b>Q1+Q2</b> = artigos em periódico de alto quartil SJR. Os membros listados
+  são os de maior impacto do grupo (score ao lado), não os mais prolíficos.
+  <b>Como ler:</b> um grupo pequeno pode liderar se publica em estratos altos; densidade alta = grupo
+  coeso; a <b>ponte</b> conecta o grupo aos demais. <b>Decisão:</b> grupos de alta relevância são
+  núcleos estratégicos; pontes são pessoas-chave a proteger.</div>
   <div class="cards">{comm}</div>
 
   <h2>Padrão por área (homofilia)</h2>
@@ -634,8 +686,22 @@ def main():
     G, id2name = build_graph(pair_w)
     m = compute(G)
     proj_pair, proj_count = collect_projects(id2name)
+    # impacto Qualis por docente (relevância da produção), reusando analyze_venues
+    impact_by_id = {}
+    try:
+        from src.scripts.analyze_venues import (
+            load_qualis, load_scimago, load_qualis_conf, rank_docentes, REF_DIR)
+        qx = load_qualis(REF_DIR / "qualis.csv")
+        sx = load_scimago()
+        ca, cn = load_qualis_conf()
+        for r in rank_docentes(ROSTER_IDS, qx, sx, ca, cn):
+            lid = ROSTER_IDS.get(r["nome"])
+            if lid:
+                impact_by_id[lid] = r
+    except Exception as exc:
+        print(f"AVISO: impacto Qualis indisponível ({exc}); comunidades por volume.")
     patterns = analyze_patterns(G, m, id2name, _areas(list(id2name)),
-                                proj_pair, proj_count)
+                                proj_pair, proj_count, impact_by_id)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     stats = emit(G, id2name, m, ext_collab, papers, out, patterns)
