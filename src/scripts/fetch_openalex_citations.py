@@ -136,14 +136,23 @@ def main() -> None:
         total = sum(cits)
         top = sorted(found, key=lambda x: -x[1]["cit"])[:8]
         # qualidade de citação
-        fwcis = sorted(c["fwci"] for _, c in found if c.get("fwci") is not None)
+        def _median(vals):
+            s = sorted(vals); n = len(s)
+            if not s:
+                return 0.0
+            return round(s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2, 2)
+        fwcis = [c["fwci"] for _, c in found if c.get("fwci") is not None]
         fwci_mean = round(sum(fwcis) / len(fwcis), 2) if fwcis else 0.0
-        if fwcis:
-            n = len(fwcis)
-            fwci_med = fwcis[n // 2] if n % 2 else (fwcis[n // 2 - 1] + fwcis[n // 2]) / 2
-            fwci_med = round(fwci_med, 2)
-        else:
-            fwci_med = 0.0
+        fwci_med = _median(fwcis)
+        # FWCI por janela (ascensão de impacto): 2016-2020 vs 2021-2025
+        old_fw = [c["fwci"] for _, c in found if c.get("fwci") is not None
+                  and 2016 <= (c.get("year") or 0) <= 2020]
+        new_fw = [c["fwci"] for _, c in found if c.get("fwci") is not None
+                  and 2021 <= (c.get("year") or 0) <= 2025]
+        fwci_antigo = _median(old_fw) if len(old_fw) >= 2 else None
+        fwci_recente = _median(new_fw) if len(new_fw) >= 2 else None
+        fwci_delta = (round(fwci_recente - fwci_antigo, 2)
+                      if fwci_antigo is not None and fwci_recente is not None else None)
         pcts = [c["pct"] for _, c in found if c.get("pct") is not None]
         top10 = sum(1 for p in pcts if p >= 90)
         top1 = sum(1 for p in pcts if p >= 99)
@@ -158,6 +167,7 @@ def main() -> None:
             "mais_citado": max(cits) if cits else 0,
             "fwci_medio": fwci_mean,
             "fwci_mediana": fwci_med,
+            "fwci_antigo": fwci_antigo, "fwci_recente": fwci_recente, "fwci_delta": fwci_delta,
             "artigos_top10pct": top10,
             "artigos_top1pct": top1,
             "citacoes_recentes_2a": recent_cit,

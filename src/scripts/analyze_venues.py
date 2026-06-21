@@ -841,6 +841,44 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
                 f"<td style='color:var(--brand);font-weight:700;'>{seta} +{x['delta']:.0f}</td>"
                 f"<td>{x['n_antigo']}→{x['n_recente']}</td></tr>"
             )
+        # ascensão por FWCI (impacto crescente entre janelas)
+        sec_fwasc = ""
+        if citacoes:
+            fa = [c for c in citacoes if c.get("fwci_delta") is not None and c["fwci_delta"] > 0]
+            fa.sort(key=lambda c: -c["fwci_delta"])
+            fr = "".join(
+                f"<tr><td>{i}</td><td>{c['nome']}</td>"
+                f"<td>{c['fwci_antigo']:.2f}</td><td>{c['fwci_recente']:.2f}</td>"
+                f"<td style='color:var(--brand);font-weight:700;'>▲ +{c['fwci_delta']:.2f}</td></tr>"
+                for i, c in enumerate(fa[:12], 1))
+            if fr:
+                sec_fwasc = f"""
+      <h3 style="font-family:var(--serif);font-size:20px;margin:28px 0 8px;">Ascensão por FWCI (impacto crescente)</h3>
+      <p class="desc">Impacto normalizado <b>subindo</b>: FWCI mediano dos artigos de <b>2016–2020</b>
+      vs <b>2021–2025</b>. Δ positivo = os artigos recentes são mais citados (relativo à área) que os
+      antigos. Exige ≥2 artigos com FWCI em cada janela.</p>
+      <table><thead><tr><th>#</th><th>Docente</th><th>FWCI 2016–20</th><th>FWCI 2021–25</th>
+      <th>Δ FWCI</th></tr></thead><tbody>{fr}</tbody></table>"""
+        # subseção OpenAlex: momentum de citações recentes (últimos 2 anos)
+        sec_mom = ""
+        if citacoes:
+            mom = [c for c in citacoes if c.get("citacoes_total", 0) >= 20
+                   and c.get("citacoes_recentes_2a", 0) > 0]
+            mom.sort(key=lambda c: -c.get("citacoes_recentes_2a", 0))
+            mr = ""
+            for i, c in enumerate(mom[:12], 1):
+                mr += (
+                    f"<tr><td>{i}</td><td>{c['nome']}</td>"
+                    f"<td style='color:var(--brand);font-weight:700;'>{c.get('citacoes_recentes_2a',0)}</td>"
+                    f"<td>{c.get('momentum_pct',0)}%</td><td>{c.get('citacoes_total',0)}</td>"
+                    f"<td>{c.get('h_index',0)}</td></tr>")
+            sec_mom = f"""
+      <h3 style="font-family:var(--serif);font-size:20px;margin:28px 0 8px;">Em ascensão por citações (OpenAlex)</h3>
+      <p class="desc">Outra leitura de ascensão: o <b>momentum de citações</b> — quem está sendo mais
+      citado <b>agora</b>. "Citações recentes" = recebidas em 2024–2025; "momentum" = % do total que
+      veio desses 2 anos (alto = aquecendo). Inclui quem tem ≥20 citações.</p>
+      <table><thead><tr><th>#</th><th>Docente</th><th>Citações recentes (2a)</th><th>Momentum</th>
+      <th>Citações total</th><th>h</th></tr></thead><tbody>{mr}</tbody></table>{sec_fwasc}"""
         sec_asc = f"""
     <section class="section">
       <div class="eyebrow">Trajetória de crescimento</div>
@@ -851,6 +889,7 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
       <table><thead><tr><th>#</th><th>Docente</th><th>Sub-área</th>
       <th>Nota 2016–20</th><th>Nota 2021–25</th><th>Δ qualidade</th><th>Artigos</th></tr></thead>
       <tbody>{ar}</tbody></table>
+      {sec_mom}
     </section>"""
 
     # líderes por grande área
