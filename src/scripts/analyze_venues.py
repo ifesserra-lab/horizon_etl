@@ -1181,42 +1181,102 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
         eng = area_fwci.get("Engenharias")
         exa = area_fwci.get("Ciências Exatas e da Terra")
 
-        cards = f"""<div class="kpis">
-          <div class="kpi"><div class="n">{r['n_artigos']}</div><div class="u">artigos · {r['n_trabalhos_congresso']} trab. congresso</div><div class="s">{r['n_revistas_distintas']} revistas · {r['n_congressos_distintos']} eventos</div></div>
-          <div class="kpi"><div class="n">{q1q2}</div><div class="u">artigos Q1+Q2 (SJR)</div><div class="s">{round(q1q2/tot_art*100) if tot_art else 0}% da produção</div></div>
-          <div class="kpi"><div class="n">{tot_cit}</div><div class="u">citações (OpenAlex)</div><div class="s">{n_doi} docentes com DOI</div></div>
-          <div class="kpi"><div class="n">{(area_rank[0][1] if area_rank else 0):.2f}</div><div class="u">maior FWCI por área</div><div class="s">{(area_rank[0][0][:22] if area_rank else '—')}</div></div>
-        </div>"""
-
-        obs = []
+        n_doc = len(ranking)
+        n_fwci = sum(1 for c in (citacoes or []) if c.get("encontrados_openalex", 0) >= FWCI_MIN)
+        # área de maior e menor FWCI (para a tese)
         if eng and exa:
             if exa >= eng:
                 an, af1, bn, bf = "Ciências Exatas e da Terra", exa, "Engenharias", eng
             else:
                 an, af1, bn, bf = "Engenharias", eng, "Ciências Exatas e da Terra", exa
-            obs.append(f"<b>Veículo ≠ impacto por área:</b> no <b>FWCI</b> (normalizado por área) "
-                       f"{an} lidera com <b>{af1:.2f}</b> vs {bn} {bf:.2f} — publica com impacto relativo "
-                       f"maior na própria área; a citação bruta, porém, favorece o volume das Engenharias.")
+        else:
+            an = bn = ""; af1 = bf = 0
+
+        # ---- faixa de estatísticas (stat band) ----
+        def _stat(num, lab, sub):
+            return (f'<div class="rz-stat"><div class="rz-n">{num}</div>'
+                    f'<div class="rz-l">{lab}</div><div class="rz-s">{sub}</div></div>')
+        stats = (
+            _stat(r["n_artigos"], "artigos em periódicos", f"+{r['n_trabalhos_congresso']} em congressos")
+            + _stat(f"{round(q1q2/tot_art*100) if tot_art else 0}%", "em Q1+Q2 (SJR)", f"{q1q2} de {tot_art} artigos")
+            + _stat(f"{tot_cit:,}".replace(",", "."), "citações (OpenAlex)", f"{n_doi} docentes com DOI")
+            + _stat(f"{(area_rank[0][1] if area_rank else 0):.1f}", "FWCI — área líder",
+                    (area_rank[0][0] if area_rank else "—")))
+
+        # ---- cards de insight (paralelos, sem numeração) ----
+        ins = []
+        if an:
+            ins.append(("Por área", "var(--brand)",
+                        f"<b>{an}</b> lidera o <b>impacto relativo</b> (FWCI {af1:.2f}); "
+                        f"{bn} vence no volume bruto (FWCI {bf:.2f}). A citação crua favorece quem "
+                        f"publica mais — o FWCI iguala a régua entre áreas."))
         if top_cit and top_fwci and top_cit.get("nome") != top_fwci.get("nome"):
-            obs.append(f"<b>Quantidade ≠ qualidade:</b> o mais citado é <b>{top_cit['nome']}</b> ({top_cit.get('citacoes_total',0)} cit.), "
-                       f"mas por <b>FWCI</b> quem lidera é <b>{top_fwci['nome']}</b> ({top_fwci['fwci_mediana']:.2f}× a média mundial).")
+            ins.append(("Quantidade × qualidade", "var(--blue)",
+                        f"Mais <b>citado</b>: {top_cit['nome']} ({top_cit.get('citacoes_total',0)}). "
+                        f"Maior <b>impacto</b> (FWCI): {top_fwci['nome']} "
+                        f"({top_fwci['fwci_mediana']:.1f}× a média mundial). Volume e impacto não andam juntos."))
         if subval and subval[1] >= 1.5:
-            obs.append(f"<b>Subvalorizado pelo Qualis:</b> <b>{subval[0]}</b> tem FWCI {subval[1]:.2f} publicando em veículos de Qualis abaixo da mediana — "
-                       f"impacto real que a classificação do periódico não captura.")
-        obs.append(f"<b>Veículo vs. impacto:</b> Qualis/SJR medem a <i>qualidade do periódico</i> (a priori); citações e FWCI medem a <i>repercussão real</i> (a posteriori). "
-                   f"Os quadrantes cruzam as duas para achar estrelas, subvalorizados e veículos sem eco.")
-        obs.append(f"<b>Computação publica em congresso:</b> incluir o Qualis de conferências muda o ranking — docentes de CC sobem no score combinado revistas+congressos.")
-        obs.append(f"<b>Cobertura:</b> citações/FWCI vêm de DOI ({n_doi} docentes têm DOI no Lattes); congressos têm Qualis só em Computação (lista CC 2016). Demais ficam subestimados.")
-        obs_html = "".join(f"<li>{o}</li>" for o in obs)
+            ins.append(("Subvalorizado pelo Qualis", "var(--amber)",
+                        f"<b>{subval[0]}</b> tem FWCI {subval[1]:.1f} publicando em veículos de Qualis "
+                        f"<b>abaixo da mediana</b> — impacto real que a classificação do periódico não vê."))
+        ins.append(("Computação", "var(--rose,#b5455f)",
+                    "Em CC a <b>conferência</b> é canal primário. Incluir o Qualis de eventos "
+                    "reordena o ranking — docentes de Computação sobem no score combinado."))
+        cards = "".join(
+            f'<div class="rz-card" style="--c:{cor};"><span class="rz-tag">{tag}</span>'
+            f'<p>{txt}</p></div>' for tag, cor, txt in ins)
 
         sec_resumo = f"""
-    <section class="section" style="border:2px solid var(--brand);background:linear-gradient(180deg,var(--brand-l,#e7f4ec),#fff 70%);">
+    <section class="section rz">
+      <style>
+      .rz{{border:1px solid var(--line);border-left:5px solid var(--brand);
+        background:linear-gradient(135deg,var(--brand-l,#e7f4ec) 0%,#fff 55%);padding:34px 32px;}}
+      .rz .eyebrow{{color:var(--brand-d,#0a5c30);}}
+      .rz .thesis{{font-family:var(--serif);font-size:clamp(26px,3.6vw,40px);line-height:1.12;
+        font-weight:700;color:var(--ink);max-width:20ch;margin:6px 0 4px;letter-spacing:-.01em;}}
+      .rz .thesis em{{font-style:normal;color:var(--brand-d,#0a5c30);
+        background:linear-gradient(transparent 62%,rgba(15,122,64,.18) 0);}}
+      .rz .lede{{font-size:16px;color:var(--ink2,#3c4f42);max-width:62ch;margin:0 0 26px;}}
+      .rz-stats{{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid var(--line);
+        border-bottom:1px solid var(--line);margin:0 0 26px;}}
+      .rz-stat{{padding:18px 18px 16px;border-left:1px solid var(--line);}}
+      .rz-stat:first-child{{border-left:none;padding-left:0;}}
+      .rz-n{{font-family:var(--serif);font-size:34px;font-weight:800;color:var(--brand-d,#0a5c30);line-height:1;}}
+      .rz-l{{font-size:13px;font-weight:600;color:var(--ink);margin-top:7px;}}
+      .rz-s{{font-size:11.5px;color:var(--muted,#71857a);margin-top:2px;}}
+      .rz-cards{{display:grid;grid-template-columns:1fr 1fr;gap:14px;}}
+      .rz-card{{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+        border-top:3px solid var(--c);box-shadow:var(--shadow);}}
+      .rz-tag{{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.09em;
+        text-transform:uppercase;color:var(--c);margin-bottom:7px;}}
+      .rz-card p{{font-size:13.5px;line-height:1.6;color:var(--ink2,#3c4f42);margin:0;}}
+      .rz-verdict{{margin-top:24px;background:linear-gradient(135deg,var(--brand-d,#0a5c30),var(--brand));
+        color:#fff;border-radius:14px;padding:22px 26px;}}
+      .rz-verdict b{{color:#fff;}}
+      .rz-verdict .vk{{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+        opacity:.85;margin-bottom:8px;}}
+      .rz-verdict .vt{{font-size:16px;line-height:1.6;}}
+      .rz-cov{{font-size:12px;opacity:.9;margin-top:12px;border-top:1px solid rgba(255,255,255,.25);padding-top:10px;}}
+      @media(max-width:760px){{.rz-stats,.rz-cards{{grid-template-columns:1fr 1fr;}}
+        .rz-stat{{border-left:none;padding-left:0;}}}}
+      </style>
       <div class="eyebrow">Resumo analítico</div>
-      <h2>O que os dados mostram</h2>
-      {cards}
-      <ul style="margin:18px 0 0 18px;font-size:14.5px;line-height:1.7;color:var(--ink2);">{obs_html}</ul>
-      <div class="note-line">Síntese automática a partir das seções abaixo (Lattes + SJR + Qualis + OpenAlex).
-      Use o menu flutuante (☰) para navegar. <b>Métricas em validação — versão preliminar.</b></div>
+      <h2 class="thesis">Onde o campus publica <em>não é</em> onde ele repercute.</h2>
+      <p class="lede">{round(q1q2/tot_art*100) if tot_art else 0}% da produção está em periódicos Q1+Q2,
+      mas o impacto real (citações, FWCI) está concentrado em poucos docentes — e nem sempre nos
+      veículos de Qualis mais alto. Esta página separa as duas coisas: <b>qualidade do veículo</b>
+      (SJR/Qualis) e <b>repercussão</b> (citações/FWCI por DOI).</p>
+      <div class="rz-stats">{stats}</div>
+      <div class="rz-cards">{cards}</div>
+      <div class="rz-verdict">
+        <div class="vk">Como ler</div>
+        <div class="vt">Qualis e SJR medem o <b>veículo</b> (antes de publicar); citações e FWCI medem
+        a <b>repercussão</b> (depois). Onde divergem estão os <b>achados</b> — estrelas, subvalorizados
+        e veículos sem eco, mapeados nos quadrantes.</div>
+        <div class="rz-cov"><b>Cobertura:</b> citações/FWCI por DOI — {n_doi} de {n_doc} docentes têm
+        DOI no Lattes; {n_fwci} têm FWCI confiável (≥{FWCI_MIN} artigos). Congressos com Qualis só em
+        Computação. <b>Versão preliminar — métricas em validação.</b></div>
+      </div>
     </section>"""
 
     # Metodologia + fontes
@@ -1337,6 +1397,36 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
                 f'<td data-v="{c.get("h_index",0)}">{c.get("h_index","—") if c else "—"}</td>'
                 f'<td data-v="{rr.get("artigos_qualis",0)}">{rr.get("artigos_qualis",0)}</td>'
                 f'</tr>')
+        # "Achados": poucos artigos (< FWCI_MIN) mas com impacto pontual alto
+        achados = []
+        for c in (citacoes or []):
+            n_f = c.get("encontrados_openalex", 0)
+            if 1 <= n_f < FWCI_MIN and (c.get("fwci_mediana") or 0) >= 1.5:
+                arts = c.get("top_artigos") or []
+                star = max(arts, key=lambda a: (a.get("fwci") or 0), default={})
+                achados.append({"nome": c["nome"], "n": n_f, "fwci": c.get("fwci_mediana", 0),
+                                "cit": c.get("citacoes_total", 0), "star": star})
+        achados.sort(key=lambda x: -(x["star"].get("fwci") or 0))
+        def _alink(star):
+            tit = (star.get("titulo") or "")[:60]
+            doi = star.get("doi")
+            t = (f'<a href="https://doi.org/{doi}" target="_blank" rel="noopener">{tit}</a>'
+                 if doi else tit)
+            return (f"{t} <span style='color:var(--muted);'>"
+                    f"({star.get('ano','')}, {star.get('citacoes',0)} cit)</span>")
+        arows = "".join(
+            f"<tr><td>{x['nome']}</td><td>{x['n']}</td>"
+            f"<td style='color:var(--blue);font-weight:700;'>{(x['star'].get('fwci') or 0):.1f}</td>"
+            f"<td>{x['cit']}</td>"
+            f"<td>{_alink(x['star'])}</td></tr>"
+            for x in achados[:12])
+        sec_achados = (f"""
+      <h3 style="font-family:var(--serif);font-size:20px;margin:28px 0 8px;">Achados — alto impacto, poucos artigos</h3>
+      <p class="desc">Docentes com <b>menos de {FWCI_MIN} artigos</b> no OpenAlex (fora do ranking por
+      baixa amostra), mas com um <b>artigo de impacto pontual muito alto</b> (FWCI elevado). São casos
+      a olhar: potencial subexplorado ou um trabalho de destaque isolado. "FWCI" aqui é do artigo-destaque.</p>
+      <table><thead><tr><th>Docente</th><th>Artigos</th><th>FWCI destaque</th><th>Citações</th>
+      <th>Artigo de maior impacto</th></tr></thead><tbody>{arows}</tbody></table>""" if achados else "")
         sec_master = f"""
     <section class="section">
       <div class="eyebrow">Ranking de docentes</div>
@@ -1353,6 +1443,7 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
         <th data-sort="num">Artigos Qualis</th></tr></thead><tbody>{mrows}</tbody></table>
       <div class="note-line">"Artigos Qualis" = artigos do docente com estrato (registros por docente,
       não deduplicados entre coautores — difere do total de artigos distintos do campus).</div>
+      {sec_achados}
     </section>"""
 
     # ---- C. Mapas estratégicos (3 quadrantes juntos) ----
@@ -1439,9 +1530,21 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
 (function(){{
   var secs=[].slice.call(document.querySelectorAll('section.section')).filter(function(s){{return s.querySelector('h2');}});
   var list=document.getElementById('fnav-list'), nav=document.getElementById('fnav');
-  secs.forEach(function(s,i){{var t=s.querySelector('h2').textContent.trim(); s.id='sec'+i;
-    var a=document.createElement('a'); a.href='#sec'+i; a.textContent=t;
-    a.onclick=function(){{nav.classList.remove('open');}}; list.appendChild(a);}});
+  function mk(text, href, sub){{
+    var a=document.createElement('a'); a.href=href; a.textContent=(sub?'– ':'')+text;
+    if(sub){{a.style.fontSize='11.5px';a.style.paddingLeft='22px';a.style.color='var(--sub,#5f7268)';}}
+    else{{a.style.fontWeight='600';}}
+    a.onclick=function(){{nav.classList.remove('open');}}; list.appendChild(a);
+  }}
+  secs.forEach(function(s,i){{
+    s.id='sec'+i; mk(s.querySelector('h2').textContent.trim(), '#sec'+i, false);
+    [].slice.call(s.querySelectorAll('h3')).forEach(function(h,j){{
+      var t=h.textContent.trim();
+      // só subseções reais (cabeçalhos serif); ignora títulos de tabela/quadrante
+      if(t.length<3 || (h.getAttribute('style')||'').indexOf('serif')<0) return;
+      h.id='sec'+i+'-'+j; mk(t, '#sec'+i+'-'+j, true);
+    }});
+  }});
   document.getElementById('fnav-btn').onclick=function(){{nav.classList.toggle('open');}};
 }})();
 // ordenação da tabela-mestre por coluna
