@@ -620,6 +620,16 @@ def _bars(dist: dict, order: list, colors: dict, total: int) -> str:
     return rows
 
 
+def _insight(txt: str) -> str:
+    """Caixa de insight automático (uma conclusão por seção)."""
+    if not txt:
+        return ""
+    return (f'<div style="background:#eef4fb;border-left:4px solid var(--blue,#2f6fb0);'
+            f'border-radius:8px;padding:12px 15px;margin-top:16px;font-size:13.5px;'
+            f'line-height:1.6;color:var(--ink,#16241a);">'
+            f'<b style="color:var(--blue,#2f6fb0);">💡 Insight:</b> {txt}</div>')
+
+
 def _lider_fwci_rows(ranking: list | None, citacoes: list | None,
                      field: str = "area", min_found: int = 5) -> str:
     """Por área (field='area') ou sub-área (field='subarea'): docente de maior FWCI."""
@@ -758,6 +768,10 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
       em Q1+Q2; {tot_art-ranked} em periódicos fora do Scopus (majoritariamente nacionais).</p>
       <div class="card"><div class="card-head"><h3>Artigos por quartil SJR</h3>{sjr_legend}</div>
         {_bars(qd, ['Q1','Q2','Q3','Q4','—'], _Q_COLOR, tot_art)}</div>
+      {_insight(f"{round(q1q2/tot_art*100) if tot_art else 0}% da produção está em <b>Q1+Q2</b> "
+                f"(topo mundial), mas <b>{round((tot_art-ranked)/tot_art*100) if tot_art else 0}%</b> "
+                f"({tot_art-ranked} artigos) ficam fora do Scopus — periódicos nacionais que o SJR não "
+                f"indexa. O SJR mede só a fatia internacional; o Qualis (abaixo) cobre o resto.")}
     </section>"""
 
     # tabela top revistas
@@ -790,6 +804,15 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
             f"<td>{j['sjr'] or '—'}</td><td>{j['sjr_h_index'] or '—'}</td>"
             f"{qcell}</tr>"
         )
+    _n_q1 = sum(1 for x in payload["revistas"] if x.get("sjr_quartil") == "Q1")
+    if jr:
+        _topj = jr[0]
+        ins_top = (f"O campus publica em <b>{_n_q1} revistas Q1</b> distintas; a de maior impacto é "
+                   f"<b>{_topj['revista'][:54]}</b> (SJR {_topj['sjr_quartil']}, índice {_topj['sjr'] or '—'}). "
+                   f"As revistas com mais artigos do campus, porém, são em geral nacionais sem SJR — "
+                   f"volume de publicação e prestígio do veículo nem sempre coincidem.")
+    else:
+        ins_top = "Sem periódicos indexados no SJR para o conjunto atual."
     sec_top = f"""
     <section class="section">
       <div class="eyebrow">Onde publicam</div>
@@ -798,6 +821,7 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
       pelo índice SJR (do maior impacto ao menor). Coluna "Artigos" = nº de artigos dos docentes.</p>
       <table><thead><tr><th>Revista</th><th>Artigos</th><th>SJR</th><th>Índice SJR</th><th>H</th>{qcol_head}</tr></thead>
       <tbody>{jrows}</tbody></table>
+      {_insight(ins_top)}
     </section>"""
 
     # Qualis section
@@ -823,6 +847,11 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
       {qmatched} das {r['n_revistas_distintas']} revistas têm Qualis.</p>
       <div class="card"><div class="card-head"><h3>Artigos por estrato Qualis</h3>{ql_legend}</div>
         {_bars(qld, ['A1','A2','A3','A4','B1','B2','B3','B4','B5','C','—'], _QUALIS_COLOR, tot_art)}</div>
+      {_insight(f"<b>{round(a_strata/tot_art*100) if tot_art else 0}%</b> dos artigos ({a_strata} de "
+                f"{tot_art}) estão em estrato <b>A (A1–A4)</b> pela régua nacional. O Qualis classifica "
+                f"{qmatched} revistas — inclui periódicos brasileiros que o SJR não indexa, por isso a "
+                f"cobertura aqui é maior que na seção SJR. As duas réguas se complementam: SJR mede "
+                f"alcance internacional, Qualis mede reconhecimento no sistema CAPES.")}
     </section>"""
 
     # ranking de docentes por impacto (Qualis)
@@ -879,6 +908,22 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
       veio desses 2 anos (alto = aquecendo). Inclui quem tem ≥20 citações.</p>
       <table><thead><tr><th>#</th><th>Docente</th><th>Citações recentes (2a)</th><th>Momentum</th>
       <th>Citações total</th><th>h</th></tr></thead><tbody>{mr}</tbody></table>{sec_fwasc}"""
+        # insight de ascensão: maior salto de FWCI + nº de docentes com as duas janelas
+        _fwlist = [c for c in (citacoes or [])
+                   if c.get("fwci_antigo") is not None and c.get("fwci_recente") is not None]
+        _fwlist.sort(key=lambda c: -(c.get("fwci_delta") or 0))
+        if _fwlist and _fwlist[0].get("fwci_delta", 0) > 0:
+            _t = _fwlist[0]
+            ins_asc = (f"<b>{_t['nome']}</b> saltou de FWCI {_t['fwci_antigo']:.2f} "
+                       f"({'abaixo' if _t['fwci_antigo'] < 1 else 'acima'} da média mundial) para "
+                       f"<b>{_t['fwci_recente']:.2f}</b> — os artigos recentes dele são citados "
+                       f"{_t['fwci_recente']:.1f}× a média da área. Ascensão de impacto <b>real</b>, "
+                       f"não só de volume ou de veículo. {len(_fwlist)} docentes têm as duas janelas "
+                       f"de FWCI comparáveis.")
+        else:
+            ins_asc = ("A ascensão de qualidade (estrato Qualis) e a de impacto (FWCI) nem sempre "
+                       "andam juntas: subir de veículo não garante ser mais citado. Cruze as duas tabelas "
+                       "para achar quem cresceu nas duas dimensões.")
         sec_asc = f"""
     <section class="section">
       <div class="eyebrow">Trajetória de crescimento</div>
@@ -890,6 +935,7 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
       <th>Nota 2016–20</th><th>Nota 2021–25</th><th>Δ qualidade</th><th>Artigos</th></tr></thead>
       <tbody>{ar}</tbody></table>
       {sec_mom}
+      {_insight(ins_asc)}
     </section>"""
 
     # líderes por grande área
@@ -920,6 +966,11 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
       <h3 style="font-family:var(--serif);font-size:20px;margin:26px 0 8px;">Principais congressos</h3>
       <table><thead><tr><th>Congresso / Evento</th><th>Qualis CC</th><th>Trabalhos</th><th>Docentes</th></tr></thead>
       <tbody>{crows}</tbody></table>
+      {_insight(f"Dos trabalhos com Qualis CC, <b>{round((cdist.get('A1',0)+cdist.get('A2',0))/(ctot-cdist.get('—',0))*100) if (ctot-cdist.get('—',0)) else 0}%</b> "
+                f"estão em <b>A1/A2</b> (topo das conferências de Computação). Mas apenas {conf_matched} dos "
+                f"{payload['resumo']['n_congressos_distintos']} eventos têm Qualis CC — Engenharia e Educação "
+                f"não têm lista própria, então o esforço dessas áreas em congressos fica invisível nesta régua. "
+                f"Leia o estrato como piso, não teto.")}
     </section>"""
 
     # ranking combinado: revistas + congressos
@@ -971,6 +1022,10 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
       <table><thead><tr><th>#</th><th>Docente</th><th>Sub-área</th><th>Nota combinada (0–100)</th>
       <th>Score total</th><th>Itens c/ Qualis</th></tr></thead>
       <tbody>{cq}</tbody></table>
+      {_insight(f"O líder por <b>volume</b> (score total) é <b>{comb[0]['nome']}</b>; por <b>qualidade</b> "
+                f"(nota média) é <b>{elig[0]['nome'] if elig else '—'}</b>. Quando os dois nomes diferem, "
+                f"a régua que você escolhe muda quem aparece no topo: política de produtividade premia volume, "
+                f"política de excelência premia consistência de alto estrato. Decida qual incentivo quer dar.")}
       <div class="note-line">Congressos casados apenas na área de Computação (lista Qualis-CC 2016);
       eventos de Engenharia/Educação não pontuam — ainda subestima docentes dessas áreas.
       Líderes por área/sub-área (incl. combinado) estão na seção "Líderes por área e sub-área".</div>
@@ -1098,6 +1153,21 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
                 f"<td>{a['estrato_A']}</td><td>{qmean:.0f}</td>"
                 f"<td>{round(a['cit']/a['n']) if a['n'] else 0}</td></tr>"
             )
+        _by_cit = sorted(ag.items(), key=lambda kv: -kv[1]["cit"])
+        _by_fwci = sorted(((g, (sum(a["fwci"]) / len(a["fwci"]) if a["fwci"] else 0))
+                           for g, a in ag.items()), key=lambda kv: -kv[1])
+        _area_cit = _by_cit[0][0] if _by_cit else "—"
+        _area_fw, _area_fwv = (_by_fwci[0] if _by_fwci else ("—", 0))
+        if _area_cit != _area_fw and _area_fwv > 0:
+            ins_area = (f"<b>{_area_cit}</b> acumula mais citações brutas — mas é <b>{_area_fw}</b> que tem "
+                        f"o maior FWCI ({_area_fwv:.2f}), ou seja, publica acima da média mundial da própria "
+                        f"área. São coisas diferentes: volume de citação segue o tamanho e o ritmo da área; "
+                        f"FWCI mede se a produção bate o padrão internacional dela. Para comparar áreas entre "
+                        f"si, use o FWCI, nunca a citação bruta.")
+        else:
+            ins_area = (f"<b>{_area_fw}</b> lidera tanto em citações quanto em FWCI ({_area_fwv:.2f}). "
+                        f"Ainda assim, compare áreas pelo FWCI: citação bruta favorece áreas que publicam "
+                        f"e citam em ritmo mais intenso (ex.: Computação sobre Educação).")
         sec_area = f"""
     <section class="section">
       <div class="eyebrow">Por grande área (CNPq)</div>
@@ -1113,6 +1183,7 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
       <div class="note-line">FWCI iguala a régua entre áreas; citações brutas e nº de artigos A
       favorecem áreas de publicação mais intensa (ex.: Computação). Líderes por área/sub-área estão
       na seção "Líderes por área e sub-área".</div>
+      {_insight(ins_area)}
     </section>"""
 
     # quadrante produtividade (volume) × impacto (citações) — executivo
@@ -1368,6 +1439,13 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
           nome (que erra com homônimos).</p>
         </div>
       </div>
+      <div class="note" style="border-color:var(--amber);margin-top:6px;">
+        <b>Por que não Google Scholar?</b> O Google Scholar tem as citações mais abrangentes, mas
+        <b>não foi possível usá-lo</b>: o acesso automatizado é bloqueado (CAPTCHA e bloqueio de IP),
+        sem API pública. Por isso as citações vêm do <b>OpenAlex</b>, base aberta e estável, casada por
+        <b>DOI</b> (1:1, sem ambiguidade de homônimo). Os números de citação tendem a ser <b>menores</b>
+        que os do Scholar, mas são consistentes e comparáveis entre docentes.
+      </div>
       <div class="note-line">
         <b>Limitações:</b> o Qualis de conferências cobre só Computação (lista CC 2016) — congressos
         de Engenharia/Educação não pontuam, subestimando esses docentes. Casamento de congressos é
@@ -1482,6 +1560,15 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
         <th data-sort="num">Artigos Qualis</th></tr></thead><tbody>{mrows}</tbody></table>
       <div class="note-line">"Artigos Qualis" = artigos do docente com estrato (registros por docente,
       não deduplicados entre coautores — difere do total de artigos distintos do campus).</div>
+      {_insight((lambda topf, topq: (f"<b>{topf['nome']}</b> lidera por impacto (FWCI {(_fwci_ok(topf) or 0):.2f}), "
+                f"enquanto <b>{topq['nome']}</b> lidera por score Qualis ({topq.get('score',0)}). "
+                f"Topo de veículo e topo de impacto são pessoas diferentes — confirma a tese do relatório: "
+                f"onde o campus publica não é necessariamente onde ele repercute. Reordene pela coluna que "
+                f"importa para a decisão em questão.") if topf and topq and topf['nome'] != topq['nome']
+                else f"Reordene a tabela pela coluna que importa: score Qualis premia veículo, FWCI premia "
+                f"impacto real. As duas leituras raramente apontam para os mesmos nomes.")(
+                master_rows[0] if master_rows else None,
+                max(ranking, key=lambda r: r.get('score', 0)) if ranking else None))}
       {sec_achados}
     </section>"""
 
@@ -1493,6 +1580,13 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
       <p class="desc">Três cruzamentos para leitura rápida de gestão: veículo × impacto real
       (citações e FWCI) e produtividade × impacto. Estrelas, subvalorizados, veículos sem eco.</p>
       {_quad_qualis_fwci(ranking, citacoes)}
+      {_insight((f"O quadrante <b>subvalorizado</b> é o mais acionável: <b>{subval[0]}</b> tem FWCI "
+                f"{subval[1]:.1f} (citado acima da média mundial) publicando em veículos de Qualis baixo — "
+                f"apoiar a submissão a periódicos de estrato A converteria impacto já existente em "
+                f"reconhecimento formal. No oposto, "
+                if subval and subval[1] >= 1.5 else "Leia os quadrantes por ação: ")
+                + "“veículos sem eco” (alto Qualis, baixa citação) sinalizam prestígio do veículo que "
+                "ainda não virou repercussão. Cada quadrante sugere uma intervenção diferente.")}
     </section>{sec_quad}{sec_prod}"""
 
     # ---- B. Líderes por área e sub-área (Qualis + FWCI num só lugar) ----
@@ -1527,6 +1621,11 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
       <h3 style="font-family:var(--serif);font-size:20px;margin:24px 0 8px;">Por sub-área · FWCI</h3>
       <table><thead><tr><th>Sub-área</th><th>Líder por FWCI</th><th>FWCI</th><th>Top10%</th><th>Cit</th><th>h</th></tr></thead>
       <tbody>{_lider_fwci_rows(ranking, citacoes, "subarea", FWCI_MIN_SUB)}</tbody></table>
+      {_insight("Liderar por <b>Qualis</b> (publicar em bons veículos) e liderar por <b>FWCI</b> "
+                "(ser citado acima da média da área) raramente recai na mesma pessoa. Quem aparece nas "
+                "<b>duas</b> colunas da mesma área é a aposta mais segura para coordenar ou representar "
+                "a área; quem só aparece no FWCI é talento de impacto que o sistema de veículos ainda "
+                "não capturou.")}
     </section>"""
 
     fontes = payload.get("fontes", {})
