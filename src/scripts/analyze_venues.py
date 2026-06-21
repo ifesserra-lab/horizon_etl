@@ -48,6 +48,14 @@ DEFAULT_OUT = OUT_DIR / "venues_analysis.json"
 SCIMAGO_CSV = REF_DIR / "scimago.csv"
 SCIMAGO_URL = "https://www.scimagojr.com/journalrank.php?out=xls"
 QUALIS_CONF_FILE = REF_DIR / "qualis_conferencias.json"  # Qualis Eventos CC (UFMT, 2016)
+OPENALEX_FILE = OUT_DIR / "openalex_citacoes.json"       # citações por DOI (OpenAlex)
+
+
+def load_openalex(path: Path = OPENALEX_FILE) -> list[dict]:
+    """Lista de docentes com citações/h-index do OpenAlex (casado por DOI). [] se ausente."""
+    if not Path(path).exists():
+        return []
+    return json.loads(Path(path).read_text()).get("docentes", [])
 
 
 # ---------------------------------------------------------------------------
@@ -108,6 +116,9 @@ QUALIS_WEIGHT = {
     "B1": 40, "B2": 30, "B3": 20, "B4": 10, "B5": 5, "C": 3,
 }
 _A_STRATA = ("A1", "A2", "A3", "A4")
+# Thresholds padronizados (D): nº mínimo de artigos no OpenAlex p/ usar FWCI.
+FWCI_MIN = 5        # destaque de docente individual (rankings, líderes por área)
+FWCI_MIN_SUB = 3    # granularidade de sub-área (menos docentes por grupo)
 
 # Mapeia áreas do SCImago (Scopus) -> grande área CNPq, p/ inferir a grande área
 # de docentes que não a declararam no Lattes (substring, minúsculo).
@@ -609,8 +620,105 @@ def _bars(dist: dict, order: list, colors: dict, total: int) -> str:
     return rows
 
 
+def _lider_fwci_rows(ranking: list | None, citacoes: list | None,
+                     field: str = "area", min_found: int = 5) -> str:
+    """Por área (field='area') ou sub-área (field='subarea'): docente de maior FWCI."""
+    if not ranking or not citacoes:
+        return ""
+    cbn = {c["nome"]: c for c in citacoes}
+    best: dict[str, dict] = {}
+    for rr in ranking:
+        g = rr.get(field) or "—"
+        if g == "—":
+            continue
+        c = cbn.get(rr["nome"])
+        if not c or c.get("encontrados_openalex", 0) < min_found or not c.get("fwci_mediana"):
+            continue
+        if g not in best or c["fwci_mediana"] > best[g]["c"]["fwci_mediana"]:
+            best[g] = {"nome": rr["nome"], "c": c}
+    rows = ""
+    for g, b in sorted(best.items(), key=lambda kv: -kv[1]["c"]["fwci_mediana"]):
+        c = b["c"]
+        rows += (f"<tr><td>{g}</td><td>{b['nome']}</td>"
+                 f"<td style='color:var(--brand);font-weight:700;'>{c['fwci_mediana']:.2f}</td>"
+                 f"<td>{c.get('artigos_top10pct',0)}</td><td>{c.get('citacoes_total',0)}</td>"
+                 f"<td>{c.get('h_index',0)}</td></tr>")
+    return rows
+
+
+def _quad_qualis_fwci(ranking: list | None, citacoes: list | None) -> str:
+    """Quadrante Qualis (veículo, X) × FWCI (impacto normalizado, Y)."""
+    if not ranking or not citacoes:
+        return ""
+    import math as _m
+    cbn = {c["nome"]: c for c in citacoes}
+    pts = []
+    for rr in ranking:
+        c = cbn.get(rr["nome"])
+        if not c or rr.get("artigos_qualis", 0) < 3 or c.get("encontrados_openalex", 0) < 5:
+            continue
+        if not c.get("fwci_mediana"):
+            continue
+        pts.append({"nome": rr["nome"], "x": rr["qualidade"], "y": c["fwci_mediana"],
+                    "h": c.get("h_index", 0)})
+    if len(pts) < 4:
+        return ""
+
+    def _med(v):
+        s = sorted(v); n = len(s)
+        return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2
+    medx, medy = round(_med([p["x"] for p in pts]), 1), round(_med([p["y"] for p in pts]), 2)
+    maxy = max(p["y"] for p in pts) or 1
+    W, Hh, M = 760, 440, 54
+    def px(x): return M + (x / 100) * (W - 2 * M)
+    def py(y): return Hh - M - (y / maxy) * (Hh - 2 * M)
+    lx, ly = px(medx), py(medy)
+    QCOL = {"estrela": "var(--brand)", "veiculo": "var(--amber)",
+            "subvalorizado": "var(--blue)", "nicho": "var(--muted)"}
+    for p in pts:
+        hq, hf = p["x"] >= medx, p["y"] >= medy
+        p["quad"] = ("estrela" if hq and hf else "veiculo" if hq and not hf
+                     else "subvalorizado" if not hq and hf else "nicho")
+    dots = "".join(f'<circle cx="{px(p["x"]):.0f}" cy="{py(p["y"]):.0f}" r="{4+_m.sqrt(p["h"]):.0f}" '
+                   f'fill="{QCOL[p["quad"]]}" fill-opacity="0.75"/>' for p in pts)
+    lab = sorted(pts, key=lambda p: -p["y"])[:6] + [p for p in pts if p["quad"] == "subvalorizado"][:5]
+    labels = "".join(f'<text x="{px(p["x"])+6:.0f}" y="{py(p["y"])+3:.0f}" font-size="10" fill="#16241a">'
+                     f'{p["nome"].split()[0]} {p["nome"].split()[-1]}</text>'
+                     for p in {id(p): p for p in lab}.values())
+    svg = f'''<svg viewBox="0 0 {W} {Hh}" style="width:100%;height:auto;font-family:var(--font);">
+      <rect x="{lx:.0f}" y="{M}" width="{W-M-lx:.0f}" height="{ly-M:.0f}" fill="#0f7a40" opacity="0.05"/>
+      <rect x="{M}" y="{M}" width="{lx-M:.0f}" height="{ly-M:.0f}" fill="#2f6fb0" opacity="0.05"/>
+      <line x1="{lx:.0f}" y1="{M}" x2="{lx:.0f}" y2="{Hh-M}" stroke="var(--line2)" stroke-dasharray="4"/>
+      <line x1="{M}" y1="{ly:.0f}" x2="{W-M}" y2="{ly:.0f}" stroke="var(--line2)" stroke-dasharray="4"/>
+      <line x1="{M}" y1="{py(1.0):.0f}" x2="{W-M}" y2="{py(1.0):.0f}" stroke="var(--rose)" stroke-dasharray="2" opacity="0.5"/>
+      <text x="{W-M}" y="{py(1.0)-3:.0f}" text-anchor="end" font-size="9" fill="var(--rose)">FWCI = 1 (média mundial)</text>
+      <text x="{W-M}" y="{M-8}" text-anchor="end" font-size="11" fill="var(--brand)" font-weight="700">★ Estrelas (Qualis alto + FWCI alto)</text>
+      <text x="{M}" y="{M-8}" font-size="11" fill="var(--blue)" font-weight="700">Subvalorizado (impacto real, Qualis menor)</text>
+      <text x="{W-M}" y="{Hh-M+18}" text-anchor="end" font-size="11" fill="var(--amber)" font-weight="700">Veículo forte, baixo impacto</text>
+      <text x="{M}" y="{Hh-M+18}" font-size="11" fill="var(--muted)" font-weight="700">Nicho</text>
+      <text x="{W/2:.0f}" y="{Hh-12}" text-anchor="middle" font-size="11" fill="var(--sub)">→ Qualis (nota média do veículo) · mediana {medx}</text>
+      <text x="14" y="{Hh/2:.0f}" font-size="11" fill="var(--sub)" transform="rotate(-90 14 {Hh/2:.0f})" text-anchor="middle">→ FWCI (impacto normalizado) · mediana {medy}</text>
+      {dots}{labels}</svg>'''
+
+    def tab(quad, titulo, cor):
+        items = sorted((p for p in pts if p["quad"] == quad), key=lambda p: -p["y"])[:6]
+        rows = "".join(f"<tr><td>{p['nome']}</td><td>{p['x']:.0f}</td><td class='n'>{p['y']:.2f}</td><td>{p['h']}</td></tr>"
+                       for p in items)
+        return (f'<div><h3 style="color:{cor};font-size:15px;margin:0 0 6px;">{titulo} ({sum(1 for p in pts if p["quad"]==quad)})</h3>'
+                f'<table><thead><tr><th>Docente</th><th>Qualis</th><th>FWCI</th><th>h</th></tr></thead><tbody>{rows}</tbody></table></div>')
+    tabs = (tab("estrela", "★ Estrelas", "var(--brand)")
+            + tab("subvalorizado", "Subvalorizado pelo Qualis", "var(--blue)")
+            + tab("veiculo", "Veículo forte, baixo impacto", "var(--amber)")
+            + tab("nicho", "Nicho", "var(--muted)"))
+    return (f'<h3 style="font-family:var(--serif);font-size:20px;margin:26px 0 8px;">Quadrante Qualis × FWCI</h3>'
+            f'<p class="desc">Veículo (Qualis, X) × impacto normalizado (FWCI, Y) de {len(pts)} docentes. '
+            f'<b>Subvalorizado</b> = FWCI alto apesar de Qualis menor (o veículo subestima o impacto real); '
+            f'<b>Veículo forte, baixo impacto</b> = publica em estrato alto mas com FWCI abaixo da mediana.</p>'
+            f'<div class="card">{svg}</div><div class="grid2" style="margin-top:16px;">{tabs}</div>')
+
+
 def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None,
-                asc: list | None = None) -> str:
+                asc: list | None = None, citacoes: list | None = None) -> str:
     from src.scripts.generate_docentes_executive import CSS
     r = payload["resumo"]
     qdist = payload["distribuicao_sjr_quartil"]
@@ -718,55 +826,7 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
     </section>"""
 
     # ranking de docentes por impacto (Qualis)
-    sec_rank = ""
-    if ranking:
-        rk = ""
-        for rr in ranking[:10]:
-            det = (f'<span style="color:var(--muted);font-size:12px;">'
-                   f'A1:{rr["A1"]} A2:{rr["A2"]} A3:{rr["A3"]} A4:{rr["A4"]}</span>')
-            rk += (
-                f"<tr><td>{rr['rank']}</td><td>{rr['nome']}</td><td>{rr['area']}</td>"
-                f"<td>{rr['score']}</td><td>{rr['estrato_A']} {det}</td>"
-                f"<td>{rr['sjr_q1q2']}</td><td>{rr['artigos']}</td></tr>"
-            )
-        sec_rank = f"""
-    <section class="section">
-      <div class="eyebrow">Quem publica com mais impacto</div>
-      <h2>Top 10 docentes por impacto Qualis</h2>
-      <p class="desc">Pontuação = soma dos pesos Qualis dos artigos em periódicos
-      (A1=100, A2=85, A3=70, A4=55, B1=40…C=3; melhor estrato entre áreas). Congressos
-      não entram (sem Qualis oficial); Q1+Q2 (SJR) ao lado como validação internacional.</p>
-      <table><thead><tr><th>#</th><th>Docente</th><th>Área</th><th>Score Qualis</th>
-      <th>Artigos A1–A4</th><th>Q1+Q2 SJR</th><th>Artigos</th></tr></thead>
-      <tbody>{rk}</tbody></table>
-    </section>"""
-
-    # ranking por QUALIDADE (média Qualis por artigo), com piso de artigos
-    sec_qual = ""
-    MIN_ART = 5
-    if ranking:
-        elig = [x for x in ranking if x.get("artigos_qualis", 0) >= MIN_ART]
-        elig.sort(key=lambda x: (-x["qualidade"], -x["pct_A"], -x["artigos_qualis"]))
-        qq = ""
-        for i, x in enumerate(elig[:12], 1):
-            qq += (
-                f"<tr><td>{i}</td><td>{x['nome']}</td><td>{x['subarea']}</td>"
-                f"<td><b>{x['qualidade']:.0f}</b></td><td>{x['pct_A']}%</td>"
-                f"<td>{x['estrato_A']}/{x['artigos_qualis']}</td>"
-                f"<td>{x['sjr_q1q2']}</td></tr>"
-            )
-        sec_qual = f"""
-    <section class="section">
-      <div class="eyebrow">Qualidade acima de quantidade</div>
-      <h2>Impacto médio por artigo (nota Qualis)</h2>
-      <p class="desc">Ranking por <b>qualidade</b>, não volume: nota = média do peso Qualis
-      por artigo em periódico (100 = só A1, 85 = A2, 70 = A3, 55 = A4…). Favorece quem publica
-      pouco mas em estratos altos. Inclui apenas docentes com ≥{MIN_ART} artigos com Qualis
-      (para a média ser confiável). "%A" = fração em A1–A4.</p>
-      <table><thead><tr><th>#</th><th>Docente</th><th>Sub-área</th><th>Nota Qualis (0–100)</th>
-      <th>%A</th><th>A1–A4 / c/ Qualis</th><th>Q1+Q2 SJR</th></tr></thead>
-      <tbody>{qq}</tbody></table>
-    </section>"""
+    MIN_ART = 5  # piso de artigos p/ médias de qualidade (usado no combinado)
 
     # ascensão: quem cresceu em qualidade no último decênio
     sec_asc = ""
@@ -794,121 +854,6 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
     </section>"""
 
     # líderes por grande área
-    sec_lider = ""
-    if ranking:
-        best: dict[str, dict] = {}
-        for rr in ranking:
-            ga = rr.get("area") or "—"
-            if ga not in best or rr["score"] > best[ga]["score"]:
-                best[ga] = rr
-        lrows = "".join(
-            f"<tr><td>{ga}</td><td>{b['nome']}</td><td>{b['score']}</td>"
-            f"<td>{b['estrato_A']}</td></tr>"
-            for ga, b in sorted(best.items(), key=lambda kv: -kv[1]["score"])
-            if b["score"] > 0 and ga != "—"
-        )
-        # subseção: líder por QUALIDADE (nota média), piso de artigos
-        bestq: dict[str, dict] = {}
-        for rr in ranking:
-            if rr.get("artigos_qualis", 0) < MIN_ART:
-                continue
-            ga = rr.get("area") or "—"
-            if ga == "—":
-                continue
-            if ga not in bestq or rr["qualidade"] > bestq[ga]["qualidade"]:
-                bestq[ga] = rr
-        qrows = "".join(
-            f"<tr><td>{ga}</td><td>{b['nome']}</td><td><b>{b['qualidade']:.0f}</b></td>"
-            f"<td>{b['pct_A']}%</td><td>{b['estrato_A']}/{b['artigos_qualis']}</td></tr>"
-            for ga, b in sorted(bestq.items(), key=lambda kv: -kv[1]["qualidade"])
-        )
-        sec_lider = f"""
-    <section class="section">
-      <div class="eyebrow">Liderança por grande área</div>
-      <h2>Líderes por grande área</h2>
-      <p class="desc">Docente de maior <b>score Qualis</b> (volume × qualidade) em cada grande
-      área de conhecimento.</p>
-      <table><thead><tr><th>Grande área</th><th>Líder</th><th>Score Qualis</th><th>A1–A4</th></tr></thead>
-      <tbody>{lrows}</tbody></table>
-
-      <h3 style="font-family:var(--serif);font-size:20px;margin:28px 0 8px;">Por qualidade (nota média), não volume</h3>
-      <p class="desc">Líder por <b>nota Qualis média</b> por artigo (100 = só A1), entre quem tem
-      ≥{MIN_ART} artigos com Qualis na área — destaca quem publica em estratos altos,
-      independente do volume.</p>
-      <table><thead><tr><th>Grande área</th><th>Líder por qualidade</th><th>Nota (0–100)</th>
-      <th>%A</th><th>A1–A4 / c/ Qualis</th></tr></thead>
-      <tbody>{qrows}</tbody></table>
-      <div class="note-line"><b>Ressalva:</b> congressos não entram no score — a CAPES
-      descontinuou o Qualis Eventos (2019) e não há ISSN para casar. O ranking é por
-      periódicos; Q1+Q2 (SJR) serve como validação internacional.</div>
-    </section>"""
-
-    # ranking por sub-área
-    sec_sub = ""
-    if ranking:
-        groups: dict[str, list] = defaultdict(list)
-        for rr in ranking:
-            groups[rr.get("subarea") or "—"].append(rr)
-        # ordena sub-áreas pela soma de score; ignora as sem pontuação
-        ordered = sorted(
-            ((sa, rs) for sa, rs in groups.items()),
-            key=lambda kv: -sum(x["score"] for x in kv[1]),
-        )
-        blocks = ""
-        for sa, rs in ordered:
-            if sum(x["score"] for x in rs) == 0:
-                continue
-            rs = sorted(rs, key=lambda x: (-x["score"], -x["estrato_A"]))[:5]
-            lis = "".join(
-                f'<tr><td>{x["nome"]}</td><td>{x["score"]}</td>'
-                f'<td>{x["estrato_A"]}</td><td>{x["sjr_q1q2"]}</td></tr>'
-                for x in rs
-            )
-            blocks += (
-                f'<div class="card" style="margin-bottom:16px;">'
-                f'<h3>{sa} <span style="color:var(--muted);font-weight:500;font-size:13px;">'
-                f'· {len(groups[sa])} docentes</span></h3>'
-                f'<table><thead><tr><th>Docente</th><th>Score Qualis</th>'
-                f'<th>A1–A4</th><th>Q1+Q2 SJR</th></tr></thead><tbody>{lis}</tbody></table></div>'
-            )
-        # subseção por QUALIDADE (nota média), piso de artigos
-        blocks_q = ""
-        for sa, rs in ordered:
-            elig = sorted(
-                (x for x in rs if x.get("artigos_qualis", 0) >= MIN_ART),
-                key=lambda x: (-x["qualidade"], -x["pct_A"]),
-            )[:5]
-            if not elig:
-                continue
-            lis = "".join(
-                f'<tr><td>{x["nome"]}</td><td><b>{x["qualidade"]:.0f}</b></td>'
-                f'<td>{x["pct_A"]}%</td><td>{x["estrato_A"]}/{x["artigos_qualis"]}</td>'
-                f'<td>{x["sjr_q1q2"]}</td></tr>'
-                for x in elig
-            )
-            blocks_q += (
-                f'<div class="card" style="margin-bottom:16px;">'
-                f'<h3>{sa}</h3>'
-                f'<table><thead><tr><th>Docente</th><th>Nota Qualis</th><th>%A</th>'
-                f'<th>A1–A4 / c/ Qualis</th><th>Q1+Q2 SJR</th></tr></thead>'
-                f'<tbody>{lis}</tbody></table></div>'
-            )
-        sec_sub = f"""
-    <section class="section">
-      <div class="eyebrow">Impacto por sub-área</div>
-      <h2>Top docentes em cada sub-área de conhecimento</h2>
-      <p class="desc">Score Qualis (volume × qualidade) separado pela sub-área de atuação
-      predominante do docente (campo "área" do Lattes — ex.: Ciência da Computação,
-      Engenharia Elétrica). Top 5 por sub-área.</p>
-      {blocks}
-
-      <h3 style="font-family:var(--serif);font-size:22px;margin:34px 0 8px;">Por qualidade (nota média), não volume</h3>
-      <p class="desc">Mesmas sub-áreas, agora ordenando pela <b>nota Qualis média</b> por artigo
-      (100 = só A1), entre quem tem ≥{MIN_ART} artigos com Qualis — destaca consistência de
-      estrato alto, não quantidade.</p>
-      {blocks_q}
-    </section>"""
-
     # congressos (com Qualis CC)
     cdist = defaultdict(int)
     for k, v in payload.get("distribuicao_qualis_conf", {}).items():
@@ -969,38 +914,6 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
                 f"<td>{x.get('score_total', x['score'])}</td>"
                 f"<td>{x['artigos_qualis']} art · {x.get('conf_qualis',0)} conf</td></tr>"
             )
-        _st = lambda x: x.get("score_total", x["score"])
-        # líderes por grande área (score combinado)
-        bestc: dict[str, dict] = {}
-        for x in ranking:
-            ga = x.get("area") or "—"
-            if ga not in bestc or _st(x) > _st(bestc[ga]):
-                bestc[ga] = x
-        cmb_lider = "".join(
-            f"<tr><td>{ga}</td><td>{b['nome']}</td><td><b>{_st(b)}</b></td>"
-            f"<td>{b['score']}</td><td>{b.get('score_conf',0)}</td></tr>"
-            for ga, b in sorted(bestc.items(), key=lambda kv: -_st(kv[1]))
-            if _st(b) > 0 and ga != "—"
-        )
-        # top por sub-área (score combinado)
-        gsub: dict[str, list] = defaultdict(list)
-        for x in ranking:
-            gsub[x.get("subarea") or "—"].append(x)
-        cmb_sub = ""
-        for sa, rs in sorted(gsub.items(), key=lambda kv: -sum(_st(y) for y in kv[1])):
-            if sum(_st(y) for y in rs) == 0:
-                continue
-            top5 = sorted(rs, key=lambda y: -_st(y))[:5]
-            lis = "".join(
-                f"<tr><td>{y['nome']}</td><td><b>{_st(y)}</b></td>"
-                f"<td>{y['score']}</td><td>{y.get('score_conf',0)}</td></tr>"
-                for y in top5
-            )
-            cmb_sub += (
-                f'<div class="card" style="margin-bottom:16px;"><h3>{sa}</h3>'
-                f'<table><thead><tr><th>Docente</th><th>Score total</th>'
-                f'<th>Revistas</th><th>Congressos</th></tr></thead><tbody>{lis}</tbody></table></div>'
-            )
         sec_comb = f"""
     <section class="section">
       <div class="eyebrow">Visão integrada</div>
@@ -1019,17 +932,291 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
       <table><thead><tr><th>#</th><th>Docente</th><th>Sub-área</th><th>Nota combinada (0–100)</th>
       <th>Score total</th><th>Itens c/ Qualis</th></tr></thead>
       <tbody>{cq}</tbody></table>
-
-      <h3 style="font-family:var(--serif);font-size:22px;margin:34px 0 8px;">Líderes por grande área (score combinado)</h3>
-      <p class="desc">Docente de maior score total (revistas + congressos) em cada grande área.</p>
-      <table><thead><tr><th>Grande área</th><th>Líder</th><th>Score total</th>
-      <th>Revistas</th><th>Congressos</th></tr></thead><tbody>{cmb_lider}</tbody></table>
-
-      <h3 style="font-family:var(--serif);font-size:22px;margin:34px 0 8px;">Top docentes por sub-área (score combinado)</h3>
-      <p class="desc">Top 5 por sub-área, pelo score total (revistas + congressos).</p>
-      {cmb_sub}
       <div class="note-line">Congressos casados apenas na área de Computação (lista Qualis-CC 2016);
-      eventos de Engenharia/Educação não pontuam — ainda subestima docentes dessas áreas.</div>
+      eventos de Engenharia/Educação não pontuam — ainda subestima docentes dessas áreas.
+      Líderes por área/sub-área (incl. combinado) estão na seção "Líderes por área e sub-área".</div>
+    </section>"""
+
+    # ranking por CITAÇÕES (OpenAlex, casado por DOI)
+    # quadrante Qualis (veículo) × citações (impacto real)
+    sec_quad = ""
+    if ranking and citacoes:
+        import math as _math
+        cit_by_name = {c["nome"]: c for c in citacoes}
+        pts = []
+        for rr in ranking:
+            c = cit_by_name.get(rr["nome"])
+            if not c:
+                continue
+            if rr.get("artigos_qualis", 0) < 3 or c.get("artigos_com_doi", 0) < 3:
+                continue  # precisa de sinal nas duas métricas
+            pts.append({"nome": rr["nome"], "x": rr["qualidade"],
+                        "y": c.get("citacoes_total", 0), "h": c.get("h_index", 0),
+                        "sub": rr.get("subarea", "—")})
+        if pts:
+            def _median(vals):
+                s = sorted(vals); n = len(s)
+                return (s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2) if s else 0
+            medx = round(_median([p["x"] for p in pts]), 1)
+            medy = round(_median([p["y"] for p in pts]))
+            maxy = max(p["y"] for p in pts) or 1
+            W, Hh, M = 760, 460, 54
+            def _px(x): return M + (x / 100) * (W - 2 * M)
+            def _py(y): return Hh - M - (_math.sqrt(y) / _math.sqrt(maxy)) * (Hh - 2 * M)
+            lx, ly = _px(medx), _py(medy)
+            # quadrante de cada ponto
+            for p in pts:
+                hi_q, hi_c = p["x"] >= medx, p["y"] >= medy
+                p["quad"] = ("estrela" if hi_q and hi_c else
+                             "veiculo" if hi_q and not hi_c else
+                             "subvalorizado" if not hi_q and hi_c else "nicho")
+            QCOL = {"estrela": "var(--brand)", "veiculo": "var(--amber)",
+                    "subvalorizado": "var(--blue)", "nicho": "var(--muted)"}
+            dots = "".join(
+                f'<circle cx="{_px(p["x"]):.0f}" cy="{_py(p["y"]):.0f}" r="{4+_math.sqrt(p["h"]):.0f}" '
+                f'fill="{QCOL[p["quad"]]}" fill-opacity="0.75"/>'
+                for p in pts)
+            # rótulos: os de maior citação e os "subvalorizados"
+            labelset = sorted(pts, key=lambda p: -p["y"])[:6] + [p for p in pts if p["quad"] == "subvalorizado"][:5]
+            labels = "".join(
+                f'<text x="{_px(p["x"])+6:.0f}" y="{_py(p["y"])+3:.0f}" font-size="10" fill="#16241a">'
+                f'{p["nome"].split()[0]} {p["nome"].split()[-1]}</text>'
+                for p in {id(p): p for p in labelset}.values())
+            svg = f'''<svg viewBox="0 0 {W} {Hh}" style="width:100%;height:auto;font-family:var(--font);">
+              <rect x="{lx:.0f}" y="{M}" width="{W-M-lx:.0f}" height="{ly-M:.0f}" fill="#0f7a40" opacity="0.05"/>
+              <rect x="{M}" y="{ly:.0f}" width="{lx-M:.0f}" height="{Hh-M-ly:.0f}" fill="#71857a" opacity="0.05"/>
+              <line x1="{lx:.0f}" y1="{M}" x2="{lx:.0f}" y2="{Hh-M}" stroke="var(--line2)" stroke-dasharray="4"/>
+              <line x1="{M}" y1="{ly:.0f}" x2="{W-M}" y2="{ly:.0f}" stroke="var(--line2)" stroke-dasharray="4"/>
+              <text x="{W-M}" y="{M-8}" text-anchor="end" font-size="11" fill="var(--brand)" font-weight="700">★ Estrelas (Qualis alto + citado)</text>
+              <text x="{M}" y="{M-8}" font-size="11" fill="var(--blue)" font-weight="700">Subvalorizado (citado, Qualis menor)</text>
+              <text x="{W-M}" y="{Hh-M+18}" text-anchor="end" font-size="11" fill="var(--amber)" font-weight="700">Veículo forte, pouco citado</text>
+              <text x="{M}" y="{Hh-M+18}" font-size="11" fill="var(--muted)" font-weight="700">Nicho</text>
+              <text x="{W/2:.0f}" y="{Hh-12}" text-anchor="middle" font-size="11" fill="var(--sub)">→ Qualis (nota média do veículo, 0–100) · mediana {medx}</text>
+              <text x="14" y="{Hh/2:.0f}" font-size="11" fill="var(--sub)" transform="rotate(-90 14 {Hh/2:.0f})" text-anchor="middle">→ citações (impacto real, escala √) · mediana {medy}</text>
+              {dots}{labels}</svg>'''
+
+            def _qtab(quad, titulo, cor):
+                items = sorted((p for p in pts if p["quad"] == quad), key=lambda p: -p["y"])[:6]
+                rows = "".join(f"<tr><td>{p['nome']}</td><td>{p['x']:.0f}</td><td class='n'>{p['y']}</td><td>{p['h']}</td></tr>"
+                               for p in items)
+                return (f'<div><h3 style="color:{cor};font-size:15px;margin:0 0 6px;">{titulo} ({sum(1 for p in pts if p["quad"]==quad)})</h3>'
+                        f'<table><thead><tr><th>Docente</th><th>Qualis</th><th>Citações</th><th>h</th></tr></thead>'
+                        f'<tbody>{rows}</tbody></table></div>')
+            tabs = (_qtab("estrela", "★ Estrelas", "var(--brand)")
+                    + _qtab("subvalorizado", "Subvalorizado pelo Qualis", "var(--blue)")
+                    + _qtab("veiculo", "Veículo forte, pouco citado", "var(--amber)")
+                    + _qtab("nicho", "Nicho", "var(--muted)"))
+            sec_quad = f"""
+    <section class="section">
+      <div class="eyebrow">Veículo vs impacto real</div>
+      <h2>Quadrante Qualis × Citações</h2>
+      <p class="desc">Cruza a <b>qualidade do veículo</b> (nota média Qualis, eixo X) com o
+      <b>impacto real</b> (citações OpenAlex, eixo Y). Mediana divide os 4 quadrantes —
+      <b>{len(pts)} docentes</b> com sinal nas duas métricas (≥3 artigos Qualis e ≥3 com DOI).
+      <b>Estrelas</b>: bom veículo e citado. <b>Subvalorizado</b>: citado apesar de Qualis menor
+      (o Qualis subestima). <b>Veículo forte, pouco citado</b>: publica em estrato alto mas sem eco.
+      Tamanho do ponto = h-index.</p>
+      <div class="card">{svg}</div>
+      <div class="grid2" style="margin-top:16px;">{tabs}</div>
+      <div class="note-line">Qualis mede o <i>veículo</i> (a priori); citações medem a <i>repercussão</i>
+      (a posteriori). Divergências apontam onde uma métrica sozinha engana.</div>
+    </section>"""
+
+    # avaliação por GRANDE ÁREA CNPq (agrega Qualis + citações + FWCI)
+    sec_area = ""
+    if ranking:
+        cbn = {c["nome"]: c for c in (citacoes or [])}
+        ag: dict[str, dict] = defaultdict(lambda: {
+            "n": 0, "score": 0, "estrato_A": 0, "artigos": 0, "artigos_qualis": 0,
+            "cit": 0, "fwci": [], "top10": 0, "com_doi": 0})
+        for rr in ranking:
+            ga = rr.get("area") or "—"
+            if ga == "—":
+                continue
+            a = ag[ga]
+            a["n"] += 1
+            a["score"] += rr.get("score", 0)
+            a["estrato_A"] += rr.get("estrato_A", 0)
+            a["artigos"] += rr.get("artigos", 0)
+            a["artigos_qualis"] += rr.get("artigos_qualis", 0)
+            c = cbn.get(rr["nome"])
+            if c:
+                a["cit"] += c.get("citacoes_total", 0)
+                a["top10"] += c.get("artigos_top10pct", 0)
+                if c.get("encontrados_openalex", 0) >= 3 and c.get("fwci_mediana"):
+                    a["fwci"].append(c["fwci_mediana"])
+                if c.get("artigos_com_doi", 0):
+                    a["com_doi"] += 1
+        arows = ""
+        for ga, a in sorted(ag.items(), key=lambda kv: -kv[1]["cit"]):
+            fwci_m = round(sum(a["fwci"]) / len(a["fwci"]), 2) if a["fwci"] else 0
+            cor = "var(--brand)" if fwci_m >= 1.5 else "var(--amber)" if fwci_m >= 1 else "var(--rose)"
+            qmean = round(a["score"] / a["artigos_qualis"], 0) if a["artigos_qualis"] else 0
+            arows += (
+                f"<tr><td>{ga}</td><td>{a['n']}</td>"
+                f"<td style='color:{cor};font-weight:700;'>{fwci_m:.2f}</td>"
+                f"<td class='n'>{a['cit']}</td><td>{a['top10']}</td>"
+                f"<td>{a['estrato_A']}</td><td>{qmean:.0f}</td>"
+                f"<td>{round(a['cit']/a['n']) if a['n'] else 0}</td></tr>"
+            )
+        sec_area = f"""
+    <section class="section">
+      <div class="eyebrow">Por grande área (CNPq)</div>
+      <h2>Avaliação por área de conhecimento</h2>
+      <p class="desc">Agrega as métricas por <b>grande área CNPq</b> (Engenharias, Ciências Exatas e
+      da Terra…). Comparar <b>citação bruta</b> entre áreas é injusto (cada área cita em ritmo
+      diferente) — por isso o <b>FWCI</b> (normalizado por área e ano) é a coluna que permite
+      comparação justa: FWCI &gt; 1 = acima da média mundial da própria área. "Qualis méd." = nota
+      média do veículo; "Cit/doc." = citações por docente.</p>
+      <table><thead><tr><th>Grande área</th><th>Docentes</th><th>FWCI médio</th><th>Citações</th>
+      <th>Top 10%</th><th>Artigos A</th><th>Qualis méd.</th><th>Cit/doc.</th></tr></thead>
+      <tbody>{arows}</tbody></table>
+      <div class="note-line">FWCI iguala a régua entre áreas; citações brutas e nº de artigos A
+      favorecem áreas de publicação mais intensa (ex.: Computação). Líderes por área/sub-área estão
+      na seção "Líderes por área e sub-área".</div>
+    </section>"""
+
+    # quadrante produtividade (volume) × impacto (citações) — executivo
+    sec_prod = ""
+    if ranking and citacoes:
+        import math as _m2
+        cbn = {c["nome"]: c for c in citacoes}
+        pp = []
+        for rr in ranking:
+            c = cbn.get(rr["nome"])
+            if not c or c.get("artigos_com_doi", 0) < 3:
+                continue
+            pp.append({"nome": rr["nome"], "x": rr.get("artigos", 0),
+                       "y": c.get("citacoes_total", 0), "h": c.get("h_index", 0)})
+        if pp:
+            def _med(v):
+                s = sorted(v); n = len(s)
+                return (s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2) if s else 0
+            mx = round(_med([p["x"] for p in pp]), 1)
+            my = round(_med([p["y"] for p in pp]))
+            maxx = max(p["x"] for p in pp) or 1
+            maxy = max(p["y"] for p in pp) or 1
+            W, Hh, M = 760, 460, 54
+            def _px(x): return M + (x / maxx) * (W - 2 * M)
+            def _py(y): return Hh - M - (_m2.sqrt(y) / _m2.sqrt(maxy)) * (Hh - 2 * M)
+            lx, ly = _px(mx), _py(my)
+            for p in pp:
+                hv, hc = p["x"] >= mx, p["y"] >= my
+                p["q"] = ("estrela" if hv and hc else "promessa" if not hv and hc
+                          else "prolifico" if hv and not hc else "nicho")
+            QC = {"estrela": "var(--brand)", "promessa": "var(--blue)",
+                  "prolifico": "var(--amber)", "nicho": "var(--muted)"}
+            dots = "".join(
+                f'<circle cx="{_px(p["x"]):.0f}" cy="{_py(p["y"]):.0f}" r="{4+_m2.sqrt(p["h"]):.0f}" '
+                f'fill="{QC[p["q"]]}" fill-opacity="0.75"/>' for p in pp)
+            lab = sorted(pp, key=lambda p: -p["y"])[:6] + [p for p in pp if p["q"] == "promessa"][:5]
+            labels = "".join(
+                f'<text x="{_px(p["x"])+6:.0f}" y="{_py(p["y"])+3:.0f}" font-size="10" fill="#16241a">'
+                f'{p["nome"].split()[0]} {p["nome"].split()[-1]}</text>'
+                for p in {id(p): p for p in lab}.values())
+            svg = f'''<svg viewBox="0 0 {W} {Hh}" style="width:100%;height:auto;font-family:var(--font);">
+              <rect x="{lx:.0f}" y="{M}" width="{W-M-lx:.0f}" height="{ly-M:.0f}" fill="#0f7a40" opacity="0.05"/>
+              <line x1="{lx:.0f}" y1="{M}" x2="{lx:.0f}" y2="{Hh-M}" stroke="var(--line2)" stroke-dasharray="4"/>
+              <line x1="{M}" y1="{ly:.0f}" x2="{W-M}" y2="{ly:.0f}" stroke="var(--line2)" stroke-dasharray="4"/>
+              <text x="{W-M}" y="{M-8}" text-anchor="end" font-size="11" fill="var(--brand)" font-weight="700">★ Estrelas (prolífico + citado)</text>
+              <text x="{M}" y="{M-8}" font-size="11" fill="var(--blue)" font-weight="700">Promessas (poucos artigos, muito citados)</text>
+              <text x="{W-M}" y="{Hh-M+18}" text-anchor="end" font-size="11" fill="var(--amber)" font-weight="700">Prolíficos pouco citados</text>
+              <text x="{M}" y="{Hh-M+18}" font-size="11" fill="var(--muted)" font-weight="700">Nicho</text>
+              <text x="{W/2:.0f}" y="{Hh-12}" text-anchor="middle" font-size="11" fill="var(--sub)">→ volume (nº de artigos) · mediana {mx}</text>
+              <text x="14" y="{Hh/2:.0f}" font-size="11" fill="var(--sub)" transform="rotate(-90 14 {Hh/2:.0f})" text-anchor="middle">→ citações (impacto, escala √) · mediana {my}</text>
+              {dots}{labels}</svg>'''
+
+            def _ptab(q, titulo, cor):
+                items = sorted((p for p in pp if p["q"] == q), key=lambda p: -p["y"])[:6]
+                rows = "".join(f"<tr><td>{p['nome']}</td><td>{p['x']}</td><td class='n'>{p['y']}</td><td>{p['h']}</td></tr>"
+                               for p in items)
+                return (f'<div><h3 style="color:{cor};font-size:15px;margin:0 0 6px;">{titulo} ({sum(1 for p in pp if p["q"]==q)})</h3>'
+                        f'<table><thead><tr><th>Docente</th><th>Artigos</th><th>Citações</th><th>h</th></tr></thead>'
+                        f'<tbody>{rows}</tbody></table></div>')
+            tabs = (_ptab("estrela", "★ Estrelas", "var(--brand)")
+                    + _ptab("promessa", "Promessas (alto impacto/artigo)", "var(--blue)")
+                    + _ptab("prolifico", "Prolíficos pouco citados", "var(--amber)")
+                    + _ptab("nicho", "Nicho", "var(--muted)"))
+            sec_prod = f"""
+    <section class="section">
+      <div class="eyebrow">Mapa executivo</div>
+      <h2>Quadrante Produtividade × Impacto</h2>
+      <p class="desc">Volume (<b>nº de artigos</b>, eixo X) contra <b>impacto</b> (citações, eixo Y),
+      para leitura de gestão em uma olhada. <b>Estrelas</b>: muitos artigos e muito citados.
+      <b>Promessas</b>: poucos artigos mas alto impacto (potencial). <b>Prolíficos pouco citados</b>:
+      muito volume, pouca repercussão. Tamanho do ponto = h-index. {len(pp)} docentes com DOI.</p>
+      <div class="card">{svg}</div>
+      <div class="grid2" style="margin-top:16px;">{tabs}</div>
+    </section>"""
+
+    # ---- RESUMO ANALÍTICO (topo) ----
+    sec_resumo = ""
+    if ranking:
+        cbn = {c["nome"]: c for c in (citacoes or [])}
+        tot_cit = sum(c.get("citacoes_total", 0) for c in (citacoes or []))
+        top_cit = max((citacoes or []), key=lambda c: c.get("citacoes_total", 0), default={})
+        fwci_elig = [c for c in (citacoes or []) if c.get("encontrados_openalex", 0) >= 5 and c.get("fwci_mediana")]
+        top_fwci = max(fwci_elig, key=lambda c: c["fwci_mediana"], default={})
+        top_qualis = ranking[0] if ranking else {}
+        # FWCI médio por área (Engenharias x Exatas)
+        af: dict[str, list] = defaultdict(list)
+        for rr in ranking:
+            c = cbn.get(rr["nome"])
+            if rr.get("area") and rr["area"] != "—" and c and c.get("encontrados_openalex", 0) >= 3 and c.get("fwci_mediana"):
+                af[rr["area"]].append(c["fwci_mediana"])
+        area_fwci = {k: round(sum(v) / len(v), 2) for k, v in af.items() if v}
+        area_rank = sorted(area_fwci.items(), key=lambda kv: -kv[1])
+        # subvalorizado: maior FWCI fora dos veículos de Qualis alto
+        med_q = None
+        qs = sorted([rr["qualidade"] for rr in ranking if rr.get("artigos_qualis", 0) >= 3])
+        if qs:
+            med_q = qs[len(qs) // 2]
+        subval = None
+        if med_q is not None:
+            cand = [(rr["nome"], cbn.get(rr["nome"], {}).get("fwci_mediana", 0))
+                    for rr in ranking if rr.get("qualidade", 0) < med_q
+                    and cbn.get(rr["nome"], {}).get("encontrados_openalex", 0) >= 5]
+            subval = max(cand, key=lambda x: x[1], default=None)
+        n_doi = sum(1 for c in (citacoes or []) if c.get("artigos_com_doi", 0))
+        eng = area_fwci.get("Engenharias")
+        exa = area_fwci.get("Ciências Exatas e da Terra")
+
+        cards = f"""<div class="kpis">
+          <div class="kpi"><div class="n">{r['n_artigos']}</div><div class="u">artigos · {r['n_trabalhos_congresso']} trab. congresso</div><div class="s">{r['n_revistas_distintas']} revistas · {r['n_congressos_distintos']} eventos</div></div>
+          <div class="kpi"><div class="n">{q1q2}</div><div class="u">artigos Q1+Q2 (SJR)</div><div class="s">{round(q1q2/tot_art*100) if tot_art else 0}% da produção</div></div>
+          <div class="kpi"><div class="n">{tot_cit}</div><div class="u">citações (OpenAlex)</div><div class="s">{n_doi} docentes com DOI</div></div>
+          <div class="kpi"><div class="n">{(area_rank[0][1] if area_rank else 0):.2f}</div><div class="u">maior FWCI por área</div><div class="s">{(area_rank[0][0][:22] if area_rank else '—')}</div></div>
+        </div>"""
+
+        obs = []
+        if eng and exa:
+            if exa >= eng:
+                an, af1, bn, bf = "Ciências Exatas e da Terra", exa, "Engenharias", eng
+            else:
+                an, af1, bn, bf = "Engenharias", eng, "Ciências Exatas e da Terra", exa
+            obs.append(f"<b>Veículo ≠ impacto por área:</b> no <b>FWCI</b> (normalizado por área) "
+                       f"{an} lidera com <b>{af1:.2f}</b> vs {bn} {bf:.2f} — publica com impacto relativo "
+                       f"maior na própria área; a citação bruta, porém, favorece o volume das Engenharias.")
+        if top_cit and top_fwci and top_cit.get("nome") != top_fwci.get("nome"):
+            obs.append(f"<b>Quantidade ≠ qualidade:</b> o mais citado é <b>{top_cit['nome']}</b> ({top_cit.get('citacoes_total',0)} cit.), "
+                       f"mas por <b>FWCI</b> quem lidera é <b>{top_fwci['nome']}</b> ({top_fwci['fwci_mediana']:.2f}× a média mundial).")
+        if subval and subval[1] >= 1.5:
+            obs.append(f"<b>Subvalorizado pelo Qualis:</b> <b>{subval[0]}</b> tem FWCI {subval[1]:.2f} publicando em veículos de Qualis abaixo da mediana — "
+                       f"impacto real que a classificação do periódico não captura.")
+        obs.append(f"<b>Veículo vs. impacto:</b> Qualis/SJR medem a <i>qualidade do periódico</i> (a priori); citações e FWCI medem a <i>repercussão real</i> (a posteriori). "
+                   f"Os quadrantes cruzam as duas para achar estrelas, subvalorizados e veículos sem eco.")
+        obs.append(f"<b>Computação publica em congresso:</b> incluir o Qualis de conferências muda o ranking — docentes de CC sobem no score combinado revistas+congressos.")
+        obs.append(f"<b>Cobertura:</b> citações/FWCI vêm de DOI ({n_doi} docentes têm DOI no Lattes); congressos têm Qualis só em Computação (lista CC 2016). Demais ficam subestimados.")
+        obs_html = "".join(f"<li>{o}</li>" for o in obs)
+
+        sec_resumo = f"""
+    <section class="section" style="border:2px solid var(--brand);background:linear-gradient(180deg,var(--brand-l,#e7f4ec),#fff 70%);">
+      <div class="eyebrow">Resumo analítico</div>
+      <h2>O que os dados mostram</h2>
+      {cards}
+      <ul style="margin:18px 0 0 18px;font-size:14.5px;line-height:1.7;color:var(--ink2);">{obs_html}</ul>
+      <div class="note-line">Síntese automática a partir das seções abaixo (Lattes + SJR + Qualis + OpenAlex).
+      Use o menu flutuante (☰) para navegar. <b>Métricas em validação — versão preliminar.</b></div>
     </section>"""
 
     # Metodologia + fontes
@@ -1074,6 +1261,13 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
           A4=55, B1=40, B2=30, B3=20, B4=10, C=3). O <b>score total</b> soma periódicos +
           congressos CC. A divisão por sub-área usa o campo "área" do Lattes.</p>
         </div>
+        <div class="finding"><span class="tag rs">Citações reais</span>
+          <h3>6. Citações via OpenAlex (DOI)</h3>
+          <p>Além do Qualis (qualidade do <i>veículo</i>), medimos o <b>impacto real</b>: as
+          citações de cada artigo no <b>OpenAlex</b>, casadas pelo <b>DOI</b> do Lattes (1:1).
+          Daí saem <b>citações totais, h-index e i10</b> por docente, sem depender de busca por
+          nome (que erra com homônimos).</p>
+        </div>
       </div>
       <div class="note-line">
         <b>Limitações:</b> o Qualis de conferências cobre só Computação (lista CC 2016) — congressos
@@ -1098,9 +1292,111 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
             <tr><td>Qualis de Conferências CC (estrato por acrônimo/nome)</td>
               <td>CAPES (lista CC 2016) · portal UFMT</td>
               <td><a href="https://qualis.ic.ufmt.br/">qualis.ic.ufmt.br</a></td></tr>
+            <tr><td>Citações, h-index, i10 (por DOI)</td>
+              <td>OpenAlex</td>
+              <td><a href="https://openalex.org/">openalex.org</a></td></tr>
           </tbody>
         </table>
       </div>
+    </section>"""
+
+    # ===================================================================
+    # SEÇÕES CONSOLIDADAS (A/B/C) — substituem rankings/líderes/quadrantes soltos
+    # ===================================================================
+    cbn = {c["nome"]: c for c in (citacoes or [])}
+    n_doc = len(ranking) if ranking else 0
+    n_doi = sum(1 for c in (citacoes or []) if c.get("artigos_com_doi", 0))
+    n_fwci = sum(1 for c in (citacoes or []) if c.get("encontrados_openalex", 0) >= FWCI_MIN)
+    cov = (f'<div class="note" style="border-color:var(--amber);"><b>Cobertura:</b> citações e FWCI '
+           f'vêm de DOI — <b>{n_doi} de {n_doc}</b> docentes têm DOI no Lattes e só <b>{n_fwci}</b> '
+           f'têm ≥{FWCI_MIN} artigos no OpenAlex (FWCI confiável). Quem não tem DOI aparece sem citação; '
+           f'não significa ausência de impacto.</div>')
+
+    # ---- A. Ranking-mestre (1 tabela: Qualis, nota, citações, FWCI, h) ----
+    sec_master = ""
+    if ranking:
+        # FWCI só é confiável com >= FWCI_MIN artigos; abaixo disso não entra no ranking
+        def _fwci_ok(rr):
+            c = cbn.get(rr["nome"], {})
+            return c.get("fwci_mediana") if c.get("encontrados_openalex", 0) >= FWCI_MIN else None
+        # ordena por qualidade + impacto: FWCI (confiável) desc, depois nota Qualis desc
+        master_rows = sorted(
+            ranking, key=lambda rr: (-(_fwci_ok(rr) or 0), -rr.get("qualidade", 0)))
+        mrows = ""
+        for rr in master_rows:
+            c = cbn.get(rr["nome"], {})
+            fw = _fwci_ok(rr)
+            fwtxt = f"{fw:.2f}" if fw else "—"
+            mrows += (
+                f'<tr>'
+                f'<td>{rr["nome"]}</td><td>{rr.get("area","—")}</td>'
+                f'<td data-v="{rr.get("score",0)}">{rr.get("score",0)}</td>'
+                f'<td data-v="{rr.get("qualidade",0)}">{rr.get("qualidade",0):.0f}</td>'
+                f'<td data-v="{c.get("citacoes_total",0)}">{c.get("citacoes_total","—") if c else "—"}</td>'
+                f'<td data-v="{fw or 0}">{fwtxt}</td>'
+                f'<td data-v="{c.get("h_index",0)}">{c.get("h_index","—") if c else "—"}</td>'
+                f'<td data-v="{rr.get("artigos_qualis",0)}">{rr.get("artigos_qualis",0)}</td>'
+                f'</tr>')
+        sec_master = f"""
+    <section class="section">
+      <div class="eyebrow">Ranking de docentes</div>
+      <h2>Tabela-mestre de impacto</h2>
+      <p class="desc">Uma tabela com as métricas que antes estavam espalhadas. <b>Score Qualis</b>
+      = volume × qualidade do veículo (A1=100…C=3). <b>Nota Qualis</b> = média por artigo (qualidade
+      pura). <b>Citações</b> e <b>h-index</b> = impacto real (OpenAlex, por DOI). <b>FWCI</b> = impacto
+      normalizado por área (1 = média mundial). <b>Ordenada por qualidade + impacto</b> (FWCI, depois
+      nota Qualis); clique em qualquer cabeçalho para reordenar.</p>
+      {cov}
+      <table class="sortable"><thead><tr>
+        <th>Docente</th><th>Área</th><th data-sort="num">Score Qualis</th><th data-sort="num">Nota</th>
+        <th data-sort="num">Citações</th><th data-sort="num">FWCI</th><th data-sort="num">h</th>
+        <th data-sort="num">Artigos Qualis</th></tr></thead><tbody>{mrows}</tbody></table>
+      <div class="note-line">"Artigos Qualis" = artigos do docente com estrato (registros por docente,
+      não deduplicados entre coautores — difere do total de artigos distintos do campus).</div>
+    </section>"""
+
+    # ---- C. Mapas estratégicos (3 quadrantes juntos) ----
+    sec_maps = f"""
+    <section class="section">
+      <div class="eyebrow">Mapas estratégicos</div>
+      <h2>Quadrantes de posicionamento</h2>
+      <p class="desc">Três cruzamentos para leitura rápida de gestão: veículo × impacto real
+      (citações e FWCI) e produtividade × impacto. Estrelas, subvalorizados, veículos sem eco.</p>
+      {_quad_qualis_fwci(ranking, citacoes)}
+    </section>{sec_quad}{sec_prod}"""
+
+    # ---- B. Líderes por área e sub-área (Qualis + FWCI num só lugar) ----
+    sec_leaders = ""
+    if ranking:
+        bestq, bestf = {}, {}
+        for rr in ranking:
+            ga = rr.get("area") or "—"
+            if ga == "—":
+                continue
+            if ga not in bestq or rr.get("score", 0) > bestq[ga].get("score", 0):
+                bestq[ga] = rr
+        larea = "".join(
+            f"<tr><td>{ga}</td><td>{b['nome']}</td><td>{b.get('score',0)}</td>"
+            f"<td>{b.get('estrato_A',0)}</td></tr>"
+            for ga, b in sorted(bestq.items(), key=lambda kv: -kv[1].get("score", 0))
+            if b.get("score", 0) > 0)
+        sec_leaders = f"""
+    <section class="section">
+      <div class="eyebrow">Liderança</div>
+      <h2>Líderes por área e sub-área</h2>
+      <p class="desc">Quem lidera cada área por <b>volume×qualidade (Qualis)</b> e por
+      <b>impacto normalizado (FWCI)</b> — as duas leituras lado a lado.</p>
+      <div class="grid2">
+        <div><h3 style="font-size:15px;">Por grande área · Score Qualis</h3>
+          <table><thead><tr><th>Área</th><th>Líder</th><th>Score</th><th>A1–A4</th></tr></thead>
+          <tbody>{larea}</tbody></table></div>
+        <div><h3 style="font-size:15px;">Por grande área · FWCI (impacto)</h3>
+          <table><thead><tr><th>Área</th><th>Líder</th><th>FWCI</th><th>Top10%</th><th>Cit</th><th>h</th></tr></thead>
+          <tbody>{_lider_fwci_rows(ranking, citacoes, "area", FWCI_MIN)}</tbody></table></div>
+      </div>
+      <h3 style="font-family:var(--serif);font-size:20px;margin:24px 0 8px;">Por sub-área · FWCI</h3>
+      <table><thead><tr><th>Sub-área</th><th>Líder por FWCI</th><th>FWCI</th><th>Top10%</th><th>Cit</th><th>h</th></tr></thead>
+      <tbody>{_lider_fwci_rows(ranking, citacoes, "subarea", FWCI_MIN_SUB)}</tbody></table>
     </section>"""
 
     fontes = payload.get("fontes", {})
@@ -1122,10 +1418,52 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
       <span><b>{r['n_congressos_distintos']}</b> congressos</span>
       <span>Fonte: Lattes + SJR{' + Qualis' if qualis_applied else ''}</span></div>
   </div>
-  {kpis}{sec_sjr}{sec_qualis}{sec_rank}{sec_qual}{sec_asc}{sec_lider}{sec_sub}{sec_top}{sec_cong}{sec_comb}{sec_metodo}
+  {sec_resumo}{kpis}{sec_sjr}{sec_qualis}{sec_area}{sec_maps}{sec_leaders}{sec_asc}{sec_top}{sec_cong}{sec_comb}{sec_master}{sec_metodo}
   <div class="foot"><span>Gerado em {payload.get('gerado_em','')} · veículos: Lattes ·
   impacto: {fontes.get('impacto_internacional','SJR')} · qualis: {qfonte}</span></div>
-</div></body></html>"""
+</div>
+<style>
+#fnav{{position:fixed;top:50%;right:18px;transform:translateY(-50%);z-index:50;font-family:var(--font);}}
+#fnav-btn{{background:var(--brand-d,#0a5c30);color:#fff;border:none;border-radius:24px;padding:11px 16px;
+  font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(16,40,24,.25);}}
+#fnav-list{{display:none;flex-direction:column;gap:2px;background:#fff;border:1px solid var(--line,#e2ebe4);
+  border-radius:12px;padding:8px;margin-top:8px;max-height:70vh;overflow:auto;box-shadow:0 8px 28px rgba(16,40,24,.18);
+  max-width:280px;}}
+#fnav.open #fnav-list{{display:flex;}}
+#fnav-list a{{font-size:12.5px;color:var(--ink,#16241a);text-decoration:none;padding:6px 10px;border-radius:7px;}}
+#fnav-list a:hover{{background:var(--brand-l,#e7f4ec);color:var(--brand-d,#0a5c30);}}
+@media print{{#fnav{{display:none;}}}}
+</style>
+<div id="fnav"><button id="fnav-btn">☰ Seções</button><div id="fnav-list"></div></div>
+<script>
+(function(){{
+  var secs=[].slice.call(document.querySelectorAll('section.section')).filter(function(s){{return s.querySelector('h2');}});
+  var list=document.getElementById('fnav-list'), nav=document.getElementById('fnav');
+  secs.forEach(function(s,i){{var t=s.querySelector('h2').textContent.trim(); s.id='sec'+i;
+    var a=document.createElement('a'); a.href='#sec'+i; a.textContent=t;
+    a.onclick=function(){{nav.classList.remove('open');}}; list.appendChild(a);}});
+  document.getElementById('fnav-btn').onclick=function(){{nav.classList.toggle('open');}};
+}})();
+// ordenação da tabela-mestre por coluna
+(function(){{
+  document.querySelectorAll('table.sortable').forEach(function(tb){{
+    var ths=tb.querySelectorAll('thead th');
+    ths.forEach(function(th,ci){{ th.style.cursor='pointer'; var dir=1;
+      th.onclick=function(){{ dir=-dir;
+        var rows=[].slice.call(tb.querySelectorAll('tbody tr'));
+        rows.sort(function(a,b){{
+          var x=a.children[ci], y=b.children[ci];
+          var xv=x.getAttribute('data-v'), yv=y.getAttribute('data-v');
+          if(xv!==null&&yv!==null) return (parseFloat(xv)-parseFloat(yv))*dir;
+          return x.textContent.localeCompare(y.textContent)*dir;
+        }});
+        var tbody=tb.querySelector('tbody'); rows.forEach(function(r){{tbody.appendChild(r);}});
+      }};
+    }});
+  }});
+}})();
+</script>
+</body></html>"""
 
 
 def main() -> None:
@@ -1162,8 +1500,11 @@ def main() -> None:
     ranking = (rank_docentes(roster, qualis, scimago, conf_acro, conf_name)
                if qualis_applied else [])
     asc = ascension(roster, qualis) if qualis_applied else []
+    citacoes = load_openalex()
+    print(f"OpenAlex: {len(citacoes)} docentes com citações")
     payload["ranking_docentes"] = ranking
     payload["ascensao"] = asc
+    payload["citacoes_openalex"] = citacoes
     payload["gerado_em"] = datetime.now().strftime("%Y-%m-%d %H:%M")
     payload["fontes"] = {
         "veiculos": "currículos Lattes (data/lattes_json)",
@@ -1177,7 +1518,7 @@ def main() -> None:
     print(f"Written: {out}")
 
     html_path = Path(args.html)
-    html_path.write_text(render_html(payload, qualis_applied, ranking, asc), encoding="utf-8")
+    html_path.write_text(render_html(payload, qualis_applied, ranking, asc, citacoes), encoding="utf-8")
     print(f"Written: {html_path}")
 
     r = payload["resumo"]
