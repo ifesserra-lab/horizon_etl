@@ -43,7 +43,9 @@ def create_researcher_with_resume_fallback(
                 f"Researcher '{name}' (ID: {identification_id}) already exists due to concurrent insert. Fetching existing."
             )
             _rollback_session(researcher_ctrl)
-            existing = _find_researcher_by_identification_id(researcher_ctrl, identification_id)
+            existing = _find_researcher_by_identification_id(
+                researcher_ctrl, identification_id
+            )
             if existing:
                 return existing
             # If fetch fails, re-raise
@@ -171,13 +173,16 @@ def _is_unique_constraint_error(exc: Exception) -> bool:
     """Check if exception is a UNIQUE constraint violation."""
     message = str(exc).lower()
     return (
-        "unique" in message or
-        "duplicate" in message or
-        "constraint" in message and "failed" in message
+        "unique" in message
+        or "duplicate" in message
+        or "constraint" in message
+        and "failed" in message
     )
 
 
-def _find_researcher_by_identification_id(researcher_ctrl, identification_id: Optional[str]) -> Optional[Any]:
+def _find_researcher_by_identification_id(
+    researcher_ctrl, identification_id: Optional[str]
+) -> Optional[Any]:
     """Find an existing researcher by identification_id."""
     if not identification_id:
         return None

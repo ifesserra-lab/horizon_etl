@@ -16,6 +16,7 @@ LATTES_ID_RE = re.compile(r"(?<!\d)\d{16}(?!\d)")
 DEFAULT_LATTES_PREFETCH_WORKERS = 3
 LATTES_PREFETCH_ENABLED_ENV = "HORIZON_LATTES_PREFETCH"
 LATTES_PREFETCH_WORKERS_ENV = "HORIZON_LATTES_DOWNLOAD_WORKERS"
+LATTES_FORCE_DOWNLOAD_ENV = "HORIZON_LATTES_FORCE_DOWNLOAD"
 LattesDownloader = Callable[[str, str], None]
 
 
@@ -40,6 +41,31 @@ def clean_lattes_json_output(output_dir: str) -> int:
         except PermissionError:
             logger.warning(f"Could not remove stale JSON file: {json_file}")
     return removed_count
+
+
+def should_skip_download_if_cached(output_dir: str, lattes_ids: List[str]) -> bool:
+    if os.environ.get(LATTES_FORCE_DOWNLOAD_ENV, "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }:
+        return False
+    output_path = Path(output_dir)
+    if not output_path.exists():
+        return False
+    all_exist = all((output_path / f"{lid}.json").exists() for lid in lattes_ids)
+    if all_exist:
+        logger.info(
+            f"All {len(lattes_ids)} Lattes curricula already in {output_dir}. "
+            f"Set {LATTES_FORCE_DOWNLOAD_ENV}=1 to force re-download."
+        )
+        return True
+    missing = sum(1 for lid in lattes_ids if not (output_path / f"{lid}.json").exists())
+    logger.info(
+        f"{missing}/{len(lattes_ids)} Lattes curricula missing from {output_dir}, proceeding with download."
+    )
+    return False
 
 
 def is_lattes_prefetch_enabled() -> bool:
@@ -354,6 +380,12 @@ def download_lattes_flow():
     if not lattes_ids:
         raise ValueError(f"No valid 16-digit Lattes IDs found in {list_path}")
     logger.info(f"Preparing to download {len(lattes_ids)} Lattes curricula.")
+
+    if should_skip_download_if_cached(output_dir, lattes_ids):
+        logger.info(
+            "Skipping Lattes download — all curricula already present in output dir."
+        )
+        return
 
     validate_script_lattes_runtime()
     logger.info("Playwright Chromium runtime validated for scriptLattes.")

@@ -12,14 +12,10 @@ from src.flows.exports.initiatives_analytics_mart import (
     export_initiatives_analytics_mart_flow,
 )
 from src.flows.exports.knowledge_areas_mart import export_knowledge_areas_mart_flow
-from src.flows.exports.people_relationship_graph import (
-    export_people_relationship_graph_flow,
-)
 from src.notifications.telegram import (
     send_telegram_etl_report_summary,
     telegram_flow_state_handlers,
 )
-
 
 configure_local_prefect_runtime()
 
@@ -69,10 +65,6 @@ def weekly_pipelines_flow(
             runner=lambda: export_initiatives_analytics_mart_flow(
                 output_path=str(Path(output_dir) / "initiatives_analytics_mart.json")
             ),
-        )
-        reporter.run_step(
-            step_name="people_relationship_graph",
-            runner=lambda: export_people_relationship_graph_flow(output_dir=output_dir),
         )
     finally:
         try:

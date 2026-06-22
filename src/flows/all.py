@@ -13,8 +13,9 @@ def ingest_all_sources_flow(campus_name: Optional[str] = None) -> dict[str, Any]
     """
     Run all source ingestion flows sequentially.
 
-    Sources are intentionally separated from export/mart flows so the caller can
-    decide whether this run is ingestion-only or a full pipeline with outputs.
+    Sources must run sequentially because they write to shared canonical tables
+    (persons, researchers, teams, initiatives, etc.) and Lattes projects drops
+    and recreates tables during ingestion.
     """
     logger = get_run_logger()
     logger.info("Starting all source ingestion flows...")
