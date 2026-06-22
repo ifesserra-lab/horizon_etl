@@ -341,30 +341,44 @@ def load_scimago() -> dict[str, dict]:
     return out
 
 
-def load_qualis(path: Path | None) -> dict[str, str]:
-    """ISSN -> estrato Qualis. CSV com colunas contendo ISSN e estrato."""
+def load_qualis(path: Path | None, area: str | None = None) -> dict[str, str]:
+    """ISSN -> estrato Qualis. CSV com colunas contendo ISSN e estrato.
+
+    Se `area` for fornecida (ex.: 'Engenharias IV'), classifica SÓ pelo estrato
+    daquela área de avaliação CAPES. Sem `area`, usa o melhor estrato entre todas
+    as áreas (A1 é o topo).
+    """
     if not path or not Path(path).exists():
         return {}
     raw = Path(path).read_text(encoding="utf-8", errors="ignore")
     delim = ";" if raw.count(";") > raw.count(",") else ","
     reader = csv.DictReader(raw.splitlines(), delimiter=delim)
-    issn_col = estr_col = None
+    issn_col = estr_col = area_col = None
     for c in (reader.fieldnames or []):
         cl = norm_name(c)
         if issn_col is None and "issn" in cl:
             issn_col = c
         if estr_col is None and ("estrato" in cl or "qualis" in cl or "classific" in cl):
             estr_col = c
+        if area_col is None and "area" in cl:
+            area_col = c
     if not issn_col or not estr_col:
         print(f"  AVISO: não achei colunas ISSN/estrato no Qualis ({reader.fieldnames})",
               file=sys.stderr)
         return {}
+    area_norm = norm_name(area) if area else None
+    if area_norm and not area_col:
+        print(f"  AVISO: --qualis-area '{area}' pedida mas não achei coluna de área "
+              f"({reader.fieldnames}); usando melhor estrato entre áreas", file=sys.stderr)
+        area_norm = None
     # Melhor estrato entre áreas: se o mesmo ISSN tiver vários estratos,
-    # mantém o melhor (A1 é o topo).
+    # mantém o melhor (A1 é o topo). Com `area`, filtra para uma só área.
     rank = {e: i for i, e in enumerate(
         ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4", "B5", "C"])}
     out: dict[str, str] = {}
     for row in reader:
+        if area_norm and norm_name(row.get(area_col, "")) != area_norm:
+            continue
         k = norm_issn(row.get(issn_col, ""))
         e = (row.get(estr_col) or "").strip().upper()
         if not k or e not in rank:
@@ -1504,6 +1518,15 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
             c = cbn.get(rr["nome"], {})
             fw = _fwci_ok(rr)
             fwtxt = f"{fw:.2f}" if fw else "—"
+            # g (Egghe), m (h/idade), citações/artigo, citações fracionadas (autoria)
+            g_v = c.get("g_index", 0) if c else 0
+            m_v = c.get("m_index", 0) if c else 0
+            cpp_v = c.get("citacoes_por_artigo", 0) if c else 0
+            cf_v = c.get("citacoes_fracionadas", 0) if c else 0
+            g_t = str(g_v) if (c and c.get("g_index")) else "—"
+            m_t = f"{m_v:.2f}" if (c and m_v) else "—"
+            cpp_t = f"{cpp_v:.1f}" if (c and cpp_v) else "—"
+            cf_t = f"{cf_v:.1f}" if (c and cf_v) else "—"
             mrows += (
                 f'<tr>'
                 f'<td>{rr["nome"]}</td><td>{rr.get("area","—")}</td>'
@@ -1512,6 +1535,10 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
                 f'<td data-v="{c.get("citacoes_total",0)}">{c.get("citacoes_total","—") if c else "—"}</td>'
                 f'<td data-v="{fw or 0}">{fwtxt}</td>'
                 f'<td data-v="{c.get("h_index",0)}">{c.get("h_index","—") if c else "—"}</td>'
+                f'<td data-v="{g_v}">{g_t}</td>'
+                f'<td data-v="{m_v}">{m_t}</td>'
+                f'<td data-v="{cpp_v}">{cpp_t}</td>'
+                f'<td data-v="{cf_v}">{cf_t}</td>'
                 f'<td data-v="{rr.get("artigos_qualis",0)}">{rr.get("artigos_qualis",0)}</td>'
                 f'</tr>')
         # "Achados": poucos artigos (< FWCI_MIN) mas com impacto pontual alto
@@ -1550,14 +1577,19 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
       <h2>Tabela-mestre de impacto</h2>
       <p class="desc">Uma tabela com as métricas que antes estavam espalhadas. <b>Score Qualis</b>
       = volume × qualidade do veículo (A1=100…C=3). <b>Nota Qualis</b> = média por artigo (qualidade
-      pura). <b>Citações</b> e <b>h-index</b> = impacto real (OpenAlex, por DOI). <b>FWCI</b> = impacto
-      normalizado por área (1 = média mundial). <b>Ordenada por qualidade + impacto</b> (FWCI, depois
-      nota Qualis); clique em qualquer cabeçalho para reordenar.</p>
+      pura). <b>Citações</b>, <b>h</b>, <b>g</b>, <b>m</b> = impacto real (OpenAlex, por DOI). <b>FWCI</b>
+      = impacto normalizado por área (1 = média mundial). <b>g</b> (Egghe) dá peso aos trabalhos muito
+      citados; <b>m</b> = h ÷ idade acadêmica (corrige antiguidade); <b>Cit/art</b> = intensidade média;
+      <b>Cit. frac.</b> = citações divididas pelo nº de autores (corrige hipercoautoria). <b>Ordenada por
+      qualidade + impacto</b> (FWCI, depois nota Qualis); clique em qualquer cabeçalho para reordenar.
+      Fórmulas e referências no fim da página.</p>
       {cov}
-      <table class="sortable"><thead><tr>
+      <div style="overflow-x:auto;"><table class="sortable"><thead><tr>
         <th>Docente</th><th>Área</th><th data-sort="num">Score Qualis</th><th data-sort="num">Nota</th>
         <th data-sort="num">Citações</th><th data-sort="num">FWCI</th><th data-sort="num">h</th>
-        <th data-sort="num">Artigos Qualis</th></tr></thead><tbody>{mrows}</tbody></table>
+        <th data-sort="num">g</th><th data-sort="num">m</th><th data-sort="num">Cit/art</th>
+        <th data-sort="num">Cit. frac.</th>
+        <th data-sort="num">Artigos Qualis</th></tr></thead><tbody>{mrows}</tbody></table></div>
       <div class="note-line">"Artigos Qualis" = artigos do docente com estrato (registros por docente,
       não deduplicados entre coautores — difere do total de artigos distintos do campus).</div>
       {_insight((lambda topf, topq: (f"<b>{topf['nome']}</b> lidera por impacto (FWCI {(_fwci_ok(topf) or 0):.2f}), "
@@ -1628,6 +1660,176 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
                 "não capturou.")}
     </section>"""
 
+    # ---- Fórmulas e referências (artigos seminais) ----
+    _refs = [
+        ("h-index", "núcleo de produção citada — combina volume e impacto",
+         "maior <i>h</i> tal que <i>h</i> artigos tenham ≥ <i>h</i> citações cada",
+         "Hirsch, J. E. (2005). <i>An index to quantify an individual's scientific research output.</i> PNAS 102(46):16569–16572.",
+         "https://doi.org/10.1073/pnas.0507655102"),
+        ("g-index", "concentração de impacto — peso extra aos trabalhos muito citados",
+         "maior <i>g</i> tal que os <i>g</i> artigos mais citados somem ≥ <i>g</i>² citações",
+         "Egghe, L. (2006). <i>Theory and practise of the g-index.</i> Scientometrics 69(1):131–152.",
+         "https://doi.org/10.1007/s11192-006-0144-7"),
+        ("m-index (m-quotient)", "h ajustado pela idade acadêmica (reduz viés de antiguidade)",
+         "<i>m</i> = h ÷ anos desde a 1ª publicação",
+         "Hirsch, J. E. (2005). PNAS 102(46):16569–16572 (proposto no mesmo artigo do h).",
+         "https://doi.org/10.1073/pnas.0507655102"),
+        ("i10-index", "nº de artigos com pelo menos 10 citações (leitura rápida)",
+         "i10 = contagem(citações ≥ 10)",
+         "Google Scholar Metrics — definição operacional do perfil público.",
+         "https://scholar.google.com/intl/pt-BR/scholar/metrics.html"),
+        ("Citações", "impacto bruto na base escolhida (OpenAlex, casado por DOI)",
+         "C = Σ citações dos artigos do docente",
+         "Waltman, L. (2016). <i>A review of the literature on citation impact indicators.</i> Journal of Informetrics 10(2):365–391.",
+         "https://doi.org/10.1016/j.joi.2016.02.007"),
+        ("Citações por artigo", "intensidade média — reportada com a mediana (robusta a outliers)",
+         "CPP = C ÷ nº de artigos; mediana das citações ao lado",
+         "Clarivate — Essential Science Indicators (cites per paper).",
+         "https://esi.clarivate.com/"),
+        ("FWCI (impacto normalizado por campo)", "compara áreas com densidades de citação diferentes (1 = média mundial)",
+         "FWCI = citações observadas ÷ citações esperadas (mesmo campo, ano e tipo); agregamos pela mediana por docente",
+         "Waltman, van Eck, van Leeuwen, Visser & van Raan (2011). <i>Towards a new crown indicator.</i> Scientometrics 87:467–481.",
+         "https://doi.org/10.1007/s11192-011-0354-5"),
+        ("Percentil de citação (top 10% / 1%)", "posição relativa; robusto à assimetria das distribuições de citação",
+         "% de artigos do mesmo campo/ano citados menos; top 10% = percentil ≥ 90 (OpenAlex)",
+         "Bornmann, Leydesdorff & Mutz (2013). <i>The use of percentiles and percentile rank classes…</i> Journal of Informetrics 7(1):158–165.",
+         "https://doi.org/10.1016/j.joi.2012.11.005"),
+        ("Crédito fracionado por autoria", "corrige a hipercoautoria — divide o crédito entre os coautores",
+         "produção = Σ 1/n_autores; impacto = Σ citações/n_autores (n_autores via OpenAlex)",
+         "Waltman & van Eck (2015). <i>Field-normalized citation impact indicators and the choice of an appropriate counting method.</i> Journal of Informetrics 9(4):872–894.",
+         "https://doi.org/10.1016/j.joi.2015.01.006"),
+        ("Momentum / velocidade de citação", "tração recente — sinal de impacto crescente, não medida final",
+         "citações recebidas em 2024–2025; momentum = % do total vindo desses 2 anos",
+         "Indicadores de contagem recente (OpenAlex counts_by_year); cf. Semantic Scholar Citation Velocity.",
+         "https://docs.openalex.org/api-entities/works/work-object#counts_by_year"),
+        ("Painel multi-indicador", "nenhuma métrica isolada basta — usar várias em conjunto",
+         "tabela-mestre combina Qualis, citações, FWCI, h, g, m e fracionado",
+         "Ioannidis, Baas, Klavans & Boyack (2019). <i>A standardized citation metrics author database…</i> PLOS Biology 17(8):e3000384.",
+         "https://doi.org/10.1371/journal.pbio.3000384"),
+    ]
+    _refrows = "".join(
+        f"<tr><td><b>{nome}</b></td><td>{mede}</td><td>{formula}</td>"
+        f"<td>{ref} <a href='{url}' target='_blank' rel='noopener'>↗</a></td></tr>"
+        for nome, mede, formula, ref, url in _refs)
+
+    # cards didáticos: fórmula + exemplo resolvido + como ler, por indicador
+    _C = ("background:var(--brand-l,#e7f4ec);padding:1px 6px;border-radius:5px;"
+          "font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;")
+    def _card(tag, cls, nome, corpo):
+        return (f'<div class="finding"><span class="tag {cls}">{tag}</span>'
+                f'<h3>{nome}</h3><p>{corpo}</p></div>')
+    # — indicadores do veículo (a priori: antes de qualquer citação) —
+    _veic = "".join([
+        _card("Veículo", "eq", "Quartil SJR (SCImago)",
+              f'Quartil do <b>periódico</b> na sua área no SCImago (deriva do Scopus). '
+              f'<b>Q1</b> = 25% de maior impacto da área; <b>Q4</b> = 25% menor. '
+              f'<b>Leitura:</b> mede a qualidade do <i>veículo</i>, não do artigo; revistas '
+              f'fora do Scopus ficam "sem SJR".'),
+        _card("Veículo", "sp", "Estrato Qualis CAPES",
+              f'Classificação do periódico pela CAPES (A1 topo → C). Usamos o <b>melhor estrato</b> '
+              f'entre as áreas de avaliação. <b>Leitura:</b> reconhecimento no sistema nacional; '
+              f'cobre revistas brasileiras que o SJR não indexa.'),
+        _card("Veículo", "eq", "Score &amp; Nota Qualis",
+              f'<span style="{_C}">Score = Σ pesos do estrato</span> (A1=100, A2=85, A3=70, A4=55, '
+              f'B1=40…C=3). <span style="{_C}">Nota = Score ÷ artigos com Qualis</span>. '
+              f'<b>Ex.:</b> 3 artigos A1+A2+B1 → Score 100+85+40 = 225; Nota 75. '
+              f'<b>Leitura:</b> Score premia <i>volume</i>; Nota premia <i>consistência</i> de alto estrato.'),
+    ])
+    # — indicadores de impacto do pesquisador (a posteriori: depois das citações) —
+    _pesq = "".join([
+        _card("Impacto", "rs", "Citações totais",
+              f'<span style="{_C}">C = Σ citações de todos os artigos</span> (OpenAlex, por DOI). '
+              f'<b>Ex.:</b> 12 artigos somando 240 citações → C = 240. '
+              f'<b>Leitura:</b> impacto bruto; só comparável <i>dentro da mesma área e janela</i> — '
+              f'entre áreas, use o FWCI.'),
+        _card("Impacto", "rs", "h-index (Hirsch)",
+              f'Maior <span style="{_C}">h</span> com <i>h</i> artigos de ≥ <i>h</i> citações cada. '
+              f'<b>Ex.:</b> citações [25, 8, 5, 3, 3] → <b>h = 3</b> (3 artigos com ≥3 citações). '
+              f'<b>Leitura:</b> tamanho do núcleo citado; favorece carreiras longas e áreas que citam muito.'),
+        _card("Impacto", "rs", "g-index (Egghe)",
+              f'Maior <span style="{_C}">g</span> com os <i>g</i> artigos mais citados somando ≥ <i>g</i>². '
+              f'<b>Ex.:</b> [25, 8, 5, 3, 3, 2] soma 46 ≥ 6² = 36 → <b>g = 6</b>. '
+              f'<b>Leitura:</b> <i>g</i> ≫ <i>h</i> indica poucos trabalhos muito citados puxando o impacto.'),
+        _card("Carreira", "sp", "m-index (m-quotient)",
+              f'<span style="{_C}">m = h ÷ anos de carreira</span> (desde a 1ª publicação). '
+              f'<b>Ex.:</b> h = 12 em 8 anos → <b>m = 1,5</b>. '
+              f'<b>Leitura:</b> crescimento do núcleo citado por ano — compara início vs fim de '
+              f'carreira de forma justa. Aqui a idade vem do 1º artigo com DOI no OpenAlex.'),
+        _card("Impacto", "rs", "i10-index",
+              f'<span style="{_C}">i10 = nº de artigos com ≥ 10 citações</span>. '
+              f'<b>Ex.:</b> [25, 13, 11, 9, 2] → <b>i10 = 3</b>. '
+              f'<b>Leitura:</b> quantos trabalhos passaram de um piso mínimo de visibilidade (limiar grosseiro).'),
+        _card("Normalizado", "eq", "FWCI (impacto normalizado por campo)",
+              f'<span style="{_C}">FWCI = citações observadas ÷ esperadas</span> (mesma área, ano e tipo). '
+              f'<b>Ex.:</b> 18 citações obtidas vs 12 esperadas → <b>1,5</b> (50% acima da média mundial). '
+              f'<b>Leitura:</b> 1 = média mundial; &gt;1 acima; &lt;1 abaixo. <b>Única métrica justa para '
+              f'comparar áreas diferentes.</b>'),
+        _card("Normalizado", "eq", "Percentil · top 10% / top 1%",
+              f'Posição relativa do artigo no seu campo/ano. <b>Ex.:</b> percentil 95 = supera 95% dos pares; '
+              f'<b>top 10%</b> = percentil ≥ 90. <b>Leitura:</b> robusto à forte assimetria das citações '
+              f'(a média engana, o percentil não).'),
+        _card("Intensidade", "rs", "Citações por artigo + mediana",
+              f'<span style="{_C}">CPP = C ÷ nº de artigos</span>, sempre lida com a <b>mediana</b>. '
+              f'<b>Ex.:</b> 240/12 = 20 de média, mas <b>mediana 4</b> se um artigo viral domina. '
+              f'<b>Leitura:</b> use a mediana para não ser enganado por um único <i>blockbuster</i>.'),
+        _card("Autoria", "sp", "Crédito fracionado por autoria",
+              f'Crédito dividido pelo nº de autores: <span style="{_C}">Σ 1/n_autores</span> (produção) e '
+              f'<span style="{_C}">Σ citações/n_autores</span> (impacto). <b>Ex.:</b> 3 artigos com 2, 4 e 1 '
+              f'autores → 0,5 + 0,25 + 1,0 = <b>1,75</b> artigos equivalentes. '
+              f'<b>Leitura:</b> corrige a hipercoautoria — quem assina com muitos coautores recua.'),
+        _card("Temporal", "rs", "Momentum / velocidade de citação",
+              f'<span style="{_C}">momentum = citações de 2024–2025 ÷ total</span>. '
+              f'<b>Ex.:</b> 200 citações, 60 recentes → <b>30%</b> de momentum. '
+              f'<b>Leitura:</b> sinal de tração <i>recente</i> (aquecendo), não medida de valor consolidado.'),
+    ])
+    sec_refs = f"""
+    <section class="section">
+      <div class="eyebrow">Fórmulas e referências</div>
+      <h2>Como cada métrica é calculada — e de onde vem</h2>
+      <p class="desc">Seguindo a literatura bibliométrica, nenhuma métrica é usada isoladamente: as
+      brutas (citações) vêm primeiro, depois as <b>normalizadas por campo</b> (FWCI) e por
+      <b>estágio de carreira</b> (m-index), e só então os sinais complementares (momentum). A leitura
+      respeita sempre <b>área, ano, tipo documental e a base</b> (OpenAlex, casado por DOI). Os
+      princípios de uso responsável seguem o <b>Manifesto de Leiden</b>, a <b>DORA</b> e a <b>CoARA</b>:
+      métricas subordinadas ao juízo qualitativo, transparentes e contextualizadas.</p>
+
+      <h3 style="font-family:var(--serif);font-size:20px;margin:26px 0 4px;">Indicadores do veículo
+      <span style="font-weight:400;color:var(--muted);font-size:15px;">— a priori, antes de qualquer citação</span></h3>
+      <p class="desc">Onde o trabalho foi publicado. Sinalizam <b>prestígio do canal</b>, não a
+      repercussão do artigo em si.</p>
+      <div class="findings">{_veic}</div>
+
+      <h3 style="font-family:var(--serif);font-size:20px;margin:26px 0 4px;">Indicadores de impacto do pesquisador
+      <span style="font-weight:400;color:var(--muted);font-size:15px;">— a posteriori, a partir das citações reais</span></h3>
+      <p class="desc">Quanto o trabalho efetivamente repercutiu (citações OpenAlex, por DOI). Brutos,
+      depois normalizados por <b>campo</b> (FWCI, percentil), <b>carreira</b> (m) e <b>autoria</b> (fracionado).</p>
+      <div class="findings">{_pesq}</div>
+
+      <h3 style="font-family:var(--serif);font-size:20px;margin:30px 0 8px;">Resumo — fórmulas e referências seminais</h3>
+      <div class="card" style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>Métrica</th><th>O que mede</th><th>Fórmula</th><th>Referência seminal</th></tr></thead>
+          <tbody>{_refrows}</tbody>
+        </table>
+      </div>
+      <div class="note" style="border-color:var(--amber);margin-top:14px;">
+        <b>Integridade e limitações.</b> As métricas não filtram <b>autocitação</b> nem fragmentação
+        estratégica de resultados — leia divergências com cautela (cf. supressão de títulos no JCR por
+        padrões anômalos de citação). O <b>m-index</b> usa a 1ª publicação <i>com DOI</i> no OpenAlex
+        como proxy de idade acadêmica, podendo subestimar a carreira de quem publicou antes de adotar
+        DOI. O <b>FWCI</b> depende da definição de campo da base; o percentil usa o limite inferior do
+        intervalo (leitura conservadora). <b>RCR</b> (NIH/iCite) não é usado: cobre essencialmente
+        biomedicina/PubMed, fora do perfil do campus.
+      </div>
+      <div class="note-line">
+        Uso responsável: Hicks, Wouters, Waltman, de Rijcke &amp; Rafols (2015),
+        <i>The Leiden Manifesto for research metrics</i>, Nature 520:429–431
+        (<a href="https://doi.org/10.1038/520429a" target="_blank" rel="noopener">doi:10.1038/520429a</a>) ·
+        <a href="https://sfdora.org/" target="_blank" rel="noopener">DORA</a> ·
+        <a href="https://coara.eu/" target="_blank" rel="noopener">CoARA</a>.
+      </div>
+    </section>"""
+
     fontes = payload.get("fontes", {})
     qfonte = fontes.get("qualis", "")
     return f"""<!DOCTYPE html>
@@ -1647,7 +1849,7 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
       <span><b>{r['n_congressos_distintos']}</b> congressos</span>
       <span>Fonte: Lattes + SJR{' + Qualis' if qualis_applied else ''}</span></div>
   </div>
-  {sec_resumo}{kpis}{sec_sjr}{sec_qualis}{sec_area}{sec_maps}{sec_leaders}{sec_asc}{sec_top}{sec_cong}{sec_comb}{sec_master}{sec_metodo}
+  {sec_resumo}{kpis}{sec_sjr}{sec_qualis}{sec_area}{sec_maps}{sec_leaders}{sec_asc}{sec_top}{sec_cong}{sec_comb}{sec_master}{sec_metodo}{sec_refs}
   <div class="foot"><span>Gerado em {payload.get('gerado_em','')} · veículos: Lattes ·
   impacto: {fontes.get('impacto_internacional','SJR')} · qualis: {qfonte}</span></div>
 </div>
@@ -1662,6 +1864,49 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
 #fnav-list a{{font-size:12.5px;color:var(--ink,#16241a);text-decoration:none;padding:6px 10px;border-radius:7px;}}
 #fnav-list a:hover{{background:var(--brand-l,#e7f4ec);color:var(--brand-d,#0a5c30);}}
 @media print{{#fnav{{display:none;}}}}
+</style>
+<style>
+/* ---- Mobile-first: base = telas pequenas; >=760px restaura o desktop ---- */
+.page{{padding:0 14px 56px;}}
+.hero{{padding:38px 0 26px;margin-bottom:30px;}}
+.hero .lede{{font-size:16px;margin-top:14px;}}
+.hero .meta{{gap:8px 16px;}}
+.section{{margin:34px 0;}}
+.section h2{{font-size:22px;}}
+.section .desc{{font-size:14.5px;margin-bottom:18px;}}
+.card{{padding:18px 15px;}}
+.callout{{padding:26px 20px;}}
+.callout h2{{font-size:22px;}}
+.rz{{padding:24px 18px;}}
+.rz-stats{{grid-template-columns:1fr 1fr;}}
+.rz-cards{{grid-template-columns:1fr;}}
+/* tabelas: rolam na horizontal em vez de estourar a viewport (padrão GitHub) */
+.section table{{display:block;width:max-content;max-width:100%;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;}}
+th,td{{padding:8px 10px;font-size:13px;}}
+/* nav flutuante vai pro rodapé no mobile (não cobre o conteúdo central) */
+#fnav{{top:auto;bottom:14px;right:12px;transform:none;}}
+#fnav-btn{{padding:9px 14px;font-size:13px;}}
+#fnav-list{{max-height:60vh;max-width:78vw;}}
+
+@media(min-width:760px){{
+  .page{{padding:0 28px 80px;}}
+  .hero{{padding:64px 0 44px;margin-bottom:48px;}}
+  .hero .lede{{font-size:19px;margin-top:20px;}}
+  .hero .meta{{gap:10px 26px;}}
+  .section{{margin:56px 0;}}
+  .section h2{{font-size:27px;}}
+  .section .desc{{font-size:15px;margin-bottom:26px;}}
+  .card{{padding:26px 28px;}}
+  .callout{{padding:38px 40px;}}
+  .callout h2{{font-size:28px;}}
+  .rz{{padding:34px 32px;}}
+  .rz-stats{{grid-template-columns:repeat(4,1fr);}}
+  .rz-cards{{grid-template-columns:1fr 1fr;}}
+  .section table{{display:table;width:100%;}}
+  th,td{{padding:11px 14px;font-size:14px;}}
+  #fnav{{top:50%;bottom:auto;right:18px;transform:translateY(-50%);}}
+}}
 </style>
 <div id="fnav"><button id="fnav-btn">☰ Seções</button><div id="fnav-list"></div></div>
 <script>
@@ -1718,16 +1963,21 @@ def main() -> None:
                     help="baixa/atualiza a base SCImago (data/reference/scimago.csv)")
     ap.add_argument("--qualis", default=str(REF_DIR / "qualis.csv"),
                     help="CSV Qualis (ISSN -> estrato)")
+    ap.add_argument("--qualis-area", default=None,
+                    help="classifica só por uma área de avaliação CAPES "
+                         "(ex.: 'Engenharias IV'); padrão usa o melhor estrato entre áreas")
     args = ap.parse_args()
 
     if args.download_scimago or not SCIMAGO_CSV.exists():
         download_scimago()
 
     scimago = load_scimago()
-    qualis = {} if args.no_qualis else load_qualis(Path(args.qualis))
+    qualis = {} if args.no_qualis else load_qualis(Path(args.qualis), args.qualis_area)
     conf_acro, conf_name = load_qualis_conf()
     qualis_applied = bool(qualis)
+    area_tag = f" · área={args.qualis_area}" if args.qualis_area else ""
     print(f"Referências: SCImago={len(scimago)} ISSNs · Qualis={len(qualis)} ISSNs"
+          f"{area_tag}"
           f" · Qualis-Conf={len(conf_acro)} acrônimos"
           f"{' (desligado)' if args.no_qualis else ''}")
 
@@ -1750,7 +2000,9 @@ def main() -> None:
     payload["fontes"] = {
         "veiculos": "currículos Lattes (data/lattes_json)",
         "impacto_internacional": "SCImago Journal Rank (SJR), casado por ISSN",
-        "qualis": "CAPES/CNPq, casado por ISSN" if qualis else "não fornecido",
+        "qualis": (f"CAPES/CNPq — área {args.qualis_area}, casado por ISSN"
+                   if (qualis and args.qualis_area)
+                   else "CAPES/CNPq, casado por ISSN" if qualis else "não fornecido"),
     }
 
     out = Path(args.out)
