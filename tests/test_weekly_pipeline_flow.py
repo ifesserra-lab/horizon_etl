@@ -39,9 +39,6 @@ def test_weekly_pipeline_flow_runs_all_pipelines_and_sends_final_summary(tmp_pat
         patch(
             "src.flows.pipelines.weekly.export_initiatives_analytics_mart_flow"
         ) as analytics_mart,
-        patch(
-            "src.flows.pipelines.weekly.export_people_relationship_graph_flow"
-        ) as graph,
     ):
         weekly_pipelines_flow.fn(campus_name="Serra", output_dir="out")
 
@@ -50,7 +47,8 @@ def test_weekly_pipeline_flow_runs_all_pipelines_and_sends_final_summary(tmp_pat
         "export_canonical",
         "knowledge_areas_mart",
         "initiatives_analytics_mart",
-        "people_relationship_graph",
+        # people_relationship_graph was removed — it's already generated
+        # inside export_canonical_data_flow, so this was a duplicate.
     ]
     all_sources.assert_called_once_with(campus_name="Serra")
     canonical.assert_called_once_with(output_dir="out", campus="Serra")
@@ -60,5 +58,4 @@ def test_weekly_pipeline_flow_runs_all_pipelines_and_sends_final_summary(tmp_pat
     analytics_mart.assert_called_once_with(
         output_path=str(Path("out") / "initiatives_analytics_mart.json")
     )
-    graph.assert_called_once_with(output_dir="out")
     summary.assert_called_once_with(written_report)

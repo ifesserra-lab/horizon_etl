@@ -89,7 +89,13 @@ def _download_cnpq_group_impl(group_info: dict) -> dict:
     data = adapter.get_group_data(url)
     if not data:
         logger.error(f"Failed to download data for {group_name}")
-        return {"downloaded": False, "group_id": group_id, "group_name": group_name, "url": url, "data": None}
+        return {
+            "downloaded": False,
+            "group_id": group_id,
+            "group_name": group_name,
+            "url": url,
+            "data": None,
+        }
 
     members = adapter.extract_members(data)
     leaders = adapter.extract_leaders(data)
@@ -97,12 +103,26 @@ def _download_cnpq_group_impl(group_info: dict) -> dict:
 
     if leaders:
         for leader_name in leaders:
-            members.append({"name": leader_name, "role": "Líder", "data_inicio": None, "data_fim": None})
+            members.append(
+                {
+                    "name": leader_name,
+                    "role": "Líder",
+                    "data_inicio": None,
+                    "data_fim": None,
+                }
+            )
 
     logger.info(f"Downloaded {group_name}: {len(members)} members, {len(lines)} lines")
 
-    return {"downloaded": True, "group_id": group_id, "group_name": group_name, "url": url, "data": data,
-            "members": members, "lines": lines}
+    return {
+        "downloaded": True,
+        "group_id": group_id,
+        "group_name": group_name,
+        "url": url,
+        "data": data,
+        "members": members,
+        "lines": lines,
+    }
 
 
 @task
@@ -119,7 +139,9 @@ def process_cnpq_group_data(download_result: dict):
     logger = get_run_logger()
 
     if not download_result.get("downloaded"):
-        logger.error(f"Skipping processing for {download_result.get('group_name')} - download failed")
+        logger.error(
+            f"Skipping processing for {download_result.get('group_name')} - download failed"
+        )
         return {
             "success": False,
             "group_id": download_result.get("group_id"),
@@ -156,6 +178,7 @@ def process_cnpq_group_data(download_result: dict):
 
     # 2. Sync members
     from collections import Counter
+
     roles_count = Counter(m.get("role") for m in members)
     logger.info(f"Syncing {len(members)} members for {group_name}: {dict(roles_count)}")
     sync_logic.sync_members(group_id, members, source_file=url)
@@ -287,7 +310,9 @@ def build_cnpq_sync_summary(results: list[dict]) -> dict:
 
 
 @flow(name="Sync CNPq Research Groups", **telegram_flow_state_handlers())
-def sync_cnpq_groups_flow(campus_name: Optional[str] = None, max_parallel_downloads: Optional[int] = None):
+def sync_cnpq_groups_flow(
+    campus_name: Optional[str] = None, max_parallel_downloads: Optional[int] = None
+):
     """
     Prefect flow to synchronize research groups with CNPq DGP mirror.
 
@@ -303,7 +328,9 @@ def sync_cnpq_groups_flow(campus_name: Optional[str] = None, max_parallel_downlo
         max_parallel_downloads = int(os.environ.get("CNPQ_MAX_PARALLEL", "5"))
 
     logger = get_run_logger()
-    logger.info(f"Starting CNPq Synchronization Flow (Filter: {campus_name or 'None'}, max_parallel={max_parallel_downloads})")
+    logger.info(
+        f"Starting CNPq Synchronization Flow (Filter: {campus_name or 'None'}, max_parallel={max_parallel_downloads})"
+    )
 
     with tracking_recorder.run_context(
         source_system="cnpq", flow_name="sync_cnpq_groups"
@@ -317,7 +344,9 @@ def sync_cnpq_groups_flow(campus_name: Optional[str] = None, max_parallel_downlo
     all_results = []
 
     # Stream: parallel downloads via thread pool, sequential DB writes as each finishes
-    logger.info(f"Downloading {len(groups)} groups with up to {max_parallel_downloads} parallel workers...")
+    logger.info(
+        f"Downloading {len(groups)} groups with up to {max_parallel_downloads} parallel workers..."
+    )
 
     with ThreadPoolExecutor(max_workers=max_parallel_downloads) as executor:
         fut_map = {executor.submit(_download_cnpq_group_impl, g): g for g in groups}

@@ -26,20 +26,26 @@ from collections import OrderedDict
 from datetime import datetime
 from statistics import mean, stdev
 
-
-PIPELINES = OrderedDict([
-    ("full-refresh",      "Full pipeline (all campuses, DB reset)"),
-    ("weekly-flows",      "Weekly pipeline (sources + exports + graphs)"),
-    ("pipeline",          "Pipeline (Campus=Serra, existing DB)"),
-    ("ingest-sigpesq",    "SigPesq ingestion (groups + projects + advisorships)"),
-    ("ingest-lattes-full","Lattes full ingestion (download + projects)"),
-    ("sync-cnpq",         "CNPq research groups sync"),
-    ("export-canonical",  "Canonical data export"),
-])
+PIPELINES = OrderedDict(
+    [
+        ("full-refresh", "Full pipeline (all campuses, DB reset)"),
+        ("weekly-flows", "Weekly pipeline (sources + exports + graphs)"),
+        ("pipeline", "Pipeline (Campus=Serra, existing DB)"),
+        ("ingest-sigpesq", "SigPesq ingestion (groups + projects + advisorships)"),
+        ("ingest-lattes-full", "Lattes full ingestion (download + projects)"),
+        ("sync-cnpq", "CNPq research groups sync"),
+        ("export-canonical", "Canonical data export"),
+    ]
+)
 
 # Core targets that exercise each unique pipeline without overlapping SigPesq
 # dependency (full-refresh already covers SigPesq ingestion).
-DEFAULT_TARGETS = ["full-refresh", "ingest-lattes-full", "sync-cnpq", "export-canonical"]
+DEFAULT_TARGETS = [
+    "full-refresh",
+    "ingest-lattes-full",
+    "sync-cnpq",
+    "export-canonical",
+]
 
 DEFAULT_RUNS = 3
 SAVE_FILE = "data/reports/benchmark_results.json"
@@ -65,7 +71,9 @@ def db_reset():
     log("  Resetting database...")
     subprocess.run(
         ["make", "db-reset"],
-        capture_output=True, text=True, timeout=300,
+        capture_output=True,
+        text=True,
+        timeout=300,
     )
 
 
@@ -84,7 +92,8 @@ def clean_cache():
         log(f"  Cleaning {lattes_json}/...")
         subprocess.run(
             ["rm", "-rf", f"{lattes_json}/"],
-            capture_output=True, timeout=60,
+            capture_output=True,
+            timeout=60,
         )
         os.makedirs(lattes_json, exist_ok=True)
 
@@ -92,6 +101,7 @@ def clean_cache():
 # ---------------------------------------------------------------------------
 # Memory monitoring (peak PSS via /proc — no shared-page double-count)
 # ---------------------------------------------------------------------------
+
 
 def _walk_pids(root_pid):
     """Recursively collect all descendant PIDs of *root_pid*."""
@@ -169,6 +179,7 @@ class MemMonitor:
 # Run logic
 # ---------------------------------------------------------------------------
 
+
 def run_and_measure(target, sequential=False):
     """Run a make target and return (elapsed, cpu_percent, peak_mem_mb, rc).
 
@@ -241,8 +252,10 @@ def run_parallel_benchmark(target, desc, num_runs, do_db_reset, do_clean_cache):
         else:
             status = "OK"
 
-        log(f"  Run {i + 1:2d}/{num_runs}: {elapsed:>8.2f}s  "
-            f"CPU: {cpu_pct:>5.1f}%  Mem: {mem_mb:>7.1f} MB  [{status}]")
+        log(
+            f"  Run {i + 1:2d}/{num_runs}: {elapsed:>8.2f}s  "
+            f"CPU: {cpu_pct:>5.1f}%  Mem: {mem_mb:>7.1f} MB  [{status}]"
+        )
 
     avg_t = mean(times)
     avg_c = mean(cpus)
@@ -251,10 +264,11 @@ def run_parallel_benchmark(target, desc, num_runs, do_db_reset, do_clean_cache):
     mn, mx = min(times), max(times)
 
     log(f"  {'─' * 55}")
-    log(f"  Average: {avg_t:>8.2f}s  CPU: {avg_c:>5.1f}%  "
-        f"Mem: {avg_m:>7.1f} MB")
-    log(f"  Min: {mn:>8.2f}s  Max: {mx:>8.2f}s  "
-        f"Std: {sd:.2f}s  Failures: {failures}")
+    log(f"  Average: {avg_t:>8.2f}s  CPU: {avg_c:>5.1f}%  " f"Mem: {avg_m:>7.1f} MB")
+    log(
+        f"  Min: {mn:>8.2f}s  Max: {mx:>8.2f}s  "
+        f"Std: {sd:.2f}s  Failures: {failures}"
+    )
 
     return {
         "target": target,
@@ -287,8 +301,7 @@ def run_sequential_benchmark(target, desc, do_db_reset, do_clean_cache):
     elapsed, cpu_pct, mem_mb, rc = run_and_measure(target, sequential=True)
     status = "OK" if rc == 0 else "FAIL"
 
-    log(f"  Time: {elapsed:>8.2f}s  "
-        f"Mem: {mem_mb:>7.1f} MB  [{status}]")
+    log(f"  Time: {elapsed:>8.2f}s  " f"Mem: {mem_mb:>7.1f} MB  [{status}]")
 
     return {
         "target": target,
@@ -302,6 +315,7 @@ def run_sequential_benchmark(target, desc, do_db_reset, do_clean_cache):
 # ---------------------------------------------------------------------------
 # Output
 # ---------------------------------------------------------------------------
+
 
 def save_results(all_results, filepath):
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -320,11 +334,15 @@ def print_summary(parallel_results, sequential_results):
     print(f"\n{'=' * ncols}")
     print("BENCHMARK SUMMARY")
     print(f"{'=' * ncols}")
-    print(f"CPU% = % of a single core  |  Mem (PSS)  |  Speedup = sequential_time / parallel_time")
+    print(
+        f"CPU% = % of a single core  |  Mem (PSS)  |  Speedup = sequential_time / parallel_time"
+    )
     print(f"{'─' * ncols}")
 
-    hdr = (f"{'Pipeline':<35} {'Avg (s)':<9} {'CPU%':<7} "
-           f"{'Mem (MB)':<10} {'±Std':<7} {'Runs':<6}")
+    hdr = (
+        f"{'Pipeline':<35} {'Avg (s)':<9} {'CPU%':<7} "
+        f"{'Mem (MB)':<10} {'±Std':<7} {'Runs':<6}"
+    )
     if has_seq:
         hdr += f" {'Seq (s)':<9} {'Speedup':<9}"
     print(hdr)
@@ -341,9 +359,11 @@ def print_summary(parallel_results, sequential_results):
             ratio = s["seconds"] / p["avg_seconds"] if p["avg_seconds"] > 0 else 0
             speedup_str = f" {s['seconds']:<9.2f} {ratio:<9.2f}x"
 
-        print(f"{name:<35} {p['avg_seconds']:<9.2f} {p['avg_cpu_percent']:<7.1f} "
-              f"{p['avg_mem_mb']:<10.1f} {p['std_seconds']:<7.2f} "
-              f"{p['runs']:<6}{speedup_str}")
+        print(
+            f"{name:<35} {p['avg_seconds']:<9.2f} {p['avg_cpu_percent']:<7.1f} "
+            f"{p['avg_mem_mb']:<10.1f} {p['std_seconds']:<7.2f} "
+            f"{p['runs']:<6}{speedup_str}"
+        )
 
     print(f"{'=' * ncols}")
 
@@ -352,6 +372,7 @@ def print_summary(parallel_results, sequential_results):
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="Benchmark Horizon ETL pipelines",
@@ -359,32 +380,42 @@ def main():
         epilog=__doc__,
     )
     parser.add_argument(
-        "-n", "--runs", type=int, default=DEFAULT_RUNS,
+        "-n",
+        "--runs",
+        type=int,
+        default=DEFAULT_RUNS,
         help=f"Parallel runs per pipeline (default: {DEFAULT_RUNS})",
     )
     parser.add_argument(
-        "--targets", nargs="+", choices=list(PIPELINES) + ["all"],
+        "--targets",
+        nargs="+",
+        choices=list(PIPELINES) + ["all"],
         default=DEFAULT_TARGETS,
         help="Specific targets to benchmark (default: full-refresh, ingest-lattes-full, sync-cnpq, export-canonical). Use 'all' for all pipelines.",
     )
     parser.add_argument(
-        "--db-reset", action="store_true",
+        "--db-reset",
+        action="store_true",
         help="Reset database before each pipeline run",
     )
     parser.add_argument(
-        "--clean-cache", action="store_true",
+        "--clean-cache",
+        action="store_true",
         help="Remove cache/ and data/lattes_json/ before each run",
     )
     parser.add_argument(
-        "--sequential", action="store_true",
+        "--sequential",
+        action="store_true",
         help="Also run 1 sequential (1-thread) run per pipeline and compute speedup",
     )
     parser.add_argument(
-        "--no-save", action="store_true",
+        "--no-save",
+        action="store_true",
         help="Do not save results to file",
     )
     parser.add_argument(
-        "--save-file", default=SAVE_FILE,
+        "--save-file",
+        default=SAVE_FILE,
         help=f"Output file for results (default: {SAVE_FILE})",
     )
 
@@ -405,13 +436,13 @@ def main():
     sequential_results = {}
 
     for name, desc in targets:
-        p = run_parallel_benchmark(name, desc, args.runs,
-                                    args.db_reset, args.clean_cache)
+        p = run_parallel_benchmark(
+            name, desc, args.runs, args.db_reset, args.clean_cache
+        )
         parallel_results.append(p)
 
         if args.sequential:
-            s = run_sequential_benchmark(name, desc,
-                                          args.db_reset, args.clean_cache)
+            s = run_sequential_benchmark(name, desc, args.db_reset, args.clean_cache)
             sequential_results[name] = s
 
     print_summary(parallel_results, sequential_results)
@@ -424,7 +455,11 @@ def main():
             n = p["target"]
             if n in sequential_results:
                 s = sequential_results[n]
-                speedups[n] = round(s["seconds"] / p["avg_seconds"], 3) if p["avg_seconds"] > 0 else 0
+                speedups[n] = (
+                    round(s["seconds"] / p["avg_seconds"], 3)
+                    if p["avg_seconds"] > 0
+                    else 0
+                )
         all_results["speedup"] = speedups
 
     if not args.no_save:

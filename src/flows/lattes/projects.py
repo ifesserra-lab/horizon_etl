@@ -231,7 +231,13 @@ def _ingest_researcher_file(
         articles.extend(parser.parse_conference_papers(data))
         if articles:
             ingest_articles_task(
-                articles, target_researcher, all_researchers, article_ctrl, researcher_ctrl, parser, file_path
+                articles,
+                target_researcher,
+                all_researchers,
+                article_ctrl,
+                researcher_ctrl,
+                parser,
+                file_path,
             )
 
         # 4. Handle Academic Education
@@ -286,7 +292,12 @@ def ingest_researcher_data(
     article_ctrl: ArticleController,
 ):
     _ingest_researcher_file(
-        file_path, entity_manager, parser, all_researchers, researcher_ctrl, article_ctrl
+        file_path,
+        entity_manager,
+        parser,
+        all_researchers,
+        researcher_ctrl,
+        article_ctrl,
     )
 
 
@@ -301,7 +312,12 @@ def ingest_file_task(
     """Compatibility wrapper kept for scripts/tests that still call this symbol."""
     parser = LattesParser()
     _ingest_researcher_file(
-        file_path, entity_manager, parser, all_researchers, researcher_ctrl, article_ctrl
+        file_path,
+        entity_manager,
+        parser,
+        all_researchers,
+        researcher_ctrl,
+        article_ctrl,
     )
 
 
@@ -845,7 +861,16 @@ def ingest_lattes_projects_flow():
     Base.metadata.create_all(engine)
 
     for json_file in json_files:
-        _ingest_researcher_file(json_file, entity_manager, parser, all_researchers, article_ctrl, researcher_ctrl)
+        _ingest_researcher_file(
+            json_file,
+            entity_manager,
+            parser,
+            all_researchers,
+            article_ctrl,
+            researcher_ctrl,
+        )
         gc.collect()
+
+
 if __name__ == "__main__":
     ingest_lattes_projects_flow()

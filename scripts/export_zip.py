@@ -53,9 +53,15 @@ def create_export_zip(output_dir: str, dry_run: bool = False) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Zip canonical JSON exports and clean up loose files.")
+    parser = argparse.ArgumentParser(
+        description="Zip canonical JSON exports and clean up loose files."
+    )
     parser.add_argument("output_dir", help="Directory containing the JSON files to zip")
-    parser.add_argument("--dry-run", action="store_true", help="Show what would be done without making changes")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be done without making changes",
+    )
     args = parser.parse_args()
 
     if not os.path.isdir(args.output_dir):

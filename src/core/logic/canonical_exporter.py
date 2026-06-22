@@ -1924,7 +1924,9 @@ class CanonicalDataExporter:
                 all_data.extend(batch)
                 logger.info(f"Fetched batch: offset={offset}, size={len(batch)}")
 
-            self._export_entities(all_data, output_path, "Articles", entity_type="article")
+            self._export_entities(
+                all_data, output_path, "Articles", entity_type="article"
+            )
         except Exception:
             logger.info("Articles table not available; exporting empty list.")
             self._export_entities([], output_path, "Articles", entity_type="article")
@@ -2277,12 +2279,14 @@ class CanonicalDataExporter:
             result = session.execute(query).fetchall()
             data = []
             for row in result:
-                data.append({
-                    "id": row.id,
-                    "name": row.name,
-                    "description": row.description,
-                    "value": row.value
-                })
+                data.append(
+                    {
+                        "id": row.id,
+                        "name": row.name,
+                        "description": row.description,
+                        "value": row.value,
+                    }
+                )
         except Exception:
             logger.info("Fellowships table not available; exporting empty list.")
             data = []
