@@ -13,6 +13,7 @@ from src.core.logic.etl_flow_reporter import (
     probe_sigpesq_projects,
 )
 from src.core.logic.prefect_runtime import configure_local_prefect_runtime
+from src.core.logic.progress_tracker import ProgressTracker
 from src.flows.cnpq.groups import sync_cnpq_groups_flow
 from src.flows.exports.canonical_data import export_canonical_data_flow
 from src.flows.exports.initiatives_analytics_mart import (
@@ -47,6 +48,7 @@ def full_ingestion_pipeline(
     """
     logger = get_run_logger()
     logger.info("Starting Unified Ingestion Pipeline...")
+    tracker = ProgressTracker(total=9, name="Full pipeline")
     reporter = (
         ETLFlowReporter(output_dir="data/reports", run_name="etl_flow_run")
         if generate_etl_report
@@ -54,84 +56,85 @@ def full_ingestion_pipeline(
     )
 
     try:
-        logger.info("Step 1/8: Downloading all SigPesq reports (single login)...")
-        download_all_sigpesq_reports()
+        with tracker.step("Downloading SigPesq reports"):
+            download_all_sigpesq_reports()
 
-        logger.info("Step 2/8: Persisting SigPesq research groups...")
-        if reporter:
-            reporter.run_step(
-                step_name="sigpesq_research_groups",
-                runner=persist_research_groups,
-                source_probe=probe_sigpesq_groups,
+        with tracker.step("Persisting SigPesq research groups"):
+            if reporter:
+                reporter.run_step(
+                    step_name="sigpesq_research_groups",
+                    runner=persist_research_groups,
+                    source_probe=probe_sigpesq_groups,
+                )
+            else:
+                persist_research_groups()
+
+        with tracker.step("Persisting SigPesq projects"):
+            if reporter:
+                reporter.run_step(
+                    step_name="sigpesq_projects",
+                    runner=persist_projects,
+                    source_probe=probe_sigpesq_projects,
+                )
+            else:
+                persist_projects()
+
+        with tracker.step("Persisting SigPesq advisorships"):
+            if reporter:
+                reporter.run_step(
+                    step_name="sigpesq_advisorships",
+                    runner=persist_advisorships,
+                    source_probe=probe_sigpesq_advisorships,
+                )
+            else:
+                persist_advisorships()
+
+        with tracker.step("Syncing CNPq groups"):
+            if reporter:
+                reporter.run_step(
+                    step_name="cnpq_sync",
+                    runner=lambda: sync_cnpq_groups_flow(campus_name=campus_name),
+                    source_probe=lambda: probe_cnpq_sync(campus_name),
+                )
+            else:
+                sync_cnpq_groups_flow(campus_name=campus_name)
+
+        with tracker.step("Ingesting Lattes projects and articles"):
+            if reporter:
+                reporter.run_step(
+                    step_name="lattes_projects",
+                    runner=ingest_lattes_projects_flow,
+                    source_probe=probe_lattes_projects,
+                )
+            else:
+                ingest_lattes_projects_flow()
+
+        with tracker.step("Ingesting Lattes advisorships"):
+            if reporter:
+                reporter.run_step(
+                    step_name="lattes_advisorships",
+                    runner=ingest_lattes_advisorships_flow,
+                    source_probe=probe_lattes_advisorships,
+                )
+            else:
+                ingest_lattes_advisorships_flow()
+
+        with tracker.step("Exporting canonical data"):
+            export_canonical_data_flow(output_dir=output_dir, campus=campus_name)
+
+        with tracker.step("Generating marts"):
+            ka_mart_path = os.path.join(output_dir, "knowledge_areas_mart.json")
+            export_knowledge_areas_mart_flow(
+                output_path=ka_mart_path, campus=campus_name
             )
-        else:
-            persist_research_groups()
-
-        logger.info("Step 3/8: Persisting SigPesq projects...")
-        if reporter:
-            reporter.run_step(
-                step_name="sigpesq_projects",
-                runner=persist_projects,
-                source_probe=probe_sigpesq_projects,
+            analytics_mart_path = os.path.join(
+                output_dir, "initiatives_analytics_mart.json"
             )
-        else:
-            persist_projects()
+            export_initiatives_analytics_mart_flow(output_path=analytics_mart_path)
 
-        logger.info("Step 4/8: Persisting SigPesq advisorships...")
-        if reporter:
-            reporter.run_step(
-                step_name="sigpesq_advisorships",
-                runner=persist_advisorships,
-                source_probe=probe_sigpesq_advisorships,
-            )
-        else:
-            persist_advisorships()
-
-        logger.info(
-            f"Step 5/9: Syncing CNPq groups (Filter: {campus_name or 'None'})..."
-        )
-        if reporter:
-            reporter.run_step(
-                step_name="cnpq_sync",
-                runner=lambda: sync_cnpq_groups_flow(campus_name=campus_name),
-                source_probe=lambda: probe_cnpq_sync(campus_name),
-            )
-        else:
-            sync_cnpq_groups_flow(campus_name=campus_name)
-
-        logger.info("Step 6/9: Ingesting Lattes projects/articles/education...")
-        if reporter:
-            reporter.run_step(
-                step_name="lattes_projects",
-                runner=ingest_lattes_projects_flow,
-                source_probe=probe_lattes_projects,
-            )
-        else:
-            ingest_lattes_projects_flow()
-
-        logger.info("Step 7/9: Ingesting Lattes advisorships...")
-        if reporter:
-            reporter.run_step(
-                step_name="lattes_advisorships",
-                runner=ingest_lattes_advisorships_flow,
-                source_probe=probe_lattes_advisorships,
-            )
-        else:
-            ingest_lattes_advisorships_flow()
-
-        logger.info(f"Step 8/9: Exporting canonical data to {output_dir}...")
-        export_canonical_data_flow(output_dir=output_dir, campus=campus_name)
-
-        ka_mart_path = os.path.join(output_dir, "knowledge_areas_mart.json")
-        logger.info(f"Step 9/9: Generating marts at {output_dir}...")
-        export_knowledge_areas_mart_flow(output_path=ka_mart_path, campus=campus_name)
-
-        analytics_mart_path = os.path.join(
-            output_dir, "initiatives_analytics_mart.json"
-        )
-        export_initiatives_analytics_mart_flow(output_path=analytics_mart_path)
         logger.info("Unified Ingestion Pipeline completed successfully.")
     finally:
+        tracker.finish()
         if reporter:
             json_path, md_path = reporter.write()
             logger.info(

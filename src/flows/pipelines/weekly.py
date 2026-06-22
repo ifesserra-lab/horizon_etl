@@ -6,6 +6,7 @@ from prefect import flow, get_run_logger
 
 from src.core.logic.etl_flow_reporter import ETLFlowReporter
 from src.core.logic.prefect_runtime import configure_local_prefect_runtime
+from src.core.logic.progress_tracker import ProgressTracker
 from src.flows.all import ingest_all_sources_flow
 from src.flows.exports.canonical_data import export_canonical_data_flow
 from src.flows.exports.initiatives_analytics_mart import (
@@ -35,6 +36,7 @@ def weekly_pipelines_flow(
         "Starting weekly Horizon pipelines with campus filter: %s",
         campus_name or "all",
     )
+    tracker = ProgressTracker(total=4, name="Weekly pipelines")
 
     reporter = ETLFlowReporter(
         output_dir="data/reports",
@@ -42,31 +44,38 @@ def weekly_pipelines_flow(
     )
 
     try:
-        reporter.run_step(
-            step_name="all_sources",
-            runner=lambda: ingest_all_sources_flow(campus_name=campus_name),
-        )
-        reporter.run_step(
-            step_name="export_canonical",
-            runner=lambda: export_canonical_data_flow(
-                output_dir=output_dir,
-                campus=campus_name,
-            ),
-        )
-        reporter.run_step(
-            step_name="knowledge_areas_mart",
-            runner=lambda: export_knowledge_areas_mart_flow(
-                output_path=str(Path(output_dir) / "knowledge_areas_mart.json"),
-                campus=campus_name,
-            ),
-        )
-        reporter.run_step(
-            step_name="initiatives_analytics_mart",
-            runner=lambda: export_initiatives_analytics_mart_flow(
-                output_path=str(Path(output_dir) / "initiatives_analytics_mart.json")
-            ),
-        )
+        with tracker.step("Ingesting all sources"):
+            reporter.run_step(
+                step_name="all_sources",
+                runner=lambda: ingest_all_sources_flow(campus_name=campus_name),
+            )
+        with tracker.step("Exporting canonical data"):
+            reporter.run_step(
+                step_name="export_canonical",
+                runner=lambda: export_canonical_data_flow(
+                    output_dir=output_dir,
+                    campus=campus_name,
+                ),
+            )
+        with tracker.step("Generating knowledge areas mart"):
+            reporter.run_step(
+                step_name="knowledge_areas_mart",
+                runner=lambda: export_knowledge_areas_mart_flow(
+                    output_path=str(Path(output_dir) / "knowledge_areas_mart.json"),
+                    campus=campus_name,
+                ),
+            )
+        with tracker.step("Generating initiatives analytics mart"):
+            reporter.run_step(
+                step_name="initiatives_analytics_mart",
+                runner=lambda: export_initiatives_analytics_mart_flow(
+                    output_path=str(
+                        Path(output_dir) / "initiatives_analytics_mart.json"
+                    )
+                ),
+            )
     finally:
+        tracker.finish()
         try:
             report_json_path, report_md_path = reporter.write()
         except Exception:
