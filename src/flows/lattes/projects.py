@@ -866,8 +866,8 @@ def ingest_lattes_projects_flow():
             entity_manager,
             parser,
             all_researchers,
-            article_ctrl,
             researcher_ctrl,
+            article_ctrl,
         )
         gc.collect()
 
