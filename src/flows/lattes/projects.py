@@ -643,7 +643,13 @@ def ingest_lattes_projects_flow():
     # destroy data ingested for researchers whose JSONs are absent from disk.
     Base.metadata.create_all(engine)
 
-    for json_file in json_files:
+    session = None
+    try:
+        session = researcher_ctrl._service._repository._session
+    except Exception:
+        pass
+
+    for idx, json_file in enumerate(json_files, 1):
         _ingest_researcher_file(
             json_file,
             entity_manager,
@@ -652,6 +658,9 @@ def ingest_lattes_projects_flow():
             researcher_ctrl,
             article_ctrl,
         )
+
+        if session and idx % 50 == 0:
+            session.expire_all()
         gc.collect()
 
 
