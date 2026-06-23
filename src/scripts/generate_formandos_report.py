@@ -413,6 +413,27 @@ def _br_money(value: Any) -> float:
         return 0.0
 
 
+# Modalidades de bolsa FAPES (prefixos canônicos). Os tipos vêm com sufixos de
+# era ("- Antiga"), nível romano e nº de resolução — ~77 variações; agrupamos
+# pelo prefixo da modalidade para uma distribuição legível.
+_FAPES_BOLSA_PREFIXOS = (
+    "B-UnAC", "BPIG", "BIPI", "ICJr", "ICT", "DTI", "AT-NM", "AT-NS", "ME",
+    "EXT", "BCO", "BTU", "BMO", "BPC", "PV", "AP-COL", "AP-IND", "AP",
+    "ETC", "VTC", "TPq", "ORG", "AUX",
+)
+_FAPES_PREF_KEYS = tuple((p, _xkey(p)) for p in _FAPES_BOLSA_PREFIXOS)
+
+
+def _fapes_bolsa_modalidade(tipo: str | None) -> str:
+    """Reduz um ``tipo_bolsa`` FAPES à sua modalidade base (ex.: 'B-UnAC')."""
+    k = _xkey(tipo)
+    for disp, pk in _FAPES_PREF_KEYS:
+        if k.startswith(pk):
+            return disp
+    m = re.match(r"^[A-Za-z]+(?:-[A-Za-z]+)*", (tipo or "").strip())
+    return m.group(0) if m else "—"
+
+
 def load_fapes_projects() -> dict:
     """Projetos FAPES do IFES Serra por status/prazo. {} se ausente."""
     if not FAPES_PROJ_FILE.exists():
@@ -434,6 +455,35 @@ def load_mestrado_base() -> dict:
     return json.loads(MESTRADO_BASE_FILE.read_text())
 
 
+def load_serra_professor_keys() -> dict:
+    """Mapa _xkey → nome dos professores (não-alunos) do IFES Serra.
+
+    Serra = campus do pesquisador OU campus de algum grupo de pesquisa dele.
+    Exclui ``classification == 'student'`` — queremos docentes/servidores.
+    Usado para recortar os projetos FACTO ligados ao Campus Serra por
+    coordenador ou membro de equipe. Retorna dict (em vez de set) para também
+    expor o nome de exibição; ``k in mapa`` segue funcionando sobre as chaves.
+    """
+    path = DATA_EXPORTS / "researchers_canonical.json"
+    if not path.exists():
+        return {}
+    keys: dict = {}
+    for r in json.loads(path.read_text()):
+        if r.get("classification") == "student":
+            continue
+        camp = r.get("campus") or {}
+        cn = (camp.get("name") if isinstance(camp, dict) else camp) or ""
+        rg_serra = any(
+            ((g.get("campus") or {}).get("name") or "").strip().lower() == "serra"
+            for g in (r.get("research_groups") or [])
+        )
+        if cn.strip().lower() == "serra" or rg_serra:
+            k = _xkey(r.get("name"))
+            if k:
+                keys.setdefault(k, normalize_name(r.get("name") or ""))
+    return keys
+
+
 def compute_integrated(sup_formando_counts: dict[str, int],
                        ic_grad_invest: float,
                        bolsistas_alocado: float) -> dict:
@@ -452,6 +502,28 @@ def compute_integrated(sup_formando_counts: dict[str, int],
     fapes = load_fapes_projects()
     facto = load_facto_projects()
     mestrado = load_mestrado_base()
+    # Professores do Campus Serra — recorte dos projetos FACTO (que é uma base
+    # institucional): só entram projetos com docente Serra como coord ou equipe.
+    serra_profs = load_serra_professor_keys()
+
+    def _facto_serra_link(p: dict) -> tuple[bool, str | None, float]:
+        """(tem prof Serra?, coordenador, valor aprovado) — None se excluído."""
+        coord = None
+        valor = 0.0
+        equipe: list = []
+        for fn, linhas in (p.get("csv") or {}).items():
+            if "Informa" in fn:
+                for linha in linhas:
+                    coord = linha.get("Coordenador")
+                    valor += _br_money(linha.get("Valor aprovado"))
+            elif "Equipe" in fn:
+                equipe = linhas
+        if _is_excluded_coord(coord):
+            return (False, None, 0.0)
+        link = (_xkey(coord) in serra_profs) or any(
+            _xkey(m.get("Nome")) in serra_profs for m in equipe
+        )
+        return (link, coord, valor)
 
     integrated: dict = {}
 
@@ -542,32 +614,155 @@ def compute_integrated(sup_formando_counts: dict[str, int],
         panel["fapes_prazo_encerrado"] = r.get("status_em_andamento_prazo_encerrado", {})
     if facto:
         # Recorte IFES Serra: a base FACTO é institucional (Reitoria + todos os
-        # campi). Mantém apenas projetos cuja instituição executora menciona Serra.
+        # campi). Mantém apenas projetos com PROFESSOR do Campus Serra como
+        # coordenador ou membro de equipe — mesmo recorte da seção de perfil.
         tot = 0.0
         n_ok = 0
         for p in facto.get("projects", []):
             if p.get("_error"):
                 continue
-            is_serra = False
-            is_excluded = False
-            p_tot = 0.0
-            for fn, linhas in (p.get("csv") or {}).items():
-                if "Informa" in fn:
-                    for linha in linhas:
-                        if "serra" in _xkey(linha.get("Instituição executora")):
-                            is_serra = True
-                        if _is_excluded_coord(linha.get("Coordenador")):
-                            is_excluded = True
-                        p_tot += _br_money(linha.get("Valor aprovado"))
-            if is_serra and not is_excluded:
+            link, _coord, valor = _facto_serra_link(p)
+            if link:
                 n_ok += 1
-                tot += p_tot
+                tot += valor
         panel["facto_aprovado"] = round(tot, 2)
         panel["facto_proj"] = n_ok
         panel["facto_portal"] = facto.get("_portal", "")
     if mestrado:
         panel["mestrado_fapes_val"] = mestrado.get("bolsas", {}).get("valor_fapes", 0)
     integrated["fomento_panel"] = panel
+
+    # ---- D. Perfil dos projetos: rubricas, coordenação, equipe (só %) ----
+    # Apenas proporções — nenhum valor monetário absoluto é exposto.
+    # FAPES  = recorte Campus Serra (já filtrado na origem).
+    # FACTO  = só projetos com PROFESSOR do Campus Serra como coordenador OU
+    #          membro de equipe (a base FACTO é institucional; este recorte a
+    #          conecta ao Serra via docentes de researchers_canonical).
+    # Coordenação é medida por VOLUME DE DINHEIRO (% do orçamento), não por
+    # número de projetos — pedido da gestão.
+    def _pct_sorted(d: dict, top: int | None = None, other: str = "Outras") -> list:
+        tot = sum(d.values()) or 1
+        rows = [{"nome": k, "pct": round(v / tot * 100, 1)}
+                for k, v in sorted(d.items(), key=lambda kv: -kv[1])]
+        if top and len(rows) > top:
+            resto = round(sum(r["pct"] for r in rows[top:]), 1)
+            rows = rows[:top] + [{"nome": other, "pct": resto}]
+        return rows
+
+    def _coord_money_block(money_by: dict, disp: dict) -> dict:
+        """Top-5 coordenadores por % do volume financeiro (não por nº projetos)."""
+        tot = sum(money_by.values()) or 1
+        top5 = sorted(money_by.items(), key=lambda kv: -kv[1])[:5]
+        return {
+            "coord_top": [{"nome": disp[ck], "pct": round(v / tot * 100, 1)}
+                          for ck, v in top5],
+            "coord_top_pct": round(sum(v for _, v in top5) / tot * 100, 1),
+        }
+
+    perfil: dict = {}
+
+    if fapes:
+        fa_rub: dict = {}
+        fa_money: dict = {}   # coordenador → orçamento contratado
+        fa_count: dict = {}   # coordenador → nº de projetos
+        fa_bolsa: dict = {}   # modalidade de bolsa → cotas (equipe de bolsistas)
+        fa_cotas = 0
+        fa_disp: dict = {}
+        fa_n = 0
+        for _cat, projetos in (fapes.get("projetos") or {}).items():
+            for p in projetos:
+                if _is_excluded_coord(p.get("coordenador_nome")):
+                    continue
+                fa_n += 1
+                ck = _xkey(p.get("coordenador_nome"))
+                if ck:
+                    fa_count[ck] = fa_count.get(ck, 0) + 1
+                    fa_money[ck] = fa_money.get(ck, 0.0) + _br_money(p.get("orcamento_contratado"))
+                    fa_disp.setdefault(ck, normalize_name(p.get("coordenador_nome") or ""))
+                for r in (p.get("rubricas") or []):
+                    nome = (r.get("rubrica") or "—").strip()
+                    fa_rub[nome] = fa_rub.get(nome, 0.0) + _br_money(r.get("valor"))
+                # equipe FAPES = bolsistas; agrupa cotas por modalidade de bolsa
+                for b in (p.get("bolsas") or []):
+                    q = b.get("quantidade") or 0
+                    mod = _fapes_bolsa_modalidade(b.get("tipo_bolsa"))
+                    fa_bolsa[mod] = fa_bolsa.get(mod, 0) + q
+                    fa_cotas += q
+        # "pesquisadores" FAPES = coordenadores, ranqueados por nº de projetos.
+        fa_pesq5 = sorted(fa_count.items(), key=lambda kv: -kv[1])[:5]
+        perfil["fapes"] = {
+            "n_proj": fa_n,
+            "n_coord": len(fa_count),
+            "n_pesq": len(fa_count),
+            "n_equipe": fa_cotas,
+            "rubricas": _pct_sorted(fa_rub),
+            "bolsa_tipos": _pct_sorted(fa_bolsa, top=8),
+            "pesq_top": [{"nome": fa_disp[ck], "n": v} for ck, v in fa_pesq5],
+            **_coord_money_block(fa_money, fa_disp),
+        }
+
+    if facto:
+        fc_rub: dict = {}
+        fc_func: dict = {}
+        fc_grau: dict = {}
+        fc_money: dict = {}   # coordenador → valor aprovado
+        fc_disp: dict = {}
+        fc_coord: set = set()
+        fc_pesq: dict = {}    # professor Serra → nº de projetos (coord ou equipe)
+        fc_n = 0
+        fc_team = 0
+        for p in facto.get("projects", []):
+            if p.get("_error"):
+                continue
+            serra_link, coord, valor_aprov = _facto_serra_link(p)
+            if not serra_link:
+                continue
+            equipe = []
+            for fn, linhas in (p.get("csv") or {}).items():
+                if "Equipe" in fn:
+                    equipe = linhas
+            fc_n += 1
+            if coord:
+                ck = _xkey(coord)
+                fc_coord.add(ck)
+                fc_money[ck] = fc_money.get(ck, 0.0) + valor_aprov
+                fc_disp.setdefault(ck, normalize_name(coord))
+            for fn, linhas in (p.get("csv") or {}).items():
+                if "rubrica" in fn.lower():
+                    for linha in linhas:
+                        if (linha.get("Tipo da Rubrica") or "").strip().lower() == "despesa":
+                            nome = (linha.get("Rubrica") or "—").strip()
+                            fc_rub[nome] = fc_rub.get(nome, 0.0) + _br_money(linha.get("Aprovado"))
+            # professores Serra presentes neste projeto (coord ∪ equipe), 1x cada
+            present: set = set()
+            if _xkey(coord) in serra_profs:
+                present.add(_xkey(coord))
+            for m in equipe:
+                fc_team += 1
+                f_func = (m.get("Função") or "").strip() or "—"
+                fc_func[f_func] = fc_func.get(f_func, 0) + 1
+                g = (m.get("Grau de instrução") or "").strip()
+                g = g if g and g != "—" else "Não informado"
+                fc_grau[g] = fc_grau.get(g, 0) + 1
+                if _xkey(m.get("Nome")) in serra_profs:
+                    present.add(_xkey(m.get("Nome")))
+            for k in present:
+                fc_pesq[k] = fc_pesq.get(k, 0) + 1
+        pesq_top5 = sorted(fc_pesq.items(), key=lambda kv: -kv[1])[:5]
+        perfil["facto"] = {
+            "n_proj": fc_n,
+            "n_coord": len(fc_coord),
+            "n_equipe": fc_team,
+            "n_pesq": len(fc_pesq),
+            "rubricas": _pct_sorted(fc_rub, top=8),
+            "func": _pct_sorted(fc_func, top=6),
+            "grau": _pct_sorted(fc_grau, top=7),
+            "pesq_top": [{"nome": serra_profs.get(k, k), "n": v} for k, v in pesq_top5],
+            **_coord_money_block(fc_money, fc_disp),
+        }
+
+    if perfil:
+        integrated["projetos_perfil"] = perfil
 
     return integrated
 
@@ -4326,8 +4521,8 @@ def _sec_fomento_panel(s: dict) -> str:
                       "var(--blue)"))
     if fp.get("facto_aprovado"):
         _fp_n = fp.get("facto_proj", 0)
-        steps.append(("Fundação FACTO — IFES Serra", fp["facto_aprovado"],
-                      f'{_fp_n} projeto{"s" if _fp_n != 1 else ""} executado{"s" if _fp_n != 1 else ""} pelo Campus Serra (valor aprovado)',
+        steps.append(("Fundação FACTO — professores do Campus Serra", fp["facto_aprovado"],
+                      f'{_fp_n} projeto{"s" if _fp_n != 1 else ""} com docente do Serra como coordenador ou equipe (valor aprovado)',
                       "var(--green)"))
 
     max_v = max((v for _, v, _, _ in steps), default=0) or 1
@@ -4366,8 +4561,8 @@ def _sec_fomento_panel(s: dict) -> str:
         'A escala (eixo comprimido por raiz para caber a IC) mostra que a bolsa de iniciação '
         'científica é uma fração mínima do fomento à pesquisa — os projetos FAPES do campus '
         'movem dezenas de milhões, comandados em boa parte pelos mesmos orientadores de IC. '
-        'Apenas os projetos FACTO executados pelo Campus Serra entram no recorte (a base FACTO original é institucional). '
-        '<br><span style="color:var(--sub);">FACTO = valor aprovado (não executado), filtrado por instituição executora = Campus Serra. '
+        'Na FACTO entram apenas os projetos com professor do Campus Serra como coordenador ou membro de equipe (a base FACTO original é institucional). '
+        '<br><span style="color:var(--sub);">FACTO = valor aprovado (não executado), recortado por docente do Serra (researchers_canonical) na coordenação ou equipe. '
         'Fontes: projetos-fapes, projetos-facto, bolsistas, formandos.</span>'
         '</div>'
     )
@@ -4375,6 +4570,114 @@ def _sec_fomento_panel(s: dict) -> str:
         "Painel de fomento — da semente IC ao portfólio",
         "Escala comparada: bolsa de IC vs projetos FAPES vs fundação FACTO — recorte IFES Serra",
         bars + flag + note,
+        border_color="var(--blue)",
+    )
+
+
+def _sec_projetos_perfil(s: dict) -> str:
+    """Perfil dos projetos FAPES/FACTO: rubricas, coordenação e equipe — só %."""
+    pf = s.get("integrated", {}).get("projetos_perfil", {})
+    if not pf:
+        return ""
+    fa = pf.get("fapes", {})
+    fc = pf.get("facto", {})
+
+    def bars(rows: list, color: str) -> str:
+        if not rows:
+            return ""
+        mx = max((r["pct"] for r in rows), default=0) or 1
+        out = '<div style="overflow-x:auto;">'
+        for r in rows:
+            w = round(r["pct"] / mx * 100)
+            out += (
+                '<div style="display:flex;align-items:center;font-size:11px;margin-bottom:5px;">'
+                f'<span style="width:230px;flex-shrink:0;color:var(--text);">{r["nome"]}</span>'
+                '<span style="flex:1;display:flex;align-items:center;gap:6px;min-width:120px;">'
+                '<span style="flex:1;height:10px;background:#e7efe9;border-radius:2px;overflow:hidden;max-width:240px;">'
+                f'<span style="display:block;width:{w}%;height:100%;background:{color};"></span></span>'
+                f'<span style="font-weight:700;color:{color};width:48px;text-align:right;">{r["pct"]}%</span>'
+                '</span></div>'
+            )
+        return out + '</div>'
+
+    def bars_n(rows: list, color: str, unit: str = "") -> str:
+        """Barras por contagem absoluta (não %) — ex.: nº de projetos."""
+        if not rows:
+            return ""
+        mx = max((r["n"] for r in rows), default=0) or 1
+        out = '<div style="overflow-x:auto;">'
+        for r in rows:
+            w = round(r["n"] / mx * 100)
+            out += (
+                '<div style="display:flex;align-items:center;font-size:11px;margin-bottom:5px;">'
+                f'<span style="width:230px;flex-shrink:0;color:var(--text);">{r["nome"]}</span>'
+                '<span style="flex:1;display:flex;align-items:center;gap:6px;min-width:120px;">'
+                '<span style="flex:1;height:10px;background:#e7efe9;border-radius:2px;overflow:hidden;max-width:240px;">'
+                f'<span style="display:block;width:{w}%;height:100%;background:{color};"></span></span>'
+                f'<span style="font-weight:700;color:{color};width:64px;text-align:right;">{r["n"]}{unit}</span>'
+                '</span></div>'
+            )
+        return out + '</div>'
+
+    def subhead(t: str) -> str:
+        return (f'<div style="font-size:12px;font-weight:700;color:var(--text);'
+                f'margin:14px 0 8px;">{t}</div>')
+
+    parts = []
+    if fa:
+        parts.append(
+            '<div style="font-size:13px;font-weight:800;color:var(--blue);margin-bottom:2px;">FAPES — Campus Serra</div>'
+            f'<div style="font-size:11px;color:var(--sub);margin-bottom:4px;">{fa["n_proj"]} projetos · {fa["n_coord"]} coordenadores · {fa["n_equipe"]} cotas de bolsa</div>'
+        )
+        parts.append(subhead("Rubricas — % do orçamento contratado"))
+        parts.append(bars(fa["rubricas"], "var(--blue)"))
+        parts.append(subhead("Equipe (bolsistas) — % das cotas por modalidade de bolsa"))
+        parts.append(bars(fa["bolsa_tipos"], "var(--amber)"))
+        parts.append(subhead(f'Coordenação — % do volume financeiro (top 5 = {fa["coord_top_pct"]}%)'))
+        parts.append(bars(fa["coord_top"], "var(--green)"))
+        if fa.get("pesq_top"):
+            parts.append(subhead(f'Pesquisadores do Serra — nº de projetos (top 5 · {fa.get("n_pesq", 0)} coordenadores no total)'))
+            parts.append(bars_n(fa["pesq_top"], "var(--blue)", unit=" proj"))
+    if fc:
+        parts.append(
+            '<div style="border-top:1px solid #e7efe9;margin-top:18px;padding-top:14px;"></div>'
+            '<div style="font-size:13px;font-weight:800;color:var(--green);margin-bottom:2px;">FACTO — projetos com professor do Campus Serra</div>'
+            f'<div style="font-size:11px;color:var(--sub);margin-bottom:4px;">{fc["n_proj"]} projetos · {fc["n_coord"]} coordenadores · {fc["n_equipe"]} membros de equipe</div>'
+        )
+        parts.append(subhead("Rubricas — % das despesas aprovadas"))
+        parts.append(bars(fc["rubricas"], "var(--green)"))
+        parts.append(subhead("Equipe — % por função"))
+        parts.append(bars(fc["func"], "var(--blue)"))
+        parts.append(subhead("Equipe — % por grau de instrução"))
+        parts.append(bars(fc["grau"], "var(--amber)"))
+        parts.append(subhead(f'Coordenação — % do volume financeiro (top 5 = {fc["coord_top_pct"]}%)'))
+        parts.append(bars(fc["coord_top"], "var(--green)"))
+        if fc.get("pesq_top"):
+            parts.append(subhead(f'Pesquisadores do Serra — nº de projetos (top 5 · {fc.get("n_pesq", 0)} docentes no total)'))
+            parts.append(bars_n(fc["pesq_top"], "var(--blue)", unit=" proj"))
+
+    note = (
+        '<div class="note" style="border-color:var(--blue);margin-top:14px;">'
+        '<strong>Para onde vai o fomento e quem toca os projetos.</strong> '
+        'Tudo em proporção (%) — nenhum valor absoluto em reais. '
+        'As <strong>rubricas</strong> são % do volume financeiro (orçamento contratado na FAPES, '
+        'despesas aprovadas na FACTO) e a <strong>coordenação</strong> também é medida por % do volume '
+        'financeiro — não por número de projetos. '
+        'Na FAPES (Campus Serra) as bolsas dominam o orçamento, seguidas de equipamento. '
+        'Na FACTO a despesa é puxada por serviços de terceiros e bolsas, e a equipe é majoritariamente bolsista. '
+        '<br><span style="color:var(--sub);">'
+        'FAPES: recorte Campus Serra (exclui um coordenador específico, por decisão da gestão). '
+        'FACTO: a base é institucional (Reitoria + todos os campi); aqui ficam apenas os projetos com '
+        '<strong>professor do Campus Serra como coordenador ou membro de equipe</strong> '
+        '(docentes não-alunos de researchers_canonical com campus ou grupo de pesquisa = Serra), '
+        'também excluindo o mesmo coordenador. '
+        'Fontes: projetos-fapes, projetos-facto, researchers_canonical.</span>'
+        '</div>'
+    )
+    return section(
+        "Perfil dos projetos — rubricas, coordenação e equipe",
+        "Em que rubricas o fomento é aplicado, quem coordena e como se compõem as equipes (FAPES + FACTO) — só proporções",
+        "".join(parts) + note,
         border_color="var(--blue)",
     )
 
@@ -4425,6 +4728,7 @@ def render_html(s: dict, semester: str, generated_at: str,
         _sec_fapes_ecosystem(s),
         _sec_mestrado_pipeline(s),
         _sec_fomento_panel(s),
+        _sec_projetos_perfil(s),
     ]
     body = "\n".join(p for p in body_parts if p)
 
