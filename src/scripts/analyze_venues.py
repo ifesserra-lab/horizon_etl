@@ -725,7 +725,7 @@ def _quad_qualis_fwci(ranking: list | None, citacoes: list | None) -> str:
       {dots}{labels}</svg>'''
 
     def tab(quad, titulo, cor):
-        items = sorted((p for p in pts if p["quad"] == quad), key=lambda p: -p["y"])[:6]
+        items = sorted((p for p in pts if p["quad"] == quad), key=lambda p: -p["y"])
         rows = "".join(f"<tr><td>{p['nome']}</td><td>{p['x']:.0f}</td><td class='n'>{p['y']:.2f}</td><td>{p['h']}</td></tr>"
                        for p in items)
         return (f'<div><h3 style="color:{cor};font-size:15px;margin:0 0 6px;">{titulo} ({sum(1 for p in pts if p["quad"]==quad)})</h3>'
@@ -735,9 +735,14 @@ def _quad_qualis_fwci(ranking: list | None, citacoes: list | None) -> str:
             + tab("veiculo", "Veículo forte, baixo impacto", "var(--amber)")
             + tab("nicho", "Nicho", "var(--muted)"))
     return (f'<h3 style="font-family:var(--serif);font-size:20px;margin:26px 0 8px;">Quadrante Qualis × FWCI</h3>'
-            f'<p class="desc">Veículo (Qualis, X) × impacto normalizado (FWCI, Y) de {len(pts)} docentes. '
-            f'<b>Subvalorizado</b> = FWCI alto apesar de Qualis menor (o veículo subestima o impacto real); '
-            f'<b>Veículo forte, baixo impacto</b> = publica em estrato alto mas com FWCI abaixo da mediana.</p>'
+            f'<p class="desc">Veículo (<b>Qualis</b>, nota média do periódico 0–100, eixo X) × '
+            f'<b>impacto normalizado</b> (FWCI — citações relativas à média mundial da área, eixo Y) de '
+            f'{len(pts)} docentes. A mediana de cada eixo divide os 4 quadrantes (posição <i>relativa ao '
+            f'grupo</i>, não juízo de mérito): '
+            f'<b>★ Estrelas</b> = Qualis e FWCI ambos <b>acima</b> da mediana (bom veículo e citado acima da média da área); '
+            f'<b>Subvalorizado</b> = FWCI acima, Qualis abaixo (impacto real alto apesar do veículo menor — o Qualis subestima); '
+            f'<b>Veículo forte, baixo impacto</b> = Qualis acima, FWCI abaixo (publica em estrato alto mas citado abaixo da média da área); '
+            f'<b>Nicho</b> = Qualis e FWCI ambos <b>abaixo</b> da mediana (veículo modesto e impacto modesto).</p>'
             f'<div class="card">{svg}</div><div class="grid2" style="margin-top:16px;">{tabs}</div>')
 
 
@@ -1104,7 +1109,7 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
               {dots}{labels}</svg>'''
 
             def _qtab(quad, titulo, cor):
-                items = sorted((p for p in pts if p["quad"] == quad), key=lambda p: -p["y"])[:6]
+                items = sorted((p for p in pts if p["quad"] == quad), key=lambda p: -p["y"])
                 rows = "".join(f"<tr><td>{p['nome']}</td><td>{p['x']:.0f}</td><td class='n'>{p['y']}</td><td>{p['h']}</td></tr>"
                                for p in items)
                 return (f'<div><h3 style="color:{cor};font-size:15px;margin:0 0 6px;">{titulo} ({sum(1 for p in pts if p["quad"]==quad)})</h3>'
@@ -1118,11 +1123,14 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
     <section class="section">
       <div class="eyebrow">Veículo vs impacto real</div>
       <h2>Quadrante Qualis × Citações</h2>
-      <p class="desc">Cruza a <b>qualidade do veículo</b> (nota média Qualis, eixo X) com o
-      <b>impacto real</b> (citações OpenAlex, eixo Y). Mediana divide os 4 quadrantes —
+      <p class="desc">Cruza a <b>qualidade do veículo</b> (nota média Qualis 0–100, eixo X) com o
+      <b>impacto real</b> (total de citações OpenAlex, escala √, eixo Y). A mediana de cada eixo divide
+      os 4 quadrantes (posição <i>relativa ao grupo</i>, não juízo de mérito) —
       <b>{len(pts)} docentes</b> com sinal nas duas métricas (≥3 artigos Qualis e ≥3 com DOI).
-      <b>Estrelas</b>: bom veículo e citado. <b>Subvalorizado</b>: citado apesar de Qualis menor
-      (o Qualis subestima). <b>Veículo forte, pouco citado</b>: publica em estrato alto mas sem eco.
+      <b>★ Estrelas</b>: Qualis e citações ambos <b>acima</b> da mediana (bom veículo e muito citado).
+      <b>Subvalorizado</b>: citações acima, Qualis abaixo (muito citado apesar de Qualis menor — o Qualis subestima).
+      <b>Veículo forte, pouco citado</b>: Qualis acima, citações abaixo (publica em estrato alto mas sem eco).
+      <b>Nicho</b>: Qualis e citações ambos <b>abaixo</b> da mediana (veículo modesto e pouca repercussão).
       Tamanho do ponto = h-index.</p>
       <div class="card">{svg}</div>
       <div class="grid2" style="margin-top:16px;">{tabs}</div>
@@ -1251,7 +1259,7 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
               {dots}{labels}</svg>'''
 
             def _ptab(q, titulo, cor):
-                items = sorted((p for p in pp if p["q"] == q), key=lambda p: -p["y"])[:6]
+                items = sorted((p for p in pp if p["q"] == q), key=lambda p: -p["y"])
                 rows = "".join(f"<tr><td>{p['nome']}</td><td>{p['x']}</td><td class='n'>{p['y']}</td><td>{p['h']}</td></tr>"
                                for p in items)
                 return (f'<div><h3 style="color:{cor};font-size:15px;margin:0 0 6px;">{titulo} ({sum(1 for p in pp if p["q"]==q)})</h3>'
@@ -1265,10 +1273,14 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
     <section class="section">
       <div class="eyebrow">Mapa executivo</div>
       <h2>Quadrante Produtividade × Impacto</h2>
-      <p class="desc">Volume (<b>nº de artigos</b>, eixo X) contra <b>impacto</b> (citações, eixo Y),
-      para leitura de gestão em uma olhada. <b>Estrelas</b>: muitos artigos e muito citados.
-      <b>Promessas</b>: poucos artigos mas alto impacto (potencial). <b>Prolíficos pouco citados</b>:
-      muito volume, pouca repercussão. Tamanho do ponto = h-index. {len(pp)} docentes com DOI.</p>
+      <p class="desc">Volume (<b>nº de artigos</b>, eixo X) contra <b>impacto</b> (total de citações,
+      escala √, eixo Y), para leitura de gestão em uma olhada. A mediana de cada eixo divide os 4
+      quadrantes (posição <i>relativa ao grupo</i>, não juízo de mérito):
+      <b>★ Estrelas</b>: artigos e citações ambos <b>acima</b> da mediana (muitos artigos e muito citados).
+      <b>Promessas</b>: citações acima, artigos abaixo (poucos artigos mas alto impacto — potencial).
+      <b>Prolíficos pouco citados</b>: artigos acima, citações abaixo (muito volume, pouca repercussão).
+      <b>Nicho</b>: artigos e citações ambos <b>abaixo</b> da mediana (pouco volume e pouco impacto).
+      Tamanho do ponto = h-index. {len(pp)} docentes com DOI.</p>
       <div class="card">{svg}</div>
       <div class="grid2" style="margin-top:16px;">{tabs}</div>
     </section>"""
