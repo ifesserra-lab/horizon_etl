@@ -4,7 +4,8 @@ from contextlib import contextmanager
 
 
 class ProgressTracker:
-    """Prints a compact one-line-per-step summary to the terminal.
+    """Prints a compact one-line-per-step header during execution,
+    then a sequential summary of all stage numbers and durations at the end.
 
     Suppresses Prefect's verbose console logger so the output stays clean.
     All timing and entity details still go to the ETL report JSON/MD files.
@@ -21,12 +22,7 @@ class ProgressTracker:
     @contextmanager
     def step(self, description: str):
         self.current += 1
-        elapsed = time.time() - self.start
-        print(
-            f"[{elapsed:>7.1f}s] Step {self.current}/{self.total}: {description} ...",
-            end=" ",
-            flush=True,
-        )
+        print(f"  Step {self.current}/{self.total}: {description} ...", flush=True)
         t0 = time.time()
         ok = True
         try:
@@ -36,16 +32,21 @@ class ProgressTracker:
             raise
         finally:
             dt = time.time() - t0
-            status = "OK" if ok else "FAIL"
-            print(f"{status} ({dt:.1f}s)")
-            self._step_times.append((description, dt, status))
+            self._step_times.append((description, dt, "OK" if ok else "FAIL"))
 
     def finish(self) -> float:
         elapsed = time.time() - self.start
-        print(f"\n{'=' * 50}")
-        print(f"{self.name} finished in {elapsed:.1f}s")
+        print(f"\n{'=' * 52}")
+        print(f"  {self.name} — Summary")
+        print(f"{'=' * 52}")
+        for i, (desc, dt, status) in enumerate(self._step_times, 1):
+            flag = "✓" if status == "OK" else "✗"
+            print(f"  Step {i:>2}  {flag}  {desc:.<50s} {dt:>6.1f}s")
+        print(f"{'─' * 52}")
+        print(f"  Total{' ' * 44} {elapsed:>6.1f}s")
         failed = [(d, t) for d, t, s in self._step_times if s == "FAIL"]
         if failed:
+            print()
             for desc, dt in failed:
                 print(f"  FAIL  {desc} ({dt:.1f}s)")
         return elapsed
