@@ -4,12 +4,15 @@
 
 Os pontos de entrada mais relevantes hoje sao:
 
-- `make full-refresh`
-- `make pipeline-serra`
+- `make full-refresh` — executa pipeline completo + export canonico + ZIP
+- `make pipeline CAMPUS=Serra` — executa pipeline para um campus + ZIP
+- `make weekly-flows` — executa pipelines semanais + ZIP
+- `make export-canonical CAMPUS=Serra` — exporta dados canonicos + ZIP
 - `make ingest-sigpesq`
 - `make ingest-lattes-full`
-- `make export-canonical CAMPUS=Serra`
 - `python app.py full_pipeline Serra data/exports`
+- `python app.py export_canonical data/exports`
+- `python app.py weekly data/exports`
 - `python app.py all_sources Serra`
 - `python app.py sigpesq`
 - `python app.py cnpq_sync Serra`
@@ -53,6 +56,12 @@ O `full_ingestion_pipeline` coordena, em alto nivel:
 4. exportacoes canonicas
 5. geracao de marts
 6. escrita de reports operacionais
+
+Ao final de cada pipeline, o `app.py` chama automaticamente o script
+`scripts/export_zip.py` para compactar todos os JSONs gerados em um unico ZIP
+com timestamp (`canonical_export_<YYYYMMDD_HHMMSS>.zip`) e remover os arquivos
+soltos. O ZIP passa por uma validacao que verifica a presenca de todos os
+arquivos esperados e a consistencia dos manifests de grafos.
 
 ## Lattes
 

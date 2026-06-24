@@ -1598,6 +1598,7 @@ class CanonicalDataExporter:
                 r_dict["identification_id"]
             ):
                 r_dict = anonymize_person_data(r_dict)
+            r_dict = scrub_pii_deep(r_dict)
             export_data.append(r_dict)
 
         logger.info(
@@ -1879,7 +1880,8 @@ class CanonicalDataExporter:
             )
 
         logger.info(f"Exporting {len(serialized_data)} enriched Initiatives...")
-        self.sink.export(serialized_data, output_path)
+        export_data = [scrub_pii_deep(item) for item in serialized_data]
+        self.sink.export(export_data, output_path)
         logger.info(f"Successfully exported enriched Initiatives to {output_path}")
 
     def export_initiative_types(self, output_path: str):
@@ -2264,6 +2266,7 @@ class CanonicalDataExporter:
         logger.info(
             f"Filtered export: {len(final_data)} parent projects with advisorships (excluded {len(projects_map) - len([p for p in projects_map.values() if p.get('advisorships')])} projects without advisorships)"
         )
+        final_data = [scrub_pii_deep(item) for item in final_data]
         self.sink.export(final_data, output_path)
         logger.info(
             f"Successfully exported {len(final_data)} parent projects with advisorships to {output_path}"

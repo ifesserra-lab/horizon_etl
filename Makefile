@@ -36,7 +36,7 @@ PREFECT_DB_SERVICE ?= database
 	export-canonical export-knowledge-areas-mart export-initiatives-analytics-mart export-people-graph export-collaboration-graph export-researchers-collaboration-graph export-outside-ifes-collaboration-graph export-null-researchers-collaboration-graph export-students-collaboration-graph export-rg-membership-manifest \
 	anonymize-backfill anonymize-check \
 	test test-coverage lint format format-check ci-check \
-	audit-duplicates validate consolidate-duplicates \
+	audit-duplicates validate \
 	benchmark \
 	status clean \
 	docker-up docker-stop docker-build \
@@ -140,8 +140,7 @@ sync-cnpq: prefect-server ## Sync CNPq research groups (CAMPUS=Serra)
 # --- Exports ---
 
 export-canonical: prefect-server ## Export all canonical data to a timestamped ZIP (no loose JSON files)
-	-@$(FLOW_PYTHON) app.py export_canonical "$(OUTPUT_DIR)" "$(CAMPUS)"
-	@$(PYTHON) scripts/export_zip.py "$(OUTPUT_DIR)"
+	@$(FLOW_PYTHON) app.py export_canonical "$(OUTPUT_DIR)" "$(CAMPUS)"
 
 export-knowledge-areas-mart: prefect-server ## Export knowledge areas mart JSON
 	@$(FLOW_PYTHON) app.py ka_mart "$(OUTPUT_DIR)/knowledge_areas_mart.json" "$(CAMPUS)"
@@ -247,9 +246,6 @@ audit-duplicates: ## Audit duplicate candidates in the database
 
 validate: ## Validate ETL report vs DB row counts and run duplicate audit
 	@$(PYTHON) src/scripts/validate_pipeline.py
-
-consolidate-duplicates: ## Consolidate duplicate persons, teams, and knowledge areas
-	@$(PYTHON) src/scripts/consolidate_duplicates.py --entity all
 
 # --- Docker ---
 
