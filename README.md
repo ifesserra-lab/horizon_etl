@@ -234,47 +234,83 @@ Artefatos locais relevantes:
 
 ### Estrutura do ZIP de export canonico
 
-Cada execucao de `make export-canonical` produz um unico arquivo
+Cada pipeline (`make full-refresh`, `make weekly-flows`, `make pipeline`,
+`make export-canonical`) produz automaticamente um ZIP unico em
 `data/exports/canonical_export_<YYYYMMDD_HHMMSS>.zip` com o seguinte conteudo:
 
 ```text
 canonical_export_<timestamp>.zip
-|-- organizations_canonical.json          (26 organizacoes)
-|-- campuses_canonical.json              (23 campi)
-|-- knowledge_areas_canonical.json       (1543 areas)
-|-- researchers_canonical.json           (7603 pesquisadores + participantes)
-|-- researchers_only_canonical.json      (2452 pesquisadores stricto sensu)
-|-- students_canonical.json              (4829 alunos)
-|-- outside_ifes_canonical.json          (298 externos)
-|-- null_researchers_canonical.json      (24 sem classificacao)
-|-- researchers_tracking.json            (6472 registros de acompanhamento)
-|-- research_groups_canonical.json       (342 grupos)
-|-- initiatives_canonical.json           (1429 iniciativas)
-|-- initiatives_tracking.json            (255 registros)
-|-- initiative_types_canonical.json      (2 tipos)
-|-- articles_canonical.json              (720 artigos)
-|-- advisorships_canonical.json          (173 projetos-pai com orientacoes)
-|-- advisorships_tracking.json           (1046 registros)
-|-- fellowships_canonical.json           (35 programas de bolsa)
-|-- advisorship_analytics.json           (1 mart analitico)
-|-- ingestion_runs_canonical.json        (9 execucoes)
-|-- source_records_canonical.json        (13586 registros-fonte)
-|-- entity_matches_canonical.json        (13431 matches)
-|-- attribute_assertions_canonical.json  (58293 atribuicoes)
-|-- entity_change_logs_canonical.json    (14521 changelogs)
-|-- people_relationship_graph.json       (grafo relacional completo)
-|-- people_collaboration_graph.json      (7603 nos, 5232 arestas)
+|-- organizations_canonical.json
+|-- campuses_canonical.json
+|-- knowledge_areas_canonical.json
+|-- researchers_canonical.json
+|-- researchers_only_canonical.json
+|-- students_canonical.json
+|-- outside_ifes_canonical.json
+|-- null_researchers_canonical.json
+|-- researchers_tracking.json
+|-- research_groups_canonical.json
+|-- initiatives_canonical.json
+|-- initiatives_tracking.json
+|-- initiative_types_canonical.json
+|-- articles_canonical.json
+|-- advisorships_canonical.json
+|-- advisorships_tracking.json
+|-- fellowships_canonical.json
+|-- advisorship_analytics.json
+|-- knowledge_areas_mart.json
+|-- initiatives_analytics_mart.json
+|-- ingestion_runs_canonical.json
+|-- source_records_canonical.json
+|-- entity_matches_canonical.json
+|-- attribute_assertions_canonical.json
+|-- entity_change_logs_canonical.json
+|-- people_relationship_graph.json
+|-- people_collaboration_graph.json
 |-- researchers_only_collaboration_graph.json
 |-- students_collaboration_graph.json
 |-- outside_ifes_collaboration_graph.json
 |-- null_researchers_collaboration_graph.json
-|-- research_group_membership_graphs_manifest.json   (342 grupos, 9736 nos)
-|-- research_group_relationship_graphs_manifest.json (342 grupos)
-|-- research_group_relationship_graphs/              (342 grafos relacionais)
+|-- research_group_membership_graphs_manifest.json
+|-- research_group_relationship_graphs_manifest.json
+|-- research_group_relationship_graphs/
     |-- research_group_1_relationship_graph.json
-    |-- ...
-    |-- research_group_342_relationship_graph.json
+
 ```
+
+#### Pipeline de geracao do ZIP
+
+Antes de compactar, o script `scripts/export_zip.py` executa:
+
+1. **Limpeza de grafos antigos** — Remove arquivos de grafos relacionais de grupos
+   de pesquisa da execucao anterior para garantir dados frescos.
+2. **Remocao de symlinks** — Remove eventuais links simbolicos que possam ter sido
+   criados durante a geracao dos grafos.
+3. **Compactacao** — Todos os JSONs canonicos, grafos e marts sao zipados com
+   `ZIP_DEFLATED`.
+4. **Validacao** — O ZIP gerado e verificado contra uma lista de arquivos
+   esperados e a consistencia dos manifests de grafos. Se a validacao falhar,
+   o ZIP invalido e deletado.
+5. **Limpeza pos-zip** — Os JSONs soltos e diretorios vazios sao removidos,
+   restando apenas o ZIP no diretorio de exportacao.
+
+#### Protecao de dados pessoais (LGPD)
+
+Durante a exportacao, campos sensiveis sao automaticamente anonimizados:
+
+- **CPF** (`identification_id`) → substituido por `LGPD-<sha256>`.
+- **E-mails** → substituidos por `<hash>@anon.lgpd` em qualquer campo textual.
+- **Telefones** em payloads de registros-fonte (`CelularOrientador`,
+  `CelularOrientado`) → anulados.
+
+A anonimizacao e aplicada em tres camadas:
+1. **ORM hook** (`install_lgpd_session_hooks`) — anonimiza na escrita do banco.
+2. **Logica de negocios** (`researcher_creation.py`,
+   `research_group_loader.py`) — anonimiza na criacao de registros.
+3. **Exportacao** (`canonical_exporter.py`, `research_group_exporter.py`) —
+   anonimiza de forma defensiva antes de serializar. Os metodos
+   `export_researchers`, `export_initiatives` e `export_advisorships` aplicam
+   `scrub_pii_deep` em cada item exportado.
 
 Os numeros entre parenteses refletem uma execucao tipica e podem variar conforme
 a fonte e o filtro de campus aplicado.

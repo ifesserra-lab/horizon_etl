@@ -59,9 +59,29 @@ O `full_ingestion_pipeline` coordena, em alto nivel:
 
 Ao final de cada pipeline, o `app.py` chama automaticamente o script
 `scripts/export_zip.py` para compactar todos os JSONs gerados em um unico ZIP
-com timestamp (`canonical_export_<YYYYMMDD_HHMMSS>.zip`) e remover os arquivos
-soltos. O ZIP passa por uma validacao que verifica a presenca de todos os
-arquivos esperados e a consistencia dos manifests de grafos.
+com timestamp (`canonical_export_<YYYYMMDD_HHMMSS>.zip`).
+
+O processo de geracao inclui:
+
+1. **Limpeza** — grafos relacionais de grupos da execucao anterior sao removidos;
+   symlinks sao eliminados antes da compactacao.
+2. **Compactacao** — todos os JSONs sao zipados com `ZIP_DEFLATED`.
+3. **Validacao** — o ZIP e verificado contra a lista de arquivos esperados e
+   a consistencia dos manifests de grafos. Se falhar, o ZIP e deletado.
+4. **Limpeza pos-zip** — JSONs soltos e diretorios vazios sao removidos.
+
+### Protecao LGPD nas exportacoes
+
+Durante a exportacao, todos os dados passam por anonimizacao antes de serem
+serializados:
+
+- CPF (`identification_id`) → `LGPD-<sha256>`
+- E-mails → `<hash>@anon.lgpd` (inclusive em campos de texto livre)
+- Telefones em payloads fonte → anulados
+
+Alem do hook de banco de dados (ORM session hook), os metodos de exportacao
+(`export_researchers`, `export_initiatives`, `export_advisorships`) aplicam
+`scrub_pii_deep` em cada registro como camada defensiva adicional.
 
 ## Lattes
 
