@@ -116,6 +116,19 @@ def analisar() -> dict:
             "piso_bibliografico": {"PQ-1": 100, "PQ-2": 50, "PQ-3": 30},
             "orientacoes_min_rota_ic": {"PQ-1": 9, "PQ-2": 6, "PQ-3": 3},
         },
+        "prazos": [
+            {"etapa": "Lançamento do edital", "quando": "01/06/2026", "fim": "2026-06-01"},
+            {"etapa": "Submissão das propostas", "quando": "01–14/06/2026", "fim": "2026-06-14"},
+            {"etapa": "Avaliação das propostas", "quando": "15–26/06/2026", "fim": "2026-06-26"},
+            {"etapa": "Resultado preliminar", "quando": "29/06/2026", "fim": "2026-06-29"},
+            {"etapa": "Pedido de recurso", "quando": "30/06/2026", "fim": "2026-06-30"},
+            {"etapa": "Avaliação dos recursos", "quando": "01–03/07/2026", "fim": "2026-07-03"},
+            {"etapa": "Resultado final", "quando": "a partir de 06/07/2026", "fim": "2026-07-06"},
+            {"etapa": "Designação · início das atividades", "quando": "até 31/07 · início 01/08/2026", "fim": "2026-08-01"},
+            {"etapa": "Relatório parcial #1", "quando": "até 31/08/2027", "fim": "2027-08-31"},
+            {"etapa": "Relatório parcial #2", "quando": "até 31/08/2028", "fim": "2028-08-31"},
+            {"etapa": "Relatório final", "quando": "até 31/08/2029", "fim": "2029-08-31"},
+        ],
         "total_docentes": len(rows),
         "docentes": rows,
     }
@@ -180,6 +193,9 @@ td.name small{display:block;font-weight:400;color:var(--muted);font-size:11px;}
 .calc{font-size:11px;color:var(--muted);font-family:var(--serif);}
 .detail td{background:#fbfdfb;font-size:12px;color:var(--ink2);}
 .detail .art{display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;border-radius:8px;background:var(--brand-l);color:var(--brand-d);font-size:11px;}
+.st{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em;text-transform:uppercase;}
+.st.done{background:#eef0ef;color:var(--muted);}.st.next{background:var(--brand);color:#fff;}.st.fut{background:var(--blue-l);color:var(--blue);}
+tr.done td{color:var(--muted);}tr.next td{background:var(--brand-l);}
 .foot{margin-top:56px;padding-top:24px;border-top:1px solid var(--line2);font-size:12px;color:var(--muted);}
 @media(max-width:760px){.kpis{grid-template-columns:1fr 1fr;}.rules{grid-template-columns:1fr;}
 table{font-size:11.5px;}thead th,tbody td{padding:7px 6px;}}
@@ -314,13 +330,27 @@ function kpis(){
 }
 document.getElementById('q').addEventListener('input',e=>{q=e.target.value.toLowerCase();render();});
 document.getElementById('ftier').addEventListener('change',e=>{filterTier=e.target.value;render();});
-kpis(); renderShortlist(); render();
+function renderPrazos(){
+  const tb=document.getElementById('tPrazos'); if(!tb||!DATA.prazos) return;
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  let nextMarked=false;
+  tb.innerHTML=DATA.prazos.map(p=>{
+    const fim=new Date(p.fim+'T00:00:00');
+    let cls='fut', label='futuro', rcls='';
+    if(fim < hoje){ cls='done'; label='concluído'; rcls='done'; }
+    else if(!nextMarked){ cls='next'; label='próximo'; rcls='next'; nextMarked=true; }
+    return `<tr class="${rcls}"><td><b>${p.etapa}</b></td><td>${p.quando}</td>
+      <td><span class="st ${cls}">${label}</span></td></tr>`;
+  }).join('');
+}
+kpis(); renderPrazos(); renderShortlist(); render();
 """
 
 
 def render_html(data: dict) -> str:
     payload = json.dumps(
-        {"docentes": data["docentes"]}, ensure_ascii=False, separators=(",", ":")
+        {"docentes": data["docentes"], "prazos": data["prazos"]},
+        ensure_ascii=False, separators=(",", ":"),
     )
     cfg = json.dumps(data["config_calculo"], ensure_ascii=False)
     return f"""<!DOCTYPE html>
@@ -355,6 +385,14 @@ def render_html(data: dict) -> str:
     <div class="kpi b3"><div class="n" id="k3">·</div><div class="u">alcançam PQ-3</div><div class="s">≥30 pts</div></div>
     <div class="kpi b4"><div class="n" id="k4">·</div><div class="u">sem evidência</div><div class="s">sem artigo DOI 21-26</div></div>
   </div>
+</section>
+
+<section class="section">
+  <div class="eyebrow">Cronograma</div>
+  <h2>Prazos do edital</h2>
+  <p class="desc">Etapas conforme a Seção 11 do Edital PRPPG 13/2026. Status calculado em relação à data de hoje.</p>
+  <table><thead><tr><th>Etapa</th><th>Quando</th><th>Status</th></tr></thead>
+  <tbody id="tPrazos"></tbody></table>
 </section>
 
 <section class="section">
