@@ -38,6 +38,7 @@ EXPORTS = ROOT / "data" / "exports" / "docentes"
 SRC_CITACOES = EXPORTS / "openalex_citacoes.json"
 SRC_RANKING = EXPORTS / "ranking_impacto.json"
 SRC_RESEARCHERS = ROOT / "data" / "exports" / "researchers_canonical.json"
+SRC_MESTRADOS = ROOT / "data" / "exports" / "professores-mestrado" / "corpo_docente_mestrados.json"
 OUT_JSON = EXPORTS / "ppp_edital_13_2026.json"
 OUT_HTML = EXPORTS / "ppp_edital_13_2026.html"
 
@@ -49,34 +50,106 @@ def _lattes_id(r: dict) -> str | None:
     return m.group(1) if m else None
 
 
-def carregar_orientacoes() -> dict[str, dict]:
-    """Mapa lattes_id/nome -> orientacoes concluidas (initiative_type 'Advisorship')."""
+def _norm(s: str) -> str:
+    import unicodedata
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower()
+    return " ".join(s.split())
+
+
+def carregar_researchers() -> dict:
+    """Indice de researchers_canonical por lattes_id e nome normalizado.
+
+    researchers_canonical agrega Lattes + SigPesq (grupos de pesquisa, projetos,
+    orientacoes). Por nome, mantem o registro mais rico (mais initiatives)."""
     R = json.loads(SRC_RESEARCHERS.read_text(encoding="utf-8"))
     R = R if isinstance(R, list) else R.get("data") or list(R.values())[0]
     by_lid: dict[str, dict] = {}
     by_name: dict[str, dict] = {}
     for r in R:
         lid = _lattes_id(r)
-        if lid and lid not in by_lid:
-            by_lid[lid] = r
-        by_name.setdefault(r["name"], r)
+        if lid:
+            by_lid.setdefault(lid, r)
+        nm = _norm(r["name"])
+        prev = by_name.get(nm)
+        if prev is None or len(r.get("initiatives") or []) > len(prev.get("initiatives") or []):
+            by_name[nm] = r
     return {"by_lid": by_lid, "by_name": by_name}
 
 
-def contar_orientacoes(r: dict | None) -> int:
+def _itype(i: dict):
+    t = i.get("initiative_type")
+    return t.get("name") if isinstance(t, dict) else t
+
+
+def extrai_sigpesq(r: dict | None) -> dict:
+    """Orientacoes concluidas + grupos + projetos (SigPesq), DEDUPLICADOS por nome.
+
+    O mesmo projeto/orientacao/grupo aparece repetido (Lattes + SigPesq, ou varias
+    linhas). Conta nomes distintos (normalizados)."""
     if not r:
-        return -1  # sem registro -> desconhecido
-    return sum(
-        1 for a in (r.get("advisorships") or [])
-        if a.get("initiative_type") == "Advisorship" and a.get("status") == "Concluded"
-    )
+        return {"orientacoes_concluidas": -1, "grupos_pesquisa": [],
+                "projetos_coordenados": 0, "projetos_total": 0}
+
+    # orientacoes concluidas: nomes distintos
+    orient_nomes = {
+        _norm(a.get("name") or "")
+        for a in (r.get("advisorships") or [])
+        if a.get("initiative_type") == "Advisorship" and a.get("status") == "Concluded" and a.get("name")
+    }
+
+    # grupos de pesquisa: nomes distintos
+    grupos = sorted({
+        g.get("name") for g in (r.get("research_groups") or [])
+        if isinstance(g, dict) and g.get("name")
+    })
+
+    # projetos: agrupa por nome; coordenado se algum registro tem role Coordinator
+    coord_por_nome: dict[str, bool] = {}
+    for i in (r.get("initiatives") or []):
+        if _itype(i) != "Research Project":
+            continue
+        nm = _norm(i.get("name") or "")
+        if not nm:
+            continue
+        coord_por_nome[nm] = coord_por_nome.get(nm, False) or (i.get("role") == "Coordinator")
+
+    return {
+        "orientacoes_concluidas": len(orient_nomes),
+        "grupos_pesquisa": grupos,
+        "projetos_coordenados": sum(1 for v in coord_por_nome.values() if v),
+        "projetos_total": len(coord_por_nome),
+    }
+
+
+def carregar_ppg() -> dict:
+    """Vinculo a PPG stricto sensu por lattes_id e por nome normalizado.
+
+    Retorna lista de vinculos ATIVOS {programa, categoria} de cada docente —
+    base para checar a exigencia de docente de PPG (PQ-1 obrigatorio; PQ-2 ou pleitear).
+    """
+    if not SRC_MESTRADOS.exists():
+        return {"by_lid": {}, "by_name": {}}
+    profs = json.loads(SRC_MESTRADOS.read_text(encoding="utf-8"))["professores"]
+    by_lid: dict[str, list] = {}
+    by_name: dict[str, list] = {}
+    for p in profs:
+        ativos = [
+            {"programa": v["programa"], "categoria": v["categoria"]}
+            for v in p.get("programas", []) if v.get("ativo")
+        ]
+        if not ativos:
+            continue
+        by_lid[p["lattes_id"]] = ativos
+        by_name[_norm(p["nome"])] = ativos
+    return {"by_lid": by_lid, "by_name": by_name}
 
 
 def analisar() -> dict:
     docentes = json.loads(SRC_CITACOES.read_text(encoding="utf-8"))["docentes"]
     ranking = json.loads(SRC_RANKING.read_text(encoding="utf-8"))["ranking"]
     qmap = {r["nome"]: r for r in ranking}
-    idx = carregar_orientacoes()
+    idx = carregar_researchers()
+    ppg = carregar_ppg()
 
     rows = []
     for d in docentes:
@@ -85,14 +158,20 @@ def analisar() -> dict:
             for a in d.get("top_artigos", [])
             if (a.get("ano") or 0) >= ANO_INI and a.get("percentil") is not None
         ]
-        r = idx["by_lid"].get(d["lattes_id"]) or idx["by_name"].get(d["nome"])
+        r = idx["by_lid"].get(d["lattes_id"]) or idx["by_name"].get(_norm(d["nome"]))
+        sig = extrai_sigpesq(r)
+        ppg_vinculos = ppg["by_lid"].get(d["lattes_id"]) or ppg["by_name"].get(_norm(d["nome"])) or []
         q = qmap.get(d["nome"], {})
         rows.append({
             "nome": d["nome"],
             "area": q.get("area", "—"),
             "lattes_id": d["lattes_id"],
             "artigos_2021_2026": artigos,          # BRUTO: HTML calcula os pontos
-            "orientacoes_concluidas": contar_orientacoes(r),  # -1 = sem registro
+            "orientacoes_concluidas": sig["orientacoes_concluidas"],  # -1 = sem registro
+            "grupos_pesquisa": sig["grupos_pesquisa"],      # SigPesq — elegibilidade
+            "projetos_coordenados": sig["projetos_coordenados"],  # SigPesq
+            "projetos_total": sig["projetos_total"],        # SigPesq
+            "ppg_stricto_sensu": ppg_vinculos,     # vinculos ATIVOS [{programa,categoria}]
             "h_index": d.get("h_index", 0),
             "fwci_medio": round(d.get("fwci_medio", 0) or 0, 2),
             "citacoes_total": d.get("citacoes_total", 0),
@@ -167,6 +246,10 @@ color:var(--brand);background:var(--brand-l);padding:6px 14px;border-radius:999p
 .kpi .u{font-size:14px;font-weight:600;margin-top:8px;}.kpi .s{font-size:12px;color:var(--muted);margin-top:4px;}
 .callout{background:var(--amber-l);border:1px solid #ecdfb8;border-left:4px solid var(--amber);border-radius:12px;
 padding:18px 20px;font-size:14px;color:#5e4a12;margin-bottom:22px;}.callout b{color:#3f3206;}
+.disclaimer{background:var(--rose-l);border:1px solid #eccdd5;border-left:5px solid var(--rose);border-radius:12px;
+padding:18px 22px;font-size:14px;color:#7a2536;margin:0 0 8px;}
+.disclaimer b{color:#5c1626;}
+.disclaimer .t{display:block;font-weight:800;font-size:13px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;color:var(--rose);}
 .rules{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 .rule{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow);}
 .rule h3{font-size:15px;font-weight:700;margin-bottom:10px;color:var(--brand-d);}
@@ -235,23 +318,47 @@ function calcular(d){
   // orientacao satisfaz a bar da modalidade alcancada pelo biblio?
   let orientStatus='unk';
   if(oc>=0 && bibTier!=='—'){ orientStatus = (oc>=ORMIN[bibTier]) ? 'ok' : 'warn'; }
-  return {bib, e, det, hasAB, hasAD, bibTier, oc, orientStatus};
+  const ppg = d.ppg_stricto_sensu || [];
+  const ppgOk = ppg.length>0;
+  const grupos = d.grupos_pesquisa || [];
+  const temGrupo = grupos.length>0;
+  const projCoord = d.projetos_coordenados||0;
+  const projTotal = d.projetos_total||0;
+  return {bib, e, det, hasAB, hasAD, bibTier, oc, orientStatus, ppg, ppgOk, grupos, temGrupo, projCoord, projTotal};
 }
 const TORDER={'PQ-1':1,'PQ-2':2,'PQ-3':3,'—':9};
 
 let ROWS = DATA.docentes.map(d=>({...d, c:calcular(d)}));
 
 // --- categorias para as shortlists ---
+// PQ-1 exige vínculo a PPG stricto sensu (obrigatório); PQ-2 pode pleitear; PQ-3 não exige.
 function categoria(r){
   const c=r.c;
   if(c.bibTier==='—') return 'improvavel';
-  if(c.oc>=0 && c.oc>=ORMIN[c.bibTier]) return 'confirmado';
+  const orientOk = c.oc>=0 && c.oc>=ORMIN[c.bibTier];
+  const ppgOk = (c.bibTier!=='PQ-1') || c.ppgOk;
+  if(orientOk && ppgOk && c.temGrupo) return 'confirmado';
   return 'chance';
 }
 function motivo(r){
-  const c=r.c;
-  if(c.oc<0) return 's/ registro orient.';
-  return `orient. ${c.oc} &lt; ${ORMIN[c.bibTier]}`;
+  const c=r.c; const m=[];
+  if(!c.temGrupo) m.push('sem grupo de pesquisa');
+  if(c.oc<0) m.push('s/ registro orient.');
+  else if(c.oc<ORMIN[c.bibTier]) m.push(`orient. ${c.oc} &lt; ${ORMIN[c.bibTier]}`);
+  if(c.bibTier==='PQ-1' && !c.ppgOk) m.push('sem vínculo PPG');
+  return m.join(' · ') || '—';
+}
+function ppgCell(c){
+  if(!c.ppg || !c.ppg.length) return '<span class="unk">—</span>';
+  return c.ppg.map(v=>`<span class="st ok" title="${v.categoria}">${v.programa}</span>`).join(' ');
+}
+function grupoCell(c){
+  return c.temGrupo ? '<span class="ok" title="'+c.grupos.join(' · ')+'">✓</span>'
+                    : '<span class="warn">⚠</span>';
+}
+function projCell(c){
+  return c.projCoord>0 ? '<span class="ok" title="'+c.projCoord+' registros de projeto coordenado">✓</span>'
+                       : '<span class="unk">—</span>';
 }
 function cmpShort(a,b){
   const t=TORDER[a.c.bibTier]-TORDER[b.c.bibTier]; if(t) return t;
@@ -264,13 +371,13 @@ function renderShortlist(){
   tc.innerHTML=conf.map((r,i)=>`<tr><td class="num">${i+1}</td>
     <td class="name">${r.nome}<small>${r.area}</small></td>
     <td>${pill(r.c.bibTier)}</td><td class="num">${r.c.bib}</td>
-    <td class="num"><span class="ok">${r.c.oc} ✓</span></td><td class="num">${r.h_index}</td>
-    <td class="unk" style="font-size:11px">conferir PPG${r.c.bibTier==='PQ-1'?' + colab. intl':''}</td></tr>`).join('');
+    <td class="num"><span class="ok">${r.c.oc} ✓</span></td><td>${ppgCell(r.c)}</td><td class="num">${r.h_index}</td>
+    <td class="unk" style="font-size:11px">${r.c.bibTier==='PQ-1'?'colab. internacional':'—'}</td></tr>`).join('');
   const th=document.getElementById('tChance');
   th.innerHTML=chance.map((r,i)=>`<tr><td class="num">${i+1}</td>
     <td class="name">${r.nome}<small>${r.area}</small></td>
     <td>${pill(r.c.bibTier)}</td><td class="num">${r.c.bib}</td>
-    <td class="num">${r.c.oc<0?'<span class="unk">s/ reg.</span>':r.c.oc}</td><td class="num">${r.h_index}</td>
+    <td class="num">${r.c.oc<0?'<span class="unk">s/ reg.</span>':r.c.oc}</td><td>${ppgCell(r.c)}</td><td class="num">${r.h_index}</td>
     <td class="warn" style="font-size:11px">${motivo(r)}</td></tr>`).join('');
   document.getElementById('cConf').textContent=conf.length;
   document.getElementById('cChance').textContent=chance.length;
@@ -312,6 +419,9 @@ function render(){
       <td class="num">${est}</td>
       <td class="num">${c.det.length}</td>
       <td class="num">${orientCell(c)}</td>
+      <td class="num">${grupoCell(c)}</td>
+      <td class="num">${projCell(c)}</td>
+      <td>${ppgCell(c)}</td>
       <td class="num">${r.h_index}</td>
       <td class="num">${r.fwci_medio}</td>
       <td class="num">${r.qualis_score_all_time}</td>`;
@@ -319,10 +429,15 @@ function render(){
     // detail row
     const dr=document.createElement('tr'); dr.className='detail'; dr.style.display='none';
     const arts=c.det.map(a=>`<span class="art">${a.ano} · p${a.perc} → ${a.pts}pt (${a.estrato})</span>`).join(' ')||'sem artigo DOI 2021–2026 no OpenAlex';
-    dr.innerHTML=`<td></td><td colspan="9"><b>Cálculo bibliográfico:</b> ${arts}<br>
+    const ppgTxt = (c.ppg && c.ppg.length) ? c.ppg.map(v=>`${v.programa} (${v.categoria})`).join(', ') : 'sem vínculo identificado';
+    const grpTxt = c.temGrupo ? c.grupos.join(', ') : 'nenhum identificado (elegibilidade!)';
+    dr.innerHTML=`<td></td><td colspan="12"><b>Cálculo bibliográfico:</b> ${arts}<br>
       Soma = <b>${c.bib} pts</b> · estratos A/B/C/D/E = ${est} ·
       orientações concluídas = ${c.oc<0?'s/ registro':c.oc} ·
-      <i>falta verificar manual: vínculo PPG stricto sensu${c.bibTier==='PQ-1'?' + colaboração internacional':''}</i></td>`;
+      grupo(s) de pesquisa (SigPesq) = <b>${grpTxt}</b> ·
+      projeto coordenado = <b>${c.projCoord>0?'sim':'não'}</b> (${c.projCoord} registros Lattes+SigPesq, pode haver duplicação) ·
+      PPG stricto sensu = <b>${ppgTxt}</b> ·
+      <i>falta verificar manual: captação/recursos do projeto${c.bibTier==='PQ-1'?' + colaboração internacional':''}</i></td>`;
     tb.appendChild(dr);
     tr.querySelector('.name').onclick=()=>{dr.style.display = dr.style.display==='none'?'table-row':'none';};
   });
@@ -390,8 +505,9 @@ def render_html(data: dict) -> str:
 <header class="hero">
   <span class="kicker">PRPPG / IFES · Diretoria de Pesquisa</span>
   <h1>Edital 13/2026 — Pesquisador de Produtividade</h1>
-  <p class="lede">Quem dos {data['total_docentes']} docentes consegue, pelo Lattes, atingir o piso
-  de pontuação bibliográfica e de orientações de cada modalidade.</p>
+  <p class="lede"><b>Simulação</b> de quais dos {data['total_docentes']} docentes conseguiriam, pelo Lattes,
+  atingir o piso de pontuação bibliográfica e de orientações de cada modalidade. Estimativa com base em
+  dados públicos (OpenAlex) — sujeita a erros.</p>
   <div class="meta">
     <span><b>Vagas:</b> 25</span>
     <span><b>Produção contada:</b> {data['periodo_producao']}</span>
@@ -399,6 +515,17 @@ def render_html(data: dict) -> str:
     <span><b>Gerado em:</b> {data['gerado_em']}</span>
   </div>
 </header>
+
+<div class="disclaimer">
+  <span class="t">⚠ Simulação — uso interno · não é resultado oficial</span>
+  Esta análise é uma <b>simulação</b> e <b>pode conter erros e imprecisões</b>. Os números são
+  <b>estimativas</b> (piso) calculadas a partir de dados do <b>OpenAlex</b> (citações casadas por DOI do
+  currículo Lattes), do <b>Qualis</b>, do <b>SigPesq</b> (grupos de pesquisa e projetos) e do corpo
+  docente do PPComp/PROPECAUT — não substitui a avaliação oficial da comissão. <b>Não</b> é o resultado
+  do edital, <b>não</b> reflete a decisão da PRPPG e <b>não deve ser usada para classificar, comparar ou
+  tomar decisões sobre docentes</b>. Cobertura depende de DOIs no Lattes e da atualização do SigPesq, e
+  pode estar incompleta. Em caso de divergência, vale o currículo Lattes e o edital oficial.
+</div>
 
 <section class="section">
   <div class="eyebrow">Panorama</div>
@@ -492,8 +619,11 @@ def render_html(data: dict) -> str:
     <b>Como ler.</b> Pontuação = <b>piso</b>: 50 × (artigos top-citados com DOI de 2021–2026), via percentil
     OpenAlex (proxy do percentil WoS/Scopus da Tabela 1). Subestima quem publica muito ou teve pico antes de
     2021, e ignora produção sem DOI (livros, capítulos, eventos, periódicos nacionais), que também pontua.
-    Orientações = total concluído (nível IC/stricto sensu não consta nos dados). <b>Vínculo a PPG stricto
-    sensu</b> e <b>colaboração internacional</b> (exigências PQ-1/PQ-2) <b>não estão nos dados</b> → conferir Lattes.
+    Orientações = total concluído (nível IC/stricto sensu não consta nos dados). <b>Grupo de pesquisa</b> e
+    <b>projetos coordenados</b> vêm do <b>SigPesq</b> — grupo ativo é exigência de elegibilidade (⚠ = sem grupo
+    identificado). <b>Vínculo a PPG stricto sensu</b> é verificado pelo corpo docente do <b>PPComp</b>/<b>PROPECAUT</b>
+    (obrigatório no PQ-1; no PQ-2 pode-se pleitear). Restam manuais: <b>captação de recursos</b> do projeto e
+    <b>colaboração internacional</b> (PQ-1).
   </div>
   <div class="eyebrow">Regras aplicadas no cálculo</div>
   <h2>Critérios do edital usados pela página</h2>
@@ -512,10 +642,11 @@ def render_html(data: dict) -> str:
       <li><b>PQ-3</b> ≥ 3 · <b>PQ-2</b> ≥ 6 · <b>PQ-1</b> ≥ 9</li>
       <li>(ou rota stricto sensu: 1 / 2 / 3)</li>
     </ul></div>
-    <div class="rule"><h3>Exigências fora destes dados</h3><ul>
-      <li>Vínculo a PPG stricto sensu (PQ-2/PQ-1)</li>
-      <li>Colaboração internacional (PQ-1)</li>
-      <li>Proposta a edital CNPq/FAPES + captação de recursos</li>
+    <div class="rule"><h3>Vínculo a PPG stricto sensu (verificado)</h3><ul>
+      <li><b>PQ-1</b>: docente de PPG é <b>obrigatório</b></li>
+      <li><b>PQ-2</b>: participar <b>ou pleitear</b> credenciamento</li>
+      <li>Fonte: corpo docente <b>PPComp</b> + <b>PROPECAUT</b></li>
+      <li>Ainda manual: colaboração internacional · proposta CNPq/FAPES</li>
     </ul></div>
   </div>
 </section>
@@ -526,7 +657,7 @@ def render_html(data: dict) -> str:
   <p class="desc">Atingem o piso bibliográfico <b>e</b> a quantidade mínima de orientações concluídas
   da modalidade. Risco baixo — falta só confirmar vínculo a PPG (e colaboração internacional no PQ-1).</p>
   <table><thead><tr><th class="num">#</th><th>Docente / Área</th><th>Modalidade</th>
-    <th class="num">Piso pts</th><th class="num">Orient.</th><th class="num">h</th><th>Falta conferir</th>
+    <th class="num">Piso pts</th><th class="num">Orient.</th><th>PPG stricto sensu</th><th class="num">h</th><th>Falta conferir</th>
   </tr></thead><tbody id="tConf"></tbody></table>
 </section>
 
@@ -537,7 +668,7 @@ def render_html(data: dict) -> str:
   abaixo do mínimo <b>ou ausentes nos dados</b>. Muitos provavelmente qualificam após conferência do
   Lattes (orientações sem registro, projetos, produção sem DOI). Esta é a lista a investigar primeiro.</p>
   <table><thead><tr><th class="num">#</th><th>Docente / Área</th><th>Modalidade</th>
-    <th class="num">Piso pts</th><th class="num">Orient.</th><th class="num">h</th><th>Pendência</th>
+    <th class="num">Piso pts</th><th class="num">Orient.</th><th>PPG stricto sensu</th><th class="num">h</th><th>Pendência</th>
   </tr></thead><tbody id="tChance"></tbody></table>
 </section>
 
@@ -560,6 +691,9 @@ def render_html(data: dict) -> str:
     <th class="num">A/B/C/D/E</th>
     <th class="num">Art 21-26</th>
     <th class="num" onclick="setSort('oc')">Orient.</th>
+    <th class="num">Grupo</th>
+    <th class="num">Proj.</th>
+    <th>PPG</th>
     <th class="num" onclick="setSort('h_index')">h</th>
     <th class="num" onclick="setSort('fwci_medio')">FWCI</th>
     <th class="num" onclick="setSort('qualis_score_all_time')">Qualis*</th>
@@ -569,7 +703,8 @@ def render_html(data: dict) -> str:
 <footer class="foot">
   * Qualis = score bibliográfico all-time (contexto de capacidade, fora da janela 2021-2026).
   Fontes: Edital PRPPG 13/2026 · OpenAlex (citações casadas por DOI do Lattes) · ranking_impacto.json ·
-  researchers_canonical.json (orientações). Cálculo executado em JavaScript nesta página.
+  researchers_canonical.json + SigPesq (orientações, grupos de pesquisa, projetos) · corpo docente PPComp e
+  PROPECAUT (vínculo a PPG stricto sensu). Cálculo executado em JavaScript nesta página.
 </footer>
 
 <script>const CFG={cfg};const DATA={payload};</script>
