@@ -193,6 +193,16 @@ td.name small{display:block;font-weight:400;color:var(--muted);font-size:11px;}
 .calc{font-size:11px;color:var(--muted);font-family:var(--serif);}
 .detail td{background:#fbfdfb;font-size:12px;color:var(--ink2);}
 .detail .art{display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;border-radius:8px;background:var(--brand-l);color:var(--brand-d);font-size:11px;}
+.steps{display:flex;flex-direction:column;gap:12px;counter-reset:st;}
+.step{display:flex;gap:16px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);position:relative;}
+.step::before{counter-increment:st;content:counter(st);flex:0 0 36px;height:36px;border-radius:50%;background:var(--brand);color:#fff;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;}
+.step .b{flex:1;}
+.step .b h3{font-size:15.5px;font-weight:700;margin-bottom:5px;color:var(--ink);}
+.step .b p{font-size:13.5px;color:var(--ink2);}
+.tagx{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:6px;margin-left:8px;vertical-align:middle;}
+.tagx.elim{background:var(--rose-l);color:var(--rose);}
+.tagx.clas{background:var(--blue-l);color:var(--blue);}
+.tagx.auto{background:var(--brand-l);color:var(--brand-d);}
 .st{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em;text-transform:uppercase;}
 .st.done{background:#eef0ef;color:var(--muted);}.st.next{background:var(--brand);color:#fff;}.st.fut{background:var(--blue-l);color:var(--blue);}
 tr.done td{color:var(--muted);}tr.next td{background:var(--brand-l);}
@@ -399,6 +409,72 @@ def render_html(data: dict) -> str:
     <div class="kpi b2"><div class="n" id="k2">·</div><div class="u">alcançam PQ-2</div><div class="s">≥50 pts · ≥1 A-D</div></div>
     <div class="kpi b3"><div class="n" id="k3">·</div><div class="u">alcançam PQ-3</div><div class="s">≥30 pts</div></div>
     <div class="kpi b4"><div class="n" id="k4">·</div><div class="u">sem evidência</div><div class="s">sem artigo DOI 21-26</div></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="eyebrow">Benefício</div>
+  <h2>O que ganha quem for contemplado</h2>
+  <p class="desc">O PPP concede <b>carga horária semanal protegida para pesquisa</b> — liberação de parte
+  da carga de ensino, por 36 meses — conforme a modalidade. <b>Não é bolsa financeira</b> neste edital;
+  o ganho é tempo dedicado, designado por portaria do Reitor.</p>
+  <div class="kpis">
+    <div class="kpi"><div class="n">16–20h</div><div class="u">PQ-1 · por semana</div><div class="s">dedicadas à pesquisa</div></div>
+    <div class="kpi b2"><div class="n">12–15h</div><div class="u">PQ-2 · por semana</div><div class="s">dedicadas à pesquisa</div></div>
+    <div class="kpi b3"><div class="n">8–11h</div><div class="u">PQ-3 · por semana</div><div class="s">dedicadas à pesquisa</div></div>
+    <div class="kpi b4"><div class="n">36</div><div class="u">meses de vigência</div><div class="s">+6 meses extra p/ metas</div></div>
+  </div>
+  <div class="rules" style="margin-top:18px">
+    <div class="rule"><h3>Vantagens diretas</h3><ul>
+      <li><b>Tempo de pesquisa</b> garantido na carga horária (Quadro 2), liberado do ensino</li>
+      <li><b>Portaria</b> de designação do Reitor — vínculo formal como Pesquisador de Produtividade do IFES</li>
+      <li><b>Concentração de aulas</b> possível p/ viabilizar a pesquisa (Seção 9.1.2)</li>
+      <li>Equipamentos comprados com fomento externo patrimoniados no campus</li>
+    </ul></div>
+    <div class="rule"><h3>Ganhos estratégicos</h3><ul>
+      <li>Trampolim para <b>bolsa PQ do CNPq/FAPES</b> (exigência de submissão vira vantagem)</li>
+      <li>Base para <b>criar / credenciar-se</b> em programas de pós-graduação stricto sensu</li>
+      <li>Prioridade institucional e visibilidade na produção do campus</li>
+      <li>Colaboração formal com outros campi e parceiros internacionais (PQ-1)</li>
+    </ul></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="eyebrow">Como ser contemplado</div>
+  <h2>Regras para ser contemplado</h2>
+  <p class="desc">Etapas em ordem. As <span class="tagx elim">eliminatória</span> reprovam quem não cumpre;
+  a <span class="tagx clas">classificatória</span> ordena os aprovados pelas 25 vagas. Há ainda um caminho
+  <span class="tagx auto">automático</span>.</p>
+  <div class="steps">
+    <div class="step"><div class="b"><h3>Elegibilidade <span class="tagx elim">eliminatória</span></h3>
+      <p>Servidor <b>permanente</b> do IFES, em <b>grupo de pesquisa ativo, atualizado e certificado</b> no
+      Diretório CNPq. Sem pendência com a PRPPG, sem punição disciplinar/ética nos últimos 5 anos, sem
+      afastamento &gt; 90 dias previsto.</p></div></div>
+    <div class="step"><div class="b"><h3>Inscrição completa no prazo <span class="tagx elim">eliminatória</span></h3>
+      <p>Via <b>SIGPesq</b>, anexar: <b>projeto de pesquisa (PDF)</b>, <b>currículo Lattes (PDF)</b>,
+      Termo de Anuência (Anexo I, assinado pela chefia) e Termo de Compromisso (Anexo II). Documentação
+      incompleta ou fora do prazo (01–14/06/2026) = desclassificado. Sem Lattes = nota zero no currículo.</p></div></div>
+    <div class="step"><div class="b"><h3>Projeto com mérito ≥ 60% <span class="tagx elim">eliminatória</span></h3>
+      <p>O projeto é avaliado em 9 critérios (título, resumo, relevância, resultados, revisão, objetivos,
+      metodologia, referências, cronograma). Média &lt; 60% <b>elimina</b> a proposta. Deve ser pesquisa
+      aplicada ao arranjo produtivo regional, com colaboração de pesquisador de outro campus.</p></div></div>
+    <div class="step"><div class="b"><h3>Classificação por pontuação <span class="tagx clas">classificatória</span></h3>
+      <p>Nota final = <b>80% currículo Lattes + 20% projeto</b>. Currículo pontua por artigos (percentil
+      WoS/Scopus), livros, eventos, patentes, orientações, captação de recursos etc. (Quadro 4). A comissão
+      publica a lista <b>decrescente por modalidade</b> (PQ-1/2/3).</p></div></div>
+    <div class="step"><div class="b"><h3>Caber nas 25 vagas <span class="tagx clas">classificatória</span></h3>
+      <p>Vagas distribuídas por demanda entre modalidades e grandes áreas (mín. 1/área), <b>teto de 2
+      pesquisadores por grande área por campus</b>. Prioridade de vaga: <b>1º</b> bolsista PQ CNPq, <b>2º</b>
+      bolsista FAPES, <b>3º</b> projeto aprovado em agência de fomento, <b>4º</b> demais inscritos.</p></div></div>
+    <div class="step"><div class="b"><h3>Atalho: entrada automática <span class="tagx auto">automática</span></h3>
+      <p>Bolsista de produtividade <b>PQ do CNPq ou da FAPES</b>, ou quem tem <b>projeto aprovado em agência
+      oficial de fomento com captação de recursos</b>, é contemplado <b>sem avaliação de currículo/projeto</b> —
+      basta comprovar, escolher a modalidade e cumprir os requisitos mínimos do Quadro 3.</p></div></div>
+    <div class="step"><div class="b"><h3>Compromisso após aprovação (Quadro 3)</h3>
+      <p>Pontuação bibliográfica mínima — <b>PQ-3: 30 · PQ-2: 50 · PQ-1: 100 pts</b> — mais orientações
+      concluídas, submissão a edital CNPq/FAPES, vínculo a PPG stricto sensu (PQ-2/PQ-1) e colaboração
+      internacional (PQ-1), a entregar nos 36 meses. Não cumprir = impedido de editais da PRPPG por até 60 meses.</p></div></div>
   </div>
 </section>
 
