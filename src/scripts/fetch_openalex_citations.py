@@ -83,7 +83,8 @@ def fetch_citations(dois: list[str], sleep: float = 0.4) -> dict:
         flt = "doi:" + "|".join(chunk)
         url = ("https://api.openalex.org/works?per-page=200&mailto=" + MAILTO
                + "&select=doi,cited_by_count,title,publication_year,fwci,"
-               + "cited_by_percentile_year,counts_by_year&filter=" + quote(flt, safe="|:/."))
+               + "cited_by_percentile_year,counts_by_year,authorships&filter="
+               + quote(flt, safe="|:/."))
         try:
             data = _get(url)
         except Exception as exc:
@@ -100,13 +101,15 @@ def fetch_citations(dois: list[str], sleep: float = 0.4) -> dict:
                              "title": w.get("title", ""),
                              "year": w.get("publication_year"),
                              "fwci": w.get("fwci"),
-                             "pct": pct, "recent": recent}
+                             "pct": pct, "recent": recent,
+                             "n_authors": len(w.get("authorships") or []) or 1}
         print(f"  lote {i//BATCH+1}/{(len(uniq)+BATCH-1)//BATCH}: {len(chunk)} DOIs → {len(data.get('results',[]))} achados")
         time.sleep(sleep)
     return out
 
 
 def h_index(cits: list[int]) -> int:
+    """Hirsch (2005): maior h com h artigos de >= h citações cada."""
     h = 0
     for i, c in enumerate(sorted(cits, reverse=True), 1):
         if c >= i:
@@ -114,6 +117,18 @@ def h_index(cits: list[int]) -> int:
         else:
             break
     return h
+
+
+def g_index(cits: list[int]) -> int:
+    """Egghe (2006): maior g tal que os g artigos mais citados somem >= g²
+    citações. Dá mais peso aos trabalhos muito citados que o h-index."""
+    s = sorted(cits, reverse=True)
+    acc = best = 0
+    for g, c in enumerate(s, 1):
+        acc += c
+        if acc >= g * g:
+            best = g
+    return best
 
 
 def main() -> None:
@@ -157,12 +172,37 @@ def main() -> None:
         top10 = sum(1 for p in pcts if p >= 90)
         top1 = sum(1 for p in pcts if p >= 99)
         recent_cit = sum(c.get("recent", 0) for _, c in found)
+        # h, g (núcleo citado e concentração de impacto)
+        h = h_index(cits)
+        g = g_index(cits)
+        # m-index = h / idade acadêmica (anos desde a 1ª publicação com DOI no OpenAlex).
+        # Proxy: usa só artigos com DOI — pode subestimar a idade de quem publicou antes
+        # de adotar DOI. Corrige o viés de antiguidade do h (Hirsch, 2005).
+        anos_found = [c.get("year") for _, c in found if c.get("year")]
+        idade = (datetime.now().year - min(anos_found)) if anos_found else 0
+        m_idx = round(h / idade, 2) if idade else 0.0
+        # citações por artigo (intensidade média) + mediana (robusta a 1 artigo viral)
+        cpp = round(total / len(found), 1) if found else 0.0
+        cit_med = _median(cits)
+        # crédito fracionado por autoria (corrige hipercoautoria): 1/n_autores por
+        # artigo e citações/n_autores por artigo (Waltman & van Eck, 2015).
+        n_auts = [max(int(c.get("n_authors") or 1), 1) for _, c in found]
+        art_frac = round(sum(1.0 / n for n in n_auts), 2) if n_auts else 0.0
+        cit_frac = round(sum(c["cit"] / max(int(c.get("n_authors") or 1), 1)
+                             for _, c in found), 1) if found else 0.0
         rows.append({
             "nome": nome, "lattes_id": lid,
             "artigos_com_doi": len(set(dois)),
             "encontrados_openalex": len(found),
             "citacoes_total": total,
-            "h_index": h_index(cits),
+            "h_index": h,
+            "g_index": g,
+            "m_index": m_idx,
+            "idade_academica": idade,
+            "citacoes_por_artigo": cpp,
+            "citacoes_mediana": cit_med,
+            "artigos_fracionados": art_frac,
+            "citacoes_fracionadas": cit_frac,
             "i10": sum(1 for c in cits if c >= 10),
             "mais_citado": max(cits) if cits else 0,
             "fwci_medio": fwci_mean,
@@ -211,7 +251,9 @@ def main() -> None:
     print("Top 8 por citações (OpenAlex):")
     for r in rows[:8]:
         print(f"  {r['rank']:>2} {r['nome'][:34]:<34} cit={r['citacoes_total']:<5} h={r['h_index']:<3} "
-              f"i10={r['i10']:<3} ({r['encontrados_openalex']}/{r['artigos_com_doi']} DOIs)")
+              f"g={r['g_index']:<3} m={r['m_index']:<5} i10={r['i10']:<3} "
+              f"cit/art={r['citacoes_por_artigo']:<5} fr={r['citacoes_fracionadas']:<6} "
+              f"({r['encontrados_openalex']}/{r['artigos_com_doi']} DOIs)")
 
 
 if __name__ == "__main__":
