@@ -1,14 +1,103 @@
 import argparse
+import json
 import os
-import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
+EXPECTED_TOP_LEVEL = {
+    "organizations_canonical.json",
+    "campuses_canonical.json",
+    "knowledge_areas_canonical.json",
+    "researchers_canonical.json",
+    "research_groups_canonical.json",
+    "initiatives_canonical.json",
+    "initiative_types_canonical.json",
+    "articles_canonical.json",
+    "advisorships_canonical.json",
+    "ingestion_runs_canonical.json",
+    "source_records_canonical.json",
+    "entity_matches_canonical.json",
+    "attribute_assertions_canonical.json",
+    "entity_change_logs_canonical.json",
+    "fellowships_canonical.json",
+    "researchers_tracking.json",
+    "initiatives_tracking.json",
+    "advisorships_tracking.json",
+    "researchers_only_canonical.json",
+    "students_canonical.json",
+    "outside_ifes_canonical.json",
+    "null_researchers_canonical.json",
+    "advisorship_analytics.json",
+    "knowledge_areas_mart.json",
+    "initiatives_analytics_mart.json",
+    "people_relationship_graph.json",
+    "students_relationship_graph.json",
+    "researchers_only_relationship_graph.json",
+    "outside_ifes_relationship_graph.json",
+    "null_researchers_relationship_graph.json",
+    "research_group_relationship_graphs_manifest.json",
+    "research_group_membership_graphs_manifest.json",
+    "people_collaboration_graph.json",
+    "researchers_only_collaboration_graph.json",
+    "students_collaboration_graph.json",
+    "outside_ifes_collaboration_graph.json",
+    "null_researchers_collaboration_graph.json",
+}
+
+SUBGRAPH_DIR = "research_group_relationship_graphs"
+
+
+def _validate_zip(archive_path: str) -> list[str]:
+    errors = []
+    with ZipFile(archive_path) as zf:
+        names = zf.namelist()
+        top_level = {n.rstrip("/") for n in names if "/" not in n and n}
+
+        missing = EXPECTED_TOP_LEVEL - top_level
+        if missing:
+            errors.append(f"Missing expected files: {sorted(missing)}")
+
+        extra = top_level - EXPECTED_TOP_LEVEL
+        if extra:
+            errors.append(f"Unexpected top-level files: {sorted(extra)}")
+
+        sub_files = [
+            n for n in names if n.startswith(f"{SUBGRAPH_DIR}/") and n.endswith(".json")
+        ]
+        if not sub_files:
+            errors.append(f"No JSON files found in {SUBGRAPH_DIR}/")
+
+        if "research_group_relationship_graphs_manifest.json" in names:
+            manifest = json.loads(
+                zf.read("research_group_relationship_graphs_manifest.json")
+            )
+            manifest_count = len(manifest["graphs"])
+            if manifest_count != len(sub_files):
+                errors.append(
+                    f"Relationship manifest lists {manifest_count} graphs, "
+                    f"but {SUBGRAPH_DIR}/ has {len(sub_files)} files"
+                )
+
+    return errors
+
+
+def _clean_symlinks(output_path: Path) -> None:
+    for child in output_path.iterdir():
+        if child.is_symlink():
+            try:
+                target = child.readlink()
+                print(f"Removing symlink: {child.name} -> {target}")
+                child.unlink()
+            except OSError:
+                pass
+
 
 def create_export_zip(output_dir: str, dry_run: bool = False) -> str:
     output_path = Path(output_dir).resolve()
+
+    _clean_symlinks(output_path)
 
     json_files = sorted(output_path.rglob("*.json"))
 
@@ -36,6 +125,15 @@ def create_export_zip(output_dir: str, dry_run: bool = False) -> str:
 
     print(f"Archive created: {archive_path}")
 
+    errors = _validate_zip(str(archive_path))
+    if errors:
+        print("ZIP validation errors:")
+        for e in errors:
+            print(f"  - {e}")
+        archive_path.unlink()
+        print(f"Archive deleted due to validation failures.")
+        return ""
+
     for f in json_files:
         f.unlink()
 
@@ -46,6 +144,8 @@ def create_export_zip(output_dir: str, dry_run: bool = False) -> str:
             os.rmdir(dirpath)
         except OSError:
             pass
+
+    _clean_symlinks(output_path)
 
     print(f"Loose JSON files removed. Only {archive_name} remains.")
 

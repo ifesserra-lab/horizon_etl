@@ -78,12 +78,6 @@ jobs:
       - name: Run weekly flows
         run: make weekly-flows
 
-      - name: Compress large export files
-        if: always()
-        run: |
-          find data/ -type f -size +10M \
-            -exec sh -c 'for f; do zip -m -j "$f.zip" "$f"; done' sh {} +
-
       - name: Upload ETL artifacts
         if: always()
         uses: actions/upload-artifact@v4

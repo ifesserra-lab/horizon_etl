@@ -8,12 +8,13 @@ Armazena os arquivos brutos baixados das fontes, principalmente SigPesq e Lattes
 
 ### `data/exports/`
 
-Contem os JSONs canonicos e marts gerados pelo pipeline. Exemplos:
+Contem um arquivo ZIP unico por execucao com todos os JSONs canonicos, grafos e
+marts gerados pelo pipeline. O ZIP e produzido automaticamente ao final de cada
+pipeline (`make full-refresh`, `make weekly-flows`, `make export-canonical`) com
+o nome `canonical_export_<YYYYMMDD_HHMMSS>.zip`.
 
-- `initiatives_canonical.json`
-- `advisorships_canonical.json`
-- `knowledge_areas_mart.json`
-- `initiatives_analytics_mart.json`
+A estrutura completa do ZIP esta documentada no
+[README](../README.md#estrutura-do-zip-de-export-canonico).
 
 ### `data/reports/`
 

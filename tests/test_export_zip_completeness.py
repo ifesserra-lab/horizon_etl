@@ -46,6 +46,8 @@ EXPECTED_TOP_LEVEL = {
     "null_researchers_canonical.json",
     # Analytics marts
     "advisorship_analytics.json",
+    "knowledge_areas_mart.json",
+    "initiatives_analytics_mart.json",
     # Relationship graphs
     "people_relationship_graph.json",
     "students_relationship_graph.json",
