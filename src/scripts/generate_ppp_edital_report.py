@@ -250,6 +250,14 @@ padding:18px 20px;font-size:14px;color:#5e4a12;margin-bottom:22px;}.callout b{co
 padding:18px 22px;font-size:14px;color:#7a2536;margin:0 0 8px;}
 .disclaimer b{color:#5c1626;}
 .disclaimer .t{display:block;font-weight:800;font-size:13px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;color:var(--rose);}
+.motiv{background:linear-gradient(135deg,var(--brand-l),#f0f8f2);border:1px solid #bfe0cc;border-left:5px solid var(--brand);
+border-radius:14px;padding:22px 24px;margin-top:18px;box-shadow:var(--shadow);}
+.motiv .t{display:block;font-family:var(--serif);font-weight:700;font-size:19px;color:var(--brand-d);margin-bottom:10px;}
+.motiv p{font-size:14px;color:var(--ink2);margin-bottom:10px;}
+.motiv b{color:var(--ink);}
+.motiv ul{list-style:none;font-size:13.5px;color:var(--ink2);margin:6px 0 4px;}
+.motiv li{padding:4px 0 4px 22px;position:relative;}
+.motiv li::before{content:'→';position:absolute;left:0;color:var(--brand);font-weight:800;}
 .rules{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 .rule{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow);}
 .rule h3{font-size:15px;font-weight:700;margin-bottom:10px;color:var(--brand-d);}
@@ -698,6 +706,26 @@ def render_html(data: dict) -> str:
     <th class="num" onclick="setSort('fwci_medio')">FWCI</th>
     <th class="num" onclick="setSort('qualis_score_all_time')">Qualis*</th>
   </tr></thead><tbody id="tbody"></tbody></table>
+
+  <div class="motiv">
+    <span class="t">🚀 Como chegar lá — todo currículo começou do zero</span>
+    <p>A pontuação <b>não exige publicar muito, exige publicar bem</b>. Um único artigo no
+    <b>top 12,5%</b> de citações (percentil ≥ 87,5) já vale <b>50 pontos</b> — <b>dois</b> garantem o
+    piso do PQ-1. A janela é de <b>5 anos</b> e a produção é <b>cumulativa</b>: um passo por semestre
+    transforma o currículo.</p>
+    <p>Quem está em <b>"com chance"</b> normalmente está a <b>1–2 artigos</b>, a um <b>registro de
+    orientação</b> ou a um <b>vínculo de PPG</b> de virar <b>"confirmado"</b>. Caminhos que somam:</p>
+    <ul>
+      <li><b>Mire periódicos Q1/Q2</b> (alto percentil/FWCI) — qualidade rende mais que quantidade</li>
+      <li><b>Publique com seus orientandos</b> — conta como produção qualificada com discentes</li>
+      <li><b>Conclua orientações</b> (IC, mestrado) — cada uma soma e cumpre o requisito de entrega</li>
+      <li><b>Some trabalhos completos em eventos</b>, capítulos e livros (Tabela 2)</li>
+      <li><b>Coordene um projeto</b> com captação e busque <b>colaboração</b> entre campi e internacional</li>
+      <li><b>Entre/ative-se num grupo de pesquisa</b> certificado — é a porta de elegibilidade</li>
+    </ul>
+    <p>Não é sobre estar pronto hoje — é sobre <b>dar o próximo passo na sua linha de pesquisa</b>.
+    O melhor momento para começar foi ontem; o segundo melhor é agora. 💪</p>
+  </div>
 </section>
 
 <footer class="foot">
