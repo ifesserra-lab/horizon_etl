@@ -333,17 +333,32 @@ document.getElementById('ftier').addEventListener('change',e=>{filterTier=e.targ
 function renderPrazos(){
   const tb=document.getElementById('tPrazos'); if(!tb||!DATA.prazos) return;
   const hoje=new Date(); hoje.setHours(0,0,0,0);
-  let nextMarked=false;
+  const DIA=86400000;
+  let nextMarked=false, nextEtapa=null, nextDias=null;
   tb.innerHTML=DATA.prazos.map(p=>{
     const fim=new Date(p.fim+'T00:00:00');
     let cls='fut', label='futuro', rcls='';
     if(fim < hoje){ cls='done'; label='concluído'; rcls='done'; }
-    else if(!nextMarked){ cls='next'; label='próximo'; rcls='next'; nextMarked=true; }
+    else if(!nextMarked){
+      cls='next'; label='em andamento'; rcls='next'; nextMarked=true;
+      nextEtapa=p.etapa; nextDias=Math.round((fim-hoje)/DIA);
+    }
     return `<tr class="${rcls}"><td><b>${p.etapa}</b></td><td>${p.quando}</td>
       <td><span class="st ${cls}">${label}</span></td></tr>`;
   }).join('');
+  const info=document.getElementById('prazoHoje');
+  if(info){
+    const hojeBR=hoje.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    if(nextEtapa){
+      const txt = nextDias<=0 ? 'encerra hoje' : `encerra em ${nextDias} dia${nextDias!==1?'s':''}`;
+      info.innerHTML=`📅 <b>Hoje: ${hojeBR}</b> &middot; etapa atual: <b>${nextEtapa}</b> (${txt})`;
+    } else {
+      info.innerHTML=`📅 <b>Hoje: ${hojeBR}</b> &middot; todas as etapas do cronograma foram concluídas`;
+    }
+  }
 }
 kpis(); renderPrazos(); renderShortlist(); render();
+setInterval(renderPrazos, 3600000); // re-checa a cada hora: vira o dia, status atualiza sozinho
 """
 
 
@@ -390,7 +405,8 @@ def render_html(data: dict) -> str:
 <section class="section">
   <div class="eyebrow">Cronograma</div>
   <h2>Prazos do edital</h2>
-  <p class="desc">Etapas conforme a Seção 11 do Edital PRPPG 13/2026. Status calculado em relação à data de hoje.</p>
+  <p class="desc">Etapas conforme a Seção 11 do Edital PRPPG 13/2026. Status atualizado automaticamente pela data de acesso.</p>
+  <div id="prazoHoje" class="callout" style="background:var(--brand-l);border-color:#bfe0cc;border-left-color:var(--brand);color:var(--brand-d);margin-bottom:16px;"></div>
   <table><thead><tr><th>Etapa</th><th>Quando</th><th>Status</th></tr></thead>
   <tbody id="tPrazos"></tbody></table>
 </section>
