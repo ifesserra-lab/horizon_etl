@@ -298,32 +298,25 @@ def prefetch_lattes_cache(
 
 @task
 def get_researchers_from_db() -> List[Dict]:
-    """
-    Fetches researchers from the database.
-    For this implementation, we will mock the return to ensure the flow runs
-    without needing a live DB connection if the environment isn't fully set up for it,
-    BUT the goal is to use the DB.
-    Equality, let's try to mock it for the 'mock process' requested.
-    """
-    # In a real scenario:
-    # repo = ResearcherRepository(db_session)
-    # return repo.get_all()
+    from research_domain.controllers import ResearcherController
 
-    # Mock return for the scope of this task
-    return [
-        {"name": "Paulo Sergio dos Santos Junior", "lattes_id": "8400407353673370"},
-        {"name": "Daniel Cruz Cavalieri", "lattes_id": "9583314331960942"},
-        {"name": "Monalessa Perini Barcellos", "lattes_id": "8826584877205264"},
-        {"name": "João Paulo Andrade Almeida", "lattes_id": "4332944687727598"},
-        {"name": "Rafael Emerick Zape de Oliveira", "lattes_id": "8365543719828195"},
-        {"name": "Gabriel Tozatto Zago", "lattes_id": "8771088249434104"},
-        {"name": "Renato Tannure Rotta de Almeida", "lattes_id": "6927212610032092"},
-        {"name": "Rodrigo Varejão Andreão", "lattes_id": "5589662366089944"},
-        {"name": "Elton Siqueira Moura", "lattes_id": "7923759097083335"},
-        {"name": "Eduardo Peixoto Costa Rocha", "lattes_id": "8617069437130629"},
-        {"name": "Germana Sagrillo Moro", "lattes_id": "8223626264677830"},
-        {"name": "Celso Alberto Saibel Santos", "lattes_id": "7614206164174151"},
-    ]
+    ctrl = ResearcherController()
+    researchers = ctrl.get_all()
+
+    result: List[Dict] = []
+    for r in researchers:
+        lattes_id = str(getattr(r, "brand_id", "") or "")
+        if not lattes_id or not LATTES_ID_RE.fullmatch(lattes_id):
+            cnpq_url = str(getattr(r, "cnpq_url", "") or "")
+            match = LATTES_ID_RE.search(cnpq_url)
+            if match:
+                lattes_id = match.group(0)
+
+        if lattes_id and LATTES_ID_RE.fullmatch(lattes_id):
+            result.append({"name": r.name, "lattes_id": lattes_id})
+
+    logger.info(f"Found {len(result)} researchers with valid Lattes IDs in database.")
+    return result
 
 
 @task
