@@ -95,13 +95,14 @@ def fetch_citations(dois: list[str], sleep: float = 0.4) -> dict:
             wdoi = clean_doi(w.get("doi", "") or "")
             if wdoi:
                 pct = (w.get("cited_by_percentile_year") or {}).get("min")
-                recent = sum(c.get("cited_by_count", 0) for c in (w.get("counts_by_year") or [])
-                             if c.get("year", 0) >= 2024)
+                by_year = {c.get("year"): c.get("cited_by_count", 0)
+                           for c in (w.get("counts_by_year") or []) if c.get("year")}
+                recent = sum(v for y, v in by_year.items() if y >= 2024)
                 out[wdoi] = {"cit": w.get("cited_by_count", 0),
                              "title": w.get("title", ""),
                              "year": w.get("publication_year"),
                              "fwci": w.get("fwci"),
-                             "pct": pct, "recent": recent,
+                             "pct": pct, "recent": recent, "by_year": by_year,
                              "n_authors": len(w.get("authorships") or []) or 1}
         print(f"  lote {i//BATCH+1}/{(len(uniq)+BATCH-1)//BATCH}: {len(chunk)} DOIs → {len(data.get('results',[]))} achados")
         time.sleep(sleep)
@@ -117,6 +118,26 @@ def h_index(cits: list[int]) -> int:
         else:
             break
     return h
+
+
+def _artigo_ascensao(found: list) -> dict | None:
+    """Artigo em ascensao do docente = o que mais recebeu citacoes nos ultimos 2
+    anos (counts_by_year). Sinaliza o trabalho mais 'quente' no momento."""
+    if not found:
+        return None
+    d, c = max(found, key=lambda x: x[1].get("recent", 0))
+    if c.get("recent", 0) <= 0:
+        return None
+    cit = c.get("cit", 0) or 0
+    return {
+        "titulo": (c.get("title") or "")[:120],
+        "ano": c.get("year"),
+        "recent_2a": c.get("recent", 0),
+        "citacoes": cit,
+        "share_recente_pct": round(c.get("recent", 0) / cit * 100) if cit else 0,
+        "fwci": c.get("fwci"),
+        "doi": d,
+    }
 
 
 def g_index(cits: list[int]) -> int:
@@ -172,6 +193,12 @@ def main() -> None:
         top10 = sum(1 for p in pcts if p >= 90)
         top1 = sum(1 for p in pcts if p >= 99)
         recent_cit = sum(c.get("recent", 0) for _, c in found)
+        # série de citações por ano (agregada de todos os artigos) → sparkline
+        por_ano: dict[int, int] = {}
+        for _, c in found:
+            for y, v in (c.get("by_year") or {}).items():
+                por_ano[y] = por_ano.get(y, 0) + v
+        citacoes_por_ano = {str(y): por_ano[y] for y in sorted(por_ano)}
         # h, g (núcleo citado e concentração de impacto)
         h = h_index(cits)
         g = g_index(cits)
@@ -212,9 +239,12 @@ def main() -> None:
             "artigos_top1pct": top1,
             "citacoes_recentes_2a": recent_cit,
             "momentum_pct": round(recent_cit / total * 100) if total else 0,
+            "citacoes_por_ano": citacoes_por_ano,
+            "artigo_ascensao": _artigo_ascensao(found),
             "top_artigos": [{"titulo": (c["title"] or "")[:90], "ano": c["year"],
                              "citacoes": c["cit"], "fwci": c.get("fwci"),
-                             "percentil": c.get("pct"), "doi": d} for d, c in top],
+                             "percentil": c.get("pct"), "recent_2a": c.get("recent", 0),
+                             "doi": d} for d, c in top],
         })
     rows.sort(key=lambda r: -r["citacoes_total"])
     for i, r in enumerate(rows, 1):
