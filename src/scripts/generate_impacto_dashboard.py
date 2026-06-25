@@ -130,7 +130,6 @@ def analisar() -> dict:
     area_de = {r["nome"]: r.get("area", "—") for r in rank}
     qualis_de = {r["nome"]: r.get("score_qualis", 0) for r in rank}
     rk = {r["nome"]: r for r in rank}
-    fomento_map = carregar_fomento()
 
     docentes = []
     for d in cit:
@@ -164,7 +163,6 @@ def analisar() -> dict:
             "asc": d.get("artigo_ascensao"),   # artigo em ascensão (OpenAlex counts_by_year)
             "serie": d.get("citacoes_por_ano") or {},  # sparkline citações/ano
             **_qualidade_veiculo(rk.get(d["nome"], {})),
-            **_roi(d, fomento_map),
         })
 
     com_oa = [d for d in docentes if d["artigos"] > 0]
@@ -371,66 +369,6 @@ function spark(serie){
   </svg>`;
 }
 
-// ROI — retorno do fomento (impacto / R$)
-const fom = D.filter(d=>d.tem_fomento);
-(function(){
-  const el=document.getElementById('c_roi'); if(!el) return;
-  const rows=fom.filter(d=>d.cit>0).sort((a,b)=>b.roi_cit-a.roi_cit).slice(0,12);
-  el.innerHTML=rows.map(d=>`<div class="ascitem">
-     <div class="who"><span>${esc(d.nome)}</span><span class="up">${d.roi_cit} cit / R$ mil</span></div>
-     <div class="art">fomento: <b>${d.fomento_faixa}</b> · ${d.cit} citações · ${d.top10} artigos top 10%</div>
-   </div>`).join('') || '<p class="h-s">Sem fomento mapeado.</p>';
-})();
-(function(){
-  const el=document.getElementById('roi_scatter'); if(!el) return;
-  const pts=fom.filter(d=>d.fomento_x>0);
-  if(!pts.length){el.innerHTML='<p class="h-s">Sem fomento mapeado.</p>';return;}
-  const xs=pts.map(p=>p.fomento_x), ys=pts.map(p=>p.cit);
-  const maxX=Math.max(...xs), maxY=Math.max(...ys,1);
-  const sx=[...xs].sort((a,b)=>a-b), sy=[...ys].sort((a,b)=>a-b);
-  const medX=sx[Math.floor(sx.length/2)], medY=sy[Math.floor(sy.length/2)];
-  const W=560,H=360,P=46;
-  const X=v=>P+(v/maxX)*(W-2*P), Y=v=>H-P-(v/maxY)*(H-2*P);
-  // classifica quadrante: medianas dividem fomento (x) e citações (y)
-  const QCOL={ef:'#0f7a40',es:'#2f6fb0',di:'#71857a',at:'#b5455f'};
-  function quad(p){
-    const hiF=p.fomento_x>=medX, hiC=p.cit>=medY;
-    return hiC ? (hiF?'es':'ef') : (hiF?'at':'di');
-  }
-  pts.forEach(p=>p._q=quad(p));
-  const dots=pts.map(p=>`<circle cx="${X(p.fomento_x).toFixed(1)}" cy="${Y(p.cit).toFixed(1)}" r="4.5"
-     fill="${QCOL[p._q]}" fill-opacity=".6" stroke="${QCOL[p._q]}" stroke-width=".7"><title>${esc(p.nome)} — ${p.fomento_faixa}, ${p.cit} citações</title></circle>`).join('');
-  // listas por quadrante
-  const QDEF=[
-    ['ef','⭐ Eficiente','pouco fomento, muito impacto — alavanca cada real'],
-    ['es','💎 Estrela','muito fomento e muito impacto — entrega o que recebe'],
-    ['di','🌱 Discreto','pouco fomento e pouco impacto (acumulado) — emergente/pouco financiado'],
-    ['at','⚠ Atenção','muito fomento, pouco impacto até agora — investigar (defasagem? perfil?)'],
-  ];
-  const ql=document.getElementById('roi_quad');
-  if(ql){
-    ql.innerHTML=QDEF.map(([k,t,desc])=>{
-      const names=pts.filter(p=>p._q===k).sort((a,b)=>b.cit-a.cit)
-        .map(p=>`<li>${esc(p.nome)} <span class="qf">(${p.fomento_faixa} · ${p.cit} cit)</span></li>`).join('');
-      return `<div class="quad" style="border-left-color:${QCOL[k]}">
-        <h4 style="color:${QCOL[k]}">${t} <span class="qn">${pts.filter(p=>p._q===k).length}</span></h4>
-        <p class="qd">${desc}</p><ul>${names||'<li class="qe">—</li>'}</ul></div>`;
-    }).join('');
-  }
-  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fomento vs citações">
-    <rect x="${P}" y="${P}" width="${W-2*P}" height="${H-2*P}" fill="#fff" stroke="var(--line2)"/>
-    <line x1="${X(medX).toFixed(1)}" y1="${P}" x2="${X(medX).toFixed(1)}" y2="${H-P}" stroke="var(--line2)" stroke-dasharray="4 4"/>
-    <line x1="${P}" y1="${Y(medY).toFixed(1)}" x2="${W-P}" y2="${Y(medY).toFixed(1)}" stroke="var(--line2)" stroke-dasharray="4 4"/>
-    <text x="${P+6}" y="${P+14}" font-size="10.5" fill="var(--brand)">⭐ eficiente (pouco R$, muito impacto)</text>
-    <text x="${W-P-6}" y="${P+14}" text-anchor="end" font-size="10.5" fill="var(--blue)">estrela (muito R$ e impacto)</text>
-    <text x="${P+6}" y="${H-P-8}" font-size="10.5" fill="var(--muted)">discreto</text>
-    <text x="${W-P-6}" y="${H-P-8}" text-anchor="end" font-size="10.5" fill="var(--rose)">⚠ atenção (muito R$, pouco impacto)</text>
-    ${dots}
-    <text x="${W/2}" y="${H-10}" text-anchor="middle" font-size="11" fill="var(--muted)">fomento captado (R$ mil) →</text>
-    <text x="14" y="${H/2}" text-anchor="middle" font-size="11" fill="var(--muted)" transform="rotate(-90 14 ${H/2})">citações →</text>
-  </svg>`;
-})();
-
 // Lorenz (concentração das citações)
 (function(){
   const el=document.getElementById('lorenz'); if(!el) return;
@@ -457,7 +395,6 @@ const COLS=[
   ['h','h',1],['g','g',1],['m','m',1],['fwci','FWCI',1],['fwci_delta','ΔFWCI',1],['momentum','Mom%',1],
   ['top10','Top10%',1],['top1','Top1%',1],['pct_q1q2','%Q1/Q2',1],['pct_a1a2','%A1-A2',1],
   ['cpp','Cit/art',1],['cit_frac','Cit.frac',1],['recent2a','Cit.2a',1],['qualis','Qualis',1],
-  ['fomento_faixa','Fomento',0],['roi_cit','ROI cit/R$mil',1],
 ];
 let sortKey='cit', sortDir=-1, q='', area='';
 function thead(){return '<tr>'+COLS.map(c=>`<th onclick="setSort('${c[0]}')">${c[1]}</th>`).join('')+'</tr>';}
@@ -478,8 +415,6 @@ function render(){
     if(c[0]==='nome') return `<td class="name">${esc(v)}</td>`;
     if(c[0]==='area') return `<td>${esc(v)}</td>`;
     if(c[0]==='serie') return `<td style="text-align:left">${spark(v)}</td>`;
-    if(c[0]==='fomento_faixa') return `<td style="text-align:left;font-size:11.5px">${esc(v)}</td>`;
-    if(c[0]==='roi_cit') return `<td>${v==null?'—':v}</td>`;
     if(c[0]==='fwci_delta'){const cl=v>0?'pos':(v<0?'neg':'');return `<td class="${cl}">${v>0?'+':''}${v}</td>`;}
     return `<td>${v}</td>`;
   }).join('')+'</tr>').join('');
@@ -607,32 +542,6 @@ def render_html(data: dict) -> str:
     <div class="card"><h3>📘 % artigos em Q1/Q2 (SJR)</h3><div class="h-s">quartil superior do prestígio da revista</div><div id="c_q1q2"></div></div>
     <div class="card"><h3>⭐ % artigos em A1-A2 (Qualis)</h3><div class="h-s">estrato alto da classificação CAPES</div><div id="c_a1a2"></div></div>
   </div>
-</section>
-
-<section class="section">
-  <div class="eyebrow">Retorno do fomento</div>
-  <h2>ROI — impacto por real investido</h2>
-  <p class="desc"><b>ROI</b> = retorno científico ÷ fomento captado. Fomento = orçamento de projetos
-  <b>FAPES</b> (contratado) + <b>bolsas alocadas</b> onde o docente é coordenador. Retorno em
-  <b>citações por R$ mil</b>. O gráfico cruza fomento × citações em 4 quadrantes.</p>
-  <div class="note" style="margin-top:0;margin-bottom:18px">
-    <b>Como ler — e o que NÃO concluir.</b> ROI aqui é um <b>proxy</b>, não relação causal:
-    (1) <b>defasagem</b> — fomento gera artigo em 2–4 anos e citação depois ainda, então projetos novos
-    parecem "ineficientes" só por serem recentes; (2) <b>atribuição</b> — nem todo artigo vem daquele
-    projeto, nem todo fomento visa publicar (há extensão, infraestrutura, formação); (3) cobertura de
-    fomento limitada a <b>FAPES + bolsas</b> (sem CNPq/FACTO/Finep) → subestima quem capta por outras vias;
-    (4) valores em <b>faixa</b> (privacidade). Quem publica <b>sem</b> fomento mapeado fica fora do gráfico —
-    não é "sem mérito", é "sem fomento nessas fontes". Use para conversar, não para ranquear pessoas.
-  </div>
-  <div class="grid2">
-    <div class="card"><h3>⚡ Mais eficientes (impacto / R$)</h3><div class="h-s">citações por R$ mil captado (FAPES + bolsas)</div><div id="c_roi"></div></div>
-    <div class="card"><h3>🎯 Fomento × citações</h3><div class="h-s">4 quadrantes (linhas = medianas) · passe o mouse nos pontos</div><div id="roi_scatter"></div></div>
-  </div>
-
-  <p class="desc" style="margin-top:24px">As <b>linhas tracejadas são as medianas</b> de fomento (vertical) e de
-  citações (horizontal), só entre quem tem fomento mapeado. Elas dividem o grupo em 4 quadrantes — cada
-  professor cai num deles conforme estar <b>acima ou abaixo da mediana</b> em cada eixo:</p>
-  <div class="quads" id="roi_quad"></div>
 </section>
 
 <section class="section">
