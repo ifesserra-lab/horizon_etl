@@ -25,6 +25,33 @@ BASE = Path(__file__).resolve().parents[2]
 SRC = BASE / "data" / "mestrado" / "base_de_dados_ppcomp.json"
 OUT_DIR = BASE / "data" / "exports" / "mestrado"
 
+# orientador1 (nome curto na base) → nome completo do docente (roster IFES Serra).
+# Curtos não mapeados (ex.: externos) ficam como estão.
+ORIENTADOR_FULL = {
+    "Boldt": "Francisco de Assis Boldt",
+    "Cristina": "Cristina Klippel Dominicini",
+    "Danilo": "Danilo de Paula e Silva",
+    "Fabiano": "Fabiano Borges Ruy",
+    "Gilmar": "Gilmar Luiz Vassoler",
+    "Hilário Seibel": "Hilário Seibel Júnior",
+    "Hilário T.": "Hilário Tomaz Alves de Oliveira",
+    "Jefferson": "Jefferson Oliveira Andrade",
+    "Karin": "Karin Satie Komati",
+    "Kelly": "Kelly Assis de Souza Gazolli",
+    "Leandro": "Leandro Colombi Resendo",
+    "Mateus": "Mateus Conrad Barcellos da Costa",
+    "Maxwell": "Maxwell Eduardo Monteiro",
+    "Paulo": "Paulo Sergio dos Santos Junior",
+    "Sergio": "Sérgio Nery Simões",
+    "Thiago": "Thiago Meireles Paixão",
+}
+
+
+def _orient_full(nome: str) -> str:
+    """Resolve o nome curto do orientador para o nome completo (ou mantém o curto)."""
+    return ORIENTADOR_FULL.get((nome or "").strip(), (nome or "").strip())
+
+
 # situação → cor
 SIT_COL = {
     "Defendido": "var(--brand)", "Ativo": "var(--blue)", "Cancelado": "var(--rose)",
@@ -81,8 +108,8 @@ def compute() -> dict:
     tempo_dist = Counter(tempos)
     tempo_med = round(sum(tempos) / len(tempos), 1) if tempos else 0
 
-    # carga de orientação (orientador1 preenchido)
-    orient = Counter(x["orientador1"].strip() for x in d if x.get("orientador1"))
+    # carga de orientação (orientador1 preenchido) — nome curto → nome completo
+    orient = Counter(_orient_full(x["orientador1"]) for x in d if x.get("orientador1"))
     sem_orient = sum(1 for x in d if not x.get("orientador1"))
     co_orient = sum(1 for x in d if x.get("coorientador"))
 
