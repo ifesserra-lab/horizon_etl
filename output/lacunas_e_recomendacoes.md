@@ -26,7 +26,7 @@ prioridade e o impacto de cada lacuna sobre as dimensões do retorno.
 | 7 | **Patentes (status)** | Lattes mostra 0 patentes (subnotif.) | INPI, Lens.org, Espacenet | 🔴 | T |
 | 8 | **Egressos no mercado** | inexistente | Lattes egressos, RAIS, LinkedIn | 🔴 | Fo, S |
 | 9 | **Contrapartida institucional** | valor próprio aportado por projeto | cadastro de projetos | 🟡 | F (alavancagem) |
-| 10 | **Valor FACTO** | 111 projetos sem valor | parser do portal FACTO / planilha | 🟡 | F |
+| 10 | ~~Valor FACTO~~ **RESOLVIDO** | — (era erro de parsing) | parser FACTO incluído (`02_metricas_roi.py`) | ✅ | F (R$ 207,6 mi aprovado / R$ 55,0 mi executado, pesquisa) |
 | 11 | **Segregação ensino × pesquisa** | B-UnAC (860 bolsas) mistura EAD e pesquisa | flag de natureza no cadastro | 🟡 | F (denominador) |
 | 12 | **Janela temporal padronizada** | produção sem recorte único vs fomento 2015–26 | regra de janela no pipeline | 🟡 | C, T (comparabilidade) |
 | 13 | **Altmetrics** | atenção social/midiática | Altmetric, PlumX | 🟢 | S |

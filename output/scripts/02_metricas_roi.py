@@ -124,14 +124,93 @@ def carregar_fapes() -> dict:
     }
 
 
+def _br(v) -> float:
+    """Converte número no formato brasileiro ('1.256.355,65') para float."""
+    v = (str(v or "")).strip().replace(".", "").replace(",", ".")
+    try:
+        return float(v)
+    except ValueError:
+        return 0.0
+
+
+# Tipos de projeto FACTO considerados PESQUISA (stricto + PD&I + inovação)
+FACTO_TIPOS_PESQUISA = {
+    "Pesquisa, Desenvolvimento e Inovação", "Pesquisa", "Inovação",
+    "Pesquisa e Extensão", "Pesquisa e Ensino", "Pesquisa, Ensino e Extensão",
+}
+
+
 def carregar_facto() -> dict:
+    """FACTO (fundação de apoio). Cada projeto traz 7 CSVs aninhados; usamos
+    'Informações do projeto' (valor aprovado, financiadora, tipo, coordenador) e
+    'Recursos por rubrica' (Executado por despesa). Separa PESQUISA de não-pesquisa."""
     if not FACTO.exists():
-        return {"n_proj": 0, "valor_total": None}
-    d = json.loads(FACTO.read_text(encoding="utf-8"))
-    projs = d.get("projects", [])
+        return {"n_proj": 0, "valor_aprovado_total": None}
+    projs = json.loads(FACTO.read_text(encoding="utf-8")).get("projects", [])
     n_err = sum(1 for p in projs if p.get("_error"))
-    # o campo 'csv' é heterogêneo (dict/strings); não há coluna de valor confiável
-    return {"n_proj": len(projs), "n_erros_scrape": n_err, "valor_total": None}
+    por_fin = defaultdict(lambda: {"n": 0, "aprovado": 0.0})
+    por_coord = defaultdict(lambda: {"aprovado": 0.0, "executado": 0.0, "n": 0})
+    por_ano = defaultdict(float)
+    rows = []
+    n_info = 0
+    ap_total = ap_pesq = ex_pesq = ap_outros = 0.0
+    n_pesq = n_outros = 0
+    for p in projs:
+        csv = p.get("csv") or {}
+        info = next((v for k, v in csv.items() if "Informa" in k), None)
+        if not (isinstance(info, list) and info):
+            continue
+        r = info[0]
+        n_info += 1
+        tipo = r.get("Tipo de Projeto") or "?"
+        ap = _br(r.get("Valor aprovado"))
+        fin = (r.get("Financiadora") or "").strip()
+        coord = (r.get("Coordenador") or "").strip()
+        ini = (r.get("Data de início") or "")
+        ano = None
+        m = re.search(r"(\d{4})", ini[-4:] if len(ini) >= 4 else ini)
+        if m:
+            ano = int(m.group(1))
+        is_pesq = tipo in FACTO_TIPOS_PESQUISA
+        # executado (despesas, valor absoluto) — só p/ subset pesquisa (custo de parsing)
+        ex = 0.0
+        if is_pesq:
+            rec = next((v for k, v in csv.items() if "rubrica" in k.lower()), None)
+            if isinstance(rec, list):
+                for row in rec:
+                    if "despesa" in (row.get("Tipo da Rubrica") or "").lower():
+                        ex += abs(_br(row.get("Executado")))
+        ap_total += ap
+        if is_pesq:
+            n_pesq += 1; ap_pesq += ap; ex_pesq += ex
+            if fin:
+                por_fin[fin[:45]]["n"] += 1
+                por_fin[fin[:45]]["aprovado"] += ap
+            if coord:
+                pc = por_coord[norm(coord)]
+                pc["aprovado"] += ap; pc["executado"] += ex; pc["n"] += 1
+            if ano:
+                por_ano[ano] += ap
+        else:
+            n_outros += 1; ap_outros += ap
+        rows.append({"referencia": (r.get("Referência do projeto") or "")[:60],
+                     "coordenador": coord, "financiadora": fin, "tipo": tipo,
+                     "ano": ano, "aprovado": round(ap, 2), "executado": round(ex, 2),
+                     "pesquisa": is_pesq})
+    return {
+        "n_proj": len(projs), "n_com_info": n_info, "n_erros_scrape": n_err,
+        "valor_aprovado_total": round(ap_total, 2),
+        "n_pesquisa": n_pesq, "aprovado_pesquisa": round(ap_pesq, 2),
+        "executado_pesquisa": round(ex_pesq, 2),
+        "n_outros": n_outros, "aprovado_outros": round(ap_outros, 2),
+        "por_financiadora": {k: {"n": v["n"], "aprovado": round(v["aprovado"], 2)}
+                             for k, v in sorted(por_fin.items(), key=lambda kv: -kv[1]["aprovado"])},
+        "por_ano": {k: round(v, 2) for k, v in sorted(por_ano.items())},
+        "por_coord": {k: {"aprovado": round(v["aprovado"], 2),
+                          "executado": round(v["executado"], 2), "n": v["n"]}
+                      for k, v in por_coord.items()},
+        "_rows": rows,
+    }
 
 
 def carregar_bolsas() -> dict:
@@ -290,7 +369,10 @@ def main() -> None:
     oa = carregar_openalex()
     ppcomp = carregar_ppcomp()
 
-    inv_fapes = fapes["orcamento_total"]  # investimento de referência (contratado)
+    inv_fapes = fapes["orcamento_total"]  # FAPES contratado
+    # fomento de pesquisa CONSOLIDADO (FAPES contratado + FACTO pesquisa aprovado) =
+    # denominador das razões de produtividade (mais completo que só FAPES)
+    fomento_pesquisa = round(inv_fapes + (facto.get("aprovado_pesquisa") or 0), 2)
     # produção científica total (peer-review: artigos + livros + capítulos + congressos)
     prod_cient = prod["artigos"] + prod["livros"] + prod["capitulos"] + prod["congressos"]
     titulados = prod["orient_mestrado_conc"] + prod["orient_doutorado_conc"]
@@ -298,7 +380,7 @@ def main() -> None:
 
     # razões institucionais (com forte ressalva de atribuição — ver relatório)
     def per_milhao(n):
-        return round(n / (inv_fapes / 1_000_000), 2) if inv_fapes else None
+        return round(n / (fomento_pesquisa / 1_000_000), 2) if fomento_pesquisa else None
 
     # concentração do fomento (Gini) entre coordenadores FAPES
     coord_vals = [v["orcamento"] for v in fapes["por_coord"].values()]
@@ -335,8 +417,16 @@ def main() -> None:
          "Bolsas/SigPesq", "disponível", "médio", "Inclui B-UnAC (ensino), não só pesquisa."),
         ("Input", "Valor alocado em bolsas (SigPesq)", bolsas["valor_alocado_total"], "R$",
          "Bolsas/SigPesq", "parcial", "médio", "valor_pago_total=0 em toda a base (só alocado)."),
-        ("Input", "Projetos FACTO", facto["n_proj"], "projetos",
-         "FACTO", "parcial", "baixo", "Sem coluna de valor confiável; só contagem."),
+        ("Input", "Projetos FACTO (total geridos pela fundação)", facto["n_proj"], "projetos",
+         "FACTO", "disponível", "alto", f"{facto.get('n_com_info')} com ficha; inclui ensino/extensão/seletivo."),
+        ("Input", "Projetos FACTO de PESQUISA/PD&I/Inovação", facto.get("n_pesquisa"), "projetos",
+         "FACTO", "disponível", "alto", "Filtrado por Tipo de Projeto."),
+        ("Input", "FACTO — valor aprovado (pesquisa)", facto.get("aprovado_pesquisa"), "R$",
+         "FACTO", "disponível", "alto", "Só subset pesquisa; exclui ensino/extensão/seletivo."),
+        ("Econômico", "FACTO — valor EXECUTADO (pesquisa)", facto.get("executado_pesquisa"), "R$",
+         "FACTO", "disponível", "médio", "Soma de despesas executadas por rubrica; raro dado de execução real."),
+        ("Input", "FACTO — valor aprovado (não-pesquisa)", facto.get("aprovado_outros"), "R$",
+         "FACTO", "disponível", "alto", "Ensino/extensão/processo seletivo/concurso — fora do ROI de pesquisa."),
         ("Input", "Projetos de pesquisa declarados (Lattes)", prod["projetos_pesquisa_lattes"],
          "projetos", "Lattes", "disponível", "médio", "Autodeclarado; sem valor financeiro."),
         ("Científico", "Artigos em periódicos (roster, dedup)", prod["artigos"], "artigos",
@@ -353,7 +443,7 @@ def main() -> None:
          "OpenAlex", "parcial", "médio", "Normalizado por área/ano; cobertura parcial."),
         ("Científico", "Artigos no top 10% mundial", oa.get("top10_total"), "artigos",
          "OpenAlex", "parcial", "médio", ""),
-        ("Científico", "Produção científica por R$ 1 mi (FAPES)", per_milhao(prod_cient),
+        ("Científico", "Produção científica por R$ 1 mi (fomento pesquisa consolidado)", per_milhao(prod_cient),
          "produtos/R$mi", "Lattes+FAPES", "parcial", "baixo",
          "Atribuição institucional bruta; produção NÃO ligada a projeto específico."),
         ("Formação", "Orientações de mestrado concluídas", prod["orient_mestrado_conc"],
@@ -370,7 +460,7 @@ def main() -> None:
          "Base PPComp", "disponível", "alto", ""),
         ("Formação", "Defesas PPComp", ppcomp.get("defendidos"), "defesas",
          "Base PPComp", "disponível", "alto", ""),
-        ("Formação", "Titulados (M+D) por R$ 1 mi (FAPES)", per_milhao(titulados),
+        ("Formação", "Titulados (M+D) por R$ 1 mi (fomento pesquisa consolidado)", per_milhao(titulados),
          "titulados/R$mi", "Lattes+FAPES", "parcial", "baixo", "Atribuição bruta."),
         ("Inovação", "Patentes (Lattes)", prod["patentes"], "patentes",
          "Lattes", "disponível", "médio", "Autodeclarado; sem status INPI."),
@@ -380,7 +470,7 @@ def main() -> None:
          "Lattes", "disponível", "médio", ""),
         ("Inovação", "Registros (programas/desenhos)", prod["registros"], "registros",
          "Lattes", "disponível", "médio", ""),
-        ("Inovação", "Ativos tecnológicos por R$ 1 mi (FAPES)", per_milhao(ativos_tec),
+        ("Inovação", "Ativos tecnológicos por R$ 1 mi (fomento pesquisa consolidado)", per_milhao(ativos_tec),
          "ativos/R$mi", "Lattes+FAPES", "parcial", "baixo", "Atribuição bruta."),
         ("Institucional", "Prêmios e títulos", prod["premios"], "prêmios",
          "Lattes", "disponível", "médio", ""),
@@ -423,16 +513,29 @@ def main() -> None:
                         pd.get("orient_doutorado", ""), od.get("cit", ""),
                         od.get("fwci", ""), od.get("top10", "")])
 
+    # FACTO: grava CSV por projeto e remove _rows do payload (evita inchar o JSON)
+    facto_rows = facto.pop("_rows", [])
+    with (OUT / "facto_projetos.csv").open("w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=["referencia", "coordenador", "financiadora",
+                                           "tipo", "ano", "aprovado", "executado", "pesquisa"])
+        w.writeheader()
+        w.writerows(facto_rows)
+
     payload = {
         "fapes": {k: v for k, v in fapes.items() if k != "por_coord"},
         "fapes_top_coord": [{"coord": k, **{kk: (sorted(vv) if isinstance(vv, set) else vv)
                                             for kk, vv in v.items()}}
                             for k, v in top5_coord],
-        "facto": facto, "bolsas": {k: v for k, v in bolsas.items() if k != "por_coord"},
+        "facto": {k: v for k, v in facto.items() if k != "por_coord"},
+        "bolsas": {k: v for k, v in bolsas.items() if k != "por_coord"},
         "producao": {k: v for k, v in prod.items() if k != "por_doc"},
         "openalex": {k: v for k, v in oa.items() if k != "por_doc"},
         "ppcomp": ppcomp,
         "derivados": {
+            "fomento_pesquisa_consolidado": fomento_pesquisa,
+            "fapes_contratado": inv_fapes,
+            "facto_pesquisa_aprovado": facto.get("aprovado_pesquisa"),
+            "facto_pesquisa_executado": facto.get("executado_pesquisa"),
             "producao_cientifica_total": prod_cient, "titulados_md": titulados,
             "ativos_tecnologicos": ativos_tec,
             "prod_cient_por_milhao": per_milhao(prod_cient),
@@ -448,8 +551,11 @@ def main() -> None:
     (OUT / "roi_intermediate.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    print("OK — output/metricas_roi_pesquisa.csv, por_coordenador.csv, roi_intermediate.json")
+    print("OK — output/metricas_roi_pesquisa.csv, por_coordenador.csv, facto_projetos.csv, roi_intermediate.json")
     print(f"FAPES: {fapes['n_proj']} proj · R${inv_fapes:,.0f} · Gini={gini_fapes} · top5={top5_share}%")
+    print(f"FACTO pesquisa: {facto.get('n_pesquisa')} proj · aprovado R${facto.get('aprovado_pesquisa'):,.0f} "
+          f"· executado R${facto.get('executado_pesquisa'):,.0f}")
+    print(f"Fomento pesquisa consolidado (FAPES+FACTO aprovado): R${fomento_pesquisa:,.0f}")
     print(f"Produção: {prod_cient} itens científicos · {titulados} titulados M+D · {ativos_tec} ativos tec")
     print(f"OpenAlex: {oa.get('citacoes_total')} citações ({oa.get('n_com_openalex')}/93)")
 

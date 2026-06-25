@@ -80,9 +80,20 @@ pesquisa — segregar antes de usar como "investimento em pesquisa".
 
 ## 4. Projetos FACTO — `data/exports/projetos-facto/facto_projects_full.json`
 
-- **Formato:** JSON `{projects: [111]}`; cada item `{id, name, csv, _source_url, _error}`.
-- **Qualidade:** ❌ campo `csv` heterogêneo, **sem coluna de valor confiável**. Uso: só
-  **contagem** (111 projetos). 0 erros de scrape.
+- **Formato:** JSON `{projects: [111]}`; cada item `{id, name, csv, ...}`. O campo **`csv` é um
+  dict de 7 sub-CSVs já parseados** (lista de dicts): `Informações do projeto`,
+  **`Recursos por rubrica`** (Aprovado/Liberado/**Executado**), `Pagamento PF`, `Pagamento PJ`,
+  `Equipe`, `Plano de trabalho`, `Documentos`.
+- **Campos-chave (Informações):** `Coordenador`, `Financiadora`, `Data de início/vigência/
+  encerramento`, `Tipo de Projeto`, **`Valor aprovado`**. Rubrica traz **`Executado`** (R$).
+- **Volume:** 111 projetos (87 com ficha). **Pesquisa/PD&I/Inovação = 43 proj · R$ 207,6 mi
+  aprovado · R$ 55,0 mi executado.** Não-pesquisa (ensino/extensão/seletivo/concurso) = 44
+  proj · R$ 126,8 mi (separados do ROI de pesquisa).
+- **Qualidade:** ✅ valor aprovado e executado por projeto; ✅ financiadora real (MEC, FINEP,
+  INCRA, Petrobras…). ⚠️ 24 projetos sem ficha; classificação por `Tipo de Projeto`.
+- **Chave:** `Coordenador` (nome). **Nota:** versão anterior deste relatório **descartou a
+  FACTO por engano** (erro de parsing do campo `csv`); corrigido — é a fonte mais rica de
+  valor financeiro **executado**.
 
 ---
 

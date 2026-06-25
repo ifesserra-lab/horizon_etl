@@ -5,7 +5,11 @@ Input,Valor de bolsas em projetos FAPES,26379575.0,R$,FAPES,disponível,alto,Sub
 Input,Bolsas FAPES (quantidade),729,bolsas,FAPES,disponível,alto,
 Input,Alocações de bolsas (SigPesq),1407,alocações,Bolsas/SigPesq,disponível,médio,"Inclui B-UnAC (ensino), não só pesquisa."
 Input,Valor alocado em bolsas (SigPesq),16991685.0,R$,Bolsas/SigPesq,parcial,médio,valor_pago_total=0 em toda a base (só alocado).
-Input,Projetos FACTO,111,projetos,FACTO,parcial,baixo,Sem coluna de valor confiável; só contagem.
+Input,Projetos FACTO (total geridos pela fundação),111,projetos,FACTO,disponível,alto,87 com ficha; inclui ensino/extensão/seletivo.
+Input,Projetos FACTO de PESQUISA/PD&I/Inovação,43,projetos,FACTO,disponível,alto,Filtrado por Tipo de Projeto.
+Input,FACTO — valor aprovado (pesquisa),207627076.88,R$,FACTO,disponível,alto,Só subset pesquisa; exclui ensino/extensão/seletivo.
+Econômico,FACTO — valor EXECUTADO (pesquisa),54968403.48,R$,FACTO,disponível,médio,Soma de despesas executadas por rubrica; raro dado de execução real.
+Input,FACTO — valor aprovado (não-pesquisa),126793536.73,R$,FACTO,disponível,alto,Ensino/extensão/processo seletivo/concurso — fora do ROI de pesquisa.
 Input,Projetos de pesquisa declarados (Lattes),493,projetos,Lattes,disponível,médio,Autodeclarado; sem valor financeiro.
 Científico,"Artigos em periódicos (roster, dedup)",549,artigos,Lattes,disponível,alto,Dedup por título dentro do docente.
 Científico,Livros publicados,96,livros,Lattes,disponível,alto,
@@ -14,7 +18,7 @@ Científico,Trabalhos completos em congressos,1519,trabalhos,Lattes,disponível,
 Científico,"Citações (OpenAlex, por DOI)",5794,citações,OpenAlex,parcial,médio,Só 64/93 docentes casados por DOI.
 Científico,FWCI mediano,1.4,índice,OpenAlex,parcial,médio,Normalizado por área/ano; cobertura parcial.
 Científico,Artigos no top 10% mundial,226,artigos,OpenAlex,parcial,médio,
-Científico,Produção científica por R$ 1 mi (FAPES),48.32,produtos/R$mi,Lattes+FAPES,parcial,baixo,Atribuição institucional bruta; produção NÃO ligada a projeto específico.
+Científico,Produção científica por R$ 1 mi (fomento pesquisa consolidado),9.16,produtos/R$mi,Lattes+FAPES,parcial,baixo,Atribuição institucional bruta; produção NÃO ligada a projeto específico.
 Formação,Orientações de mestrado concluídas,308,orientações,Lattes,disponível,alto,
 Formação,Orientações de doutorado/pós-doc concluídas,7,orientações,Lattes,disponível,alto,Tipo: Tese.
 Formação,Orientações de especialização (lato sensu),381,orientações,Lattes,disponível,alto,Tipo: Monografia.
@@ -22,12 +26,12 @@ Formação,Orientações de GRADUAÇÃO (TCC + IC) concluídas,1369,orientaçõe
 Formação,Orientações 'outros' concluídas,194,orientações,Lattes,disponível,médio,Categoria residual do Lattes.
 Formação,Discentes PPComp (mestrado),269,discentes,Base PPComp,disponível,alto,
 Formação,Defesas PPComp,83,defesas,Base PPComp,disponível,alto,
-Formação,Titulados (M+D) por R$ 1 mi (FAPES),6.49,titulados/R$mi,Lattes+FAPES,parcial,baixo,Atribuição bruta.
+Formação,Titulados (M+D) por R$ 1 mi (fomento pesquisa consolidado),1.23,titulados/R$mi,Lattes+FAPES,parcial,baixo,Atribuição bruta.
 Inovação,Patentes (Lattes),0,patentes,Lattes,disponível,médio,Autodeclarado; sem status INPI.
 Inovação,Softwares,77,softwares,Lattes,disponível,médio,
 Inovação,Produtos tecnológicos,16,produtos,Lattes,disponível,médio,
 Inovação,Registros (programas/desenhos),0,registros,Lattes,disponível,médio,
-Inovação,Ativos tecnológicos por R$ 1 mi (FAPES),1.92,ativos/R$mi,Lattes+FAPES,parcial,baixo,Atribuição bruta.
+Inovação,Ativos tecnológicos por R$ 1 mi (fomento pesquisa consolidado),0.36,ativos/R$mi,Lattes+FAPES,parcial,baixo,Atribuição bruta.
 Institucional,Prêmios e títulos,49,prêmios,Lattes,disponível,médio,
 Institucional,Gini do orçamento FAPES (coordenadores),0.771,0–1,FAPES,disponível,alto,Concentração de fomento entre coordenadores.
 Institucional,Concentração top-5 coordenadores (% do orçamento),70.1,%,FAPES,disponível,alto,

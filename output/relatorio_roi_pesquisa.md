@@ -18,9 +18,12 @@
 
 ## 1. Sumário executivo
 
-A pesquisa do Campus Serra movimenta um volume de fomento **expressivo e crescente**:
-**R$ 48,5 milhões** em orçamento FAPES contratado em **99 projetos** (2015–2026), com
-pico em **2023 (R$ 18,5 mi)**. A produção do quadro de **93 docentes** (unidade de análise)
+A pesquisa do Campus Serra movimenta um fomento **muito superior ao inicialmente
+mapeado**: somando as duas fontes locais de projeto, o **fomento de pesquisa consolidado
+(valor aprovado/contratado) é de ≈ R$ 256,2 milhões** — **R$ 48,5 mi** da **FAPES** (99
+projetos, 2015–2026) e **R$ 207,6 mi** da **FACTO** (43 projetos de pesquisa/PD&I/inovação),
+esta última com **R$ 55,0 mi já executados** e financiadoras externas competitivas (INCRA,
+FINEP, MEC, **Petrobras**, ICMBio). A produção do quadro de **93 docentes** (unidade de análise)
 soma **2.346 itens científicos** (549 artigos, 96 livros, 182 capítulos, 1.519 trabalhos
 em congressos), **315 titulados** de mestrado/doutorado e **93 ativos tecnológicos**
 (majoritariamente softwares; **patentes registradas = 0** no Lattes).
@@ -36,9 +39,12 @@ em congressos), **315 titulados** de mestrado/doutorado e **93 ativos tecnológi
    e **UnAC** (gestão da Universidade Aberta, R$ 6,7 mi em 4 projetos). **Segregando-os, o
    Gini cai para 0,748** (0,742 considerando só quem mantém fomento de pesquisa). A
    concentração "por coordenador" superestima a "por pesquisador" e deve ser lida com cuidado.
-3. **O ROI financeiro clássico NÃO é calculável com defensabilidade** — não há
-   benefícios monetizados (royalties, licenças, contratos, receita incremental) nem
-   valor de contrapartida institucional. Reportar um "%" de ROI aqui seria **indefensável**.
+3. **O ROI financeiro clássico (%) ainda NÃO é calculável** — não há benefícios
+   monetizados (royalties, licenças, receita incremental). **Mas a FACTO destrava parte da
+   dimensão econômica**: há **valor executado real (R$ 55,0 mi)** e **captação externa
+   competitiva** identificável por financiadora (FINEP R$ 35 mi, MEC R$ 20,8 mi, **Petrobras
+   R$ 12,7 mi**, INCRA R$ 73 mi) — permite **taxa de execução** e **captação externa**, não o
+   ROI% (que segue exigindo o lado "benefício").
 4. **Citações existem, mas só parcialmente** (5.793 citações, **FWCI mediano 1,4**,
    226 artigos no top 10% mundial) e cobrem **apenas 64 dos 93 docentes** (casamento por
    DOI via OpenAlex). Servem como panorama, **não** como avaliação individual.
@@ -87,7 +93,7 @@ ligada a um projeto financiado); (d) desempenho individual comparável entre ár
 | 1 | Currículos Lattes | JSON (154 arq.; **93 = roster**) | 549 artigos, 1.519 congressos, 2.345 orient. | livre | nome / lattes_id | autodeclarado; sem citações; sem DOI em parte |
 | 2 | Projetos FAPES | JSON | **99 projetos · R$ 48,5 mi** | 2015–2026 | coordenador_nome | "contratado" ≠ executado |
 | 3 | Bolsas (SigPesq) | JSON | 1.407 aloc. · 749 bolsistas · R$ 17,0 mi | 2015–2026 | coordenador_nome | **valor_pago = 0** (só alocado) |
-| 4 | Projetos FACTO | JSON | 111 projetos | — | name (texto) | **sem valor** confiável |
+| 4 | Projetos FACTO (fundação) | JSON (7 CSVs/projeto) | 111 proj (87 c/ ficha) · **R$ 207,6 mi aprovado / R$ 55,0 mi executado** (pesquisa) | 2016–2026 | coordenador / nome | inclui ensino/extensão/seletivo (separados) |
 | 5 | SigPesq projetos/grupos | XLSX | 98 projetos · grupos | até 2026 | Coordenador/email | sem valor financeiro |
 | 6 | OpenAlex (citações) | JSON | 5.793 cit · 64/93 docentes | — | DOI do Lattes | cobertura parcial (só com DOI) |
 | 7 | Base PPComp | JSON | 269 discentes | 2015–2026 | nome | orientador em nome curto |
@@ -153,8 +159,17 @@ dimensão, fonte, disponibilidade e confiança.
 | Bolsas FAPES (quantidade) | 729 | FAPES | alto |
 | Alocações de bolsa (SigPesq) | 1.407 (749 bolsistas) | Bolsas | médio |
 | Valor **alocado** em bolsas (SigPesq) | R$ 16.991.685 | Bolsas | médio (pago=0) |
-| Projetos FACTO | 111 | FACTO | baixo (sem valor) |
+| **Projetos FACTO de pesquisa/PD&I** | **43** | FACTO | alto |
+| **FACTO — valor aprovado (pesquisa)** | **R$ 207.627.077** | FACTO | alto |
+| **FACTO — valor executado (pesquisa)** | **R$ 54.968.403** | FACTO | médio |
+| FACTO — aprovado não-pesquisa (ensino/ext/seletivo) | R$ 126.793.537 | FACTO | alto (fora do ROI) |
+| **Fomento de pesquisa consolidado (FAPES + FACTO aprovado)** | **R$ 256.175.051** | FAPES+FACTO | médio (fontes distintas) |
 | Projetos de pesquisa declarados (Lattes) | 493 | Lattes | médio |
+
+**FACTO — financiadoras externas de pesquisa (top):** INCRA R$ 73,1 mi · FINEP R$ 35,0 mi ·
+MEC R$ 20,8 mi · Min. Povos Indígenas R$ 14,6 mi · **Petrobras R$ 12,7 mi** (empresa) ·
+ICMBio R$ 10,9 mi. → **captação externa competitiva e contrato privado** (relevante p/ as
+dimensões econômica e tecnológica). Detalhe em `facto_projetos.csv`.
 
 **Fomento FAPES por ano (R$):** 2018 ≈ 3,28 mi · 2021 ≈ 5,78 mi · 2022 ≈ 6,34 mi ·
 **2023 ≈ 18,52 mi** · 2024 ≈ 2,96 mi · 2025 ≈ 3,95 mi · 2026 ≈ 6,09 mi. Tendência de
@@ -177,8 +192,10 @@ não deve entrar no denominador de "investimento em pesquisa" sem segregação.
 | FWCI mediano | **1,4** (acima da média mundial) | médio |
 | Artigos no top 10% mundial | 226 | médio |
 
-> **Fórmula (baixa confiança):** produção científica por R$ 1 mi = 2.346 / 48,55 = **48,3
-> itens/R$ mi**. Ordem de grandeza institucional; não atribuir a projetos específicos.
+> **Fórmula (baixa confiança):** produção científica por R$ 1 mi = 2.346 / 256,2 = **9,2
+> itens/R$ mi** (denominador = fomento de pesquisa consolidado FAPES + FACTO aprovado).
+> Ordem de grandeza institucional; não atribuir a projetos específicos. *(Sobre só a FAPES
+> seria 48,3 — mas isso ignoraria os R$ 207,6 mi da FACTO.)*
 
 ### 6.3 Formação e capacidade
 
@@ -209,8 +226,8 @@ Capacidade institucional de pós-graduação (programa PPComp):
 | Defesas PPComp | 83 (97 ativos; evasão 89) | alto |
 
 > **Titulados *stricto sensu*** (mestrado + doutorado) = 308 + 7 = **315**. Fórmula
-> (baixa confiança): 315 / 48,55 = **6,5 titulados/R$ mi**. **A graduação (1.369 TCC/IC)
-> não entra** nesse indicador de titulação *stricto sensu*.
+> (baixa confiança): 315 / 256,2 = **1,2 titulado/R$ mi** (fomento consolidado). **A
+> graduação (1.369 TCC/IC) não entra** nesse indicador de titulação *stricto sensu*.
 
 ### 6.4 Inovação e produção técnica
 
@@ -289,9 +306,18 @@ narrativa de impacto, indicadores de alcance e estudo de caso.
 
 | Item | Valor | Base |
 |---|---:|---|
-| Valor de bolsas em projetos FAPES | R$ 26.379.575 | FAPES |
 | Orçamento FAPES contratado | R$ 48.547.974 | FAPES |
+| Valor de bolsas em projetos FAPES | R$ 26.379.575 | FAPES |
 | Valor alocado em bolsas (SigPesq) | R$ 16.991.685 | Bolsas (só alocado) |
+| **FACTO — valor aprovado (pesquisa)** | **R$ 207.627.077** | FACTO |
+| **FACTO — valor EXECUTADO (pesquisa)** | **R$ 54.968.403** | FACTO (despesas por rubrica) |
+| Captação externa competitiva (FACTO): FINEP / MEC / Petrobras / INCRA | (ver `facto_projetos.csv`) | FACTO |
+
+> **Avanço (FACTO):** a execução financeira real (R$ 55,0 mi) e a **captação externa por
+> financiadora** (FINEP, MEC, **Petrobras** — contrato privado, INCRA) já são monetizáveis com
+> evidência. Permitem **taxa de execução** (executado/aprovado ≈ 26% do subset com rubricas) e
+> **captação externa**, sem inventar benefício. O contrato Petrobras (R$ 12,7 mi) é um caso de
+> **receita de pesquisa contratada por empresa** — relevante p/ as dimensões econômica/tecnológica.
 
 **NÃO deve ser monetizado sem dado adicional:** royalties, licenciamento, receita
 incremental, economia gerada, empregos criados, empresas/spin-offs, beneficiários com valor
