@@ -57,6 +57,15 @@ O `full_ingestion_pipeline` coordena, em alto nivel:
 5. geracao de marts
 6. escrita de reports operacionais
 
+> **Consolidacao de duplicatas removida dos pipelines automaticos.**  
+> O `PersonConsolidator` anteriormente era executado automaticamente apos a
+> ingestao de cada pipeline (`unified.py`, `weekly.py`), mas usava correspondencia
+> exclusiva por nome para deletar registros de pesquisadores, causando perda de
+> dados. A consolidacao manual continua disponivel como script avulso:
+> ```bash
+> python src/scripts/consolidate_duplicates.py
+> ```
+
 Ao final de cada pipeline, o `app.py` chama automaticamente o script
 `scripts/export_zip.py` para compactar todos os JSONs gerados em um unico ZIP
 com timestamp (`canonical_export_<YYYYMMDD_HHMMSS>.zip`).
