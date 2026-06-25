@@ -107,19 +107,19 @@ def _ano(v):
 def janelas_temporais():
     by_id = lattes_index()
     art_ano = defaultdict(int)
+    seen = set()  # dedup GLOBAL por título (artigo co-autorado conta 1x no total do campus)
     for nome, lid in ROSTER_IDS.items():
         f = by_id.get(lid)
         if not f:
             continue
         pb = (json.loads(Path(f).read_text(encoding="utf-8"))
               .get("producao_bibliografica", {}) or {})
-        seen = set()
-        for a in pb.get("artigos_periodicos", []) or []:
+        for i, a in enumerate(pb.get("artigos_periodicos", []) or []):
             t = norm(a.get("titulo", ""))
-            if t and t in seen:
+            key = t if t else f"__{lid}_{i}"
+            if key in seen:
                 continue
-            if t:
-                seen.add(t)
+            seen.add(key)
             y = _ano(a.get("ano"))
             if y:
                 art_ano[y] += 1

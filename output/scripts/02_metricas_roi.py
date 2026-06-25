@@ -175,21 +175,27 @@ FACTO_TIPOS_PESQUISA = {
 }
 
 
-def carregar_facto() -> dict:
-    """FACTO (fundação de apoio). Cada projeto traz 7 CSVs aninhados; usamos
+def carregar_facto(roster_norm: set[str]) -> dict:
+    """FACTO (fundação de apoio à rede IFES). Cada projeto traz 7 CSVs aninhados; usamos
     'Informações do projeto' (valor aprovado, financiadora, tipo, coordenador) e
-    'Recursos por rubrica' (Executado por despesa). Separa PESQUISA de não-pesquisa."""
+    'Recursos por rubrica' (Executado por despesa).
+
+    REGRA DE SALDO (campus Serra): só entra no fomento do campus o projeto cujo
+    **coordenador é docente do roster** (campus Serra). Participação apenas como EQUIPE
+    NÃO soma ao saldo. A FACTO gere projetos de toda a rede; a maioria é de outros
+    campi/coordenadores e fica fora do saldo do campus (reportada só como contexto)."""
     if not FACTO.exists():
-        return {"n_proj": 0, "valor_aprovado_total": None}
+        return {"n_proj": 0, "aprovado_pesquisa": None}
     projs = json.loads(FACTO.read_text(encoding="utf-8")).get("projects", [])
     n_err = sum(1 for p in projs if p.get("_error"))
-    por_fin = defaultdict(lambda: {"n": 0, "aprovado": 0.0})
+    por_fin = defaultdict(lambda: {"n": 0, "aprovado": 0.0})   # só roster-coord
     por_coord = defaultdict(lambda: {"aprovado": 0.0, "executado": 0.0, "n": 0})
     por_ano = defaultdict(float)
     rows = []
     n_info = 0
-    ap_total = ap_pesq = ex_pesq = ap_outros = 0.0
-    n_pesq = n_outros = 0
+    ap_total = 0.0
+    n_pesq_total = 0; ap_pesq_total = 0.0           # todo FACTO pesquisa (contexto)
+    n_pesq_r = 0; ap_pesq_r = ex_pesq_r = 0.0       # pesquisa COORD=roster (saldo campus)
     for p in projs:
         csv = p.get("csv") or {}
         info = next((v for k, v in csv.items() if "Informa" in k), None)
@@ -201,13 +207,11 @@ def carregar_facto() -> dict:
         ap = _br(r.get("Valor aprovado"))
         fin = (r.get("Financiadora") or "").strip()
         coord = (r.get("Coordenador") or "").strip()
+        is_roster = norm(coord) in roster_norm
         ini = (r.get("Data de início") or "")
-        ano = None
         m = re.search(r"(\d{4})", ini[-4:] if len(ini) >= 4 else ini)
-        if m:
-            ano = int(m.group(1))
+        ano = int(m.group(1)) if m else None
         is_pesq = tipo in FACTO_TIPOS_PESQUISA
-        # executado (despesas, valor absoluto) — só p/ subset pesquisa (custo de parsing)
         ex = 0.0
         if is_pesq:
             rec = next((v for k, v in csv.items() if "rubrica" in k.lower()), None)
@@ -217,27 +221,29 @@ def carregar_facto() -> dict:
                         ex += abs(_br(row.get("Executado")))
         ap_total += ap
         if is_pesq:
-            n_pesq += 1; ap_pesq += ap; ex_pesq += ex
-            if fin:
-                por_fin[fin[:45]]["n"] += 1
-                por_fin[fin[:45]]["aprovado"] += ap
-            if coord:
-                pc = por_coord[norm(coord)]
-                pc["aprovado"] += ap; pc["executado"] += ex; pc["n"] += 1
-            if ano:
-                por_ano[ano] += ap
-        else:
-            n_outros += 1; ap_outros += ap
+            n_pesq_total += 1; ap_pesq_total += ap
+            if is_roster:  # <-- só coordenador do campus entra no saldo
+                n_pesq_r += 1; ap_pesq_r += ap; ex_pesq_r += ex
+                if fin:
+                    por_fin[fin[:45]]["n"] += 1
+                    por_fin[fin[:45]]["aprovado"] += ap
+                if coord:
+                    pc = por_coord[norm(coord)]
+                    pc["aprovado"] += ap; pc["executado"] += ex; pc["n"] += 1
+                if ano:
+                    por_ano[ano] += ap
         rows.append({"referencia": (r.get("Referência do projeto") or "")[:60],
-                     "coordenador": coord, "financiadora": fin, "tipo": tipo,
-                     "ano": ano, "aprovado": round(ap, 2), "executado": round(ex, 2),
-                     "pesquisa": is_pesq})
+                     "coordenador": coord, "coord_roster": is_roster,
+                     "financiadora": fin, "tipo": tipo, "ano": ano,
+                     "aprovado": round(ap, 2), "executado": round(ex, 2),
+                     "pesquisa": is_pesq, "conta_saldo": bool(is_pesq and is_roster)})
     return {
         "n_proj": len(projs), "n_com_info": n_info, "n_erros_scrape": n_err,
-        "valor_aprovado_total": round(ap_total, 2),
-        "n_pesquisa": n_pesq, "aprovado_pesquisa": round(ap_pesq, 2),
-        "executado_pesquisa": round(ex_pesq, 2),
-        "n_outros": n_outros, "aprovado_outros": round(ap_outros, 2),
+        # contexto (toda a rede): NÃO é saldo do campus
+        "n_pesquisa_total_rede": n_pesq_total, "aprovado_pesquisa_total_rede": round(ap_pesq_total, 2),
+        # SALDO do campus Serra = só projetos coordenados por docente do roster
+        "n_pesquisa": n_pesq_r, "aprovado_pesquisa": round(ap_pesq_r, 2),
+        "executado_pesquisa": round(ex_pesq_r, 2),
         "por_financiadora": {k: {"n": v["n"], "aprovado": round(v["aprovado"], 2)}
                              for k, v in sorted(por_fin.items(), key=lambda kv: -kv[1]["aprovado"])},
         "por_ano": {k: round(v, 2) for k, v in sorted(por_ano.items())},
@@ -280,28 +286,48 @@ def carregar_bolsas() -> dict:
 
 
 # ---------------------------------------------------------------------------
-def _dedup_titulos(items, key="titulo"):
-    seen, n = set(), 0
-    for a in items or []:
-        t = norm(a.get(key, "")) if isinstance(a, dict) else ""
-        if t and t in seen:
-            continue
-        if t:
-            seen.add(t)
-        n += 1
-    return n
+def _ntitulo(s: str) -> str:
+    """Título normalizado p/ deduplicação (NFKD, ascii, minúsculo, espaços colapsados)."""
+    return norm(s)
 
 
 def carregar_producao_roster() -> dict:
+    """Agrega produção/orientação dos 93 docentes. TODOS os totais institucionais são
+    DISTINTOS (deduplicados por título GLOBALMENTE entre docentes) — uma obra co-autorada
+    ou uma dissertação co-orientada conta UMA vez, não uma por coautor/co-orientador.
+    `por_doc` mantém a contagem própria de cada docente (não somável institucionalmente)."""
     by_id = lattes_index()
+    # conjuntos globais de títulos já vistos, por categoria (dedup entre docentes)
+    seen = defaultdict(set)
+
+    def _distinct(cat: str, items, lid: str) -> int:
+        """Conta itens novos (título inédito na categoria). Sem título → único."""
+        n = 0
+        for i, it in enumerate(items or []):
+            t = _ntitulo(it.get("titulo", "")) if isinstance(it, dict) else ""
+            key = t if t else f"__{cat}|{lid}|{i}"
+            if key in seen[cat]:
+                continue
+            seen[cat].add(key)
+            n += 1
+        return n
+
+    def _own(items) -> int:
+        """Contagem própria do docente (dedup só intra-docente), p/ por_doc."""
+        s, n = set(), 0
+        for it in items or []:
+            t = _ntitulo(it.get("titulo", "")) if isinstance(it, dict) else ""
+            if t and t in s:
+                continue
+            if t:
+                s.add(t)
+            n += 1
+        return n
+
     art = liv = cap = cong = 0
-    # orientações CONCLUÍDAS por nível (chaves reais do Lattes: mestrado, doutorado,
-    # pos_doutorado, especializacao, tcc, iniciacao_cientifica, outros)
     orient_m = orient_d = orient_espec = orient_grad = orient_outros = 0
-    orient_m_and = orient_d_and = 0      # em andamento
-    pat = soft = prod_tec = registros = 0
-    premios = 0
-    proj_pesq = 0
+    orient_m_and = orient_d_and = 0
+    pat = soft = prod_tec = registros = premios = proj_pesq = 0
     por_doc = {}
     n_match = 0
     for nome, lid in ROSTER_IDS.items():
@@ -312,45 +338,52 @@ def carregar_producao_roster() -> dict:
         n_match += 1
         cv = json.loads(Path(f).read_text(encoding="utf-8"))
         pb = cv.get("producao_bibliografica", {}) or {}
-        a = _dedup_titulos(pb.get("artigos_periodicos"))
-        l = _dedup_titulos(pb.get("livros_publicados"))
-        c = _dedup_titulos(pb.get("capitulos_livros"))
-        cg = _dedup_titulos(pb.get("trabalhos_completos_congressos"))
-        art += a; liv += l; cap += c; cong += cg
-        # orientações
+        art += _distinct("artigos", pb.get("artigos_periodicos"), lid)
+        liv += _distinct("livros", pb.get("livros_publicados"), lid)
+        cap += _distinct("capitulos", pb.get("capitulos_livros"), lid)
+        cong += _distinct("congressos", pb.get("trabalhos_completos_congressos"), lid)
         o = cv.get("orientacoes", {}) or {}
         conc = o.get("concluidas", {}) or {}
         anda = o.get("em_andamento", {}) or {}
-        om = len(conc.get("mestrado") or [])            # tipo: Dissertação
-        od = len(conc.get("doutorado") or []) + len(conc.get("pos_doutorado") or [])  # Tese
-        oesp = len(conc.get("especializacao") or [])    # lato sensu (Monografia)
-        # GRADUAÇÃO = TCC + iniciação científica (ambos tipo "Trab. de Conclusão de Curso")
-        ograd = len(conc.get("tcc") or []) + len(conc.get("iniciacao_cientifica") or [])
-        ooutros = len(conc.get("outros") or [])
-        orient_m += om; orient_d += od
-        orient_espec += oesp; orient_grad += ograd; orient_outros += ooutros
-        orient_m_and += len(anda.get("mestrado") or [])
-        orient_d_and += len(anda.get("doutorado") or []) + len(anda.get("pos_doutorado") or [])
-        # técnica / PI
+        orient_m += _distinct("o_mest", conc.get("mestrado"), lid)          # Dissertação
+        orient_d += _distinct("o_dout", (conc.get("doutorado") or []) +
+                              (conc.get("pos_doutorado") or []), lid)        # Tese/pós
+        orient_espec += _distinct("o_esp", conc.get("especializacao"), lid)  # lato sensu
+        orient_grad += _distinct("o_grad", (conc.get("tcc") or []) +
+                                 (conc.get("iniciacao_cientifica") or []), lid)  # graduação
+        orient_outros += _distinct("o_out", conc.get("outros"), lid)
+        orient_m_and += _distinct("o_mest_and", anda.get("mestrado"), lid)
+        orient_d_and += _distinct("o_dout_and", (anda.get("doutorado") or []) +
+                                  (anda.get("pos_doutorado") or []), lid)
         pr = cv.get("patentes_registros", {}) or {}
-        npat = len(pr.get("patentes") or [])
-        nreg = len(pr.get("programas_computador") or []) + len(pr.get("desenhos_industriais") or [])
         pt = cv.get("producao_tecnica", {}) or {}
-        nsoft = len(pt.get("softwares_com_patente") or []) + len(pt.get("softwares_sem_patente") or [])
-        nprodt = len(pt.get("produtos_tecnologicos") or [])
-        pat += npat; soft += nsoft; prod_tec += nprodt; registros += nreg
-        premios += len(cv.get("premios_titulos") or [])
-        proj_pesq += len(cv.get("projetos_pesquisa") or [])
+        pat += _distinct("pat", pr.get("patentes"), lid)
+        registros += _distinct("reg", (pr.get("programas_computador") or []) +
+                               (pr.get("desenhos_industriais") or []), lid)
+        soft += _distinct("soft", (pt.get("softwares_com_patente") or []) +
+                          (pt.get("softwares_sem_patente") or []), lid)
+        prod_tec += _distinct("prodtec", pt.get("produtos_tecnologicos"), lid)
+        premios += _distinct("premios", cv.get("premios_titulos"), lid)
+        proj_pesq += _distinct("projpesq", cv.get("projetos_pesquisa"), lid)
         por_doc[nome] = {
-            "artigos": a, "livros": l, "capitulos": c, "congressos": cg,
-            "orient_mestrado": om, "orient_doutorado": od,
-            "orient_especializacao": oesp, "orient_graduacao": ograd, "orient_outros": ooutros,
-            "patentes": npat, "softwares": nsoft, "produtos_tec": nprodt, "registros": nreg,
-            "premios": len(cv.get("premios_titulos") or []),
-            "projetos_pesquisa": len(cv.get("projetos_pesquisa") or []),
+            "artigos": _own(pb.get("artigos_periodicos")),
+            "livros": _own(pb.get("livros_publicados")),
+            "capitulos": _own(pb.get("capitulos_livros")),
+            "congressos": _own(pb.get("trabalhos_completos_congressos")),
+            "orient_mestrado": _own(conc.get("mestrado")),
+            "orient_doutorado": _own((conc.get("doutorado") or []) + (conc.get("pos_doutorado") or [])),
+            "orient_especializacao": _own(conc.get("especializacao")),
+            "orient_graduacao": _own((conc.get("tcc") or []) + (conc.get("iniciacao_cientifica") or [])),
+            "orient_outros": _own(conc.get("outros")),
+            "patentes": _own(pr.get("patentes")),
+            "softwares": _own((pt.get("softwares_com_patente") or []) + (pt.get("softwares_sem_patente") or [])),
+            "produtos_tec": _own(pt.get("produtos_tecnologicos")),
+            "premios": _own(cv.get("premios_titulos")),
+            "projetos_pesquisa": _own(cv.get("projetos_pesquisa")),
         }
     return {
         "n_roster": len(ROSTER_IDS), "n_lattes_encontrados": n_match,
+        "dedup": "global por título (obra co-autorada/co-orientada conta 1x)",
         "artigos": art, "livros": liv, "capitulos": cap, "congressos": cong,
         "orient_mestrado_conc": orient_m, "orient_doutorado_conc": orient_d,
         "orient_especializacao_conc": orient_espec,
@@ -397,8 +430,9 @@ def carregar_ppcomp() -> dict:
 # ---------------------------------------------------------------------------
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
+    roster_norm = {norm(n) for n in ROSTER_IDS}
     fapes = carregar_fapes()
-    facto = carregar_facto()
+    facto = carregar_facto(roster_norm)
     bolsas = carregar_bolsas()
     prod = carregar_producao_roster()
     oa = carregar_openalex()
@@ -452,16 +486,14 @@ def main() -> None:
          "Bolsas/SigPesq", "disponível", "médio", "Inclui B-UnAC (ensino), não só pesquisa."),
         ("Input", "Valor alocado em bolsas (SigPesq)", bolsas["valor_alocado_total"], "R$",
          "Bolsas/SigPesq", "parcial", "médio", "valor_pago_total=0 em toda a base (só alocado)."),
-        ("Input", "Projetos FACTO (total geridos pela fundação)", facto["n_proj"], "projetos",
-         "FACTO", "disponível", "alto", f"{facto.get('n_com_info')} com ficha; inclui ensino/extensão/seletivo."),
-        ("Input", "Projetos FACTO de PESQUISA/PD&I/Inovação", facto.get("n_pesquisa"), "projetos",
-         "FACTO", "disponível", "alto", "Filtrado por Tipo de Projeto."),
-        ("Input", "FACTO — valor aprovado (pesquisa)", facto.get("aprovado_pesquisa"), "R$",
-         "FACTO", "disponível", "alto", "Só subset pesquisa; exclui ensino/extensão/seletivo."),
-        ("Econômico", "FACTO — valor EXECUTADO (pesquisa)", facto.get("executado_pesquisa"), "R$",
-         "FACTO", "disponível", "médio", "Soma de despesas executadas por rubrica; raro dado de execução real."),
-        ("Input", "FACTO — valor aprovado (não-pesquisa)", facto.get("aprovado_outros"), "R$",
-         "FACTO", "disponível", "alto", "Ensino/extensão/processo seletivo/concurso — fora do ROI de pesquisa."),
+        ("Input", "Projetos FACTO geridos pela fundação (toda a rede)", facto["n_proj"], "projetos",
+         "FACTO", "contexto", "alto", f"{facto.get('n_com_info')} com ficha; maioria de outros campi/coordenadores."),
+        ("Input", "FACTO pesquisa coordenada por docente do CAMPUS (saldo)", facto.get("n_pesquisa"), "projetos",
+         "FACTO", "disponível", "alto", f"Só coord∈roster; {facto.get('n_pesquisa_total_rede')} na rede toda (contexto)."),
+        ("Input", "FACTO — valor aprovado (saldo do campus)", facto.get("aprovado_pesquisa"), "R$",
+         "FACTO", "disponível", "alto", "Só projetos coordenados por docente do campus; equipe não soma."),
+        ("Econômico", "FACTO — valor EXECUTADO (saldo do campus)", facto.get("executado_pesquisa"), "R$",
+         "FACTO", "disponível", "médio", "Execução real por rubrica; só coord∈roster."),
         ("Input", "Projetos de pesquisa declarados (Lattes)", prod["projetos_pesquisa_lattes"],
          "projetos", "Lattes", "disponível", "médio", "Autodeclarado; sem valor financeiro."),
         ("Científico", "Artigos em periódicos (roster, dedup)", prod["artigos"], "artigos",
@@ -554,20 +586,23 @@ def main() -> None:
                         pd.get("orient_doutorado", ""), od.get("cit", ""),
                         od.get("fwci", ""), od.get("top10", "")])
 
-    # FACTO: CSV por projeto (valores em FAIXA + % do total aprovado de pesquisa)
+    # FACTO: CSV por projeto. conta_saldo = pesquisa E coordenador∈roster (campus Serra).
+    # % é sobre o SALDO do campus (só projetos que contam).
     facto_rows = facto.pop("_rows", [])
-    ap_pesq_tot = facto.get("aprovado_pesquisa") or 0
+    ap_saldo = facto.get("aprovado_pesquisa") or 0
     with (OUT / "facto_projetos.csv").open("w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, fieldnames=["referencia", "coordenador", "financiadora",
-                                           "tipo", "ano", "aprovado_faixa", "aprovado_pct",
-                                           "executado_faixa", "pesquisa"])
+        w = csv.DictWriter(fh, fieldnames=["referencia", "coordenador", "coord_roster",
+                                           "financiadora", "tipo", "ano", "aprovado_faixa",
+                                           "executado_faixa", "conta_saldo_campus", "saldo_pct"])
         w.writeheader()
         for r in facto_rows:
             w.writerow({"referencia": r["referencia"], "coordenador": r["coordenador"],
-                        "financiadora": r["financiadora"], "tipo": r["tipo"], "ano": r["ano"],
+                        "coord_roster": r["coord_roster"], "financiadora": r["financiadora"],
+                        "tipo": r["tipo"], "ano": r["ano"],
                         "aprovado_faixa": faixa(r["aprovado"]),
-                        "aprovado_pct": (pct(r["aprovado"], ap_pesq_tot) if r["pesquisa"] else ""),
-                        "executado_faixa": faixa(r["executado"]), "pesquisa": r["pesquisa"]})
+                        "executado_faixa": faixa(r["executado"]),
+                        "conta_saldo_campus": r["conta_saldo"],
+                        "saldo_pct": (pct(r["aprovado"], ap_saldo) if r["conta_saldo"] else "")})
 
     # ---- payload sanitizado (totais em ordem; granular em faixa + %) ----
     fapes_pub = {k: v for k, v in fapes.items() if k not in ("por_coord", "por_ano")}
@@ -575,12 +610,13 @@ def main() -> None:
     fapes_pub["valor_bolsas_total"] = ordem(fapes["valor_bolsas_total"])
     fapes_pub["por_ano_faixa"] = {str(k): faixa(v) for k, v in fapes["por_ano"].items()}
 
-    facto_pub = {k: v for k, v in facto.items() if k not in ("por_coord", "por_ano", "por_financiadora")}
-    for k in ("valor_aprovado_total", "aprovado_pesquisa", "executado_pesquisa", "aprovado_outros"):
+    facto_pub = {k: v for k, v in facto.items()
+                 if k not in ("por_coord", "por_ano", "por_financiadora")}
+    for k in ("aprovado_pesquisa", "executado_pesquisa", "aprovado_pesquisa_total_rede"):
         if facto_pub.get(k) is not None:
             facto_pub[k] = ordem(facto[k])
     facto_pub["por_financiadora_faixa"] = {
-        fin: {"n": d["n"], "faixa": faixa(d["aprovado"]), "pct": pct(d["aprovado"], ap_pesq_tot)}
+        fin: {"n": d["n"], "faixa": faixa(d["aprovado"]), "pct": pct(d["aprovado"], ap_saldo)}
         for fin, d in facto.get("por_financiadora", {}).items()}
 
     bolsas_pub = {k: v for k, v in bolsas.items() if k != "por_coord"}

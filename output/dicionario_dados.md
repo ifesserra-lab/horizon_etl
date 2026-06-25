@@ -87,9 +87,10 @@ pesquisa — segregar antes de usar como "investimento em pesquisa".
   `Equipe`, `Plano de trabalho`, `Documentos`.
 - **Campos-chave (Informações):** `Coordenador`, `Financiadora`, `Data de início/vigência/
   encerramento`, `Tipo de Projeto`, **`Valor aprovado`**. Rubrica traz **`Executado`** (R$).
-- **Volume:** 111 projetos (87 com ficha). **Pesquisa/PD&I/Inovação = 43 proj · centenas de
-  milhões aprovado · dezenas de milhões executado** (ordem de grandeza). Não-pesquisa
-  (ensino/extensão/seletivo/concurso) = 44 proj · centenas de milhões (fora do ROI de pesquisa).
+- **Volume:** 111 projetos na rede (87 com ficha). Pesquisa/PD&I na rede = 43 proj (centenas
+  de milhões) — **contexto, não saldo do campus**. **SALDO do campus Serra = só projetos cujo
+  COORDENADOR é docente do roster: 3 projetos (poucos milhões aprovado/executado).**
+  Participação como **equipe não soma** ao saldo. Filtro em `02_metricas_roi.py`.
 - **Qualidade:** ✅ valor aprovado e executado por projeto; ✅ financiadora real (MEC, FINEP,
   INCRA, Petrobras…). ⚠️ 24 projetos sem ficha; classificação por `Tipo de Projeto`.
 - **Chave:** `Coordenador` (nome). **Nota:** versão anterior deste relatório **descartou a

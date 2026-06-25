@@ -61,6 +61,11 @@ FAPES/FACTO, OpenAlex). Onde o dado não existe, o relatório diz explicitamente
 <strong>[O] Observado</strong> = lido diretamente dos dados · <strong>[I] Inferido</strong> = derivado por regra
 declarada · <strong>[A] Ausente</strong> = não há dado, exige coleta. Cada métrica recebe ainda um
 <strong>nível de confiança</strong> (alto / médio / baixo) e um <strong>risco de viés</strong>.</p>
+<p><strong>Convenção de contagem (dados distintos):</strong> todos os totais institucionais são
+<strong>distintos</strong> — cada obra é contada <strong>uma única vez</strong>, mesmo quando co-autorada ou
+co-orientada por vários docentes do quadro (deduplicação <strong>global por título</strong>). Isso evita
+inflar a produção/orientação por dupla contagem. A contagem <strong>por docente</strong> (em anexos) é a
+produção própria de cada um e <strong>não deve ser somada</strong> entre docentes.</p>
 <p><strong>Convenção de valores financeiros (segurança/privacidade):</strong> este relatório <strong>não expõe
 cifras exatas</strong>. <strong>Totais</strong> aparecem em <strong>ordem de grandeza</strong> ("dezenas/centenas de milhões");
 valores <strong>por coordenador, projeto ou financiadora</strong> aparecem em <strong>faixa + % do total</strong>.
@@ -70,15 +75,18 @@ A reprodução com cifras exatas exige acesso aos dados-fonte (controlado), via 
 <hr />
 <h2 id="1-sumario-executivo">1. Sumário executivo</h2>
 <p>A pesquisa do Campus Serra movimenta um fomento <strong>muito superior ao inicialmente
-mapeado</strong>: somando as duas fontes locais de projeto, o <strong>fomento de pesquisa consolidado
-(valor aprovado/contratado) é da ordem de centenas de milhões de reais</strong> — <strong>dezenas de
-milhões</strong> da <strong>FAPES</strong> (99 projetos, 2015–2026) e <strong>centenas de milhões</strong> da <strong>FACTO</strong> (43
-projetos de pesquisa/PD&amp;I/inovação), esta última já com <strong>execução na casa das dezenas de
-milhões</strong> e financiadoras externas competitivas (INCRA, FINEP, MEC, <strong>Petrobras</strong>, ICMBio).
+mapeado</strong>: o <strong>fomento de pesquisa consolidado (valor aprovado/contratado) é da ordem de
+dezenas de milhões de reais</strong> — quase todo da <strong>FAPES</strong> (99 projetos, 2015–2026), mais uma
+parcela da <strong>FACTO</strong> restrita aos <strong>projetos coordenados por docentes do campus</strong> (3 projetos,
+poucos milhões — principalmente 1 projeto <strong>FINEP</strong> e contratos com a empresa <strong>Intelliway</strong>).
+⚠️ A FACTO <strong>gere centenas de milhões na rede IFES</strong>, mas a <strong>maioria é de outros
+campi/coordenadores</strong> e <strong>não entra no saldo do campus Serra</strong> (só conta o projeto cujo
+<strong>coordenador</strong> é docente do quadro; participação como equipe não soma).
 A produção do quadro de <strong>93 docentes</strong> (unidade de análise)
-soma <strong>2.346 itens científicos</strong> (549 artigos, 96 livros, 182 capítulos, 1.519 trabalhos
-em congressos), <strong>315 titulados</strong> de mestrado/doutorado e <strong>93 ativos tecnológicos</strong>
-(majoritariamente softwares; <strong>patentes registradas = 0</strong> no Lattes).</p>
+soma <strong>1.959 itens científicos distintos</strong> (473 artigos, 90 livros, 162 capítulos, 1.234
+trabalhos em congressos), <strong>261 titulados distintos</strong> de mestrado/doutorado e <strong>91 ativos
+tecnológicos</strong> (majoritariamente softwares; <strong>patentes registradas = 0</strong> no Lattes). <em>Todos os
+totais são distintos: obra co-autorada/dissertação co-orientada conta uma vez.</em></p>
 <p><strong>Principais achados (confiança alta, salvo indicação):</strong></p>
 <ol>
 <li><strong>Há base sólida para um painel de inputs e de produção</strong> — fomento, bolsas, produção
@@ -92,10 +100,10 @@ em congressos), <strong>315 titulados</strong> de mestrado/doutorado e <strong>9
    coordenador" superestima a "por pesquisador" e deve ser lida com cuidado.</li>
 <li><strong>O ROI financeiro clássico (%) ainda NÃO é calculável</strong> — não há benefícios
    monetizados (royalties, licenças, receita incremental). <strong>Mas a FACTO destrava parte da
-   dimensão econômica</strong>: há <strong>valor executado real (dezenas de milhões)</strong> e <strong>captação externa
-   competitiva</strong> identificável por financiadora (INCRA, FINEP, MEC, <strong>Petrobras</strong> — contrato
-   privado, ICMBio) — permite <strong>taxa de execução</strong> e <strong>captação externa</strong>, não o ROI% (que
-   segue exigindo o lado "benefício"). Valores granulares só em <strong>faixa + % do total</strong>.</li>
+   dimensão econômica</strong> no recorte do campus: <strong>execução real</strong> e <strong>captação externa</strong> dos
+   projetos coordenados por docentes (1 <strong>FINEP</strong> + contratos da empresa <strong>Intelliway</strong>) —
+   permite <strong>taxa de execução</strong> e <strong>captação externa/privada</strong>, não o ROI% (que segue exigindo
+   o lado "benefício"). Valores granulares só em <strong>faixa + % do total</strong>.</li>
 <li><strong>Citações existem, mas só parcialmente</strong> (5.793 citações, <strong>FWCI mediano 1,4</strong>,
    226 artigos no top 10% mundial) e cobrem <strong>apenas 64 dos 93 docentes</strong> (casamento por
    DOI via OpenAlex). Servem como panorama, <strong>não</strong> como avaliação individual.</li>
@@ -175,7 +183,7 @@ ligada a um projeto financiado); (d) desempenho individual comparável entre ár
 <td>1</td>
 <td>Currículos Lattes</td>
 <td>JSON (154 arq.; <strong>93 = roster</strong>)</td>
-<td>549 artigos, 1.519 congressos, 2.345 orient.</td>
+<td>473 artigos, 1.234 congressos, ~2.016 orient. (distintos)</td>
 <td>livre</td>
 <td>nome / lattes_id</td>
 <td>autodeclarado; sem citações; sem DOI em parte</td>
@@ -200,12 +208,12 @@ ligada a um projeto financiado); (d) desempenho individual comparável entre ár
 </tr>
 <tr>
 <td>4</td>
-<td>Projetos FACTO (fundação)</td>
+<td>Projetos FACTO (fundação, rede IFES)</td>
 <td>JSON (7 CSVs/projeto)</td>
-<td>111 proj (87 c/ ficha) · <strong>centenas de mi aprovado / dezenas de mi executado</strong> (pesquisa)</td>
+<td>111 proj rede; <strong>só 3 de pesquisa coord. pelo campus → poucos milhões</strong></td>
 <td>2016–2026</td>
-<td>coordenador / nome</td>
-<td>inclui ensino/extensão/seletivo (separados)</td>
+<td>coordenador (∈roster)</td>
+<td>maioria de outros campi (fora do saldo)</td>
 </tr>
 <tr>
 <td>5</td>
@@ -386,34 +394,34 @@ cifra exata. Faixas: ≤100 mil · 100–500 mil · 500 mil–1 mi · 1–5 mi �
 <td>médio (pago=0)</td>
 </tr>
 <tr>
-<td><strong>Projetos FACTO de pesquisa/PD&amp;I</strong></td>
-<td style="text-align: right;"><strong>43</strong></td>
+<td><strong>FACTO pesquisa coord. pelo campus (saldo)</strong></td>
+<td style="text-align: right;"><strong>3 projetos</strong></td>
 <td>FACTO</td>
 <td>alto</td>
 </tr>
 <tr>
-<td><strong>FACTO — valor aprovado (pesquisa)</strong></td>
-<td style="text-align: right;"><strong>centenas de milhões</strong></td>
+<td><strong>FACTO — valor aprovado (saldo do campus)</strong></td>
+<td style="text-align: right;"><strong>poucos milhões</strong></td>
 <td>FACTO</td>
 <td>alto</td>
 </tr>
 <tr>
-<td><strong>FACTO — valor executado (pesquisa)</strong></td>
-<td style="text-align: right;"><strong>dezenas de milhões</strong></td>
+<td><strong>FACTO — valor executado (saldo do campus)</strong></td>
+<td style="text-align: right;"><strong>poucos milhões</strong></td>
 <td>FACTO</td>
 <td>médio</td>
 </tr>
 <tr>
-<td>FACTO — aprovado não-pesquisa (ensino/ext/seletivo)</td>
-<td style="text-align: right;">centenas de milhões</td>
+<td>FACTO pesquisa na rede IFES (contexto, fora do saldo)</td>
+<td style="text-align: right;">43 proj · centenas de milhões</td>
 <td>FACTO</td>
-<td>alto (fora do ROI)</td>
+<td>contexto</td>
 </tr>
 <tr>
-<td><strong>Fomento de pesquisa consolidado (FAPES + FACTO)</strong></td>
-<td style="text-align: right;"><strong>centenas de milhões</strong></td>
+<td><strong>Fomento de pesquisa consolidado (FAPES + FACTO-campus)</strong></td>
+<td style="text-align: right;"><strong>dezenas de milhões</strong></td>
 <td>FAPES+FACTO</td>
-<td>médio (fontes distintas)</td>
+<td>médio</td>
 </tr>
 <tr>
 <td>Projetos de pesquisa declarados (Lattes)</td>
@@ -423,11 +431,12 @@ cifra exata. Faixas: ≤100 mil · 100–500 mil · 500 mil–1 mi · 1–5 mi �
 </tr>
 </tbody>
 </table>
-<p><strong>FACTO — financiadoras externas de pesquisa (faixa + % do aprovado de pesquisa):</strong> INCRA
-(&gt; R$ 50 mi · ~35%) · FINEP (R$ 20–50 mi · ~17%) · MEC (R$ 20–50 mi · ~10%) · Min. Povos
-Indígenas (R$ 5–20 mi · ~7%) · <strong>Petrobras (R$ 5–20 mi · ~6%, empresa)</strong> · ICMBio (R$ 5–20 mi
-· ~5%). → <strong>captação externa competitiva e contrato privado</strong> (relevante p/ as dimensões
-econômica e tecnológica). Detalhe (faixas) em <code>facto_projetos.csv</code>.</p>
+<p><strong>FACTO — financiadoras dos projetos coord. pelo campus (faixa + % do saldo):</strong> <strong>FINEP</strong>
+(R$ 5–20 mi · ~97%) · <strong>Intelliway Tecnologia</strong> (R$ 100–500 mil · ~3%, 2 contratos de empresa).
+→ captação externa competitiva (FINEP) + <strong>contrato privado</strong> (Intelliway). ⚠️ Grandes
+financiadoras como INCRA, MEC, Petrobras aparecem na FACTO <strong>mas em projetos de outros
+campi/coordenadores</strong> — <strong>não</strong> são captação do campus Serra. Detalhe em <code>facto_projetos.csv</code>
+(coluna <code>conta_saldo_campus</code>).</p>
 <p><strong>Fomento FAPES por ano (faixa):</strong> 2018 (R$ 1–5 mi) · 2021–2022 (R$ 5–20 mi/ano) · <strong>2023
 (R$ 5–20 mi, pico)</strong> · 2024–2026 (R$ 1–5 mi a 5–20 mi). Tendência de <strong>crescimento e
 volatilidade</strong> (um ou poucos grandes projetos movem o total do ano). Série (faixas) em
@@ -436,44 +445,47 @@ volatilidade</strong> (um ou poucos grandes projetos movem o total do ano). Sér
 ⚠️ <strong>B-UnAC</strong> (Universidade Aberta Capixaba) é majoritariamente <strong>ensino/EAD</strong>, não pesquisa —
 não deve entrar no denominador de "investimento em pesquisa" sem segregação.</p>
 <h3 id="62-producao-cientifica-roster-93-docentes">6.2 Produção científica (roster, 93 docentes)</h3>
+<blockquote>
+<p>Todos os números abaixo são <strong>distintos</strong> (obra co-autorada conta 1×, dedup global por título).</p>
+</blockquote>
 <table>
 <thead>
 <tr>
 <th>Indicador</th>
-<th style="text-align: right;">Valor</th>
+<th style="text-align: right;">Valor (distinto)</th>
 <th>Confiança</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Artigos em periódicos (dedup)</td>
-<td style="text-align: right;"><strong>549</strong></td>
+<td>Artigos em periódicos</td>
+<td style="text-align: right;"><strong>473</strong></td>
 <td>alto</td>
 </tr>
 <tr>
 <td>Livros publicados</td>
-<td style="text-align: right;">96</td>
+<td style="text-align: right;">90</td>
 <td>alto</td>
 </tr>
 <tr>
 <td>Capítulos de livros</td>
-<td style="text-align: right;">182</td>
+<td style="text-align: right;">162</td>
 <td>alto</td>
 </tr>
 <tr>
 <td>Trabalhos completos em congressos</td>
-<td style="text-align: right;">1.519</td>
+<td style="text-align: right;">1.234</td>
 <td>alto</td>
 </tr>
 <tr>
 <td><strong>Total de itens científicos</strong></td>
-<td style="text-align: right;"><strong>2.346</strong></td>
+<td style="text-align: right;"><strong>1.959</strong></td>
 <td>alto</td>
 </tr>
 <tr>
 <td>Citações (OpenAlex, por DOI)</td>
-<td style="text-align: right;">5.793</td>
-<td>médio (64/93)</td>
+<td style="text-align: right;">5.794</td>
+<td>médio (64/93; ver ⚠️)</td>
 </tr>
 <tr>
 <td>FWCI mediano</td>
@@ -488,10 +500,12 @@ não deve entrar no denominador de "investimento em pesquisa" sem segregação.<
 </tbody>
 </table>
 <blockquote>
-<p><strong>Fórmula (baixa confiança):</strong> produção científica por R$ 1 mi ≈ <strong>9,2 itens/R$ mi</strong>
-(denominador = fomento de pesquisa consolidado FAPES + FACTO, na casa das centenas de
-milhões). Ordem de grandeza institucional; não atribuir a projetos específicos. <em>(Sobre só
-a FAPES o índice seria ~5× maior — mas isso ignoraria a FACTO.)</em></p>
+<p>⚠️ <strong>Citações (OpenAlex)</strong> ainda podem contar uma obra co-autorada por docentes do quadro
+mais de uma vez (o total vem da soma por docente; o detalhe por DOI único não está no
+resumo). Tratar como <strong>panorama</strong>, não total exato. Demais contagens são distintas.</p>
+<p><strong>Fórmula (baixa confiança):</strong> produção científica por R$ 1 mi ≈ <strong>35 itens/R$ mi</strong>
+(1.959 itens distintos ÷ fomento consolidado, dezenas de milhões). Ordem de grandeza
+institucional; não atribuir a projetos específicos.</p>
 </blockquote>
 <h3 id="63-formacao-e-capacidade">6.3 Formação e capacidade</h3>
 <p>Orientações concluídas <strong>por nível</strong> (chaves reais do Lattes, sem misturar níveis —
@@ -500,14 +514,14 @@ a FAPES o índice seria ~5× maior — mas isso ignoraria a FACTO.)</em></p>
 <thead>
 <tr>
 <th>Nível (tipo de trabalho no Lattes)</th>
-<th style="text-align: right;">Concluídas</th>
+<th style="text-align: right;">Concluídas (distintas)</th>
 <th>Confiança</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><strong>Mestrado</strong> (Dissertação)</td>
-<td style="text-align: right;"><strong>308</strong></td>
+<td style="text-align: right;"><strong>254</strong></td>
 <td>alto</td>
 </tr>
 <tr>
@@ -517,22 +531,22 @@ a FAPES o índice seria ~5× maior — mas isso ignoraria a FACTO.)</em></p>
 </tr>
 <tr>
 <td>Especialização — <em>lato sensu</em> (Monografia)</td>
-<td style="text-align: right;">381</td>
+<td style="text-align: right;">372</td>
 <td>alto</td>
 </tr>
 <tr>
 <td><strong>Graduação</strong> — TCC + Iniciação Científica</td>
-<td style="text-align: right;"><strong>1.369</strong></td>
+<td style="text-align: right;"><strong>1.267</strong></td>
 <td>alto</td>
 </tr>
 <tr>
 <td>Outros (residual)</td>
-<td style="text-align: right;">194</td>
+<td style="text-align: right;">116</td>
 <td>médio</td>
 </tr>
 <tr>
 <td>Mestrado <strong>em andamento</strong></td>
-<td style="text-align: right;">136</td>
+<td style="text-align: right;">124</td>
 <td>alto</td>
 </tr>
 <tr>
@@ -543,11 +557,10 @@ a FAPES o índice seria ~5× maior — mas isso ignoraria a FACTO.)</em></p>
 </tbody>
 </table>
 <blockquote>
-<p><strong>Correção metodológica:</strong> uma versão anterior somava TCC + IC + especialização sob o
-rótulo "IC/outras", <strong>misturando graduação com pós-graduação</strong>. Agora cada nível é
-contado pela chave correta do Lattes (verificado pelo campo <code>tipo_trabalho</code>:
-mestrado = <em>Dissertação</em>; TCC/IC = <em>Trabalho de Conclusão de Curso</em>). <strong>Mestrado e
-graduação são linhas distintas.</strong></p>
+<p><strong>Correções metodológicas (acumuladas):</strong> (1) cada nível é contado pela chave correta do
+Lattes (<code>tipo_trabalho</code>: mestrado = <em>Dissertação</em>; TCC/IC = <em>Trab. de Conclusão de Curso</em>) —
+<strong>mestrado ≠ graduação</strong>; (2) <strong>deduplicação global</strong>: dissertação co-orientada por 2+
+docentes conta <strong>uma vez</strong> (o bruto somava 308 mestrado; os <strong>distintos</strong> são <strong>254</strong>).</p>
 </blockquote>
 <p>Capacidade institucional de pós-graduação (programa PPComp):</p>
 <table>
@@ -572,9 +585,9 @@ graduação são linhas distintas.</strong></p>
 </tbody>
 </table>
 <blockquote>
-<p><strong>Titulados <em>stricto sensu</em></strong> (mestrado + doutorado) = 308 + 7 = <strong>315</strong>. Fórmula
-(baixa confiança): ≈ <strong>1,2 titulado/R$ mi</strong> (fomento consolidado, centenas de milhões). <strong>A
-graduação (1.369 TCC/IC) não entra</strong> nesse indicador de titulação <em>stricto sensu</em>.</p>
+<p><strong>Titulados <em>stricto sensu</em></strong> (mestrado + doutorado, distintos) = 254 + 7 = <strong>261</strong>. Fórmula
+(baixa confiança): ≈ <strong>4,7 titulados/R$ mi</strong> (fomento consolidado, dezenas de milhões). <strong>A
+graduação (1.267 TCC/IC) não entra</strong> nesse indicador de titulação <em>stricto sensu</em>.</p>
 </blockquote>
 <h3 id="64-inovacao-e-producao-tecnica">6.4 Inovação e produção técnica</h3>
 <table>
@@ -592,8 +605,8 @@ graduação (1.369 TCC/IC) não entra</strong> nesse indicador de titulação <e
 <td>médio (provável subnotificação)</td>
 </tr>
 <tr>
-<td>Softwares</td>
-<td style="text-align: right;">77</td>
+<td>Softwares (distintos)</td>
+<td style="text-align: right;">75</td>
 <td>médio</td>
 </tr>
 <tr>
@@ -607,12 +620,12 @@ graduação (1.369 TCC/IC) não entra</strong> nesse indicador de titulação <e
 <td>médio</td>
 </tr>
 <tr>
-<td><strong>Ativos tecnológicos (soma)</strong></td>
-<td style="text-align: right;"><strong>93</strong></td>
+<td><strong>Ativos tecnológicos (soma, distintos)</strong></td>
+<td style="text-align: right;"><strong>91</strong></td>
 <td>médio</td>
 </tr>
 <tr>
-<td>Prêmios e títulos</td>
+<td>Prêmios e títulos (distintos)</td>
 <td style="text-align: right;">49</td>
 <td>médio</td>
 </tr>
@@ -842,29 +855,29 @@ narrativa de impacto, indicadores de alcance e estudo de caso.</p>
 <td>Bolsas (só alocado)</td>
 </tr>
 <tr>
-<td><strong>FACTO — valor aprovado (pesquisa)</strong></td>
-<td style="text-align: right;"><strong>centenas de milhões</strong></td>
+<td><strong>FACTO — aprovado (saldo do campus, coord∈roster)</strong></td>
+<td style="text-align: right;"><strong>poucos milhões</strong></td>
 <td>FACTO</td>
 </tr>
 <tr>
-<td><strong>FACTO — valor EXECUTADO (pesquisa)</strong></td>
-<td style="text-align: right;"><strong>dezenas de milhões</strong></td>
+<td><strong>FACTO — EXECUTADO (saldo do campus)</strong></td>
+<td style="text-align: right;"><strong>poucos milhões</strong></td>
 <td>FACTO (despesas por rubrica)</td>
 </tr>
 <tr>
-<td>Captação externa competitiva (FACTO): FINEP / MEC / Petrobras / INCRA</td>
+<td>Captação dos projetos coord. pelo campus: <strong>FINEP</strong> + <strong>Intelliway</strong> (empresa)</td>
 <td style="text-align: right;">faixa + % (<code>facto_projetos.csv</code>)</td>
 <td>FACTO</td>
 </tr>
 </tbody>
 </table>
 <blockquote>
-<p><strong>Avanço (FACTO):</strong> a execução financeira real (dezenas de milhões) e a <strong>captação externa
-por financiadora</strong> (FINEP, MEC, <strong>Petrobras</strong> — contrato privado, INCRA) já são monetizáveis
-com evidência. Permitem <strong>taxa de execução</strong> (executado/aprovado ≈ 26% do subset com
-rubricas) e <strong>captação externa</strong>, sem inventar benefício. O contrato <strong>Petrobras</strong> (faixa
-R$ 5–20 mi) é um caso de <strong>receita de pesquisa contratada por empresa</strong> — relevante p/ as
-dimensões econômica/tecnológica.</p>
+<p><strong>Avanço (FACTO, recorte do campus):</strong> a execução financeira real e a <strong>captação externa</strong>
+dos projetos <strong>coordenados por docentes</strong> (1 <strong>FINEP</strong> + contratos da empresa <strong>Intelliway</strong>)
+são monetizáveis com evidência — permitem <strong>taxa de execução</strong> e <strong>captação externa/privada</strong>,
+sem inventar benefício. Os contratos <strong>Intelliway</strong> são caso de <strong>receita de pesquisa
+contratada por empresa</strong>. ⚠️ Os grandes aportes (INCRA, MEC, Petrobras) vistos na FACTO são
+de <strong>outros campi</strong> e <strong>não</strong> contam como captação do campus Serra.</p>
 </blockquote>
 <p><strong>NÃO deve ser monetizado sem dado adicional:</strong> royalties, licenciamento, receita
 incremental, economia gerada, empregos criados, empresas/spin-offs, beneficiários com valor
@@ -1097,20 +1110,20 @@ Aplicada à produção de artigos (dedup por título):</p>
 </thead>
 <tbody>
 <tr>
-<td>Artigos (total, todas as datas)</td>
-<td style="text-align: right;">549</td>
+<td>Artigos distintos (total, todas as datas)</td>
+<td style="text-align: right;">473</td>
 </tr>
 <tr>
 <td>Artigos <strong>na janela 2015–2026</strong></td>
-<td style="text-align: right;"><strong>427</strong></td>
+<td style="text-align: right;"><strong>356</strong></td>
 </tr>
 <tr>
 <td>Artigos fora da janela (pré-2015)</td>
-<td style="text-align: right;">122</td>
+<td style="text-align: right;">117</td>
 </tr>
 <tr>
 <td>Artigos na janela recente 2021–2025</td>
-<td style="text-align: right;">230</td>
+<td style="text-align: right;">183</td>
 </tr>
 <tr>
 <td>Fomento FAPES na janela 2015–2026</td>
@@ -1143,7 +1156,7 @@ com o fomento. Série completa em <code>janelas_temporais.csv</code>. <strong>Co
 </tr>
 </tbody>
 </table>
-<p>Institucional = <strong>37,8%</strong> do orçamento (centenas de milhões em ordem de grandeza). Conclusão: a concentração é <strong>real e
+<p>Institucional = <strong>37,8%</strong> do orçamento FAPES. Conclusão: a concentração é <strong>real e
 alta</strong> mesmo após segregar, mas <strong>mais de 1/3 do "fomento à pesquisa" é, na verdade,
 infraestrutura/programa institucional</strong> — fato que deve constar em qualquer leitura de ROI.</p>
 <h3 id="153-pipeline-openalex-para-os-93">15.3 Pipeline OpenAlex para os 93</h3>
