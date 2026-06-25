@@ -1,6 +1,14 @@
 # Relatório de ROI e Impacto da Pesquisa
 ### IFES — Campus Serra · Diretoria de Pesquisa e Pós-Graduação
 
+> ## ⚠️ DADOS PRELIMINARES — NÃO É FONTE DA VERDADE
+> Este relatório é um **exercício metodológico exploratório**, gerado automaticamente a partir
+> de fontes públicas/locais (Lattes, FAPES, FACTO, SigPesq, OpenAlex) que contêm **lacunas,
+> duplicidades, homônimos e autodeclarações não auditadas**. Os números são **estimativas
+> preliminares**, sujeitas a revisão, e **NÃO devem ser usados como registro oficial**, base de
+> avaliação individual, prestação de contas ou tomada de decisão sem **conferência manual** com
+> as fontes primárias. Use como **panorama**, não como verdade estabelecida.
+
 > **Natureza do documento.** Relatório técnico-metodológico para a Pró-Reitoria de
 > Pesquisa, Planejamento Institucional e comissões de avaliação. Combina quatro
 > abordagens internacionais — **Payback Framework**, **CAHS Framework**, **bibliometria
@@ -176,14 +184,20 @@ dimensão, fonte, disponibilidade e confiança.
 | Orçamento FAPES contratado | **dezenas de milhões** | FAPES | alto |
 | Valor de bolsas dentro dos projetos FAPES | dezenas de milhões | FAPES | alto |
 | Bolsas FAPES (quantidade) | 729 | FAPES | alto |
-| Alocações de bolsa (SigPesq) | 1.407 (749 bolsistas) | Bolsas | médio |
-| Valor **alocado** em bolsas (SigPesq) | dezenas de milhões | Bolsas | médio (pago=0) |
+| Alocações de bolsa (SigPesq) | 1.407 (749 bolsistas) | SigPesq | médio |
+| Valor **alocado** em bolsas (SigPesq) | dezenas de milhões | SigPesq | médio (pago=0) |
 | **FACTO pesquisa coord. pelo campus (saldo)** | **3 projetos** | FACTO | alto |
 | **FACTO — valor aprovado (saldo do campus)** | **poucos milhões** | FACTO | alto |
 | **FACTO — valor executado (saldo do campus)** | **poucos milhões** | FACTO | médio |
 | FACTO pesquisa na rede IFES (contexto, fora do saldo) | 43 proj · centenas de milhões | FACTO | contexto |
 | **Fomento de pesquisa consolidado (FAPES + FACTO-campus)** | **dezenas de milhões** | FAPES+FACTO | médio |
 | Projetos de pesquisa declarados (Lattes) | 493 | Lattes | médio |
+
+> ⚠️ **SigPesq ≠ FAPES — fontes distintas, não somadas.** As **bolsas** vêm do **SigPesq**
+> (sistema de registro de alocação); os **projetos/orçamento** vêm da **FAPES**. As duas podem
+> descrever **as mesmas bolsas por sistemas diferentes** — por isso **não são somadas**. O
+> *fomento consolidado* usa **só** o orçamento FAPES + FACTO-campus (a bolsa já está embutida no
+> orçamento do projeto); o valor de bolsas do SigPesq é mostrado **à parte**, como contexto.
 
 **FACTO — financiadoras dos projetos coord. pelo campus (faixa + % do saldo):** **FINEP**
 (R$ 5–20 mi · ~97%) · **Intelliway Tecnologia** (R$ 100–500 mil · ~3%, 2 contratos de empresa).
