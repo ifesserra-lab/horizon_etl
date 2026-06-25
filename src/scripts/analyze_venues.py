@@ -458,7 +458,7 @@ def match_conf_qualis(evento_clean: str, acro: dict, name: dict) -> str | None:
 # Extração dos veículos a partir do Lattes
 # ---------------------------------------------------------------------------
 
-def collect_venues(roster: dict[str, str]) -> tuple[dict, dict]:
+def collect_venues(roster: dict[str, str]) -> tuple[dict, dict, dict]:
     by_id = {}
     for f in glob.glob(str(LATTES_DIR / "*.json")):
         m = re.search(r"_(\d{16})\.json$", f)
@@ -467,6 +467,9 @@ def collect_venues(roster: dict[str, str]) -> tuple[dict, dict]:
 
     journals: dict[str, dict] = {}   # chave = issn normalizado (fallback nome)
     confs: dict[str, dict] = {}      # chave = nome normalizado do evento
+    # artigos-fonte: cada artigo de periódico (deduplicado por veículo+título),
+    # base das métricas SJR/Qualis. Coautores do roster são creditados juntos.
+    artigos: dict[tuple, dict] = {}
 
     for nome, lid in roster.items():
         f = by_id.get(lid)
@@ -500,6 +503,20 @@ def collect_venues(roster: dict[str, str]) -> tuple[dict, dict]:
                     j["anos"].append(a["ano"])
             if not j["revista"] and rev:
                 j["revista"] = rev
+            # artigo-fonte (só com título; dedup por veículo+título, créditos somados)
+            titulo = (a.get("titulo") or "").strip()
+            if titulo:
+                ak = (key, wk)
+                ar = artigos.setdefault(ak, {
+                    "titulo": titulo, "ano": a.get("ano"), "revista": rev,
+                    "issn_norm": issn, "doi": (a.get("doi") or "").strip(),
+                    "docentes": set(),
+                })
+                ar["docentes"].add(nome)
+                if not ar["revista"] and rev:
+                    ar["revista"] = rev
+                if not ar["doi"] and (a.get("doi") or "").strip():
+                    ar["doi"] = (a.get("doi") or "").strip()
 
         for c in pb.get("trabalhos_completos_congressos", []) or []:
             ev = (c.get("evento") or "").strip()
@@ -528,15 +545,17 @@ def collect_venues(roster: dict[str, str]) -> tuple[dict, dict]:
     for j in journals.values():
         del j["_works"]
 
-    return journals, confs
+    return journals, confs, artigos
 
 
 def enrich_and_summarize(journals: dict, confs: dict,
                          scimago: dict, qualis: dict, top: int,
                          conf_acro: dict | None = None,
-                         conf_name: dict | None = None) -> dict:
+                         conf_name: dict | None = None,
+                         artigos: dict | None = None) -> dict:
     conf_acro = conf_acro or {}
     conf_name = conf_name or {}
+    artigos = artigos or {}
     # enriquece revistas
     jrows = []
     q_dist = defaultdict(int)        # quartil SJR
@@ -583,6 +602,27 @@ def enrich_and_summarize(journals: dict, confs: dict,
     matched_qualis = sum(1 for r in jrows if r["qualis"] not in ("—", ""))
     conf_matched = sum(1 for r in crows if r["qualis"] not in ("—", ""))
 
+    # artigos-fonte: classifica cada artigo pelo SJR/Qualis do veículo (por ISSN)
+    def _ano_int(v):
+        try:
+            return int(str(v).strip()[:4])
+        except (ValueError, TypeError):
+            return 0
+    arows = []
+    for ar in artigos.values():
+        sm = scimago.get(ar["issn_norm"], {})
+        arows.append({
+            "titulo": ar["titulo"],
+            "ano": _ano_int(ar["ano"]) or None,
+            "revista": ar["revista"],
+            "issn": ar["issn_norm"],
+            "doi": ar["doi"],
+            "docentes": sorted(ar["docentes"]),
+            "sjr_quartil": sm.get("quartil", "") or "—",
+            "qualis": qualis.get(ar["issn_norm"], "") or "—",
+        })
+    arows.sort(key=lambda r: (-(r["ano"] or 0), r["titulo"].lower()))
+
     return {
         "resumo": {
             "n_revistas_distintas": len(jrows),
@@ -600,6 +640,7 @@ def enrich_and_summarize(journals: dict, confs: dict,
         "top_congressos": crows[:top],
         "revistas": jrows,
         "congressos": crows,
+        "artigos_fonte": arows,
     }
 
 
@@ -744,6 +785,47 @@ def _quad_qualis_fwci(ranking: list | None, citacoes: list | None) -> str:
             f'<b>Veículo forte, baixo impacto</b> = Qualis acima, FWCI abaixo (publica em estrato alto mas citado abaixo da média da área); '
             f'<b>Nicho</b> = Qualis e FWCI ambos <b>abaixo</b> da mediana (veículo modesto e impacto modesto).</p>'
             f'<div class="card">{svg}</div><div class="grid2" style="margin-top:16px;">{tabs}</div>')
+
+
+_SRC_TEMPLATE = """
+    <section class="section">
+      <div class="eyebrow">Rastreabilidade</div>
+      <h2>Artigos-fonte das métricas</h2>
+      <p class="desc">A base de tudo: cada <b>artigo de periódico</b> dos docentes (do Lattes),
+      com a classificação do veículo de onde saem as métricas — <b>SJR</b> (quartil SCImago) e
+      <b>Qualis</b> (estrato CAPES), casados por <b>ISSN</b>. São <b>__N__</b> artigos distintos;
+      <b>__N_SJR__</b> têm SJR e <b>__N_QUALIS__</b> têm Qualis. Filtre por título, revista ou docente;
+      clique no cabeçalho para ordenar. Títulos com DOI linkam para o artigo.</p>
+      <div style="margin-bottom:14px;">
+        <input id="af-q" type="search" placeholder="Filtrar por título, revista ou docente…"
+          style="width:100%;max-width:520px;padding:9px 13px;border:1px solid var(--line2,#cfddd3);
+          border-radius:10px;font:inherit;font-size:14px;">
+        <span id="af-count" style="margin-left:10px;font-size:13px;color:var(--muted,#71857a);"></span>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+      <table class="sortable">
+        <thead><tr><th>Ano</th><th>Título</th><th>Revista</th><th>SJR</th>__QHEAD__<th>Docente(s)</th></tr></thead>
+        <tbody id="af-body">__ROWS__</tbody>
+      </table>
+      </div>
+    </section>
+    <script>
+    (function(){
+      var q=document.getElementById('af-q'), body=document.getElementById('af-body'),
+          cnt=document.getElementById('af-count');
+      if(!q||!body) return;
+      var rows=[].slice.call(body.querySelectorAll('tr'));
+      function upd(){
+        var term=q.value.trim().toLowerCase(), vis=0;
+        rows.forEach(function(r){
+          var ok=!term||(r.getAttribute('data-f')||'').indexOf(term)>=0;
+          r.style.display=ok?'':'none'; if(ok) vis++;
+        });
+        cnt.textContent=vis+' de '+rows.length+' artigos';
+      }
+      q.addEventListener('input',upd); upd();
+    })();
+    </script>"""
 
 
 def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None,
@@ -1794,6 +1876,39 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
               f'<b>Ex.:</b> 200 citações, 60 recentes → <b>30%</b> de momentum. '
               f'<b>Leitura:</b> sinal de tração <i>recente</i> (aquecendo), não medida de valor consolidado.'),
     ])
+    # ---- Artigos-fonte das métricas (rastreabilidade) ----
+    _e = lambda s: (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    af = payload.get("artigos_fonte", [])
+    n_af = len(af)
+    n_af_sjr = sum(1 for a in af if a["sjr_quartil"] not in ("—", ""))
+    n_af_qualis = sum(1 for a in af if a["qualis"] not in ("—", ""))
+    af_rows = ""
+    for a in af:
+        t = a["titulo"] or "(sem título)"
+        t = (t[:140] + "…") if len(t) > 140 else t
+        t = _e(t)
+        # extrai um DOI real (10.xxxx/…) de campos sujos do Lattes (URLs Scopus etc.)
+        _m = re.search(r"10\.\d{4,9}/[^\s\"'<>&?]+", a.get("doi") or "")
+        doi = _m.group(0) if _m else ""
+        thtml = (f'<a href="https://doi.org/{_e(doi)}" target="_blank" rel="noopener">{t}</a>'
+                 if doi else t)
+        ds = a["docentes"]
+        docs = _e(", ".join(f"{n.split()[0]} {n.split()[-1]}" for n in ds[:3]))
+        if len(ds) > 3:
+            docs += f" <span style='color:var(--muted)'>+{len(ds) - 3}</span>"
+        qcell = f"<td>{_qbadge(a['qualis'], _QUALIS_COLOR)}</td>" if qualis_applied else ""
+        ftext = _e(f"{a['titulo']} {a['revista']} {' '.join(ds)}").lower()
+        af_rows += (
+            f'<tr data-f="{ftext}"><td data-v="{a["ano"] or 0}">{a["ano"] or "—"}</td>'
+            f'<td>{thtml}</td><td>{_e((a["revista"] or "—")[:48])}</td>'
+            f'<td>{_qbadge(a["sjr_quartil"], _Q_COLOR)}</td>{qcell}'
+            f'<td>{docs}</td></tr>'
+        )
+    qhead = "<th>Qualis</th>" if qualis_applied else ""
+    sec_src = _SRC_TEMPLATE.replace("__N__", str(n_af)) \
+        .replace("__N_SJR__", str(n_af_sjr)).replace("__N_QUALIS__", str(n_af_qualis)) \
+        .replace("__QHEAD__", qhead).replace("__ROWS__", af_rows)
+
     sec_refs = f"""
     <section class="section">
       <div class="eyebrow">Fórmulas e referências</div>
@@ -1861,7 +1976,7 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
       <span><b>{r['n_congressos_distintos']}</b> congressos</span>
       <span>Fonte: Lattes + SJR{' + Qualis' if qualis_applied else ''}</span></div>
   </div>
-  {sec_resumo}{kpis}{sec_sjr}{sec_qualis}{sec_area}{sec_maps}{sec_leaders}{sec_asc}{sec_top}{sec_cong}{sec_comb}{sec_master}{sec_metodo}{sec_refs}
+  {sec_resumo}{kpis}{sec_sjr}{sec_qualis}{sec_area}{sec_maps}{sec_leaders}{sec_asc}{sec_top}{sec_cong}{sec_comb}{sec_master}{sec_src}{sec_metodo}{sec_refs}
   <div class="foot"><span>Gerado em {payload.get('gerado_em','')} · veículos: Lattes ·
   impacto: {fontes.get('impacto_internacional','SJR')} · qualis: {qfonte}</span></div>
 </div>
@@ -1994,12 +2109,12 @@ def main() -> None:
           f"{' (desligado)' if args.no_qualis else ''}")
 
     roster = _roster()
-    journals, confs = collect_venues(roster)
+    journals, confs, artigos = collect_venues(roster)
     print(f"Coletado: {len(journals)} revistas · {len(confs)} congressos "
-          f"(de {len(roster)} docentes)")
+          f"· {len(artigos)} artigos-fonte (de {len(roster)} docentes)")
 
     payload = enrich_and_summarize(journals, confs, scimago, qualis, args.top,
-                                   conf_acro, conf_name)
+                                   conf_acro, conf_name, artigos)
     ranking = (rank_docentes(roster, qualis, scimago, conf_acro, conf_name)
                if qualis_applied else [])
     asc = ascension(roster, qualis) if qualis_applied else []

@@ -52,8 +52,10 @@ _Q_SCORE = {"Q1": 1.0, "Q2": 0.66, "Q3": 0.40, "Q4": 0.20}
 # ---------------------------------------------------------------------------
 
 def _article_records(roster: dict[str, str], scimago: dict, qualis: dict):
-    """Gera (lattes_id, nome, grande_area, estrato|None, q_score|None, ano|None)
-    por artigo de periódico, deduplicando obras repetidas do mesmo docente."""
+    """Gera (lattes_id, nome, grande_area, titulo, doi, quartil, estrato|None,
+    q_score|None, ano|None) por artigo de periódico, deduplicando obras
+    repetidas do mesmo docente. Os 3 últimos campos (estrato, q_score, ano) são
+    consumidos posicionalmente por _signals — novos campos vão ANTES deles."""
     by_id = {}
     for f in glob.glob(str(LATTES_DIR / "*.json")):
         m = re.search(r"_(\d{16})\.json$", f)
@@ -88,7 +90,10 @@ def _article_records(roster: dict[str, str], scimago: dict, qualis: dict):
                 ano = int(str(a.get("ano", "")).strip()[:4])
             except (ValueError, TypeError):
                 ano = None
-            recs.append((lid, nome, grande, estrato, q_score, ano))
+            titulo = (a.get("titulo") or "").strip()
+            doi = (a.get("doi") or "").strip()
+            recs.append((lid, nome, grande, titulo, doi, q or "",
+                         estrato, q_score, ano))
     return recs
 
 
@@ -151,6 +156,11 @@ def _entity_areas(records: list[tuple], now_year: int, min_artigos: int) -> dict
         volume = round(min(1.0, len(recs) / max_vol), 3)
         score = round((volume + sig["qualidade"] + sig["impacto"]
                        + sig["consistencia"]) / 4, 3)
+        # artigos-fonte da área (titulo, doi, ano, estrato, quartil)
+        arts = [{"t": r[3], "doi": r[4], "ano": r[8],
+                 "estrato": r[6] or "", "quartil": r[5] or ""}
+                for r in recs]
+        arts.sort(key=lambda x: (-(x["ano"] or 0), x["t"].lower()))
         out[area] = {
             "n": sig["n"], "volume": volume,
             "qualidade": sig["qualidade"], "impacto": sig["impacto"],
@@ -158,6 +168,7 @@ def _entity_areas(records: list[tuple], now_year: int, min_artigos: int) -> dict
             "label": _label(score, sig, now_year),
             "ultimo_ano": sig["ultimo_ano"], "anos_distintos": sig["anos_distintos"],
             "cobertura_qualis": sig["n_qualis"], "cobertura_sjr": sig["n_sjr"],
+            "artigos": arts,
         }
     return out
 
@@ -266,6 +277,16 @@ _HTML_TEMPLATE = r"""<!doctype html>
   .legend { color:var(--mut); font-size:11.5px; margin-top:10px; }
   .legend code { color:var(--ink); }
   .back { color:var(--accent); cursor:pointer; font-size:12px; user-select:none; }
+  .src-arts { max-height:320px; overflow:auto; margin-top:12px;
+              border-top:1px solid var(--line); padding-top:10px; }
+  .src-h { font-size:12px; color:var(--mut); margin:0 0 6px; font-weight:600; }
+  .src-item { font-size:12.5px; padding:5px 0; border-bottom:1px solid var(--line);
+              line-height:1.4; }
+  .src-item:last-child { border-bottom:none; }
+  .src-y { color:var(--mut); font-variant-numeric:tabular-nums; }
+  .src-item a { color:var(--accent); text-decoration:none; }
+  .src-item a:hover { text-decoration:underline; }
+  .src-t { color:var(--accent2); font-size:11px; white-space:nowrap; }
 </style></head>
 <body><div class="wrap">
   <h1>Maturidade por Área de Atuação</h1>
@@ -284,6 +305,7 @@ _HTML_TEMPLATE = r"""<!doctype html>
       <h2 id="sigTitle">Perfil de sinais</h2>
       <p class="hint" id="sigHint">Selecione uma área no radar ao lado.</p>
       <svg id="radarSig" viewBox="0 0 360 360"></svg>
+      <div id="sigArts" class="src-arts"></div>
     </div>
   </div>
   <div class="card" style="margin-top:18px;">
@@ -297,6 +319,8 @@ const DATA = /*__DATA__*/;
 const SVGNS = "http://www.w3.org/2000/svg";
 const SIG_KEYS = ["volume","qualidade","impacto","consistencia"];
 let curArea = null;
+const esc = s => (s||"").replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const cleanDoi = s => { const m=(s||"").match(/10\.\d{4,9}\/[^\s"'<>&?]+/); return m?m[0]:""; };
 
 function el(tag, attrs, parent){
   const e = document.createElementNS(SVGNS, tag);
@@ -362,13 +386,30 @@ function renderSig(entId){
   const hint = document.getElementById("sigHint");
   if(!curArea || !areas[curArea]){
     svg.innerHTML=""; title.textContent="Perfil de sinais";
-    hint.textContent="Selecione uma área no radar ao lado."; return;
+    hint.textContent="Selecione uma área no radar ao lado.";
+    const b=document.getElementById("sigArts"); if(b) b.innerHTML=""; return;
   }
   const a = areas[curArea];
   title.textContent = "Perfil — " + curArea;
   hint.textContent = `${a.n} artigos · Qualis em ${a.cobertura_qualis} · SJR em ${a.cobertura_sjr} · último ${a.ultimo_ano||"—"}`;
   drawRadar(svg, ["Volume","Qualidade","Impacto","Consistência"],
             SIG_KEYS.map(k=>a[k]), {cls:"poly2"});
+  renderArts(a.artigos || []);
+}
+
+function renderArts(arts){
+  const box = document.getElementById("sigArts");
+  if(!box) return;
+  if(!arts.length){ box.innerHTML = '<div class="src-h" style="color:var(--mut)">Sem artigos-fonte nesta área.</div>'; return; }
+  box.innerHTML = `<div class="src-h">Artigos-fonte das métricas (${arts.length})</div>` +
+    arts.map(x=>{
+      const t = esc(x.t) || "(sem título)";
+      const doi = cleanDoi(x.doi);
+      const ttl = doi ? `<a href="https://doi.org/${esc(doi)}" target="_blank" rel="noopener">${t}</a>` : t;
+      const tags = [x.estrato, x.quartil].filter(Boolean).join(" · ");
+      return `<div class="src-item"><span class="src-y">${x.ano||"?"}</span> ${ttl}` +
+             (tags ? ` <span class="src-t">${esc(tags)}</span>` : "") + `</div>`;
+    }).join("");
 }
 
 function renderTable(entId){

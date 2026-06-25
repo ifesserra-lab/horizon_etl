@@ -163,6 +163,13 @@ def analisar() -> dict:
             "qualis": qualis_de.get(d["nome"], 0),
             "asc": d.get("artigo_ascensao"),   # artigo em ascensão (OpenAlex counts_by_year)
             "serie": d.get("citacoes_por_ano") or {},  # sparkline citações/ano
+            # artigos-fonte: principais artigos (mais citados) que sustentam as métricas
+            "arts": [
+                {"t": a.get("titulo", ""), "ano": a.get("ano"),
+                 "cit": a.get("citacoes", 0), "fwci": round(a.get("fwci", 0) or 0, 2),
+                 "pct": a.get("percentil", 0), "doi": a.get("doi", "")}
+                for a in (d.get("top_artigos") or [])
+            ],
             **_qualidade_veiculo(rk.get(d["nome"], {})),
         })
 
@@ -446,6 +453,30 @@ const areaSel=document.getElementById('farea');
 document.getElementById('q').addEventListener('input',e=>{q=e.target.value.toLowerCase();render();});
 areaSel.addEventListener('change',e=>{area=e.target.value;render();});
 render();
+
+// Artigos-fonte das métricas (por docente) — rastreabilidade
+(function(){
+  const sel=document.getElementById('fdoc'); if(!sel) return;
+  const box=document.getElementById('src_arts'), cnt=document.getElementById('acount');
+  const docs=D.filter(d=>d.arts&&d.arts.length).sort((a,b)=>a.nome.localeCompare(b.nome));
+  sel.innerHTML='<option value="">Selecione um docente…</option>'+
+    docs.map((d,i)=>`<option value="${i}">${esc(d.nome)}</option>`).join('');
+  function show(v){
+    if(v===''){box.innerHTML='<p class="h-s">Selecione um docente para listar os artigos que sustentam suas métricas.</p>';cnt.textContent='';return;}
+    const d=docs[+v], arts=[...d.arts].sort((a,b)=>b.cit-a.cit);
+    cnt.textContent=`${arts.length} artigos (principais por citações) · ${d.cit.toLocaleString('pt-BR')} citações totais · h=${d.h} · g=${d.g}`;
+    box.innerHTML=arts.map(a=>{
+      const t=esc(a.t)||'(sem título)';
+      const ttl=a.doi?`<a href="https://doi.org/${esc(a.doi)}" target="_blank" rel="noopener">${t}</a>`:t;
+      const tag=a.pct>=99?'top 1%':(a.pct>=90?'top 10%':'');
+      const badges=[`${a.cit} cit`, a.fwci?`FWCI ${a.fwci}`:'', tag].filter(Boolean).join(' · ');
+      return `<div class="ascitem"><div class="art"><span class="yr">[${a.ano||'?'}]</span> ${ttl}
+        <span class="sh">${badges}</span></div></div>`;
+    }).join('') || '<p class="h-s">Sem artigos casados no OpenAlex.</p>';
+  }
+  sel.addEventListener('change',e=>show(e.target.value));
+  show('');
+})();
 """
 
 
@@ -578,6 +609,19 @@ def render_html(data: dict) -> str:
     <span id="tcount" style="font-size:13px;color:var(--muted)"></span>
   </div>
   <div class="tbl-wrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+</section>
+
+<section class="section">
+  <div class="eyebrow">Rastreabilidade</div>
+  <h2>Artigos-fonte das métricas</h2>
+  <p class="desc">De onde vêm os números. Selecione um docente para ver os <b>principais artigos</b>
+  (mais citados) que sustentam suas métricas — <b>citações</b>, <b>FWCI</b> e <b>percentil</b> vêm
+  do OpenAlex, casados por <b>DOI</b> do Lattes. Cada título com DOI linka para o artigo.</p>
+  <div class="controls">
+    <select id="fdoc"><option value="">Selecione um docente…</option></select>
+    <span id="acount" style="font-size:13px;color:var(--muted)"></span>
+  </div>
+  <div class="card"><div id="src_arts"></div></div>
 </section>
 
 <section class="section">
