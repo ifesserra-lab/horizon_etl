@@ -138,6 +138,7 @@ def analisar() -> dict:
             _area = "Não classificada"
         docentes.append({
             "nome": d["nome"],
+            "lattes_id": d.get("lattes_id", ""),
             "area": _area,
             "artigos": d.get("encontrados_openalex", 0),
             "artigos_doi": d.get("artigos_com_doi", 0),
@@ -271,6 +272,10 @@ padding:11px 13px;font-size:11.8px;color:#5e4a12;margin-top:14px;line-height:1.4
 .ascitem .art{font-size:12px;color:var(--ink2);margin-top:2px;line-height:1.3;}
 .ascitem .art .yr{color:var(--muted);font-weight:600;}
 .ascitem .art .sh{color:var(--amber);font-weight:600;}
+.ascitem .art a{color:var(--brand-d);text-decoration:underline;text-decoration-color:var(--line2);}
+.ascitem .art a:hover{text-decoration-color:var(--brand);}
+.bar .lbl a{color:inherit;text-decoration:underline;text-decoration-color:var(--line2);}
+.bar .lbl a:hover{text-decoration-color:var(--brand);}
 svg{max-width:100%;height:auto;display:block;}
 .lorenz-wrap{display:grid;grid-template-columns:1fr 220px;gap:24px;align-items:center;}
 .ginibox{text-align:center;}.ginibox .g{font-size:54px;font-weight:800;color:var(--rose);line-height:1;}
@@ -333,16 +338,29 @@ function hbar(elId, rows, valKey, lblKey, color, fmtv){
                .sort((a,b)=>b.asc.recent_2a-a.asc.recent_2a).slice(0,12);
   el.innerHTML=rows.map(d=>{
     const a=d.asc;
+    const ttl=esc(a.titulo)+(a.titulo&&a.titulo.length>=120?'…':'');
+    const titulo=a.doi ? `<a href="https://doi.org/${esc(a.doi)}" target="_blank" rel="noopener">${ttl}</a>` : ttl;
     return `<div class="ascitem">
       <div class="who"><span>${esc(d.nome)}</span><span class="up">+${a.recent_2a} cit · 2 anos</span></div>
-      <div class="art"><span class="yr">[${a.ano||'?'}]</span> ${esc(a.titulo)}${a.titulo&&a.titulo.length>=120?'…':''}
+      <div class="art"><span class="yr">[${a.ano||'?'}]</span> ${titulo}
         <span class="sh">(${a.share_recente_pct}% das citações são recentes)</span></div>
     </div>`;
   }).join('') || '<p class="h-s">Sem dados de ascensão por artigo.</p>';
 })();
-// declínio FWCI (fwci_delta mais negativo, base com fwci)
-hbar('c_dec', oa.filter(d=>d.fwci>0).sort((a,b)=>a.fwci_delta-b.fwci_delta).slice(0,10),
-     'fwci_delta','nome','rose', v=>(v>0?'+':'')+v);
+// declínio FWCI (fwci_delta mais negativo) — ΔFWCI é agregado (sem artigo único);
+// nome linka para o Lattes do docente
+(function(){
+  const el=document.getElementById('c_dec'); if(!el) return;
+  const rows=oa.filter(d=>d.fwci>0&&d.fwci_delta<0).sort((a,b)=>a.fwci_delta-b.fwci_delta).slice(0,10);
+  const max=Math.max(...rows.map(r=>Math.abs(r.fwci_delta)),1);
+  el.innerHTML=rows.map(r=>{
+    const w=Math.max(2,Math.abs(r.fwci_delta)/max*100);
+    const nm=r.lattes_id?`<a href="https://lattes.cnpq.br/${esc(r.lattes_id)}" target="_blank" rel="noopener">${esc(r.nome)}</a>`:esc(r.nome);
+    return `<div class="bar"><span class="lbl">${nm}</span>
+      <span class="track"><span class="fill rose" style="width:${w}%"></span></span>
+      <span class="val">${r.fwci_delta}</span></div>`;
+  }).join('') || '<p class="h-s">Sem queda de ΔFWCI.</p>';
+})();
 // elite top10%
 hbar('c_top10', [...oa].sort((a,b)=>b.top10-a.top10||b.top1-a.top1).slice(0,12),'top10','nome','amber');
 // eficiência: citações fracionadas (crédito por autoria)
