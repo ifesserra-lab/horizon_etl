@@ -69,34 +69,39 @@ NÍVEL DE EVIDÊNCIA: [forte | moderado | fraco/narrativo]
 
 ### Caso candidato A — Impacto científico de elite
 - **Perfil:** coordenador com **FWCI 3,40**, **9 artigos no top 10% mundial**, **83
-  citações**, **6 projetos FAPES** (≈ R$ 4,1 mi) (norm.: *maxwell eduardo monteiro*).
+  citações**, **6 projetos FAPES** (faixa R$ 1–5 mi · ~9% do total FAPES) (norm.:
+  *maxwell eduardo monteiro*).
 - **Por que é caso:** impacto científico **acima da média mundial** sustentado e
   fomento recorrente — forte para a categoria **CAHS "avanço do conhecimento"** e
   **Payback "produção de conhecimento / pesquisa futura"**.
 - **Observável [O]:** fomento, produção, FWCI, top 10%.
 - **A coletar [A]:** uso externo das tecnologias/resultados; parcerias; beneficiários.
 
-### Caso candidato B — Impacto educacional / territorial (programático)
-- **Perfil:** programa **UnAC** (Universidade Aberta Capixaba), **≈ R$ 11,6 mi**, 1
-  projeto de grande porte (norm.: *paulo sergio dos santos junior*) + 860 bolsas **B-UnAC**.
-- **Por que é caso:** maior aporte do campus, natureza **educacional/territorial** (EAD,
-  interiorização) — candidato ideal para impacto **social/educacional REF**, **não** para
-  impacto científico individual.
-- **Observável [O]:** fomento, nº de bolsas, abrangência do programa.
-- **A coletar [A]:** nº de alunos formados, municípios atendidos, evidência de
-  empregabilidade/inclusão (alcance × significância).
+### Caso candidato B — Impacto institucional / de infraestrutura (programático)
+- **Perfil:** **ConectaFapes** — plataforma de apoio à Pesquisa, Desenvolvimento e Inovação
+  (faixa R$ 5–20 mi · ~24% do total FAPES, maior aporte; norm.: *paulo sergio dos santos
+  junior*).
+- **Por que é caso:** maior aporte do campus, natureza de **infraestrutura/plataforma de
+  PD&I** — candidato a impacto **institucional/de capacidade** (não impacto científico
+  individual). *(O impacto educacional/territorial é melhor representado pelo programa
+  **UnAC**, do coord. Orlandi — ver Caso C.)*
+- **Observável [O]:** fomento (faixa), escopo da plataforma.
+- **A coletar [A]:** nº de pesquisadores/projetos apoiados, ganhos de processo, adoção interna
+  (alcance × significância).
 
-### Caso candidato C — Captação alta, impacto a verificar
-- **Perfil:** coordenador com **R$ 6,9 mi em 6 projetos** porém **sem casamento no
-  OpenAlex** (norm.: *jose geraldo das neves orlandi*).
-- **Por que entra:** fomento alto exige **prestação de contas de retorno**; a ausência no
-  OpenAlex indica produção **sem DOI indexado** (não ausência de produção).
-- **A coletar [A]:** produção real, produtos técnicos, parcerias — **prioridade de
-  enriquecimento**.
+### Caso candidato C — Impacto educacional/territorial (UnAC); impacto a verificar
+- **Perfil:** coordenador do programa **UnAC** (Universidade Aberta Capixaba), faixa
+  R$ 5–20 mi · ~14% do total FAPES em 6 projetos, porém **sem casamento no OpenAlex** (norm.:
+  *jose geraldo das neves orlandi*).
+- **Por que entra:** natureza **educacional/territorial** (EAD, interiorização) — forte para
+  impacto **social/educacional REF**. Fomento alto exige **prestação de contas**; a ausência
+  no OpenAlex indica produção **sem DOI indexado** (não ausência de produção).
+- **A coletar [A]:** nº de alunos formados, municípios atendidos, empregabilidade/inclusão,
+  produtos técnicos — **prioridade de enriquecimento**.
 
 ### Caso candidato D — Forte em formação + impacto
-- **Perfil:** **R$ 5,6 mi em 6 projetos**, **8 artigos top 10%**, 74 citações (norm.:
-  *karin satie komati*).
+- **Perfil:** faixa **R$ 5–20 mi · ~12% do total FAPES em 6 projetos**, **8 artigos top
+  10%**, 74 citações (norm.: *karin satie komati*).
 - **Por que é caso:** combinação de fomento, formação (orientações) e impacto — bom para
   **CAHS "capacitação"** + **"avanço do conhecimento"**.
 

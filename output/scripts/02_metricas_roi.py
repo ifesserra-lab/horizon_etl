@@ -63,6 +63,41 @@ def gini(values: list[float]) -> float:
     return round((2 * cum) / (n * sum(xs)) - (n + 1) / n, 3)
 
 
+# --- Sanitização financeira (privacidade/segurança): nunca expor R$ concreto ---
+# Granular (coordenador/projeto/financiadora) -> FAIXA + %. Totais -> ORDEM de grandeza.
+_FAIXAS = [(1e5, "≤ R$ 100 mil"), (5e5, "R$ 100–500 mil"), (1e6, "R$ 500 mil–1 mi"),
+           (5e6, "R$ 1–5 mi"), (2e7, "R$ 5–20 mi"), (5e7, "R$ 20–50 mi")]
+
+
+def faixa(v) -> str:
+    v = num(v)
+    if v <= 0:
+        return "sem valor"
+    for lim, rot in _FAIXAS:
+        if v <= lim:
+            return rot
+    return "> R$ 50 mi"
+
+
+def pct(v, total) -> float | None:
+    v, total = num(v), num(total)
+    return round(v / total * 100, 1) if total else None
+
+
+def ordem(v) -> str:
+    """Ordem de grandeza (1 algarismo significativo), sem cifra exata."""
+    v = num(v)
+    if v <= 0:
+        return "—"
+    mi = v / 1e6
+    if mi < 1:
+        return "menos de R$ 1 mi"
+    e = 10 ** (len(str(int(mi))) - 1)
+    r = int(round(mi / e) * e)
+    qual = "centenas de milhões" if mi >= 100 else ("dezenas de milhões" if mi >= 10 else "milhões")
+    return f"ordem de ~R$ {r} mi ({qual})"
+
+
 def lattes_index() -> dict[str, str]:
     by_id = {}
     for f in glob.glob(str(LATTES / "*.json")):
@@ -486,56 +521,93 @@ def main() -> None:
          "—", "ausente", "baixo", "Não há dado estruturado; exige narrativa/estudo de caso."),
     ]
 
-    # ---- CSV principal ----
+    # valor sanitizado p/ exibição: R$ -> ordem de grandeza; demais unidades inalteradas
+    def _val_pub(v, unidade):
+        if v is None:
+            return ""
+        return ordem(v) if unidade == "R$" else v
+
+    # ---- CSV principal (R$ vira ordem de grandeza) ----
     with (OUT / "metricas_roi_pesquisa.csv").open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["dimensao", "indicador", "valor", "unidade", "fonte",
                     "disponibilidade", "nivel_confianca", "observacao"])
         for row in metricas:
-            v = row[2]
-            w.writerow([row[0], row[1], ("" if v is None else v), row[3], row[4], row[5], row[6], row[7]])
+            w.writerow([row[0], row[1], _val_pub(row[2], row[3]), row[3], row[4], row[5], row[6], row[7]])
 
-    # ---- CSV por coordenador (auditoria fomento × produção) ----
+    # ---- CSV por coordenador (fomento em FAIXA + %; sem R$ concreto) ----
     prod_doc = {norm(k): v for k, v in prod["por_doc"].items() if v}
     coords = set(fapes["por_coord"]) | set(bolsas["por_coord"])
     with (OUT / "por_coordenador.csv").open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
-        w.writerow(["coordenador_norm", "fapes_orcamento", "fapes_n_proj", "bolsas_valor",
-                    "bolsas_n", "artigos", "orient_m", "orient_d", "citacoes_oa", "fwci", "top10"])
+        w.writerow(["coordenador_norm", "fapes_faixa", "fapes_pct", "fapes_n_proj",
+                    "bolsas_faixa", "bolsas_n", "artigos", "orient_m", "orient_d",
+                    "citacoes_oa", "fwci", "top10"])
         for c in sorted(coords):
             fp = fapes["por_coord"].get(c, {})
             bo = bolsas["por_coord"].get(c, {})
             pd = prod_doc.get(c, {})
             od = oa_doc.get(c, {})
-            w.writerow([c, round(fp.get("orcamento", 0), 2), fp.get("n_proj", 0),
-                        round(bo.get("valor", 0), 2), bo.get("n", 0),
+            w.writerow([c, faixa(fp.get("orcamento", 0)), pct(fp.get("orcamento", 0), inv_fapes),
+                        fp.get("n_proj", 0), faixa(bo.get("valor", 0)), bo.get("n", 0),
                         pd.get("artigos", ""), pd.get("orient_mestrado", ""),
                         pd.get("orient_doutorado", ""), od.get("cit", ""),
                         od.get("fwci", ""), od.get("top10", "")])
 
-    # FACTO: grava CSV por projeto e remove _rows do payload (evita inchar o JSON)
+    # FACTO: CSV por projeto (valores em FAIXA + % do total aprovado de pesquisa)
     facto_rows = facto.pop("_rows", [])
+    ap_pesq_tot = facto.get("aprovado_pesquisa") or 0
     with (OUT / "facto_projetos.csv").open("w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=["referencia", "coordenador", "financiadora",
-                                           "tipo", "ano", "aprovado", "executado", "pesquisa"])
+                                           "tipo", "ano", "aprovado_faixa", "aprovado_pct",
+                                           "executado_faixa", "pesquisa"])
         w.writeheader()
-        w.writerows(facto_rows)
+        for r in facto_rows:
+            w.writerow({"referencia": r["referencia"], "coordenador": r["coordenador"],
+                        "financiadora": r["financiadora"], "tipo": r["tipo"], "ano": r["ano"],
+                        "aprovado_faixa": faixa(r["aprovado"]),
+                        "aprovado_pct": (pct(r["aprovado"], ap_pesq_tot) if r["pesquisa"] else ""),
+                        "executado_faixa": faixa(r["executado"]), "pesquisa": r["pesquisa"]})
+
+    # ---- payload sanitizado (totais em ordem; granular em faixa + %) ----
+    fapes_pub = {k: v for k, v in fapes.items() if k not in ("por_coord", "por_ano")}
+    fapes_pub["orcamento_total"] = ordem(fapes["orcamento_total"])
+    fapes_pub["valor_bolsas_total"] = ordem(fapes["valor_bolsas_total"])
+    fapes_pub["por_ano_faixa"] = {str(k): faixa(v) for k, v in fapes["por_ano"].items()}
+
+    facto_pub = {k: v for k, v in facto.items() if k not in ("por_coord", "por_ano", "por_financiadora")}
+    for k in ("valor_aprovado_total", "aprovado_pesquisa", "executado_pesquisa", "aprovado_outros"):
+        if facto_pub.get(k) is not None:
+            facto_pub[k] = ordem(facto[k])
+    facto_pub["por_financiadora_faixa"] = {
+        fin: {"n": d["n"], "faixa": faixa(d["aprovado"]), "pct": pct(d["aprovado"], ap_pesq_tot)}
+        for fin, d in facto.get("por_financiadora", {}).items()}
+
+    bolsas_pub = {k: v for k, v in bolsas.items() if k != "por_coord"}
+    bolsas_pub["valor_alocado_total"] = ordem(bolsas["valor_alocado_total"])
+    bolsas_pub["valor_pago_total"] = ordem(bolsas["valor_pago_total"])
+
+    top_coord_pub = [{"coord": k, "faixa": faixa(v["orcamento"]),
+                      "pct": pct(v["orcamento"], inv_fapes), "n_proj": v["n_proj"],
+                      "anos": sorted(v["anos"])} for k, v in top5_coord]
+    cand_pub = [{**c, "orcamento": None, "faixa": faixa(c["orcamento"]),
+                 "pct": pct(c["orcamento"], inv_fapes)} for c in cand]
 
     payload = {
-        "fapes": {k: v for k, v in fapes.items() if k != "por_coord"},
-        "fapes_top_coord": [{"coord": k, **{kk: (sorted(vv) if isinstance(vv, set) else vv)
-                                            for kk, vv in v.items()}}
-                            for k, v in top5_coord],
-        "facto": {k: v for k, v in facto.items() if k != "por_coord"},
-        "bolsas": {k: v for k, v in bolsas.items() if k != "por_coord"},
+        "_nota_seguranca": "Valores financeiros não são expostos em cifra exata: totais em "
+                           "ordem de grandeza; granular em faixa + % do total.",
+        "fapes": fapes_pub,
+        "fapes_top_coord": top_coord_pub,
+        "facto": facto_pub,
+        "bolsas": bolsas_pub,
         "producao": {k: v for k, v in prod.items() if k != "por_doc"},
         "openalex": {k: v for k, v in oa.items() if k != "por_doc"},
         "ppcomp": ppcomp,
         "derivados": {
-            "fomento_pesquisa_consolidado": fomento_pesquisa,
-            "fapes_contratado": inv_fapes,
-            "facto_pesquisa_aprovado": facto.get("aprovado_pesquisa"),
-            "facto_pesquisa_executado": facto.get("executado_pesquisa"),
+            "fomento_pesquisa_consolidado_ordem": ordem(fomento_pesquisa),
+            "fapes_contratado_ordem": ordem(inv_fapes),
+            "facto_pesquisa_aprovado_ordem": ordem(facto.get("aprovado_pesquisa")),
+            "facto_pesquisa_executado_ordem": ordem(facto.get("executado_pesquisa")),
             "producao_cientifica_total": prod_cient, "titulados_md": titulados,
             "ativos_tecnologicos": ativos_tec,
             "prod_cient_por_milhao": per_milhao(prod_cient),
@@ -543,19 +615,19 @@ def main() -> None:
             "ativos_tec_por_milhao": per_milhao(ativos_tec),
             "gini_fapes": gini_fapes, "top5_coord_share_pct": top5_share,
         },
-        "candidatos_caso": cand,
-        "metricas": [{"dimensao": r[0], "indicador": r[1], "valor": r[2], "unidade": r[3],
-                      "fonte": r[4], "disponibilidade": r[5], "confianca": r[6], "obs": r[7]}
-                     for r in metricas],
+        "candidatos_caso": cand_pub,
+        "metricas": [{"dimensao": r[0], "indicador": r[1], "valor": _val_pub(r[2], r[3]),
+                      "unidade": r[3], "fonte": r[4], "disponibilidade": r[5],
+                      "confianca": r[6], "obs": r[7]} for r in metricas],
     }
     (OUT / "roi_intermediate.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
     print("OK — output/metricas_roi_pesquisa.csv, por_coordenador.csv, facto_projetos.csv, roi_intermediate.json")
-    print(f"FAPES: {fapes['n_proj']} proj · R${inv_fapes:,.0f} · Gini={gini_fapes} · top5={top5_share}%")
-    print(f"FACTO pesquisa: {facto.get('n_pesquisa')} proj · aprovado R${facto.get('aprovado_pesquisa'):,.0f} "
-          f"· executado R${facto.get('executado_pesquisa'):,.0f}")
-    print(f"Fomento pesquisa consolidado (FAPES+FACTO aprovado): R${fomento_pesquisa:,.0f}")
+    print(f"FAPES: {fapes['n_proj']} proj · {ordem(inv_fapes)} · Gini={gini_fapes} · top5={top5_share}%")
+    print(f"FACTO pesquisa: {facto.get('n_pesquisa')} proj · aprovado {ordem(facto.get('aprovado_pesquisa'))} "
+          f"· executado {ordem(facto.get('executado_pesquisa'))}")
+    print(f"Fomento pesquisa consolidado: {ordem(fomento_pesquisa)}")
     print(f"Produção: {prod_cient} itens científicos · {titulados} titulados M+D · {ativos_tec} ativos tec")
     print(f"OpenAlex: {oa.get('citacoes_total')} citações ({oa.get('n_com_openalex')}/93)")
 

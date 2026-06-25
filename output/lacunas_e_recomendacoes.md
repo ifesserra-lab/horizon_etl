@@ -26,7 +26,7 @@ prioridade e o impacto de cada lacuna sobre as dimensões do retorno.
 | 7 | **Patentes (status)** | Lattes mostra 0 patentes (subnotif.) | INPI, Lens.org, Espacenet | 🔴 | T |
 | 8 | **Egressos no mercado** | inexistente | Lattes egressos, RAIS, LinkedIn | 🔴 | Fo, S |
 | 9 | **Contrapartida institucional** | valor próprio aportado por projeto | cadastro de projetos | 🟡 | F (alavancagem) |
-| 10 | ~~Valor FACTO~~ **RESOLVIDO** | — (era erro de parsing) | parser FACTO incluído (`02_metricas_roi.py`) | ✅ | F (R$ 207,6 mi aprovado / R$ 55,0 mi executado, pesquisa) |
+| 10 | ~~Valor FACTO~~ **RESOLVIDO** | — (era erro de parsing) | parser FACTO incluído (`02_metricas_roi.py`) | ✅ | F (centenas de mi aprovado / dezenas de mi executado, pesquisa) |
 | 11 | **Segregação ensino × pesquisa** | B-UnAC (860 bolsas) mistura EAD e pesquisa | flag de natureza no cadastro | 🟡 | F (denominador) |
 | 12 | **Janela temporal padronizada** | produção sem recorte único vs fomento 2015–26 | regra de janela no pipeline | 🟡 | C, T (comparabilidade) |
 | 13 | **Altmetrics** | atenção social/midiática | Altmetric, PlumX | 🟢 | S |
@@ -38,8 +38,8 @@ prioridade e o impacto de cada lacuna sobre as dimensões do retorno.
 - **`instituicao_sigla` = "IFES - SERRA"** em todas as bolsas — não identifica a **agência**
   real (FAPES/CAPES/CNPq); o tipo da bolsa (B-UnAC, BPIG…) é o melhor proxy hoje.
 - **Datas mistas** na base PPComp (sentinela 1905 inválida descartada).
-- **Concentração distorcida**: 1 projeto programático (UnAC, R$ 11,6 mi) infla o Gini "por
-  coordenador" — recalcular após segregar institucional × pesquisa.
+- **Concentração distorcida**: projetos institucionais/programáticos (ConectaFapes + UnAC,
+  37,8% do orçamento) inflam o Gini "por coordenador" — já segregados (0,771 → 0,748).
 
 ---
 

@@ -49,6 +49,33 @@ def num(v) -> float:
         return 0.0
 
 
+_FAIXAS = [(1e5, "≤ R$ 100 mil"), (5e5, "R$ 100–500 mil"), (1e6, "R$ 500 mil–1 mi"),
+           (5e6, "R$ 1–5 mi"), (2e7, "R$ 5–20 mi"), (5e7, "R$ 20–50 mi")]
+
+
+def faixa(v) -> str:
+    v = num(v)
+    if v <= 0:
+        return "sem valor"
+    for lim, rot in _FAIXAS:
+        if v <= lim:
+            return rot
+    return "> R$ 50 mi"
+
+
+def ordem(v) -> str:
+    v = num(v)
+    if v <= 0:
+        return "—"
+    mi = v / 1e6
+    if mi < 1:
+        return "menos de R$ 1 mi"
+    e = 10 ** (len(str(int(mi))) - 1)
+    r = int(round(mi / e) * e)
+    qual = "centenas de milhões" if mi >= 100 else ("dezenas de milhões" if mi >= 10 else "milhões")
+    return f"ordem de ~R$ {r} mi ({qual})"
+
+
 def gini(values: list[float]) -> float:
     xs = sorted(v for v in values if v is not None)
     n = len(xs)
@@ -105,8 +132,9 @@ def janelas_temporais():
             if y:
                 fap_ano[y] += num(x.get("orcamento_contratado"))
     anos = sorted(set(list(art_ano) + list(fap_ano)))
+    # fomento por ano em FAIXA (sem R$ concreto)
     linhas = [{"ano": y, "artigos": art_ano.get(y, 0),
-               "fapes_orcamento": round(fap_ano.get(y, 0), 2),
+               "fapes_orcamento_faixa": faixa(fap_ano.get(y, 0)),
                "na_janela_padrao": JANELA_INI <= y <= JANELA_FIM} for y in anos]
 
     def soma(d, a, b):
@@ -117,8 +145,8 @@ def janelas_temporais():
         "artigos_na_janela_padrao": soma(art_ano, JANELA_INI, JANELA_FIM),
         "artigos_fora_janela": sum(art_ano.values()) - soma(art_ano, JANELA_INI, JANELA_FIM),
         "artigos_recente": soma(art_ano, RECENTE_INI, RECENTE_FIM),
-        "fapes_na_janela_padrao": round(soma(fap_ano, JANELA_INI, JANELA_FIM), 2),
-        "fapes_recente": round(soma(fap_ano, RECENTE_INI, RECENTE_FIM), 2),
+        "fapes_na_janela_padrao_ordem": ordem(soma(fap_ano, JANELA_INI, JANELA_FIM)),
+        "fapes_recente_ordem": ordem(soma(fap_ano, RECENTE_INI, RECENTE_FIM)),
     }
     return linhas, resumo
 
@@ -149,7 +177,7 @@ def gini_segregado():
             if cls:
                 por_coord[c]["orc_inst"] += orc
                 inst_detalhe.append({"classe": cls, "coordenador": x.get("coordenador_nome"),
-                                     "orcamento": round(orc, 2),
+                                     "faixa": faixa(orc),
                                      "titulo": (x.get("projeto_titulo") or "")[:80]})
     base = [v["orc_total"] for v in por_coord.values()]
     # cenário A: remove só UnAC; B: remove UnAC + ConectaFapes (institucionais)
@@ -158,14 +186,15 @@ def gini_segregado():
     sem_inst_pos = [v for v in sem_inst if v > 0]
     total = sum(base)
     inst_total = sum(v["orc_inst"] for v in por_coord.values())
+    # ordena institucionais por classe+título (sem expor R$)
     cenarios = {
         "gini_base_todos": gini(base),
         "gini_sem_institucionais": gini(sem_inst),
         "gini_sem_institucionais_pos": gini(sem_inst_pos),
-        "orcamento_total": round(total, 2),
-        "orcamento_institucional": round(inst_total, 2),
+        "orcamento_total_ordem": ordem(total),
+        "orcamento_institucional_ordem": ordem(inst_total),
         "pct_institucional": round(inst_total / total * 100, 1) if total else 0,
-        "projetos_institucionais": sorted(inst_detalhe, key=lambda r: -r["orcamento"]),
+        "projetos_institucionais": sorted(inst_detalhe, key=lambda r: (r["classe"], r["titulo"])),
     }
     return cenarios
 
@@ -235,7 +264,7 @@ def main():
     pwork, pres = patentes_worklist()
 
     with (OUT / "janelas_temporais.csv").open("w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, fieldnames=["ano", "artigos", "fapes_orcamento", "na_janela_padrao"])
+        w = csv.DictWriter(fh, fieldnames=["ano", "artigos", "fapes_orcamento_faixa", "na_janela_padrao"])
         w.writeheader(); w.writerows(jl)
     with (OUT / "gini_segregado.csv").open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
