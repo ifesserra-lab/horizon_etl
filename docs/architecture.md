@@ -48,3 +48,11 @@ O pipeline principal e orquestrado por Prefect. O repositório tambem possui aut
 - O pipeline unificado atual e o caminho recomendado para refresh completo.
 - O projeto ainda preserva entrypoints legados, como o pipeline Serra.
 - Os reports sao parte da arquitetura operacional, nao apenas documentacao auxiliar.
+
+### Restricoes de concorrencia
+
+As fontes de ingestao (SigPesq, CNPq, Lattes) escrevem em tabelas canonicas
+compartilhadas (`researchers`, `persons`, `initiatives`, `articles`, `teams`).
+A execucao concorrente desses fluxos causa condicoes de corrida e perda de dados
+(confirmado em jun/2026: ~1800 pesquisadores perdidos). **Os fluxos de ingestao
+devem sempre executar em serie.**

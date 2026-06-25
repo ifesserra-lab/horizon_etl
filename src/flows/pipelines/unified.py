@@ -1,7 +1,6 @@
 import os
 from typing import Optional
 
-from loguru import logger as loguru_logger
 from prefect import flow, get_run_logger
 
 from src.core.logic.etl_flow_reporter import (
@@ -13,10 +12,8 @@ from src.core.logic.etl_flow_reporter import (
     probe_sigpesq_groups,
     probe_sigpesq_projects,
 )
-from src.core.logic.person_consolidator import PersonConsolidator
 from src.core.logic.prefect_runtime import configure_local_prefect_runtime
 from src.core.logic.progress_tracker import ProgressTracker
-from src.core.logic.reference_consolidator import ReferenceConsolidator
 from src.flows.cnpq.groups import sync_cnpq_groups_flow
 from src.flows.exports.canonical_data import export_canonical_data_flow
 from src.flows.exports.initiatives_analytics_mart import (
@@ -30,23 +27,6 @@ from src.flows.sigpesq.all import download_all_sigpesq_reports
 from src.flows.sigpesq.groups import persist_research_groups
 from src.flows.sigpesq.projects import persist_projects
 from src.notifications.telegram import telegram_flow_state_handlers
-
-
-def _consolidate_duplicates(db_path: str = "db/horizon.db") -> dict:
-    person_merged = PersonConsolidator(db_path).consolidate_all()
-    ref = ReferenceConsolidator(db_path)
-    ka_stats = ref.consolidate_knowledge_areas()
-    team_stats = ref.consolidate_teams()
-    result = {
-        "person_records_merged": person_merged,
-        "knowledge_areas_merged": ka_stats.merged,
-        "knowledge_areas_skipped": ka_stats.skipped,
-        "teams_merged": team_stats.merged,
-        "teams_skipped": team_stats.skipped,
-    }
-    loguru_logger.info("Duplicates consolidated: {}", result)
-    return result
-
 
 configure_local_prefect_runtime()
 
@@ -68,7 +48,7 @@ def full_ingestion_pipeline(
     """
     logger = get_run_logger()
     logger.info("Starting Unified Ingestion Pipeline...")
-    tracker = ProgressTracker(total=10, name="Full pipeline")
+    tracker = ProgressTracker(total=9, name="Full pipeline")
     reporter = (
         ETLFlowReporter(output_dir="data/reports", run_name="etl_flow_run")
         if generate_etl_report
@@ -138,11 +118,6 @@ def full_ingestion_pipeline(
                 )
             else:
                 ingest_lattes_advisorships_flow()
-
-        with tracker.step(
-            "Consolidating duplicate persons, teams, and knowledge areas"
-        ):
-            _consolidate_duplicates()
 
         with tracker.step("Exporting canonical data"):
             export_canonical_data_flow(output_dir=output_dir, campus=campus_name)

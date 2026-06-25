@@ -2,14 +2,11 @@ import json
 from pathlib import Path
 from typing import Optional
 
-from loguru import logger as loguru_logger
 from prefect import flow, get_run_logger
 
 from src.core.logic.etl_flow_reporter import ETLFlowReporter
-from src.core.logic.person_consolidator import PersonConsolidator
 from src.core.logic.prefect_runtime import configure_local_prefect_runtime
 from src.core.logic.progress_tracker import ProgressTracker
-from src.core.logic.reference_consolidator import ReferenceConsolidator
 from src.flows.all import ingest_all_sources_flow
 from src.flows.exports.canonical_data import export_canonical_data_flow
 from src.flows.exports.initiatives_analytics_mart import (
@@ -20,23 +17,6 @@ from src.notifications.telegram import (
     send_telegram_etl_report_summary,
     telegram_flow_state_handlers,
 )
-
-
-def _consolidate_duplicates(db_path: str = "db/horizon.db") -> dict:
-    person_merged = PersonConsolidator(db_path).consolidate_all()
-    ref = ReferenceConsolidator(db_path)
-    ka_stats = ref.consolidate_knowledge_areas()
-    team_stats = ref.consolidate_teams()
-    result = {
-        "person_records_merged": person_merged,
-        "knowledge_areas_merged": ka_stats.merged,
-        "knowledge_areas_skipped": ka_stats.skipped,
-        "teams_merged": team_stats.merged,
-        "teams_skipped": team_stats.skipped,
-    }
-    loguru_logger.info("Duplicates consolidated: {}", result)
-    return result
-
 
 configure_local_prefect_runtime()
 
@@ -56,7 +36,7 @@ def weekly_pipelines_flow(
         "Starting weekly Horizon pipelines with campus filter: %s",
         campus_name or "all",
     )
-    tracker = ProgressTracker(total=5, name="Weekly pipelines")
+    tracker = ProgressTracker(total=4, name="Weekly pipelines")
 
     reporter = ETLFlowReporter(
         output_dir="data/reports",
@@ -69,10 +49,6 @@ def weekly_pipelines_flow(
                 step_name="all_sources",
                 runner=lambda: ingest_all_sources_flow(campus_name=campus_name),
             )
-        with tracker.step(
-            "Consolidating duplicate persons, teams, and knowledge areas"
-        ):
-            _consolidate_duplicates()
         with tracker.step("Exporting canonical data"):
             reporter.run_step(
                 step_name="export_canonical",
