@@ -546,7 +546,13 @@ def render_html(data: dict) -> str:
   <b>m-index</b> = h / idade acadêmica: quem construiu impacto mais cedo na carreira (base ≥ 3 anos, ≥ 20 citações).</p>
   <div class="grid2">
     <div class="card"><h3>🌍 FWCI mediano por grande área</h3><div class="h-s">mediana (robusta a outlier) · acima de 1.0 = acima da média mundial</div><div id="c_area"></div></div>
-    <div class="card"><h3>⏱️ Precocidade (m-index)</h3><div class="h-s">h-index por ano de carreira</div><div id="c_m"></div></div>
+    <div class="card"><h3>⏱️ Precocidade (m-index)</h3><div class="h-s">h-index dividido pela idade acadêmica</div><div id="c_m"></div>
+      <div class="note"><b>O que é precocidade.</b> O <b>m-index</b> = <b>h-index ÷ anos de carreira</b>
+      (idade acadêmica = anos desde a 1ª publicação com DOI). Mede a <b>velocidade</b> de construção de
+      impacto, corrigindo o viés do h-index (que sempre cresce com o tempo). Assim compara de forma justa
+      quem começou há 5 anos com quem tem 25 de carreira. Referência: <b>m ≈ 1</b> é bom; <b>2–3</b>,
+      excelente. <b>Alta precocidade</b> = construiu impacto cedo (talento emergente a apoiar).</div>
+    </div>
   </div>
 </section>
 
