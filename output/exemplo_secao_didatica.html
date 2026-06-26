@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exemplo — Seção didática (Pesquisa na Formação)</title>
+<style>
+:root{--ink:#16241a;--ink2:#3c4f42;--muted:#71857a;--line:#e3ece5;--line2:#cfddd3;
+--bg:#f4f8f5;--paper:#fff;--brand:#0f7a40;--brand-d:#0a5c30;--brand-l:#e7f4ec;
+--blue:#2f6fb0;--blue-l:#eaf1f9;--amber:#b8860b;--amber-l:#fbf4df;--rose:#b5455f;--rose-l:#f8e9ed;
+--font:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;--serif:'Georgia',serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.62;font-size:16px;}
+.exp{background:#b5455f;color:#fff;padding:9px 16px;font-weight:600;font-size:13.5px;text-align:center;position:sticky;top:0;z-index:9;}
+.wrap{max-width:880px;margin:0 auto;padding:34px 22px 90px;}
+.kick{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--brand);background:var(--brand-l);padding:5px 12px;border-radius:999px;}
+h1{font-family:var(--serif);font-size:clamp(24px,4vw,34px);line-height:1.12;margin:14px 0 6px;}
+.sub{color:var(--muted);font-size:14px;margin-bottom:26px;}
+h2{font-size:18px;color:var(--brand-d);margin:30px 0 8px;padding-top:18px;border-top:1px solid var(--line2);
+display:flex;gap:9px;align-items:center;}
+h2 .ic{width:26px;height:26px;flex:0 0 26px;border-radius:7px;background:var(--brand-l);color:var(--brand-d);
+display:grid;place-items:center;font-size:14px;}
+p{margin:8px 0;color:var(--ink2);}
+b,strong{color:var(--ink);}
+.lead{font-size:17px;color:var(--ink);}
+/* caixas de evidência */
+.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+padding:1px 7px;border-radius:5px;vertical-align:middle;}
+.t-ev{background:var(--brand-l);color:var(--brand-d);}
+.t-hip{background:var(--amber-l);color:#7a5b06;}
+.t-rec{background:var(--blue-l);color:#1f4d7a;}
+.box{border-radius:10px;padding:12px 15px;margin:12px 0;font-size:14.5px;border-left:4px solid;}
+.box.ev{background:var(--brand-l);border-color:var(--brand);color:#14361f;}
+.box.hip{background:var(--amber-l);border-color:var(--amber);color:#5e4a12;}
+.box.rec{background:var(--blue-l);border-color:var(--blue);color:#1f4d7a;}
+.box .lbl{font-weight:800;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;display:block;margin-bottom:3px;}
+/* funil */
+.funil{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px;margin:16px 0;box-shadow:0 1px 3px rgba(16,40,24,.05);}
+.funil h3{font-size:14px;margin-bottom:14px;color:var(--ink);}
+.frow{display:grid;grid-template-columns:190px 1fr 70px;align-items:center;gap:12px;margin:8px 0;font-size:13.5px;}
+.frow .fl{color:var(--ink2);line-height:1.25;}
+.ftrack{background:var(--bg);border-radius:7px;height:30px;overflow:hidden;}
+.ffill{height:100%;border-radius:7px;display:flex;align-items:center;padding-left:12px;color:#fff;font-weight:700;font-size:13px;}
+.frow .fv{text-align:right;font-weight:800;color:var(--brand-d);font-variant-numeric:tabular-nums;}
+.fnote{font-size:12px;color:var(--muted);margin-top:10px;}
+ul{margin:8px 0 8px 4px;padding-left:18px;}
+li{margin:5px 0;color:var(--ink2);}
+.central{background:linear-gradient(180deg,#0f7a40,#0a5c30);color:#fff;border-radius:14px;padding:22px 24px;margin:18px 0;font-size:17px;line-height:1.5;}
+.central .lbl{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.85;display:block;margin-bottom:6px;}
+.legenda{font-size:12.5px;color:var(--muted);margin:18px 0;display:flex;gap:16px;flex-wrap:wrap;}
+.legenda span{display:inline-flex;align-items:center;gap:6px;}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0;}
+.compare>div{border:1px solid var(--line);border-radius:10px;padding:13px 15px;font-size:13.5px;}
+.compare .antes{background:#faf7f7;}.compare .antes h4{color:var(--rose);}
+.compare .depois{background:var(--brand-l);}.compare .depois h4{color:var(--brand-d);}
+.compare h4{font-size:12px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+@media(max-width:620px){.frow{grid-template-columns:120px 1fr 50px;}.compare{grid-template-columns:1fr;}}
+</style></head><body>
+<div class="exp">⚠️ Estudo experimental em condução — dados preliminares, podem ser modificados. Não usar como fonte da verdade.</div>
+<div class="wrap">
+
+<span class="kick">Exemplo · Parte 1 · Graduação</span>
+<h1>Pesquisa na Graduação — a iniciação científica como parte da formação</h1>
+<p class="sub">Exemplo de como a seção fica com a explicação didática (antes: só gráfico + legenda; depois: leitura institucional em 10 blocos).</p>
+
+<div class="compare">
+  <div class="antes"><h4>Antes (atual)</h4>
+    <p>"Quantos egressos avançam em cada etapa da trajetória de pesquisa." + funil + legenda técnica.
+    O leitor vê o número, mas não a <em>interpretação</em>.</p></div>
+  <div class="depois"><h4>Depois (proposto)</h4>
+    <p>Mesmo funil + <b>10 blocos</b> que explicam significado, cuidados e ações para
+    pesquisadores, professores, estudantes e gestão.</p></div>
+</div>
+
+<div class="funil">
+  <h3>Funil da trajetória de pesquisa (egressos da graduação)</h3>
+  <div class="frow"><span class="fl">Egressos (SI + ECA)</span><span class="ftrack"><span class="ffill" style="width:100%;background:#0a5c30">100%</span></span><span class="fv">306</span></div>
+  <div class="frow"><span class="fl">Passaram por <b>iniciação científica</b></span><span class="ftrack"><span class="ffill" style="width:78%;background:#0f7a40">78%</span></span><span class="fv">240</span></div>
+  <div class="frow"><span class="fl">Etapa mais avançada de pesquisa</span><span class="ftrack"><span class="ffill" style="width:23%;background:#2f6fb0">23%</span></span><span class="fv">69</span></div>
+  <div class="frow"><span class="fl">Seguiram para o <b>mestrado</b></span><span class="ftrack"><span class="ffill" style="width:12%;background:#b8860b">12%</span></span><span class="fv">37</span></div>
+  <div class="fnote">Evidência observada. Cruzamento por nome (sem acento) — tende a <b>subestimar</b>. 22 orientadores têm ≥1 egresso.</div>
+</div>
+
+<div class="legenda">
+  <span><span class="tag t-ev">Evidência</span> medido nos dados</span>
+  <span><span class="tag t-hip">Hipótese</span> plausível, não comprovado</span>
+  <span><span class="tag t-rec">Recomendação</span> ação sugerida</span>
+</div>
+
+<h2><span class="ic">1</span> O que esta seção analisa</h2>
+<p>A pergunta central: <b>quantos estudantes que se formaram (Sistemas de Informação e Engenharia de
+Controle e Automação) passaram por pesquisa durante o curso — e até onde foram</b>. Observamos a
+<b>participação em iniciação científica (IC)</b> entre os 306 egressos e um <b>funil</b> por etapas:
+ingresso → IC → pesquisa avançada → mestrado.</p>
+
+<h2><span class="ic">2</span> Por que essa análise é importante</h2>
+<p>A IC não é um "extra": é um dos caminhos mais consistentes de <b>aprendizagem ativa, amadurecimento
+profissional e aproximação com a pós-graduação</b>. Medir quantos egressos a vivenciaram diz qual fração
+da formação do campus foi <b>tocada pela pesquisa</b> — informação direta para cursos, gestão e estudantes.</p>
+
+<h2><span class="ic">3</span> O que os dados mostram</h2>
+<p>Dos <b>306 egressos</b>, <b>240 (78%) fizeram iniciação científica</b> — maioria, não minoria. O funil
+se estreita: <b>69 (23%)</b> chegam a etapas mais profundas e <b>37 (12%)</b> seguem ao <b>mestrado</b> do
+próprio campus. A orientação é <b>distribuída</b>: 22 docentes têm ao menos um egresso.</p>
+<div class="box ev"><span class="lbl">Evidência</span>306 → 240 (IC, 78%) → 69 (23%) → 37 (mestrado, 12%). Cada degrau = mais envolvimento com pesquisa.</div>
+
+<h2><span class="ic">4</span> Como interpretar os resultados</h2>
+<p>O topo largo (78%) sugere que <b>a pesquisa é uma porta larga na graduação</b>. O estreitamento é
+<b>esperado</b>: nem todo aluno de IC quer carreira acadêmica — mercado, concursos e empreendedorismo são
+desfechos legítimos. Logo, <b>cair de 78% para 12% não é "perda"</b>, é o formato normal de um funil.</p>
+<div class="box hip"><span class="lbl">Atenção — associação, não causa</span>Os dados mostram <b>associação</b> entre fazer IC e avançar; <b>não provam causa</b> (quem faz IC pode já ser mais inclinado à pesquisa).</div>
+
+<h2><span class="ic">5</span> Cuidados de interpretação</h2>
+<ul>
+<li><b>Cruzamento por nome (sem acento), match exato</b> → <b>subestima</b> (homônimos, grafias). Os reais tendem a ser maiores.</li>
+<li><b>Autodeclaração no Lattes</b>: ausência de registro ≠ ausência de pesquisa.</li>
+<li><b>SI ≠ ECA</b> (diurno 4 anos × noturno 6 anos) — não comparar diretamente.</li>
+<li><b>Amostra pequena por turma</b> nos anos iniciais → série ruidosa; ler tendência, não o ponto.</li>
+<li><b>Sem causalidade</b>: há fatores não observados (motivação, contexto, mercado).</li>
+</ul>
+
+<h2><span class="ic">6</span> Significado para pesquisadores</h2>
+<p>O funil é a evidência de que <b>projetos formam pessoas, não só publicações</b>. Mostra quantos
+orientandos avançaram, ajuda a justificar <b>captação de bolsas</b> (IC é o ponto de entrada) e a planejar
+a <b>renovação do grupo</b> (os 12% que vão ao mestrado).</p>
+<div class="box rec"><span class="lbl">Recomendação</span>Registrar IC e produtos no Lattes/SigPesq — é o que torna o impacto <b>visível e defensável</b>.</div>
+
+<h2><span class="ic">7</span> Significado para professores</h2>
+<p>A pesquisa é <b>aliada do ensino</b>: aproxima teoria e prática, dá propósito ao conteúdo e tende a
+<b>engajar</b>. Convidar alunos para projetos amplia a porta de entrada que já é larga.</p>
+<div class="box hip"><span class="lbl">Hipótese a confirmar</span>O engajamento pode favorecer <b>permanência e conclusão</b> — mas a seção <b>ainda não mede</b> isso; é associação plausível, não comprovada.</div>
+
+<h2><span class="ic">8</span> Significado para estudantes</h2>
+<p>Em linguagem direta: <b>você aprende fazendo</b>, ganha <b>bolsa</b> (renda + experiência), constrói
+<b>currículo</b>, desenvolve <b>autonomia</b> e cria <b>vínculo</b> com o curso. E não é para poucos — a
+maioria dos formandos passou por IC. Para quem pensa em <b>mestrado</b>, a IC é o caminho mais batido:
+37 colegas fizeram exatamente essa transição no campus.</p>
+
+<h2><span class="ic">9</span> Mensagem central</h2>
+<div class="central"><span class="lbl">Mensagem central</span>
+A pesquisa já é parte <b>estruturante</b> da graduação: <b>78% dos egressos passaram por iniciação
+científica</b>, e essa trajetória alimenta o próprio mestrado. O desafio não é criar cultura de pesquisa —
+ela existe e é ampla —, mas <b>sustentá-la, registrá-la e reduzir o afunilamento</b> entre entrada e continuidade.</div>
+
+<h2><span class="ic">10</span> Possíveis ações</h2>
+<ul>
+<li><b>Gestão:</b> ampliar bolsas de IC; painel anual de participação por turma; integrar bases (nome → ORCID/matrícula) para parar de subestimar.</li>
+<li><b>Cursos:</b> divulgar a IC a todos os ingressantes; mapear onde há evasão da pesquisa.</li>
+<li><b>Grupos:</b> registrar orientações/produtos; acolher mais ingressantes (já há 22 orientadores — há capilaridade).</li>
+<li><b>Professores:</b> convidar alunos de sala; ligar disciplina a problemas de pesquisa reais.</li>
+<li><b>Estudantes:</b> procurar orientador cedo; tratar IC como porta para bolsa, currículo e mestrado.</li>
+</ul>
+
+</div></body></html>
