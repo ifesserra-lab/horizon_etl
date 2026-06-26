@@ -928,6 +928,113 @@ def build(grad_payload: dict, ppbase: dict, generated_at: str) -> str:
       {_cov_note}
     </section>""" if _tempo_cards else "")
 
+    # ---------- blocos didáticos das Partes 1 e 2 ----------
+    _si_m = _by_curso.get("Sistemas de Informação", {}).get("mean")
+    _eca_m = _by_curso.get("Engenharia de Controle e Automação", {}).get("mean")
+    _si_txt = f"SI ~{_si_m:.0f} sem (previsto 8)" if _si_m else "SI"
+    _eca_txt = f"ECA ~{_eca_m:.0f} sem (previsto 12)" if _eca_m else "ECA"
+    _ger_txt = f"média geral ~{_ov_mean:.0f} semestres" if _ov_mean else "média geral"
+    bloco_tempo = bloco_didatico({
+        "titulo": "Tempo de formação",
+        "analisa": "Quanto tempo o estudante leva do <b>ingresso à formatura</b>, em cada curso, "
+                   "comparado à <b>duração prevista</b> no currículo.",
+        "importa": "O tempo de formação conversa com <b>permanência, evasão, custo e eficiência</b> "
+                   "do curso — e é insumo direto para a gestão acadêmica planejar apoio ao estudante.",
+        "mostram": f"{_si_txt}; {_eca_txt}; {_ger_txt}. Cada curso é lido na <b>própria régua</b>: "
+                   "comparar SI e ECA diretamente não faz sentido (durações diferentes).",
+        "interpretar": "Algum atraso em relação ao previsto é <b>comum e multifatorial</b> "
+                       "(trabalho, reprovações, estágio, TCC). É um retrato de percurso, não de mérito.",
+        "atencao": "os dados <b>não dizem</b> se a participação em pesquisa acelera ou atrasa a "
+                   "formatura — isso exigiria comparar quem fez e quem não fez IC, o que esta seção "
+                   "não faz. Não inferir causa.",
+        "cuidados": [
+            "<b>SI ≠ ECA</b> (diurno 4 anos × noturno 6 anos) — réguas distintas, nunca comparar.",
+            "Ingresso é <b>inferido da matrícula</b>; alguns egressos ficam fora da média (reingresso).",
+            "Atraso levemente negativo é <b>plausível</b> (aproveitamento/reingresso), não erro.",
+        ],
+        "pesquisadores": "Saber o tempo típico do orientando ajuda a <b>dimensionar projetos</b> e "
+                         "prazos de IC compatíveis com a jornada do curso.",
+        "professores": "Tempo longo concentrado em certas fases pode sinalizar <b>gargalos "
+                       "curriculares</b> que valem investigação — não culpa do estudante.",
+        "estudantes": "Planeje sua jornada: a IC <b>não precisa atrasar</b> a formatura se bem "
+                      "encaixada no semestre — e agrega bolsa e currículo no caminho.",
+        "central": "Cada curso tem sua <b>régua própria</b> de tempo; o dado serve para gerir "
+                   "permanência e apoio, não para ranquear estudantes ou cursos.",
+        "acoes": [
+            "<b>Gestão:</b> investigar gargalos por fase do curso; apoio a quem atrasa.",
+            "<b>Cursos:</b> integrar a IC ao fluxo curricular para não competir com disciplinas.",
+            "<b>Estudantes:</b> conversar com a coordenação sobre encaixar IC sem estender o curso.",
+        ],
+    })
+    bloco_cotas = bloco_didatico({
+        "titulo": "Cotas e inclusão na pesquisa",
+        "analisa": "Se estudantes <b>cotistas</b> chegam à pesquisa e às <b>bolsas</b> na mesma "
+                   "medida — ou seja, se a pesquisa também é via de inclusão.",
+        "importa": "Pesquisa e bolsa são poderosos vetores de <b>permanência e equidade</b> para "
+                   "grupos historicamente sub-representados; a cota no ingresso só se completa se "
+                   "alcançar também a formação científica.",
+        "mostram": "Os dados indicam que a <b>FAPES destina a maior parte de suas bolsas a "
+                   "cotistas</b>, enquanto a Ifes distribui de forma mais equilibrada — sinal de que "
+                   "a pesquisa <b>está</b> alcançando os cotistas, não só o ingresso.",
+        "evidencia": "presença expressiva de cotistas entre os bolsistas de pesquisa (ver seção de financiamento).",
+        "interpretar": "É um indício de que a política de cotas <b>transborda do acesso para a "
+                       "formação em pesquisa</b> — um dos melhores caminhos de inclusão real.",
+        "atencao": "<b>presença não é igualdade plena</b>: para afirmar equidade, é preciso comparar "
+                   "a proporção de cotistas na pesquisa com a proporção no corpo discente — não feito aqui.",
+        "cuidados": [
+            "Critérios de reserva de vaga <b>se sobrepõem</b> (um aluno pode atender a vários).",
+            "Participação por <b>autodeclaração</b> e casamento por nome — subestima.",
+            "Recortes por grupo têm <b>amostra menor</b> — ler com cautela.",
+        ],
+        "pesquisadores": "Acolher cotistas em projetos <b>amplia o repertório de talentos</b> e "
+                         "cumpre a missão social da instituição.",
+        "professores": "A IC pode ser uma <b>ferramenta de permanência</b> para o estudante "
+                       "cotista — vínculo, renda e propósito.",
+        "estudantes": "Se você entrou por cota: <b>pesquisa e bolsa são para você também</b> — e os "
+                      "dados mostram colegas cotistas já nesse caminho.",
+        "central": "A pesquisa do campus está funcionando como <b>via de inclusão</b>: cotistas "
+                   "chegam à iniciação científica e às bolsas, não só à matrícula.",
+        "acoes": [
+            "<b>Gestão:</b> monitorar a participação de cotistas na IC vs sua presença no corpo discente.",
+            "<b>Editais:</b> reservar/priorizar bolsas de IC com recorte social.",
+            "<b>Cursos:</b> divulgar ativamente a IC entre estudantes cotistas.",
+        ],
+    })
+    bloco_mestrado = bloco_didatico({
+        "titulo": "Mestrado PPComp — permanência, tempo e desfecho",
+        "analisa": f"A trajetória dos <b>{n_egr} discentes</b> do mestrado PPComp: quantos defendem, "
+                   "em quanto tempo, quantos evadem e quantos vieram da própria graduação do campus.",
+        "importa": "O mestrado é o <b>topo da formação em pesquisa</b> do campus e o destino natural "
+                   "de parte dos egressos da graduação — fecha o ciclo IC → pós-graduação.",
+        "mostram": f"<b>{defendidos}</b> defesas entre os {n_egr} discentes; <b>{pipeline}</b> "
+                   "vieram da própria graduação do campus (pipeline interno); a maioria defende em "
+                   "torno de <b>2 anos</b> (prazo regulamentar de 24 meses). A evasão (cancelamentos "
+                   "e trancamentos) existe e merece atenção.",
+        "evidencia": f"{defendidos}/{n_egr} defenderam; {pipeline} via pipeline interno; mediana ~2 anos.",
+        "interpretar": "Defesa em ~2 anos indica <b>aderência ao prazo</b>; o pipeline interno mostra "
+                       "que a graduação <b>alimenta</b> o mestrado. A evasão é o ponto a vigiar.",
+        "atencao": "a evasão tem <b>causas múltiplas</b> (trabalho, orientação, vida pessoal, "
+                   "mercado) — não atribuível a um único fator nem ao programa isoladamente.",
+        "cuidados": [
+            "<b>Datas mistas</b> na base (sentinela 1905 inválida foi descartada do tempo).",
+            "Coortes <b>recentes</b> têm muitos ativos (ainda sem desfecho) — não comparar com antigas.",
+            "Orientador registrado em <b>nome curto</b>; pipeline casado por nome (sem acento).",
+        ],
+        "pesquisadores": "Acompanhar <b>evasão e tempo até a defesa</b> ajuda a calibrar seleção, "
+                         "orientação e oferta de bolsas.",
+        "professores": "Integrar graduação e mestrado (projetos conjuntos, convites a egressos) "
+                       "<b>fortalece o pipeline interno</b>.",
+        "estudantes": f"O mestrado da casa é uma <b>continuidade natural</b> da IC: {pipeline} "
+                      "colegas da graduação do campus já fizeram essa transição.",
+        "central": "O PPComp converte a formação em pesquisa da graduação em <b>titulação de "
+                   "mestrado</b>, com prazo aderente — a <b>evasão</b> é o principal ponto a monitorar.",
+        "acoes": [
+            "<b>Gestão/Programa:</b> monitorar evasão por coorte e criar apoio a discente em risco.",
+            "<b>Cursos:</b> fortalecer a ponte graduação → mestrado (divulgação, projetos conjuntos).",
+            "<b>Orientadores:</b> acompanhamento próximo nos primeiros 12 meses (fase de maior evasão).",
+        ],
+    })
+
     return f"""<!DOCTYPE html>
 <html lang="pt-BR"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -935,18 +1042,82 @@ def build(grad_payload: dict, ppbase: dict, generated_at: str) -> str:
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>{css}</style>
-</head><body><div class="page">
+</head><body>
+<div id="exp-banner" style="background:#b5455f;color:#fff;padding:10px 16px;font-weight:600;font-size:13.5px;text-align:center;position:sticky;top:0;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.2);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;">⚠️ Estudo experimental em condução — os dados são preliminares e podem ser modificados. Não usar como fonte da verdade.</div>
+<div class="page">
 {hero}
 {div1}
 {tempo_formacao}
+{bloco_tempo}
 {grad_body}
+{bloco_cotas}
 {div2}
 {ppcomp_body}
+{bloco_mestrado}
 {projetos_body}
 {facto_body}
 {analises_body}
 {foot}
 </div></body></html>"""
+
+
+def bloco_didatico(d: dict) -> str:
+    """Bloco didático reutilizável (colapsável) no formato dos 10 elementos:
+    o que analisa · por que importa · o que mostram · como interpretar · cuidados ·
+    para pesquisadores/professores/estudantes · mensagem central · ações.
+    Diferencia evidência/hipótese/recomendação. Campos opcionais omitidos sem erro.
+
+    Chaves de `d`: titulo, analisa, importa, mostram, evidencia?, interpretar, atencao?,
+    cuidados(list), pesquisadores, recomendacao?, professores, hipotese?, estudantes,
+    central, acoes(list)."""
+    _ic = ('width:28px;height:28px;flex:0 0 28px;border-radius:8px;background:var(--brand-l);'
+           'color:var(--brand-d);display:grid;place-items:center;font-size:14px;font-weight:800;')
+    _box = ('border-radius:10px;padding:11px 14px;margin:10px 0;font-size:13.5px;'
+            'border-left:4px solid;line-height:1.5;')
+    _ev = f'{_box}background:var(--brand-l);border-color:var(--brand);color:#14361f;'
+    _hip = f'{_box}background:#fbf4df;border-color:var(--amber);color:#5e4a12;'
+    _rec = f'{_box}background:#eaf1f9;border-color:var(--blue);color:#1f4d7a;'
+    _tag = ('display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;'
+            'letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:5px;')
+
+    def el(num, titulo, corpo, extra=""):
+        return (f'<div style="margin-top:18px;"><div style="display:flex;gap:10px;align-items:center;'
+                f'margin-bottom:5px;"><span style="{_ic}">{num}</span>'
+                f'<span style="font-size:16px;font-weight:700;color:var(--ink,#16241a);">{titulo}</span>'
+                f'</div><div style="padding-left:38px;">{corpo}{extra}</div></div>')
+
+    def ul(items):
+        return ('<ul style="margin:4px 0 0 4px;padding-left:18px;">'
+                + "".join(f"<li>{x}</li>" for x in items) + "</ul>")
+
+    ev = f'<div style="{_ev}"><b>Evidência:</b> {d["evidencia"]}</div>' if d.get("evidencia") else ""
+    at = f'<div style="{_hip}"><b>Atenção — associação, não causa:</b> {d["atencao"]}</div>' if d.get("atencao") else ""
+    rec = f'<div style="{_rec}"><b>Recomendação:</b> {d["recomendacao"]}</div>' if d.get("recomendacao") else ""
+    hip = f'<div style="{_hip}"><b>Hipótese a confirmar:</b> {d["hipotese"]}</div>' if d.get("hipotese") else ""
+    central = ('<div style="background:linear-gradient(180deg,#0f7a40,#0a5c30);color:#fff;'
+               'border-radius:12px;padding:16px 18px;font-size:15.5px;line-height:1.5;">'
+               f'{d["central"]}</div>')
+    return f"""
+      <details style="background:var(--paper,#fff);border:1px solid var(--line,#e3ece5);
+        border-radius:12px;padding:4px 18px;margin:14px 0;box-shadow:0 1px 3px rgba(16,40,24,.05);">
+        <summary style="cursor:pointer;padding:12px 0;font-weight:700;font-size:15px;color:var(--brand-d,#0a5c30);">
+          📖 Entenda esta seção — {d["titulo"]}</summary>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted,#71857a);margin:2px 0 8px;">
+          <span style="{_tag}background:var(--brand-l);color:var(--brand-d);">Evidência</span> medido nos dados
+          <span style="{_tag}background:#fbf4df;color:#7a5b06;">Hipótese</span> plausível
+          <span style="{_tag}background:#eaf1f9;color:#1f4d7a;">Recomendação</span> ação sugerida
+        </div>
+        {el(1, "O que esta seção analisa", d["analisa"])}
+        {el(2, "Por que é importante", d["importa"])}
+        {el(3, "O que os dados mostram", d["mostram"], ev)}
+        {el(4, "Como interpretar", d["interpretar"], at)}
+        {el(5, "Cuidados de interpretação", ul(d["cuidados"]))}
+        {el(6, "Para pesquisadores", d["pesquisadores"], rec)}
+        {el(7, "Para professores", d["professores"], hip)}
+        {el(8, "Para estudantes", d["estudantes"])}
+        {el(9, "Mensagem central", central)}
+        {el(10, "Possíveis ações", ul(d["acoes"]))}
+      </details>"""
 
 
 def _funnel_svg(estagios: list[tuple], total: int) -> str:
@@ -1094,6 +1265,245 @@ def analises_section(s: dict, ppbase: dict) -> str:
         "Quatro recortes que conectam graduação, fomento e pós-graduação: o funil de pesquisa, "
         "a produtividade docente, a evolução das turmas e a eficiência do investimento.",
     )
+
+    # --- Leitura institucional/didática do funil (significado, não só números) ---
+    _pp = round(with_research / total * 100) if total else 0   # % pesquisa
+    _pb = round(com_bolsa / total * 100) if total else 0       # % bolsa paga
+    _pm = round(mestrado / total * 100) if total else 0        # % mestrado
+    _tag = ('display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;'
+            'letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:5px;')
+    _box = 'border-radius:10px;padding:11px 14px;margin:12px 0;font-size:14px;border-left:4px solid;line-height:1.5;'
+    _ev = f'{_box}background:var(--brand-l);border-color:var(--brand);color:#14361f;'
+    _hip = f'{_box}background:#fbf4df;border-color:var(--amber);color:#5e4a12;'
+    _rec = f'{_box}background:#eaf1f9;border-color:var(--blue);color:#1f4d7a;'
+
+    def _el(num, titulo, corpo):
+        return (f'<div style="margin-top:22px;">'
+                f'<div style="display:flex;gap:10px;align-items:center;margin-bottom:6px;">'
+                f'<span style="width:28px;height:28px;flex:0 0 28px;border-radius:8px;'
+                f'background:var(--brand-l);color:var(--brand-d);display:grid;place-items:center;'
+                f'font-size:14px;font-weight:800;">{num}</span>'
+                f'<span style="font-size:17px;font-weight:700;color:var(--ink,#16241a);">{titulo}</span>'
+                f'</div><div style="padding-left:38px;">{corpo}</div></div>')
+
+    def _frow(lbl, val, p, color):
+        w = max(p, 6)
+        return (f'<div style="display:grid;grid-template-columns:200px 1fr 60px;align-items:center;'
+                f'gap:12px;margin:8px 0;font-size:13.5px;">'
+                f'<span style="color:var(--ink2,#3c4f42);line-height:1.2;">{lbl}</span>'
+                f'<span style="background:var(--bg,#f4f8f5);border-radius:7px;height:28px;overflow:hidden;">'
+                f'<span style="display:flex;align-items:center;height:100%;width:{w}%;background:{color};'
+                f'color:#fff;font-weight:700;font-size:12.5px;padding-left:10px;border-radius:7px;">{p}%</span></span>'
+                f'<span style="text-align:right;font-weight:800;color:var(--brand-d);'
+                f'font-variant-numeric:tabular-nums;">{val}</span></div>')
+
+    _funil_bars = (
+        _frow("Egressos (SI + ECA)", total, 100, "#0a5c30")
+        + _frow("Passaram por <b>iniciação científica</b>", with_research, _pp, "#0f7a40")
+        + _frow("Tiveram <b>bolsa paga</b>", com_bolsa, _pb, "#2f6fb0")
+        + _frow("Seguiram para o <b>mestrado</b>", mestrado, _pm, "#b8860b"))
+
+    didatica = f"""
+    <section class="section">
+      <div class="eyebrow">Leitura institucional</div>
+      <h2>O que o funil significa</h2>
+      <p class="desc">Além dos números: o que a trajetória diz sobre a relação entre <b>pesquisa e
+      formação</b>, e o que cada público faz com isso.</p>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted,#71857a);margin:0 0 14px;">
+        <span style="{_tag}background:var(--brand-l);color:var(--brand-d);">Evidência</span> medido nos dados
+        <span style="{_tag}background:#fbf4df;color:#7a5b06;">Hipótese</span> plausível, não comprovado
+        <span style="{_tag}background:#eaf1f9;color:#1f4d7a;">Recomendação</span> ação sugerida
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 12px;">Funil da trajetória de pesquisa</h3>
+        {_funil_bars}
+        <div class="note-line" style="margin-top:10px;">Evidência observada. Cruzamento por nome
+        (sem acento) — tende a <b>subestimar</b>. {_n_orient} orientadores têm ≥1 egresso.</div>
+
+        {_el(1, "O que esta seção analisa",
+             f"<p>Quantos dos <b>{total} egressos</b> (Sistemas de Informação e Engenharia de "
+             f"Controle e Automação) passaram por pesquisa no curso — e até onde foram: ingresso → "
+             f"iniciação científica → bolsa paga → mestrado.</p>")}
+
+        {_el(2, "Por que é importante",
+             "<p>A iniciação científica é um dos caminhos mais consistentes de <b>aprendizagem ativa, "
+             "amadurecimento profissional e aproximação com a pós-graduação</b>. O funil mostra qual "
+             "fração da formação do campus foi <b>tocada pela pesquisa</b>.</p>")}
+
+        {_el(3, "O que os dados mostram",
+             f"<p><b>{with_research} dos {total} egressos ({_pp}%)</b> participaram de pesquisa — "
+             f"maioria, não minoria. O funil se estreita: <b>{com_bolsa} ({_pb}%)</b> tiveram bolsa "
+             f"paga e <b>{mestrado} ({_pm}%)</b> seguiram ao mestrado PPComp.</p>"
+             f'<div style="{_ev}"><b>Evidência:</b> {total} → {with_research} (pesquisa, {_pp}%) → '
+             f"{com_bolsa} (bolsa, {_pb}%) → {mestrado} (mestrado, {_pm}%). Cada degrau = mais "
+             f"envolvimento com pesquisa.</div>")}
+
+        {_el(4, "Como interpretar",
+             f"<p>O topo largo ({_pp}%) sugere que a pesquisa é uma <b>porta larga</b> na graduação. "
+             f"O estreitamento é <b>esperado</b>: nem todo aluno de IC quer carreira acadêmica — "
+             f"mercado, concursos e empreendedorismo são desfechos legítimos. Cair de {_pp}% para "
+             f"{_pm}% <b>não é \"perda\"</b>; é o formato normal de um funil.</p>"
+             f'<div style="{_hip}"><b>Atenção — associação, não causa:</b> os dados ligam fazer IC a '
+             f"avançar, mas <b>não provam causa</b> (quem faz IC pode já ser mais inclinado à pesquisa).</div>")}
+
+        {_el(5, "Cuidados de interpretação",
+             '<ul style="margin:4px 0 0 4px;padding-left:18px;">'
+             "<li>Cruzamento <b>por nome (sem acento), match exato</b> → <b>subestima</b> "
+             "(homônimos, grafias); os reais tendem a ser maiores.</li>"
+             "<li><b>Autodeclaração no Lattes</b>: ausência de registro ≠ ausência de pesquisa.</li>"
+             "<li><b>SI ≠ ECA</b> (diurno 4 anos × noturno 6 anos) — não comparar diretamente.</li>"
+             "<li><b>Amostra pequena por turma</b> nos anos iniciais → ler tendência, não o ponto.</li></ul>")}
+
+        {_el(6, "Para pesquisadores",
+             f"<p>O funil é a evidência de que <b>projetos formam pessoas, não só publicações</b>: "
+             f"mostra quantos orientandos avançaram, ajuda a justificar <b>captação de bolsas</b> "
+             f"(IC é a porta de entrada) e a planejar a <b>renovação do grupo</b> ({_pm}% vão ao "
+             f"mestrado).</p>"
+             f'<div style="{_rec}"><b>Recomendação:</b> registrar IC e produtos no Lattes/SigPesq — '
+             f"é o que torna o impacto <b>visível e defensável</b>.</div>")}
+
+        {_el(7, "Para professores",
+             "<p>A pesquisa é <b>aliada do ensino</b>: aproxima teoria e prática e tende a "
+             "<b>engajar</b>. Convidar alunos para projetos amplia a porta que já é larga.</p>"
+             f'<div style="{_hip}"><b>Hipótese a confirmar:</b> o engajamento pode favorecer '
+             "<b>permanência e conclusão</b> — a seção <b>ainda não mede</b> isso; é plausível, "
+             "não comprovado.</div>")}
+
+        {_el(8, "Para estudantes",
+             f"<p>Em linguagem direta: você <b>aprende fazendo</b>, ganha <b>bolsa</b> (renda + "
+             f"experiência), constrói <b>currículo</b>, desenvolve <b>autonomia</b> e cria "
+             f"<b>vínculo</b> com o curso. Não é para poucos — a maioria dos formandos passou por IC. "
+             f"E para quem pensa em <b>mestrado</b>, a IC é o caminho mais batido: {mestrado} colegas "
+             f"fizeram essa transição no campus.</p>")}
+
+        {_el(9, "Mensagem central",
+             '<div style="background:linear-gradient(180deg,#0f7a40,#0a5c30);color:#fff;'
+             'border-radius:12px;padding:18px 20px;font-size:16px;line-height:1.5;">'
+             f"A pesquisa já é parte <b>estruturante</b> da graduação: <b>{_pp}% dos egressos passaram "
+             f"por iniciação científica</b>, e essa trajetória alimenta o próprio mestrado. O desafio "
+             f"não é criar cultura de pesquisa — ela existe e é ampla —, mas <b>sustentá-la, "
+             f"registrá-la e reduzir o afunilamento</b> entre entrada e continuidade.</div>")}
+
+        {_el(10, "Possíveis ações",
+             '<ul style="margin:4px 0 0 4px;padding-left:18px;">'
+             "<li><b>Gestão:</b> ampliar bolsas de IC; painel anual de participação por turma; "
+             "integrar bases (nome → ORCID/matrícula) para parar de subestimar.</li>"
+             "<li><b>Cursos:</b> divulgar a IC a todos os ingressantes; mapear evasão da pesquisa.</li>"
+             f"<li><b>Grupos:</b> registrar orientações/produtos; acolher mais ingressantes (há "
+             f"{_n_orient} orientadores — capilaridade para crescer).</li>"
+             "<li><b>Professores:</b> convidar alunos de sala; ligar disciplina a pesquisa real.</li>"
+             "<li><b>Estudantes:</b> procurar orientador cedo; tratar IC como porta para bolsa, "
+             "currículo e mestrado.</li></ul>")}
+      </div>
+    </section>"""
+
+    # --- blocos didáticos das demais seções da Parte 5 ---
+    _o_nome = _top_orient[0][0] if _top_orient else "—"
+    _o_n = len(_top_orient[0][1]) if _top_orient else 0
+    _anos_v = [a for a, n in zip(anos, co_size) if n >= 3]
+    _faixa_turmas = f"{_anos_v[0]}–{_anos_v[-1]}" if _anos_v else "—"
+    bloco_prod = bloco_didatico({
+        "titulo": "Produtividade docente",
+        "analisa": "Quais docentes orientaram em iniciação científica os egressos da base — a "
+                   "<b>face humana</b> da formação em pesquisa.",
+        "importa": "A orientação é o motor da IC: sem orientador, não há projeto. Ver a "
+                   "<b>distribuição</b> entre docentes mostra se a formação depende de poucos ou "
+                   "está espalhada pelo corpo docente.",
+        "mostram": f"<b>{_n_orient} docentes</b> têm ao menos um egresso orientado em IC. O mais "
+                   f"ativo (<b>{_o_nome}</b>) orientou <b>{_o_n}</b> egressos da base. A orientação "
+                   f"é, portanto, <b>distribuída</b> — não concentrada em uma ou duas pessoas.",
+        "evidencia": f"{_n_orient} orientadores com ≥1 egresso; topo em {_o_n} egressos.",
+        "interpretar": "Orientação distribuída é um <b>sinal de saúde</b>: a formação em pesquisa "
+                       "não fica refém de poucos docentes e resiste a saídas/aposentadorias. O "
+                       "topo da lista é natural (quem tem mais tempo de casa orienta mais).",
+        "cuidados": [
+            "Casamento <b>por nome (sem acento)</b> orientando↔egresso → <b>subestima</b>.",
+            "Conta só a <b>IC declarada no Lattes</b> do docente; coorientação informal escapa.",
+            "Quem chegou há pouco ao campus aparece com menos egressos (viés de tempo).",
+        ],
+        "pesquisadores": "Orientar é <b>impacto formativo</b> tão real quanto publicar — e alimenta "
+                         "o próprio grupo. Vale registrar todas as orientações no Lattes.",
+        "recomendacao": "reconhecer a orientação de IC na avaliação docente e na distribuição de bolsas.",
+        "professores": "Assumir um orientando de IC é uma das formas mais diretas de <b>engajar</b> "
+                       "e formar — e há espaço para novos orientadores entrarem.",
+        "estudantes": "Há <b>muitos</b> docentes que acolhem iniciação científica — procurar um "
+                      "orientador alinhado ao seu interesse é mais fácil do que parece.",
+        "central": "A formação em pesquisa do campus se apoia em uma <b>base ampla de "
+                   "orientadores</b>, não em poucos nomes — o que a torna resiliente e expansível.",
+        "acoes": [
+            "<b>Gestão:</b> reconhecer orientação de IC na carreira e nos editais de bolsa.",
+            "<b>Cursos:</b> apresentar os grupos/orientadores aos ingressantes.",
+            "<b>Grupos:</b> criar mentoria para novos docentes assumirem orientandos.",
+            "<b>Estudantes:</b> mapear orientadores por linha de pesquisa e procurar cedo.",
+        ],
+    })
+    bloco_ano = bloco_didatico({
+        "titulo": "Pesquisa por ano de ingresso",
+        "analisa": "A <b>tendência ao longo do tempo</b>: que fração de cada turma (por ano de "
+                   "ingresso) participou de pesquisa.",
+        "importa": "Diz se a cultura de pesquisa do campus está <b>crescendo, estável ou "
+                   "recuando</b> — algo que o número total (78%) sozinho esconde.",
+        "mostram": f"A série cobre as turmas de <b>{_faixa_turmas}</b> (só anos com 3+ egressos). "
+                   "A participação é <b>consistentemente alta</b> na maior parte do período.",
+        "interpretar": "As turmas <b>mais recentes</b> tiveram menos tempo para registrar IC, "
+                       "concluir TCC ou ingressar no mestrado — então uma participação menor nos "
+                       "anos finais <b>pode ser maturação</b>, não recuo real da cultura de pesquisa.",
+        "atencao": "uma eventual queda nas turmas recentes provavelmente reflete o <b>tempo de "
+                   "maturação</b> da trajetória, não uma perda de interesse — comparar turmas "
+                   "antigas com recentes mistura coisas diferentes.",
+        "cuidados": [
+            "<b>Amostra pequena</b> por ano nos primeiros anos → série ruidosa.",
+            "<b>Viés de maturação</b>: turmas novas ainda não completaram a trajetória.",
+            "Participação por <b>autodeclaração</b> (Lattes/SigPesq) — subestima.",
+        ],
+        "pesquisadores": "Acompanhar a participação por coorte ajuda a <b>planejar captação</b> e a "
+                         "perceber cedo quedas reais de engajamento.",
+        "professores": "Engajar as turmas <b>logo no início</b> do curso antecipa a entrada na "
+                       "pesquisa e melhora a série das próximas coortes.",
+        "estudantes": "Quanto <b>mais cedo</b> você entra na IC, mais tempo tem para bolsa, "
+                      "currículo e a transição para o mestrado.",
+        "central": "A participação em pesquisa é <b>consistente entre as turmas</b>; quedas nos anos "
+                   "recentes pedem leitura cuidadosa (maturação), não alarme.",
+        "acoes": [
+            "<b>Gestão:</b> publicar a série por coorte todo ano e ler a tendência (não o ponto).",
+            "<b>Cursos:</b> ação de <b>entrada precoce</b> na IC já no 1º/2º período.",
+            "<b>Grupos:</b> reservar vagas de IC para calouros.",
+        ],
+    })
+    bloco_efic = bloco_didatico({
+        "titulo": "Eficiência do fomento",
+        "analisa": "Quanto de <b>recurso FAPES</b> sustenta a formação em pesquisa — uma noção de "
+                   "custo por <b>aluno-pesquisador</b> formado.",
+        "importa": "Conecta diretamente <b>investimento</b> e <b>formação de pessoas</b>: bolsa não "
+                   "é gasto, é o que viabiliza o estudante dedicar-se à pesquisa.",
+        "mostram": f"Dividindo as bolsas FAPES pelos <b>{with_research} egressos com pesquisa</b>, "
+                   "chega-se a um <b>custo médio por aluno-pesquisador</b> (alguns milhares de "
+                   "reais) — uma ordem de grandeza, não um preço exato.",
+        "interpretar": "Esse valor é <b>custo de formar gente</b>, não desperdício: é investimento "
+                       "em <b>capital humano</b> que retorna como produção, mestrandos e captação futura.",
+        "cuidados": [
+            "Numerador (bolsas) e denominador (egressos com pesquisa) vêm de <b>janelas e fontes "
+            "diferentes</b> — é aproximação, não atribuição 1:1.",
+            "O <b>valor pago</b> consta <b>zerado</b> na fonte (só o alocado) — subestima a execução.",
+            "Nem toda bolsa do período foi para esses egressos específicos.",
+        ],
+        "pesquisadores": "Bolsas <b>formam pessoas</b> e renovam o grupo — argumento direto para "
+                         "justificar e renovar captação.",
+        "recomendacao": "acompanhar o custo por aluno-pesquisador ao longo dos anos, não num ponto isolado.",
+        "professores": "Bolsas viabilizam a <b>orientação</b>: sem fomento, o aluno precisa trabalhar "
+                       "e abandona a IC.",
+        "estudantes": "A bolsa é muitas vezes a <b>condição de permanência</b> que permite você se "
+                      "dedicar à pesquisa em vez de só ao emprego.",
+        "central": "Investir em bolsas de IC é investir na <b>formação</b>: o custo por "
+                   "aluno-pesquisador é métrica de <b>capital humano</b>, não de despesa.",
+        "acoes": [
+            "<b>Gestão:</b> proteger o orçamento de bolsas de IC; cobrar o registro do valor pago.",
+            "<b>Cursos:</b> divulgar editais de bolsa amplamente, não só aos melhores alunos.",
+            "<b>Estudantes:</b> candidatar-se a bolsas cedo — é o que sustenta a dedicação.",
+        ],
+    })
+
     body = f"""
     <section class="section">
       <div class="eyebrow">Do ingresso à pós</div>
@@ -1107,6 +1517,7 @@ def analises_section(s: dict, ppbase: dict) -> str:
         graduação que <b>ingressaram no mestrado PPComp</b> (base completa de discentes).</div>
       </div>
     </section>
+    {didatica}
     <section class="section">
       <div class="eyebrow">Quem sustenta a pesquisa</div>
       <h2>Produtividade docente</h2>
@@ -1120,6 +1531,7 @@ def analises_section(s: dict, ppbase: dict) -> str:
         egresso. Casamento por nome, sem acento.</div>
       </div>
     </section>
+    {bloco_prod}
     <section class="section">
       <div class="eyebrow">Evolução das turmas</div>
       <h2>Pesquisa por ano de ingresso</h2>
@@ -1129,12 +1541,14 @@ def analises_section(s: dict, ppbase: dict) -> str:
         <div class="note-line">Turmas (nº de egressos por ano de ingresso): {", ".join(f"{a}:{n}" for a,n in zip(anos, co_size))}.</div>
       </div>
     </section>
+    {bloco_ano}
     <section class="section">
       <div class="eyebrow">Retorno do investimento</div>
       <h2>Eficiência do fomento</h2>
       <p class="desc">Quanto custa, em recurso FAPES, sustentar a formação em pesquisa.</p>
       <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));">{ef_cards}</div>
-    </section>"""
+    </section>
+    {bloco_efic}"""
     return divider + body
 
 
