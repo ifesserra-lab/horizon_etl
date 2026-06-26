@@ -30,6 +30,7 @@ import networkx as nx
 
 from src.scripts.generate_docentes_executive import ROSTER_IDS
 from src.scripts.analyze_venues import _docente_area
+from src.scripts.didatica import bloco_metrica
 
 BASE = Path(__file__).resolve().parents[2]
 LATTES_DIR = BASE / "data" / "lattes_json"
@@ -412,6 +413,7 @@ header h1{font-size:22px;} header p{color:var(--sub);font-size:13px;margin-top:4
 .legend{position:absolute;bottom:12px;left:12px;font-size:11px;color:var(--sub);background:rgba(255,255,255,.85);
  padding:8px 10px;border-radius:8px;border:1px solid var(--line);}
 </style></head><body>
+<div id="exp-banner" style="background:#b5455f;color:#fff;padding:10px 16px;font-weight:600;font-size:13.5px;text-align:center;position:sticky;top:0;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.2);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;">⚠️ Estudo experimental em condução — os dados são preliminares e podem ser modificados. Não usar como fonte da verdade.</div>
 <div class="dev-banner">🚧 Under development — versão preliminar, dados e métricas em validação</div>
 <header>
  <h1>Rede de Colaboração dos Docentes — IFES Campus Serra <span class="devtag">Under development</span></h1>
@@ -432,6 +434,7 @@ header h1{font-size:22px;} header p{color:var(--sub);font-size:13px;margin-top:4
    <div class="legend" id="legend"></div></div>
  <div id="panel"><p class="muted">Digite ou clique num pesquisador para ver a ego-rede e as métricas.</p></div>
 </div>
+__EXPL__
 __PATTERNS__
 <script>
 const DATA = __DATA__;
@@ -571,7 +574,26 @@ document.getElementById('spr').onclick=()=>applySpread(1.3);
 document.getElementById('cmp').onclick=()=>{if(spread/1.3>=0.4)applySpread(1/1.3);};
 document.getElementById('rst').onclick=()=>{spread=1;clearSel();};
 resize();
-</script></body></html>""".replace("__DATA__", data).replace("__PATTERNS__", _patterns_html(payload.get("patterns") or {}))
+</script></body></html>""".replace("__DATA__", data).replace("__EXPL__", _EXPL_REDE).replace("__PATTERNS__", _patterns_html(payload.get("patterns") or {}))
+
+
+_EXPL_REDE = bloco_metrica({
+    "titulo": "Rede de coautoria (como ler)",
+    "o_que": "Grafo de <b>coautoria</b> entre docentes (artigos + congressos do Lattes): cada nó é "
+             "um docente (tamanho = trabalhos em coautoria), a cor é a <b>comunidade</b> detectada "
+             "(Louvain) e a espessura da aresta é o nº de trabalhos juntos.",
+    "como_ler": "<b>Aglomerados</b> de mesma cor = grupos que publicam juntos. <b>Nós centrais</b> "
+                "(grandes, muito conectados) = pontes/colaboradores frequentes que ligam grupos.",
+    "nao_concluir": [
+        "Coautoria é cruzada <b>por nome</b> (sujeita a homônimo) e <b>coautores externos</b> ao "
+        "campus não entram no grafo.",
+        "Ausência de aresta <b>≠</b> ausência de colaboração (orientação, projetos e parcerias "
+        "informais não aparecem).",
+        "Versão <b>preliminar</b> (under development) — métricas em validação.",
+    ],
+    "gestores": "Identificar <b>grupos</b> e <b>pontes</b>; estimular colaboração entre comunidades "
+                "isoladas e dar visibilidade a quem conecta áreas.",
+})
 
 
 def _patterns_html(p: dict) -> str:

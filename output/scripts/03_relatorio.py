@@ -17,9 +17,12 @@ import json
 import re
 from pathlib import Path
 
+import sys
 import markdown  # 3.x, com extensão 'tables'
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+from src.scripts.didatica import bloco_metrica  # noqa: E402
 OUT = ROOT / "output"
 MD = OUT / "relatorio_roi_pesquisa.md"
 INTER = OUT / "roi_intermediate.json"
@@ -201,6 +204,38 @@ def main() -> None:
     md_text = MD.read_text(encoding="utf-8")
     md = markdown.Markdown(extensions=["tables", "fenced_code", "sane_lists", "toc"])
     body = md.convert(md_text)
+
+    body += bloco_metrica({
+        "titulo": "Razões de produtividade (produção por R$)",
+        "o_que": "Indicadores que dividem a produção (itens científicos, titulados, ativos "
+                 "tecnológicos) pelo <b>fomento de pesquisa consolidado</b> (ordem de grandeza).",
+        "como_ler": "Dão uma <b>ordem de grandeza</b> institucional de 'quanto se produz por real "
+                    "investido' — útil para comparar anos ou planejar, não para precisão contábil.",
+        "nao_concluir": [
+            "<b>Não é causalidade</b>: a produção do Lattes <b>não está ligada</b> a um projeto "
+            "financiado específico — é uma proporção institucional bruta.",
+            "Numerador (produção, carreira inteira) e denominador (fomento de um período) têm "
+            "<b>janelas diferentes</b> — confiança baixa.",
+        ],
+        "gestores": "Usar como <b>ordem de grandeza</b> e tendência ao longo do tempo; nunca atribuir "
+                    "a produtividade de um real a um docente ou projeto isolado.",
+    })
+    body += bloco_metrica({
+        "titulo": "Concentração do fomento (Gini)",
+        "o_que": "O quanto o orçamento de pesquisa se concentra em poucos coordenadores (Gini "
+                 "0–1) — e o efeito de segregar projetos institucionais (UnAC/ConectaFapes).",
+        "formula": "Gini: 0 = igual entre coordenadores · 1 = um concentra tudo",
+        "como_ler": "Gini alto = captação concentrada num núcleo. Parte da concentração é "
+                    "<b>infraestrutura/programa</b> (não captação individual) — por isso reportamos "
+                    "também o Gini <b>sem os institucionais</b>.",
+        "nao_concluir": [
+            "Concentração de captação <b>não</b> mede esforço nem mérito individual.",
+            "Projetos <b>institucionais/programáticos</b> (UnAC, ConectaFapes) inflam o Gini 'por "
+            "coordenador' — separá-los é essencial.",
+        ],
+        "gestores": "Diversificar a base de captação; apoiar novos coordenadores; separar sempre "
+                    "fomento <b>institucional</b> de <b>pesquisa individual</b>.",
+    })
 
     fonte = artigos_fonte()
     body += secao_artigos_html(fonte)

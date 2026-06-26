@@ -34,6 +34,9 @@ from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+import sys as _sys
+_sys.path.insert(0, str(ROOT))
+from src.scripts.didatica import bloco_metrica  # noqa: E402
 EXPORTS = ROOT / "data" / "exports" / "docentes"
 SRC_CITACOES = EXPORTS / "openalex_citacoes.json"
 SRC_RANKING = EXPORTS / "ranking_impacto.json"
@@ -495,6 +498,26 @@ setInterval(renderPrazos, 3600000); // re-checa a cada hora: vira o dia, status 
 """
 
 
+EXPL_PPP = bloco_metrica({
+    "titulo": "Elegibilidade PQ — como é estimada",
+    "o_que": "A pontuação de cada docente pelos critérios do <b>Edital PRPPG 13/2026</b>: "
+             "produção por <b>percentil de citação</b> (Tabela 1, via OpenAlex, janela 2021–2026) "
+             "+ <b>orientações concluídas</b>, classificando em <b>PQ-1 / PQ-2 / PQ-3</b>.",
+    "formula": "pontos = Σ pontos por percentil do artigo (Tabela 1) + orientações concluídas",
+    "como_ler": "A pontuação indica a modalidade PQ que o docente <b>alcança pelo cálculo "
+                "automático</b> — uma triagem para montar shortlists.",
+    "nao_concluir": [
+        "É um <b>piso</b> (lower bound): o cache OpenAlex guarda só os artigos com <b>DOI</b> mais "
+        "citados → subestima quem publica muito ou sem DOI (livros, capítulos, eventos).",
+        "O <b>nível</b> da orientação (IC × stricto sensu) não consta; usa-se o total concluído.",
+        "<b>Vínculo a PPG</b> e <b>colaboração internacional</b> (exigências PQ-1/PQ-2) não estão "
+        "nos dados — exigem <b>conferência manual</b> do Lattes. Não é decisão oficial.",
+    ],
+    "gestores": "Usar como <b>triagem/shortlist</b>; confirmar manualmente no Lattes (produção sem "
+                "DOI, vínculo PPG, colaboração internacional) antes de orientar a submissão.",
+})
+
+
 def render_html(data: dict) -> str:
     payload = json.dumps(
         {"docentes": data["docentes"], "prazos": data["prazos"]},
@@ -508,7 +531,9 @@ def render_html(data: dict) -> str:
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>{CSS}</style></head>
-<body><div class="page">
+<body>
+<div id="exp-banner" style="background:#b5455f;color:#fff;padding:10px 16px;font-weight:600;font-size:13.5px;text-align:center;position:sticky;top:0;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.2);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;">⚠️ Estudo experimental em condução — os dados são preliminares e podem ser modificados. Não usar como fonte da verdade.</div>
+<div class="page">
 
 <header class="hero">
   <span class="kicker">PRPPG / IFES · Diretoria de Pesquisa</span>
@@ -546,6 +571,8 @@ def render_html(data: dict) -> str:
     <div class="kpi b4"><div class="n" id="k4">·</div><div class="u">sem evidência</div><div class="s">sem artigo DOI 21-26</div></div>
   </div>
 </section>
+
+{EXPL_PPP}
 
 <section class="section">
   <div class="eyebrow">Benefício</div>

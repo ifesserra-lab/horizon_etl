@@ -41,6 +41,8 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 BASE = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(BASE))
+from src.scripts.didatica import bloco_metrica  # noqa: E402
 LATTES_DIR = BASE / "data" / "lattes_json"
 REF_DIR = BASE / "data" / "reference"
 OUT_DIR = BASE / "data" / "exports" / "docentes"
@@ -826,6 +828,39 @@ _SRC_TEMPLATE = """
       q.addEventListener('input',upd); upd();
     })();
     </script>"""
+
+
+EXPL_SJR_QUALIS = bloco_metrica({
+    "titulo": "Qualidade dos veículos (SJR e Qualis)",
+    "o_que": "Distribuição dos artigos pelo <b>quartil SJR</b> (SCImago, internacional) e pelo "
+             "<b>estrato Qualis</b> (CAPES, nacional), casados por <b>ISSN</b> do periódico.",
+    "formula": "SJR: Q1 (topo 25%) → Q4 · Qualis: A1 (topo) → C",
+    "como_ler": "Mais artigos em <b>Q1/Q2</b> e <b>A1-A2</b> = o campus publica em veículos de "
+                "maior prestígio. É a qualidade do <b>onde se publica</b>.",
+    "nao_concluir": [
+        "Veículo de prestígio <b>≠</b> artigo de alto impacto — a <b>DORA</b> desaconselha avaliar "
+        "o artigo pelo periódico.",
+        "O SJR só cobre o <b>Scopus</b>; periódicos nacionais sem indexação ficam de fora "
+        "(subestima a produção nacional).",
+    ],
+    "gestores": "Orientar a escolha de veículos e ler <b>junto com o FWCI</b> (impacto real). "
+                "Periódico forte com poucas citações merece atenção.",
+})
+EXPL_QUAD = bloco_metrica({
+    "titulo": "Quadrante Qualis × FWCI",
+    "o_que": "Cruza o <b>prestígio do veículo</b> (Qualis, eixo X) com o <b>impacto real "
+             "normalizado</b> (FWCI, eixo Y) de cada docente, dividido pela mediana do grupo.",
+    "como_ler": "<b>Estrelas</b> (Qualis e FWCI altos); <b>Subvalorizado</b> (FWCI alto, Qualis "
+                "menor — o Qualis subestima o impacto real); <b>Veículo forte, baixo impacto</b>; "
+                "<b>Nicho</b> (ambos abaixo).",
+    "nao_concluir": [
+        "A posição é <b>relativa ao grupo</b> (mediana), <b>não</b> juízo absoluto de mérito.",
+        "FWCI depende da <b>cobertura por DOI</b> (OpenAlex) e da amostra — quadrantes com poucos "
+        "artigos são instáveis.",
+    ],
+    "gestores": "Achar os <b>subvalorizados</b> (impacto real alto apesar do veículo) para apoiar e "
+                "dar visibilidade; usar para conversa, não para ranking.",
+})
 
 
 def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None,
@@ -1965,7 +2000,9 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
 <title>Veículos de Publicação — IFES Campus Serra</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>{CSS}</style></head><body><div class="page">
+<style>{CSS}</style></head><body>
+<div id="exp-banner" style="background:#b5455f;color:#fff;padding:10px 16px;font-weight:600;font-size:13.5px;text-align:center;position:sticky;top:0;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.2);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;">⚠️ Estudo experimental em condução — os dados são preliminares e podem ser modificados. Não usar como fonte da verdade.</div>
+<div class="page">
   <div class="hero">
     <span class="kicker">IFES Campus Serra · Análise de Veículos</span>
     <h1>Onde a pesquisa do campus é publicada</h1>
@@ -1976,7 +2013,7 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
       <span><b>{r['n_congressos_distintos']}</b> congressos</span>
       <span>Fonte: Lattes + SJR{' + Qualis' if qualis_applied else ''}</span></div>
   </div>
-  {sec_resumo}{kpis}{sec_sjr}{sec_qualis}{sec_area}{sec_maps}{sec_leaders}{sec_asc}{sec_top}{sec_cong}{sec_comb}{sec_master}{sec_src}{sec_metodo}{sec_refs}
+  {sec_resumo}{kpis}{sec_sjr}{sec_qualis}{EXPL_SJR_QUALIS}{sec_area}{sec_maps}{sec_leaders}{sec_asc}{sec_top}{sec_cong}{sec_comb}{sec_master}{EXPL_QUAD}{sec_src}{sec_metodo}{sec_refs}
   <div class="foot"><span>Gerado em {payload.get('gerado_em','')} · veículos: Lattes ·
   impacto: {fontes.get('impacto_internacional','SJR')} · qualis: {qfonte}</span></div>
 </div>

@@ -4743,6 +4743,7 @@ def render_html(s: dict, semester: str, generated_at: str,
 <style>{CSS}</style>
 </head>
 <body>
+<div id="exp-banner" style="background:#b5455f;color:#fff;padding:10px 16px;font-weight:600;font-size:13.5px;text-align:center;position:sticky;top:0;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.2);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;">⚠️ Estudo experimental em condução — os dados são preliminares e podem ser modificados. Não usar como fonte da verdade.</div>
 <header>
   <div class="eyebrow">IFES Serra · Relatório de Pesquisa</div>
   <h1>Formandos × Pesquisa — {sem_label}</h1>
