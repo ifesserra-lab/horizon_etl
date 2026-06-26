@@ -52,6 +52,34 @@ margin:8px 0;padding:4px 14px;} .arts summary{cursor:pointer;padding:8px 0;font-
 ol.refs li,.refs li{font-size:13.5px;margin:7px 0;} .cit{color:var(--muted);font-size:11.5px;}
 @media print{body{background:#fff;}.page{max-width:none;}a{color:var(--ink);}}
 @media(max-width:680px){table{display:block;overflow-x:auto;white-space:nowrap;}}
+
+/* ---- mobile-first (responsivo, sem rolagem horizontal de página) ---- */
+*{max-width:100%;}
+img,svg{max-width:100%;height:auto;}
+.tbl-wrap,.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+@media (max-width:720px){
+  html,body{overflow-x:hidden;}
+  .page,.wrap{padding-left:14px!important;padding-right:14px!important;}
+  /* grids comuns -> 1 coluna */
+  .kpis,.grid2,.grid,.grid3,.refs,.lorenz-wrap,.quads,.compare,.af-chips,
+  .rz-stats,.rz-cards,.cards,.two-col{grid-template-columns:1fr!important;}
+  /* barras com grid fixo (label|trilho|valor) -> empilha */
+  .bar,.brow,.frow{grid-template-columns:1fr!important;gap:3px 0!important;}
+  .bar .val,.bar .bv,.brow .bv,.frow .fv{text-align:left!important;}
+  /* tabelas largas: rolam dentro do próprio bloco, não na página */
+  .section table,.card table,table{display:block;width:100%;overflow-x:auto;
+    -webkit-overflow-scrolling:touch;white-space:normal;}
+  .af-tbl{display:table!important;}              /* exceção: quadro de artigos já é fixo */
+  th,td{font-size:12.5px;padding:7px 8px;}
+  h1{font-size:24px!important;line-height:1.15;}
+  h2{font-size:20px!important;}
+  .hero{padding:34px 0 20px!important;}
+  .lede{font-size:15px!important;}
+  /* abas (ROI) */
+  .tabbar{gap:6px;} .tabbtn{padding:7px 12px;font-size:13px;}
+  /* blocos didáticos: recuo menor */
+  details [style*="padding-left:38px"]{padding-left:0!important;}
+}
 </style></head><body>
 <div id="exp-banner" style="background:#b5455f;color:#fff;padding:10px 16px;font:600 14px/1.45 var(--font);text-align:center;position:sticky;top:0;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.2);">⚠️ Estudo experimental em condução — os dados são preliminares e podem ser modificados. Não usar como fonte da verdade.</div>
 <div class="page">

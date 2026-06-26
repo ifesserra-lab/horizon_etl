@@ -25,6 +25,9 @@ import unicodedata
 from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from src.scripts.didatica import MOBILE_CSS  # noqa: E402
 from typing import Any
 
 import re
@@ -4740,7 +4743,7 @@ def render_html(s: dict, semester: str, generated_at: str,
 <title>Formandos × Pesquisa — IFES Serra {sem_label} — {sem_period}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>{CSS}</style>
+<style>{CSS}{MOBILE_CSS}</style>
 </head>
 <body>
 <div id="exp-banner" style="background:#b5455f;color:#fff;padding:10px 16px;font-weight:600;font-size:13.5px;text-align:center;position:sticky;top:0;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.2);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;">⚠️ Estudo experimental em condução — os dados são preliminares e podem ser modificados. Não usar como fonte da verdade.</div>

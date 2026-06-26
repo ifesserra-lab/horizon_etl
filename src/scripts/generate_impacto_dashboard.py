@@ -26,7 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from src.scripts.didatica import bloco_metrica  # noqa: E402
+from src.scripts.didatica import bloco_metrica, MOBILE_CSS  # noqa: E402
 EXPORTS = ROOT / "data" / "exports" / "docentes"
 SRC_CIT = EXPORTS / "openalex_citacoes.json"
 SRC_RANK = EXPORTS / "ranking_impacto.json"
@@ -569,7 +569,7 @@ def render_html(data: dict) -> str:
 <title>Dashboard de Impacto — Docentes IFES Campus Serra</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>{CSS}</style></head>
+<style>{CSS}{MOBILE_CSS}</style></head>
 <body>
 <div id="exp-banner" style="background:#b5455f;color:#fff;padding:10px 16px;font-weight:600;font-size:13.5px;text-align:center;position:sticky;top:0;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.2);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;">⚠️ Estudo experimental em condução — os dados são preliminares e podem ser modificados. Não usar como fonte da verdade.</div>
 <div class="page">

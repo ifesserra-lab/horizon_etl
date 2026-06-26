@@ -37,6 +37,40 @@ _CENTRAL = ("background:linear-gradient(180deg,#0f7a40,#0a5c30);color:#fff;borde
             "padding:16px 18px;font-size:15.5px;line-height:1.5;")
 
 
+# CSS responsivo compartilhado (mobile-first): empilha grids/barras, contém tabelas,
+# escala SVG/imagens, reduz padding e tipografia em telas pequenas. Anexar ao <style> de
+# cada relatório: f"<style>{CSS}{MOBILE_CSS}</style>".
+MOBILE_CSS = """
+/* ---- mobile-first (responsivo, sem rolagem horizontal de página) ---- */
+*{max-width:100%;}
+img,svg{max-width:100%;height:auto;}
+.tbl-wrap,.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+@media (max-width:720px){
+  html,body{overflow-x:hidden;}
+  .page,.wrap{padding-left:14px!important;padding-right:14px!important;}
+  /* grids comuns -> 1 coluna */
+  .kpis,.grid2,.grid,.grid3,.refs,.lorenz-wrap,.quads,.compare,.af-chips,
+  .rz-stats,.rz-cards,.cards,.two-col{grid-template-columns:1fr!important;}
+  /* barras com grid fixo (label|trilho|valor) -> empilha */
+  .bar,.brow,.frow{grid-template-columns:1fr!important;gap:3px 0!important;}
+  .bar .val,.bar .bv,.brow .bv,.frow .fv{text-align:left!important;}
+  /* tabelas largas: rolam dentro do próprio bloco, não na página */
+  .section table,.card table,table{display:block;width:100%;overflow-x:auto;
+    -webkit-overflow-scrolling:touch;white-space:normal;}
+  .af-tbl{display:table!important;}              /* exceção: quadro de artigos já é fixo */
+  th,td{font-size:12.5px;padding:7px 8px;}
+  h1{font-size:24px!important;line-height:1.15;}
+  h2{font-size:20px!important;}
+  .hero{padding:34px 0 20px!important;}
+  .lede{font-size:15px!important;}
+  /* abas (ROI) */
+  .tabbar{gap:6px;} .tabbtn{padding:7px 12px;font-size:13px;}
+  /* blocos didáticos: recuo menor */
+  details [style*="padding-left:38px"]{padding-left:0!important;}
+}
+"""
+
+
 def _el(num, titulo, corpo, extra=""):
     return (f'<div style="margin-top:18px;"><div style="display:flex;gap:10px;align-items:center;'
             f'margin-bottom:5px;"><span style="{_IC}">{num}</span>'

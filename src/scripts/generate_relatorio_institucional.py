@@ -25,7 +25,7 @@ from src.scripts import generate_formandos_executive as EX
 from src.scripts import generate_ppcomp_egressos_report as PP
 from src.scripts import generate_ppcomp_base_report as PPB
 from src.scripts.generate_formandos_report import _match_key, normalize_name
-from src.scripts.didatica import bloco_didatico
+from src.scripts.didatica import bloco_didatico, MOBILE_CSS
 
 OUT_DIR = EX.OUT_DIR  # data/exports/formandos
 DEFAULT_OUT = OUT_DIR / "relatorio_institucional.html"
@@ -1052,7 +1052,7 @@ def build(grad_payload: dict, ppbase: dict, generated_at: str) -> str:
 <title>Pesquisa na Formação — Relatório Institucional — IFES Serra {period}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>{css}</style>
+<style>{css}{MOBILE_CSS}</style>
 </head><body>
 <div id="exp-banner" style="background:#b5455f;color:#fff;padding:10px 16px;font-weight:600;font-size:13.5px;text-align:center;position:sticky;top:0;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.2);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;">⚠️ Estudo experimental em condução — os dados são preliminares e podem ser modificados. Não usar como fonte da verdade.</div>
 <div class="page">

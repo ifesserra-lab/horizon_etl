@@ -30,7 +30,7 @@ import networkx as nx
 
 from src.scripts.generate_docentes_executive import ROSTER_IDS
 from src.scripts.analyze_venues import _docente_area
-from src.scripts.didatica import bloco_metrica
+from src.scripts.didatica import bloco_metrica, MOBILE_CSS
 
 BASE = Path(__file__).resolve().parents[2]
 LATTES_DIR = BASE / "data" / "lattes_json"
@@ -574,7 +574,7 @@ document.getElementById('spr').onclick=()=>applySpread(1.3);
 document.getElementById('cmp').onclick=()=>{if(spread/1.3>=0.4)applySpread(1/1.3);};
 document.getElementById('rst').onclick=()=>{spread=1;clearSel();};
 resize();
-</script></body></html>""".replace("__DATA__", data).replace("__EXPL__", _EXPL_REDE).replace("__PATTERNS__", _patterns_html(payload.get("patterns") or {}))
+</script></body></html>""".replace("</style>", MOBILE_CSS+"</style>", 1).replace("__DATA__", data).replace("__EXPL__", _EXPL_REDE).replace("__PATTERNS__", _patterns_html(payload.get("patterns") or {}))
 
 
 _EXPL_REDE = bloco_metrica({

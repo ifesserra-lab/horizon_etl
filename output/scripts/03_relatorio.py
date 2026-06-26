@@ -22,7 +22,7 @@ import markdown  # 3.x, com extensão 'tables'
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from src.scripts.didatica import bloco_metrica  # noqa: E402
+from src.scripts.didatica import bloco_metrica, MOBILE_CSS  # noqa: E402
 OUT = ROOT / "output"
 MD = OUT / "relatorio_roi_pesquisa.md"
 INTER = OUT / "roi_intermediate.json"
@@ -279,7 +279,7 @@ def main() -> None:
     page = f"""<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Relatório de ROI e Impacto da Pesquisa — IFES Campus Serra</title>
-<style>{CSS}</style></head><body>
+<style>{CSS}{MOBILE_CSS}</style></head><body>
 <div id="exp-banner" style="background:#b5455f;color:#fff;padding:10px 16px;font:600 14px/1.45 var(--font);text-align:center;position:sticky;top:0;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.2);">⚠️ Estudo experimental em condução — os dados são preliminares e podem ser modificados. Não usar como fonte da verdade.</div>
 <div class="page">
 <header class="hero"><span class="kick">IFES Campus Serra · Diretoria de Pesquisa</span>

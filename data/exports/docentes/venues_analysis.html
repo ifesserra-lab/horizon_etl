@@ -142,6 +142,34 @@ tbody tr:last-child td{border-bottom:none;}
   .hero{padding:14px 0 24px;}
   .callout{background:var(--brand-d) !important;}
 }
+
+/* ---- mobile-first (responsivo, sem rolagem horizontal de página) ---- */
+*{max-width:100%;}
+img,svg{max-width:100%;height:auto;}
+.tbl-wrap,.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+@media (max-width:720px){
+  html,body{overflow-x:hidden;}
+  .page,.wrap{padding-left:14px!important;padding-right:14px!important;}
+  /* grids comuns -> 1 coluna */
+  .kpis,.grid2,.grid,.grid3,.refs,.lorenz-wrap,.quads,.compare,.af-chips,
+  .rz-stats,.rz-cards,.cards,.two-col{grid-template-columns:1fr!important;}
+  /* barras com grid fixo (label|trilho|valor) -> empilha */
+  .bar,.brow,.frow{grid-template-columns:1fr!important;gap:3px 0!important;}
+  .bar .val,.bar .bv,.brow .bv,.frow .fv{text-align:left!important;}
+  /* tabelas largas: rolam dentro do próprio bloco, não na página */
+  .section table,.card table,table{display:block;width:100%;overflow-x:auto;
+    -webkit-overflow-scrolling:touch;white-space:normal;}
+  .af-tbl{display:table!important;}              /* exceção: quadro de artigos já é fixo */
+  th,td{font-size:12.5px;padding:7px 8px;}
+  h1{font-size:24px!important;line-height:1.15;}
+  h2{font-size:20px!important;}
+  .hero{padding:34px 0 20px!important;}
+  .lede{font-size:15px!important;}
+  /* abas (ROI) */
+  .tabbar{gap:6px;} .tabbtn{padding:7px 12px;font-size:13px;}
+  /* blocos didáticos: recuo menor */
+  details [style*="padding-left:38px"]{padding-left:0!important;}
+}
 </style></head><body>
 <div id="exp-banner" style="background:#b5455f;color:#fff;padding:10px 16px;font-weight:600;font-size:13.5px;text-align:center;position:sticky;top:0;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.2);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;">⚠️ Estudo experimental em condução — os dados são preliminares e podem ser modificados. Não usar como fonte da verdade.</div>
 <div class="page">
@@ -501,8 +529,18 @@ tbody tr:last-child td{border-bottom:none;}
         border-radius:10px;background:#fff;cursor:pointer;}
       .af-chk{font-size:13px;color:var(--muted,#71857a);display:inline-flex;gap:5px;align-items:center;cursor:pointer;}
       #af-count{font-size:13px;color:var(--muted,#71857a);margin-left:auto;font-weight:600;}
-      .af-wrap{padding:0;max-height:68vh;overflow:auto;}
-      .af-tbl{margin:0;border:none;border-radius:0;box-shadow:none;}
+      .af-wrap{padding:0;max-height:68vh;overflow-y:auto;overflow-x:hidden;}
+      /* fixo e 100% da largura — sem rolagem horizontal (vence a regra mobile do tema) */
+      .af-tbl{margin:0;border:none;border-radius:0;box-shadow:none;
+        display:table!important;width:100%!important;table-layout:fixed;}
+      .af-tbl th,.af-tbl td{white-space:normal;overflow-wrap:anywhere;word-break:break-word;
+        vertical-align:top;}
+      .af-tbl th:nth-child(1),.af-tbl td:nth-child(1){width:6%;}      /* Ano */
+      .af-tbl th:nth-child(2),.af-tbl td:nth-child(2){width:38%;}     /* Título */
+      .af-tbl th:nth-child(3),.af-tbl td:nth-child(3){width:22%;}     /* Revista */
+      .af-tbl th:nth-child(4),.af-tbl td:nth-child(4){width:8%;}      /* SJR */
+      .af-tbl th:nth-child(5),.af-tbl td:nth-child(5){width:8%;}      /* Qualis */
+      .af-tbl th:last-child,.af-tbl td:last-child{width:18%;}         /* Docente(s) */
       .af-tbl thead th{position:sticky;top:0;background:var(--brand-l,#e7f4ec);z-index:2;}
       .af-tbl tbody tr:nth-child(even){background:rgba(16,40,24,.022);}
       .af-tbl tbody tr:hover{background:var(--brand-l,#e7f4ec);}
@@ -660,7 +698,7 @@ tbody tr:last-child td{border-bottom:none;}
         <a href="https://coara.eu/" target="_blank" rel="noopener">CoARA</a>.
       </div>
     </section>
-  <div class="foot"><span>Gerado em 2026-06-26 17:47 · veículos: Lattes ·
+  <div class="foot"><span>Gerado em 2026-06-26 19:27 · veículos: Lattes ·
   impacto: SCImago Journal Rank (SJR), casado por ISSN · qualis: CAPES/CNPq, casado por ISSN</span></div>
 </div>
 <style>

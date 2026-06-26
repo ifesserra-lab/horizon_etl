@@ -42,7 +42,7 @@ from urllib.request import Request, urlopen
 
 BASE = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(BASE))
-from src.scripts.didatica import bloco_metrica  # noqa: E402
+from src.scripts.didatica import bloco_metrica, MOBILE_CSS  # noqa: E402
 LATTES_DIR = BASE / "data" / "lattes_json"
 REF_DIR = BASE / "data" / "reference"
 OUT_DIR = BASE / "data" / "exports" / "docentes"
@@ -834,8 +834,18 @@ _SRC_TEMPLATE = """
         border-radius:10px;background:#fff;cursor:pointer;}
       .af-chk{font-size:13px;color:var(--muted,#71857a);display:inline-flex;gap:5px;align-items:center;cursor:pointer;}
       #af-count{font-size:13px;color:var(--muted,#71857a);margin-left:auto;font-weight:600;}
-      .af-wrap{padding:0;max-height:68vh;overflow:auto;}
-      .af-tbl{margin:0;border:none;border-radius:0;box-shadow:none;}
+      .af-wrap{padding:0;max-height:68vh;overflow-y:auto;overflow-x:hidden;}
+      /* fixo e 100% da largura — sem rolagem horizontal (vence a regra mobile do tema) */
+      .af-tbl{margin:0;border:none;border-radius:0;box-shadow:none;
+        display:table!important;width:100%!important;table-layout:fixed;}
+      .af-tbl th,.af-tbl td{white-space:normal;overflow-wrap:anywhere;word-break:break-word;
+        vertical-align:top;}
+      .af-tbl th:nth-child(1),.af-tbl td:nth-child(1){width:6%;}      /* Ano */
+      .af-tbl th:nth-child(2),.af-tbl td:nth-child(2){width:38%;}     /* Título */
+      .af-tbl th:nth-child(3),.af-tbl td:nth-child(3){width:22%;}     /* Revista */
+      .af-tbl th:nth-child(4),.af-tbl td:nth-child(4){width:8%;}      /* SJR */
+      .af-tbl th:nth-child(5),.af-tbl td:nth-child(5){width:8%;}      /* Qualis */
+      .af-tbl th:last-child,.af-tbl td:last-child{width:18%;}         /* Docente(s) */
       .af-tbl thead th{position:sticky;top:0;background:var(--brand-l,#e7f4ec);z-index:2;}
       .af-tbl tbody tr:nth-child(even){background:rgba(16,40,24,.022);}
       .af-tbl tbody tr:hover{background:var(--brand-l,#e7f4ec);}
@@ -2052,7 +2062,7 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
 <title>Veículos de Publicação — IFES Campus Serra</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>{CSS}</style></head><body>
+<style>{CSS}{MOBILE_CSS}</style></head><body>
 <div id="exp-banner" style="background:#b5455f;color:#fff;padding:10px 16px;font-weight:600;font-size:13.5px;text-align:center;position:sticky;top:0;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.2);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;">⚠️ Estudo experimental em condução — os dados são preliminares e podem ser modificados. Não usar como fonte da verdade.</div>
 <div class="page">
   <div class="hero">

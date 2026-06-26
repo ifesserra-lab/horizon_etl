@@ -29,7 +29,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from src.scripts.generate_docentes_executive import ROSTER_IDS  # noqa: E402
-from src.scripts.didatica import bloco_metrica  # noqa: E402
+from src.scripts.didatica import bloco_metrica, MOBILE_CSS  # noqa: E402
 
 FAPES = ROOT / "data" / "exports" / "projetos-fapes" / "ifes-campus-serra-projetos-concluidos-em-andamento.json"
 FACTO = ROOT / "data" / "exports" / "projetos-facto" / "facto_projects_full.json"
@@ -440,7 +440,7 @@ def render(d: dict) -> str:
 <title>Captação de Projetos (FAPES + FACTO) — IFES Campus Serra</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>{CSS}</style></head><body>
+<style>{CSS}{MOBILE_CSS}</style></head><body>
 {banner}
 <div class="page">
 <header class="hero">
