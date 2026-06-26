@@ -271,6 +271,16 @@ def _brl(v: float) -> str:
     return f"R$ {v:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def _faixa(v: float) -> str:
+    """Faixa de valor (sem cifra exata) — usada em 'Orçamento por rubrica'."""
+    v = v or 0
+    for lim, rot in [(1e5, "≤ R$ 100 mil"), (5e5, "R$ 100–500 mil"), (1e6, "R$ 500 mil–1 mi"),
+                     (5e6, "R$ 1–5 mi"), (2e7, "R$ 5–20 mi"), (5e7, "R$ 20–50 mi")]:
+        if v <= lim:
+            return rot
+    return "> R$ 50 mi"
+
+
 def _line_chart(anos: list[int], vals: list[float], fmt, color: str,
                 grad_id: str, aria: str, sublabels: list[str] | None = None) -> str:
     """Gráfico de linha SVG inline genérico: X = ano, Y = valor (fmt)."""
@@ -675,7 +685,7 @@ def projetos_section(with_research: int | None = None) -> str:
         f'<div class="brow"><span class="bl">{k}</span>'
         f'<div class="btrack"><div class="bfill" style="width:{max(v/rmax*100,1.5):.1f}%;'
         f'background:{RCOL.get(k,"var(--muted)")};"></div></div>'
-        f'<span class="bv">{_brl(v)} · {round(v/rub_tot*100,1)}%</span></div>'
+        f'<span class="bv">{_faixa(v)} · {round(v/rub_tot*100,1)}%</span></div>'
         for k, v in sorted(rub.items(), key=lambda x: -x[1])
     )
     rub_series = [
@@ -684,7 +694,7 @@ def projetos_section(with_research: int | None = None) -> str:
         for k, _ in sorted(rub.items(), key=lambda x: -x[1])
     ]
     rub_chart = _multiline_chart(
-        anos, rub_series, _brl, "Valor por rubrica ao longo dos anos", uid="chart-rubrica-ano")
+        anos, rub_series, _faixa, "Valor por rubrica ao longo dos anos (faixas)", uid="chart-rubrica-ano")
 
     divider = _divider(
         "Parte 3 · Projetos",
