@@ -25,6 +25,7 @@ from src.scripts import generate_formandos_executive as EX
 from src.scripts import generate_ppcomp_egressos_report as PP
 from src.scripts import generate_ppcomp_base_report as PPB
 from src.scripts.generate_formandos_report import _match_key, normalize_name
+from src.scripts.didatica import bloco_didatico
 
 OUT_DIR = EX.OUT_DIR  # data/exports/formandos
 DEFAULT_OUT = OUT_DIR / "relatorio_institucional.html"
@@ -1061,63 +1062,6 @@ def build(grad_payload: dict, ppbase: dict, generated_at: str) -> str:
 </div></body></html>"""
 
 
-def bloco_didatico(d: dict) -> str:
-    """Bloco didático reutilizável (colapsável) no formato dos 10 elementos:
-    o que analisa · por que importa · o que mostram · como interpretar · cuidados ·
-    para pesquisadores/professores/estudantes · mensagem central · ações.
-    Diferencia evidência/hipótese/recomendação. Campos opcionais omitidos sem erro.
-
-    Chaves de `d`: titulo, analisa, importa, mostram, evidencia?, interpretar, atencao?,
-    cuidados(list), pesquisadores, recomendacao?, professores, hipotese?, estudantes,
-    central, acoes(list)."""
-    _ic = ('width:28px;height:28px;flex:0 0 28px;border-radius:8px;background:var(--brand-l);'
-           'color:var(--brand-d);display:grid;place-items:center;font-size:14px;font-weight:800;')
-    _box = ('border-radius:10px;padding:11px 14px;margin:10px 0;font-size:13.5px;'
-            'border-left:4px solid;line-height:1.5;')
-    _ev = f'{_box}background:var(--brand-l);border-color:var(--brand);color:#14361f;'
-    _hip = f'{_box}background:#fbf4df;border-color:var(--amber);color:#5e4a12;'
-    _rec = f'{_box}background:#eaf1f9;border-color:var(--blue);color:#1f4d7a;'
-    _tag = ('display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;'
-            'letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:5px;')
-
-    def el(num, titulo, corpo, extra=""):
-        return (f'<div style="margin-top:18px;"><div style="display:flex;gap:10px;align-items:center;'
-                f'margin-bottom:5px;"><span style="{_ic}">{num}</span>'
-                f'<span style="font-size:16px;font-weight:700;color:var(--ink,#16241a);">{titulo}</span>'
-                f'</div><div style="padding-left:38px;">{corpo}{extra}</div></div>')
-
-    def ul(items):
-        return ('<ul style="margin:4px 0 0 4px;padding-left:18px;">'
-                + "".join(f"<li>{x}</li>" for x in items) + "</ul>")
-
-    ev = f'<div style="{_ev}"><b>Evidência:</b> {d["evidencia"]}</div>' if d.get("evidencia") else ""
-    at = f'<div style="{_hip}"><b>Atenção — associação, não causa:</b> {d["atencao"]}</div>' if d.get("atencao") else ""
-    rec = f'<div style="{_rec}"><b>Recomendação:</b> {d["recomendacao"]}</div>' if d.get("recomendacao") else ""
-    hip = f'<div style="{_hip}"><b>Hipótese a confirmar:</b> {d["hipotese"]}</div>' if d.get("hipotese") else ""
-    central = ('<div style="background:linear-gradient(180deg,#0f7a40,#0a5c30);color:#fff;'
-               'border-radius:12px;padding:16px 18px;font-size:15.5px;line-height:1.5;">'
-               f'{d["central"]}</div>')
-    return f"""
-      <details style="background:var(--paper,#fff);border:1px solid var(--line,#e3ece5);
-        border-radius:12px;padding:4px 18px;margin:14px 0;box-shadow:0 1px 3px rgba(16,40,24,.05);">
-        <summary style="cursor:pointer;padding:12px 0;font-weight:700;font-size:15px;color:var(--brand-d,#0a5c30);">
-          📖 Entenda esta seção — {d["titulo"]}</summary>
-        <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted,#71857a);margin:2px 0 8px;">
-          <span style="{_tag}background:var(--brand-l);color:var(--brand-d);">Evidência</span> medido nos dados
-          <span style="{_tag}background:#fbf4df;color:#7a5b06;">Hipótese</span> plausível
-          <span style="{_tag}background:#eaf1f9;color:#1f4d7a;">Recomendação</span> ação sugerida
-        </div>
-        {el(1, "O que esta seção analisa", d["analisa"])}
-        {el(2, "Por que é importante", d["importa"])}
-        {el(3, "O que os dados mostram", d["mostram"], ev)}
-        {el(4, "Como interpretar", d["interpretar"], at)}
-        {el(5, "Cuidados de interpretação", ul(d["cuidados"]))}
-        {el(6, "Para pesquisadores", d["pesquisadores"], rec)}
-        {el(7, "Para professores", d["professores"], hip)}
-        {el(8, "Para estudantes", d["estudantes"])}
-        {el(9, "Mensagem central", central)}
-        {el(10, "Possíveis ações", ul(d["acoes"]))}
-      </details>"""
 
 
 def _funnel_svg(estagios: list[tuple], total: int) -> str:

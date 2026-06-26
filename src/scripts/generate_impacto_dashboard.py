@@ -19,11 +19,14 @@ Uso:
 from __future__ import annotations
 
 import json
+import sys
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+from src.scripts.didatica import bloco_metrica  # noqa: E402
 EXPORTS = ROOT / "data" / "exports" / "docentes"
 SRC_CIT = EXPORTS / "openalex_citacoes.json"
 SRC_RANK = EXPORTS / "ranking_impacto.json"
@@ -480,6 +483,81 @@ render();
 """
 
 
+EXPL_CONC = bloco_metrica({
+    "titulo": "Concentração (Gini / Lorenz)",
+    "o_que": "O quanto as citações se concentram em <b>poucos docentes</b>. A curva de Lorenz "
+             "afunda quanto mais concentrado; o Gini resume isso num número.",
+    "formula": "Gini: 0 = todos iguais · 1 = um docente concentra tudo",
+    "como_ler": "Gini alto = um <b>núcleo pequeno</b> gera a maior parte do impacto. É comum e "
+                "esperado em ciência (poucos trabalhos recebem muitas citações).",
+    "nao_concluir": [
+        "Não significa que \"poucos trabalham\" — concentração de <b>citações</b> é a norma "
+        "(lei de Price/Lotka), não medida de esforço.",
+        "Não ranquear pessoas pelo Gini; ele descreve o <b>conjunto</b>, não indivíduos.",
+    ],
+    "gestores": "Sinaliza <b>dependência de um núcleo</b>: vale difundir boas práticas, apoiar quem "
+                "está abaixo da mediana e planejar sucessão — risco e oportunidade de difusão.",
+})
+EXPL_TRAJ = bloco_metrica({
+    "titulo": "Ascensão e declínio (ΔFWCI)",
+    "o_que": "<b>Ascensão</b>: o artigo de cada docente que mais ganhou citações nos últimos 2 "
+             "anos. <b>Declínio</b>: ΔFWCI (impacto relativo recente − antigo) mais negativo.",
+    "como_ler": "Ascensão mostra o trabalho <b>\"quente\" agora</b>. ΔFWCI negativo indica que os "
+                "artigos recentes ainda renderam menos citações, <b>na comparação mundial</b>, que os antigos.",
+    "nao_concluir": [
+        "ΔFWCI negativo <b>NÃO</b> é \"parou de produzir\" nem trabalho ruim.",
+        "Causas benignas: citação leva <b>2–4 anos</b>; regressão à média após um paper excepcional; "
+        "mudança de linha/veículo.",
+    ],
+    "gestores": "Usar como <b>sinal de atenção e apoio</b>, não de mérito. Celebrar ascensões; "
+                "conversar (não cobrar) sobre quedas relativas recentes.",
+})
+EXPL_ELITE = bloco_metrica({
+    "titulo": "Produção de elite e eficiência",
+    "o_que": "<b>Elite</b>: nº de artigos no <b>top 10%</b> mundial de citações da área. "
+             "<b>Eficiência</b>: citações <b>fracionadas</b> por autoria (crédito atribuível).",
+    "formula": "top 10% = percentil ≥ 90 · crédito = Σ (citações ÷ nº de autores)",
+    "como_ler": "Top 10% = produção de <b>classe mundial</b>. O fracionado corrige a hipercoautoria "
+                "— mostra o impacto realmente <b>atribuível</b> ao docente.",
+    "nao_concluir": [
+        "Poucos artigos no top 10% <b>não</b> significam pesquisa fraca — áreas citam em ritmos "
+        "muito diferentes.",
+        "Não comparar áreas por <b>volume bruto</b>; usar sempre o percentil/normalização.",
+    ],
+    "gestores": "Reconhecer a produção de elite; usar o crédito fracionado para enxergar a "
+                "contribuição real além de listas longas de autores.",
+})
+EXPL_BENCH = bloco_metrica({
+    "titulo": "Benchmark por área e precocidade (FWCI, m-index)",
+    "o_que": "<b>FWCI mediano</b> por grande área (impacto normalizado por campo) e <b>m-index</b> "
+             "(h-index ÷ anos de carreira), que mede a <b>velocidade</b> de construção de impacto.",
+    "formula": "FWCI = citações observadas ÷ esperadas (campo·ano·tipo); 1,0 = média mundial · m = h ÷ anos",
+    "como_ler": "FWCI permite comparar <b>áreas diferentes de forma justa</b> (acima de 1,0 = acima "
+                "da média mundial). m alto = construiu impacto <b>cedo</b> (talento emergente).",
+    "nao_concluir": [
+        "FWCI baixo de uma área <b>não</b> é \"qualidade ruim\": amostra pequena e cobertura por DOI "
+        "(OpenAlex) afetam o número.",
+        "Não usar o m-index para comparar seniores com iniciantes como se fosse mérito absoluto.",
+    ],
+    "gestores": "Identificar <b>áreas e talentos emergentes</b> a apoiar; ler o FWCI por área junto "
+                "com o tamanho da amostra.",
+})
+EXPL_VEIC = bloco_metrica({
+    "titulo": "Qualidade de veículo (Q1/Q2 SJR · A1-A2 Qualis)",
+    "o_que": "% de artigos publicados em revistas do <b>quartil superior</b> (SJR/SCImago) e do "
+             "<b>estrato alto</b> (Qualis/CAPES). É métrica <b>do veículo</b>, não do artigo.",
+    "como_ler": "Mostra <b>onde</b> o campus publica. Q1/Q2 e A1-A2 indicam veículos de maior "
+                "prestígio — contexto, não o impacto do artigo em si.",
+    "nao_concluir": [
+        "Bom veículo <b>≠</b> artigo de alto impacto — a <b>DORA</b> desaconselha avaliar o artigo "
+        "pelo prestígio do periódico.",
+        "Cobertura por <b>ISSN</b> é parcial (periódicos nacionais sem indexação ficam de fora).",
+    ],
+    "gestores": "Orientar a escolha de veículos e ler <b>junto com o FWCI</b> (impacto real) — veículo "
+                "forte com FWCI baixo merece atenção, e vice-versa.",
+})
+
+
 def render_html(data: dict) -> str:
     payload = json.dumps(
         {"docentes": data["docentes"], "areas": data["areas"], "kpis": data["kpis"]},
@@ -492,7 +570,9 @@ def render_html(data: dict) -> str:
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>{CSS}</style></head>
-<body><div class="page">
+<body>
+<div id="exp-banner" style="background:#b5455f;color:#fff;padding:10px 16px;font-weight:600;font-size:13.5px;text-align:center;position:sticky;top:0;z-index:9999;box-shadow:0 2px 6px rgba(0,0,0,.2);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;">⚠️ Estudo experimental em condução — os dados são preliminares e podem ser modificados. Não usar como fonte da verdade.</div>
+<div class="page">
 
 <header class="hero">
   <span class="kicker">PRPPG / IFES · Diretoria de Pesquisa</span>
@@ -539,6 +619,8 @@ def render_html(data: dict) -> str:
   </div>
 </section>
 
+{EXPL_CONC}
+
 <section class="section">
   <div class="eyebrow">Trajetória</div>
   <h2>Ascensão e declínio</h2>
@@ -559,6 +641,8 @@ def render_html(data: dict) -> str:
   </div>
 </section>
 
+{EXPL_TRAJ}
+
 <section class="section">
   <div class="eyebrow">Excelência</div>
   <h2>Produção de elite e eficiência</h2>
@@ -569,6 +653,8 @@ def render_html(data: dict) -> str:
     <div class="card"><h3>⚡ Impacto por crédito de autoria</h3><div class="h-s">citações fracionadas (1/nº autores)</div><div id="c_frac"></div></div>
   </div>
 </section>
+
+{EXPL_ELITE}
 
 <section class="section">
   <div class="eyebrow">Comparação</div>
@@ -587,6 +673,8 @@ def render_html(data: dict) -> str:
   </div>
 </section>
 
+{EXPL_BENCH}
+
 <section class="section">
   <div class="eyebrow">Qualidade de veículo</div>
   <h2>Onde se publica — Q1/Q2 e A1-A2</h2>
@@ -598,6 +686,8 @@ def render_html(data: dict) -> str:
     <div class="card"><h3>⭐ % artigos em A1-A2 (Qualis)</h3><div class="h-s">estrato alto da classificação CAPES</div><div id="c_a1a2"></div></div>
   </div>
 </section>
+
+{EXPL_VEIC}
 
 <section class="section">
   <div class="eyebrow">Detalhe</div>
