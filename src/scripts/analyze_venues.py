@@ -793,39 +793,75 @@ _SRC_TEMPLATE = """
     <section class="section">
       <div class="eyebrow">Rastreabilidade</div>
       <h2>Artigos-fonte das métricas</h2>
-      <p class="desc">A base de tudo: cada <b>artigo de periódico</b> dos docentes (do Lattes),
-      com a classificação do veículo de onde saem as métricas — <b>SJR</b> (quartil SCImago) e
-      <b>Qualis</b> (estrato CAPES), casados por <b>ISSN</b>. São <b>__N__</b> artigos distintos;
-      <b>__N_SJR__</b> têm SJR e <b>__N_QUALIS__</b> têm Qualis. Filtre por título, revista ou docente;
-      clique no cabeçalho para ordenar. Títulos com DOI linkam para o artigo.</p>
-      <div style="margin-bottom:14px;">
-        <input id="af-q" type="search" placeholder="Filtrar por título, revista ou docente…"
-          style="width:100%;max-width:520px;padding:9px 13px;border:1px solid var(--line2,#cfddd3);
-          border-radius:10px;font:inherit;font-size:14px;">
-        <span id="af-count" style="margin-left:10px;font-size:13px;color:var(--muted,#71857a);"></span>
+      <p class="desc">A base de tudo: cada <b>artigo de periódico</b> dos docentes (Lattes), com a
+      classificação do veículo de onde saem as métricas — <b>SJR</b> (quartil SCImago) e
+      <b>Qualis</b> (estrato CAPES), casados por <b>ISSN</b>. Filtre por texto, quartil, estrato ou
+      DOI; clique no cabeçalho para ordenar. Títulos com DOI linkam para o artigo.</p>
+      <div class="af-chips">
+        <div class="af-chip"><b>__N__</b><span>artigos distintos</span></div>
+        <div class="af-chip b2"><b>__PSJR__%</b><span>com SJR</span></div>
+        <div class="af-chip b3"><b>__PQUALIS__%</b><span>com Qualis</span></div>
+        <div class="af-chip b4"><b>__PDOI__%</b><span>com DOI</span></div>
       </div>
-      <div class="card" style="padding:0;overflow:hidden;">
-      <table class="sortable">
+      <div class="af-controls">
+        <input id="af-q" type="search" placeholder="Filtrar por título, revista ou docente…">
+        <select id="af-sjr"><option value="">SJR: todos</option>__SJROPTS__</select>
+        <select id="af-qualis"><option value="">Qualis: todos</option>__QUALISOPTS__</select>
+        <label class="af-chk"><input type="checkbox" id="af-doi"> só com DOI</label>
+        <span id="af-count"></span>
+      </div>
+      <div class="card af-wrap">
+      <table class="sortable af-tbl">
         <thead><tr><th>Ano</th><th>Título</th><th>Revista</th><th>SJR</th>__QHEAD__<th>Docente(s)</th></tr></thead>
         <tbody id="af-body">__ROWS__</tbody>
       </table>
       </div>
     </section>
+    <style>
+      .af-chips{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+      .af-chip{flex:1;min-width:120px;background:var(--paper,#fff);border:1px solid var(--line,#e3ece5);
+        border-left:4px solid var(--brand,#0f7a40);border-radius:12px;padding:11px 16px;
+        box-shadow:0 1px 3px rgba(16,40,24,.05);}
+      .af-chip.b2{border-left-color:var(--blue,#2f6fb0);}
+      .af-chip.b3{border-left-color:var(--amber,#b8860b);}
+      .af-chip.b4{border-left-color:var(--rose,#b5455f);}
+      .af-chip b{display:block;font-size:22px;font-weight:800;color:var(--brand-d,#0a5c30);line-height:1;}
+      .af-chip span{font-size:11px;color:var(--muted,#71857a);text-transform:uppercase;letter-spacing:.04em;}
+      .af-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+      .af-controls input[type=search]{flex:1;min-width:220px;padding:9px 13px;
+        border:1px solid var(--line2,#cfddd3);border-radius:10px;font:inherit;font-size:14px;}
+      .af-controls select{font:inherit;font-size:13px;padding:9px 12px;border:1px solid var(--line2,#cfddd3);
+        border-radius:10px;background:#fff;cursor:pointer;}
+      .af-chk{font-size:13px;color:var(--muted,#71857a);display:inline-flex;gap:5px;align-items:center;cursor:pointer;}
+      #af-count{font-size:13px;color:var(--muted,#71857a);margin-left:auto;font-weight:600;}
+      .af-wrap{padding:0;max-height:68vh;overflow:auto;}
+      .af-tbl{margin:0;border:none;border-radius:0;box-shadow:none;}
+      .af-tbl thead th{position:sticky;top:0;background:var(--brand-l,#e7f4ec);z-index:2;}
+      .af-tbl tbody tr:nth-child(even){background:rgba(16,40,24,.022);}
+      .af-tbl tbody tr:hover{background:var(--brand-l,#e7f4ec);}
+      .af-doitag{display:inline-block;font-size:9.5px;font-weight:700;color:#0a5c30;background:#dff0e6;
+        border-radius:4px;padding:0 5px;margin-left:5px;vertical-align:middle;letter-spacing:.03em;}
+    </style>
     <script>
     (function(){
-      var q=document.getElementById('af-q'), body=document.getElementById('af-body'),
-          cnt=document.getElementById('af-count');
-      if(!q||!body) return;
+      var q=document.getElementById('af-q'),fsjr=document.getElementById('af-sjr'),
+          fqual=document.getElementById('af-qualis'),fdoi=document.getElementById('af-doi'),
+          body=document.getElementById('af-body'),cnt=document.getElementById('af-count');
+      if(!body) return;
       var rows=[].slice.call(body.querySelectorAll('tr'));
       function upd(){
-        var term=q.value.trim().toLowerCase(), vis=0;
+        var term=(q.value||'').trim().toLowerCase(),vs=fsjr.value,vq=fqual.value,vd=fdoi.checked,vis=0;
         rows.forEach(function(r){
-          var ok=!term||(r.getAttribute('data-f')||'').indexOf(term)>=0;
+          var ok=(!term||(r.getAttribute('data-f')||'').indexOf(term)>=0)
+            &&(!vs||r.getAttribute('data-sjr')===vs)
+            &&(!vq||r.getAttribute('data-qualis')===vq)
+            &&(!vd||r.getAttribute('data-doi')==='1');
           r.style.display=ok?'':'none'; if(ok) vis++;
         });
         cnt.textContent=vis+' de '+rows.length+' artigos';
       }
-      q.addEventListener('input',upd); upd();
+      [q,fsjr,fqual,fdoi].forEach(function(el){el.addEventListener('input',upd);el.addEventListener('change',upd);});
+      upd();
     })();
     </script>"""
 
@@ -1914,9 +1950,10 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
     # ---- Artigos-fonte das métricas (rastreabilidade) ----
     _e = lambda s: (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     af = payload.get("artigos_fonte", [])
-    n_af = len(af)
+    n_af = len(af) or 1
     n_af_sjr = sum(1 for a in af if a["sjr_quartil"] not in ("—", ""))
     n_af_qualis = sum(1 for a in af if a["qualis"] not in ("—", ""))
+    n_af_doi = 0
     af_rows = ""
     for a in af:
         t = a["titulo"] or "(sem título)"
@@ -1925,24 +1962,39 @@ def render_html(payload: dict, qualis_applied: bool, ranking: list | None = None
         # extrai um DOI real (10.xxxx/…) de campos sujos do Lattes (URLs Scopus etc.)
         _m = re.search(r"10\.\d{4,9}/[^\s\"'<>&?]+", a.get("doi") or "")
         doi = _m.group(0) if _m else ""
+        if doi:
+            n_af_doi += 1
         thtml = (f'<a href="https://doi.org/{_e(doi)}" target="_blank" rel="noopener">{t}</a>'
-                 if doi else t)
+                 f'<span class="af-doitag">DOI</span>' if doi else t)
         ds = a["docentes"]
         docs = _e(", ".join(f"{n.split()[0]} {n.split()[-1]}" for n in ds[:3]))
         if len(ds) > 3:
             docs += f" <span style='color:var(--muted)'>+{len(ds) - 3}</span>"
-        qcell = f"<td>{_qbadge(a['qualis'], _QUALIS_COLOR)}</td>" if qualis_applied else ""
+        sjrv = a["sjr_quartil"] or "—"
+        qv = a["qualis"] or "—"
+        qcell = f"<td>{_qbadge(qv, _QUALIS_COLOR)}</td>" if qualis_applied else ""
         ftext = _e(f"{a['titulo']} {a['revista']} {' '.join(ds)}").lower()
         af_rows += (
-            f'<tr data-f="{ftext}"><td data-v="{a["ano"] or 0}">{a["ano"] or "—"}</td>'
+            f'<tr data-f="{ftext}" data-sjr="{_e(sjrv)}" data-qualis="{_e(qv)}" '
+            f'data-doi="{1 if doi else 0}"><td data-v="{a["ano"] or 0}">{a["ano"] or "—"}</td>'
             f'<td>{thtml}</td><td>{_e((a["revista"] or "—")[:48])}</td>'
-            f'<td>{_qbadge(a["sjr_quartil"], _Q_COLOR)}</td>{qcell}'
+            f'<td>{_qbadge(sjrv, _Q_COLOR)}</td>{qcell}'
             f'<td>{docs}</td></tr>'
         )
     qhead = "<th>Qualis</th>" if qualis_applied else ""
-    sec_src = _SRC_TEMPLATE.replace("__N__", str(n_af)) \
-        .replace("__N_SJR__", str(n_af_sjr)).replace("__N_QUALIS__", str(n_af_qualis)) \
-        .replace("__QHEAD__", qhead).replace("__ROWS__", af_rows)
+    # opções dos filtros, na ordem natural (Q1→Q4 ; A1→C), só as presentes
+    _sjr_ord = ["Q1", "Q2", "Q3", "Q4", "—"]
+    _qual_ord = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4", "B5", "C", "—"]
+    _sjr_pres = {a["sjr_quartil"] or "—" for a in af}
+    _qual_pres = {a["qualis"] or "—" for a in af}
+    sjr_opts = "".join(f'<option value="{x}">SJR {x}</option>' for x in _sjr_ord if x in _sjr_pres)
+    qualis_opts = "".join(f'<option value="{x}">Qualis {x}</option>' for x in _qual_ord if x in _qual_pres)
+    sec_src = (_SRC_TEMPLATE.replace("__N__", str(len(af)))
+               .replace("__PSJR__", str(round(n_af_sjr / n_af * 100)))
+               .replace("__PQUALIS__", str(round(n_af_qualis / n_af * 100)))
+               .replace("__PDOI__", str(round(n_af_doi / n_af * 100)))
+               .replace("__SJROPTS__", sjr_opts).replace("__QUALISOPTS__", qualis_opts)
+               .replace("__QHEAD__", qhead).replace("__ROWS__", af_rows))
 
     sec_refs = f"""
     <section class="section">
