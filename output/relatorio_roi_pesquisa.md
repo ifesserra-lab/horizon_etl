@@ -1,7 +1,7 @@
 # Relatório de ROI e Impacto da Pesquisa
 ### IFES — Campus Serra · Diretoria de Pesquisa e Pós-Graduação
 
-> ## ⚠️ DADOS PRELIMINARES — NÃO É FONTE DA VERDADE
+> **⚠️ DADOS PRELIMINARES — NÃO É FONTE DA VERDADE**
 > Este relatório é um **exercício metodológico exploratório**, gerado automaticamente a partir
 > de fontes públicas/locais (Lattes, FAPES, FACTO, SigPesq, OpenAlex) que contêm **lacunas,
 > duplicidades, homônimos e autodeclarações não auditadas**. Os números são **estimativas

@@ -180,6 +180,15 @@ tr:last-child td{border-bottom:none;} tbody tr:hover{background:var(--bg);}
 hr{border:none;border-top:1px solid var(--line2);margin:30px 0;}
 .toc{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px 20px;
 margin:22px 0;font-size:14px;} .toc ul{margin:6px 0;padding-left:20px;} .toc a{text-decoration:none;}
+.tabbar{position:sticky;top:42px;z-index:50;display:flex;gap:8px;flex-wrap:wrap;
+background:var(--bg);padding:14px 0 10px;margin:6px 0 4px;border-bottom:1px solid var(--line2);}
+.tabbtn{font:inherit;font-size:14px;font-weight:600;padding:9px 18px;border:1px solid var(--line2);
+background:var(--paper);color:var(--ink2);border-radius:999px;cursor:pointer;transition:all .12s;}
+.tabbtn:hover{border-color:var(--brand);color:var(--brand-d);}
+.tabbtn.active{background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 2px 8px rgba(15,122,64,.25);}
+.tabpanel[hidden]{display:none;}
+.tabpanel>h2:first-child{border-top:none;padding-top:0;margin-top:18px;}
+@media(max-width:680px){.tabbar{top:54px;gap:6px;}.tabbtn{padding:7px 13px;font-size:13px;}}
 .arts .doc{background:var(--paper);border:1px solid var(--line);border-radius:10px;
 margin:8px 0;padding:4px 14px;} .arts summary{cursor:pointer;padding:8px 0;font-size:14px;}
 .arts summary .meta{color:var(--muted);font-size:12.5px;font-weight:400;}
@@ -191,20 +200,45 @@ ol.refs li,.refs li{font-size:13.5px;margin:7px 0;} .cit{color:var(--muted);font
 """
 
 
-def build_toc(html: str) -> str:
-    heads = re.findall(r'<h2 id="([^"]+)">(.*?)</h2>', html)
-    if not heads:
-        return ""
-    lis = "".join(f'<li><a href="#{hid}">{re.sub(r"<[^>]+>", "", txt)}</a></li>'
-                  for hid, txt in heads)
-    return f'<nav class="toc"><b>Sumário</b><ul>{lis}</ul></nav>'
+_TABS = [("geral", "Visão geral"), ("metodo", "Metodologia"), ("analise", "Análise"),
+         ("recom", "Recomendações"), ("anexos", "Anexos")]
+_TABMAP_NUM = {1: "geral", 5: "geral", 6: "geral",
+               2: "metodo", 3: "metodo", 4: "metodo",
+               7: "analise", 8: "analise", 9: "analise", 10: "analise",
+               11: "recom", 12: "recom", 13: "recom", 15: "recom", 14: "anexos"}
+_TABMAP_ID = {"explicadores": "anexos", "artigos-fonte": "anexos",
+              "referencias-estruturadas": "anexos"}
+
+
+def build_tabs(body: str):
+    """Divide o corpo (seções <h2>) em abas tipo dashboard. Retorna (preâmbulo, barra, painéis)."""
+    parts = re.split(r"(?=<h2\b)", body)
+    preamble = parts[0]
+    panels = {t: "" for t, _ in _TABS}
+    for sec in parts[1:]:
+        m = re.match(r'<h2 id="([^"]*)">(.*?)</h2>', sec, re.S)
+        hid = m.group(1) if m else ""
+        txt = re.sub(r"<[^>]+>", "", m.group(2)) if m else ""
+        num = re.match(r"\s*(\d+)", txt)
+        tab = (_TABMAP_NUM.get(int(num.group(1))) if num else None) or _TABMAP_ID.get(hid) or "anexos"
+        panels[tab] += sec
+    btns = "".join(
+        f'<button class="tabbtn{" active" if i == 0 else ""}" data-t="{t}">{label}</button>'
+        for i, (t, label) in enumerate(_TABS))
+    pans = "".join(
+        f'<div class="tabpanel" id="tab-{t}"{"" if i == 0 else " hidden"}>{panels[t]}</div>'
+        for i, (t, label) in enumerate(_TABS))
+    return preamble, f'<nav class="tabbar">{btns}</nav>', pans
 
 
 def main() -> None:
     md_text = MD.read_text(encoding="utf-8")
     md = markdown.Markdown(extensions=["tables", "fenced_code", "sane_lists", "toc"])
     body = md.convert(md_text)
+    # remove o H1 duplicado (o cabeçalho/hero já traz o título)
+    body = re.sub(r"^\s*<h1[^>]*>.*?</h1>", "", body, count=1, flags=re.S)
 
+    body += '<h2 id="explicadores">Como ler as métricas (interpretação)</h2>'
     body += bloco_metrica({
         "titulo": "Razões de produtividade (produção por R$)",
         "o_que": "Indicadores que dividem a produção (itens científicos, titulados, ativos "
@@ -240,7 +274,7 @@ def main() -> None:
     fonte = artigos_fonte()
     body += secao_artigos_html(fonte)
     body += referencias_html()
-    toc = build_toc(body)
+    preamble, tabbar, panels = build_tabs(body)
 
     page = f"""<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -250,9 +284,24 @@ def main() -> None:
 <div class="page">
 <header class="hero"><span class="kick">IFES Campus Serra · Diretoria de Pesquisa</span>
 <h1>Relatório de ROI e Impacto da Pesquisa</h1></header>
-{toc}
-{body}
-</div></body></html>"""
+{preamble}
+{tabbar}
+{panels}
+</div>
+<script>
+(function(){{
+  var btns=[].slice.call(document.querySelectorAll('.tabbtn'));
+  btns.forEach(function(b){{
+    b.addEventListener('click',function(){{
+      btns.forEach(function(x){{x.classList.toggle('active',x===b);}});
+      document.querySelectorAll('.tabpanel').forEach(function(p){{p.hidden=(p.id!=='tab-'+b.dataset.t);}});
+      var bar=document.querySelector('.tabbar');
+      window.scrollTo({{top:(bar?bar.offsetTop-70:0),behavior:'smooth'}});
+    }});
+  }});
+}})();
+</script>
+</body></html>"""
     HTML.write_text(page, encoding="utf-8")
 
     # ---- JSON do relatório ----
