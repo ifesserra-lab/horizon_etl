@@ -198,7 +198,7 @@ def analisar() -> dict:
 
     cits = [d["cit"] for d in com_oa]
     fwcis = sorted(d["fwci"] for d in com_oa if d["fwci"] > 0)
-    fwci_med = fwcis[len(fwcis) // 2] if fwcis else 0.0
+    fwci_med = _median(fwcis)   # mediana correta (média dos 2 centrais em lista par)
     kpis = {
         "n_docentes": len(docentes),
         "com_openalex": len(com_oa),
@@ -208,7 +208,7 @@ def analisar() -> dict:
         "top10_total": sum(d["top10"] for d in com_oa),
         "top1_total": sum(d["top1"] for d in com_oa),
         "gini_citacoes": gini(cits),
-        "h_mediano": sorted(d["h"] for d in com_oa)[len(com_oa) // 2] if com_oa else 0,
+        "h_mediano": _median([d["h"] for d in com_oa]),
     }
 
     return {
@@ -680,10 +680,12 @@ def render_html(data: dict) -> str:
   <h2>Onde se publica — Q1/Q2 e A1-A2</h2>
   <p class="desc">Métricas do <b>veículo</b> (não do artigo): <b>% Q1/Q2</b> = fração dos artigos em revistas no
   quartil superior do <b>SJR</b> (SCImago); <b>% A1-A2</b> = fração no estrato alto do <b>Qualis/CAPES</b>.
-  Independente do OpenAlex/DOI — vem da casagem por ISSN. Base ≥ 3 artigos classificados.</p>
+  Independente do OpenAlex/DOI — vem da casagem por ISSN. Base ≥ 3 artigos classificados.
+  ⚠️ <b>Bases distintas, não comparar diretamente os dois %:</b> Q1/Q2 é sobre os artigos com
+  <b>SJR</b> (Scopus); A1-A2 é sobre os artigos com <b>Qualis</b>.</p>
   <div class="grid2">
-    <div class="card"><h3>📘 % artigos em Q1/Q2 (SJR)</h3><div class="h-s">quartil superior do prestígio da revista</div><div id="c_q1q2"></div></div>
-    <div class="card"><h3>⭐ % artigos em A1-A2 (Qualis)</h3><div class="h-s">estrato alto da classificação CAPES</div><div id="c_a1a2"></div></div>
+    <div class="card"><h3>📘 % artigos em Q1/Q2 (SJR)</h3><div class="h-s">quartil superior do prestígio da revista · <b>base: artigos com SJR (Scopus)</b></div><div id="c_q1q2"></div></div>
+    <div class="card"><h3>⭐ % artigos em A1-A2 (Qualis)</h3><div class="h-s">estrato alto da classificação CAPES · <b>base: artigos com Qualis</b></div><div id="c_a1a2"></div></div>
   </div>
 </section>
 

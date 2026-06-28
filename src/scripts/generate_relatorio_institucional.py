@@ -68,6 +68,8 @@ def _facto_info(p: dict) -> dict:
 
 
 def _facto_brl(s) -> float:
+    if isinstance(s, (int, float)):   # já numérico: não aplicar parsing BR (evitaria inflar 100x)
+        return float(s)
     s = (str(s) or "").strip()
     if not s:
         return 0.0
@@ -1128,19 +1130,21 @@ def _funnel_svg(estagios: list[tuple], total: int) -> str:
                 f'fill="var(--ink)">{lbl}</text>'
                 f'<text x="{label_x+20:.1f}" y="{cy+15:.1f}" font-size="12.5" '
                 f'fill="var(--muted)">{v} egressos · {pct:.0f}% do total</text>')
-        # queda entre etapas — explicada na própria figura
+        # variação vs etapa anterior — só quando a etapa seguinte é MENOR (estreitamento);
+        # as etapas são medidas independentes sobre o total, não retenção estrita garantida.
         if idx + 1 < n:
             nxt = vals[idx + 1]
-            drop = round((1 - nxt / v) * 100) if v else 0
-            keep = 100 - drop
-            lost = v - nxt
-            ty = y + bh + gap / 2 + 3
-            out += (
-                f'<text x="{cx:.1f}" y="{ty:.1f}" text-anchor="middle" '
-                f'font-size="12" font-weight="700" fill="var(--rose)">↓ −{drop}%</text>'
-                f'<text x="{cx+top+14:.1f}" y="{ty-1:.1f}" font-size="10.5" '
-                f'fill="var(--muted)">{lost} não avançam · {nxt} seguem ({keep}%)</text>'
-            )
+            if v and nxt <= v:
+                drop = round((1 - nxt / v) * 100)
+                keep = 100 - drop
+                lost = v - nxt
+                ty = y + bh + gap / 2 + 3
+                out += (
+                    f'<text x="{cx:.1f}" y="{ty:.1f}" text-anchor="middle" '
+                    f'font-size="12" font-weight="700" fill="var(--rose)">↓ −{drop}%</text>'
+                    f'<text x="{cx+top+14:.1f}" y="{ty-1:.1f}" font-size="10.5" '
+                    f'fill="var(--muted)">{lost} a menos · {nxt} nesta etapa ({keep}% do anterior)</text>'
+                )
         y += bh + gap
 
     return (f'<div style="overflow-x:auto;"><svg viewBox="0 0 {W} {H}" '
@@ -1474,11 +1478,12 @@ def analises_section(s: dict, ppbase: dict) -> str:
       <h2>Funil de pesquisa</h2>
       <p class="desc">Quantos egressos avançam em cada etapa da trajetória de pesquisa.</p>
       <div class="card">{funil}
-        <div class="note-line">À direita, o <b>% sobre o total</b> de egressos. As setas
-        <b>↓ −X%</b> entre as bandas são a <b>queda em relação à etapa anterior</b> (e o texto ao
-        lado mostra quantos não avançam e quantos seguem). "Bolsa paga" = fomento financiado
-        registrado (bolsa paga no SigPesq <b>ou</b> bolsista FAPES); última etapa = egressos da
-        graduação que <b>ingressaram no mestrado PPComp</b> (base completa de discentes).</div>
+        <div class="note-line">À direita, o <b>% sobre o total</b> de egressos. Cada banda é uma
+        <b>medida independente sobre os 306 egressos</b> (não é retenção estrita): a seta
+        <b>↓ −X%</b> mostra o estreitamento vs a etapa anterior só quando há queda. "Bolsa paga"
+        = fomento registrado (SigPesq <b>ou</b> bolsista FAPES); a última etapa = egressos que
+        <b>ingressaram no mestrado PPComp</b> e <b>não é necessariamente subconjunto</b> das
+        anteriores (alguém pode ir ao mestrado sem IC/bolsa registrada).</div>
       </div>
     </section>
     {didatica}

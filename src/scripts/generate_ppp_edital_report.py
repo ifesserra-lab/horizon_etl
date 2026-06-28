@@ -690,9 +690,12 @@ def render_html(data: dict) -> str:
   <div class="eyebrow">Shortlist</div>
   <h2>Confirmados <span style="font-weight:400;color:var(--muted);font-size:18px">(<span id="cConf">·</span>) — passam pontuação <b>e</b> orientações</span></h2>
   <p class="desc">Atingem o piso bibliográfico <b>e</b> a quantidade mínima de orientações concluídas
-  da modalidade. Risco baixo — falta só confirmar vínculo a PPG (e colaboração internacional no PQ-1).</p>
+  da modalidade. Risco baixo — falta só confirmar vínculo a PPG (e colaboração internacional no PQ-1).
+  <br><b>Coluna “h” = h-index</b>: maior número <i>h</i> tal que o docente tem <i>h</i> artigos com
+  ≥ <i>h</i> citações cada — resume produção e impacto num só número (fonte: OpenAlex, por DOI;
+  tende a ser menor que no Google Scholar). É <b>contexto</b>, não critério do edital.</p>
   <table><thead><tr><th class="num">#</th><th>Docente / Área</th><th>Modalidade</th>
-    <th class="num">Piso pts</th><th class="num">Orient.</th><th>PPG stricto sensu</th><th class="num">h</th><th>Falta conferir</th>
+    <th class="num">Piso pts</th><th class="num">Orient.</th><th>PPG stricto sensu</th><th class="num" title="h-index (Hirsch, 2005): maior número h tal que o docente tem h artigos com pelo menos h citações cada. Resume produção e impacto num só número. Fonte: OpenAlex (citações por DOI do Lattes) — tende a ser menor que no Google Scholar.">h&nbsp;ⓘ</th><th>Falta conferir</th>
   </tr></thead><tbody id="tConf"></tbody></table>
 </section>
 
@@ -703,7 +706,7 @@ def render_html(data: dict) -> str:
   abaixo do mínimo <b>ou ausentes nos dados</b>. Muitos provavelmente qualificam após conferência do
   Lattes (orientações sem registro, projetos, produção sem DOI). Esta é a lista a investigar primeiro.</p>
   <table><thead><tr><th class="num">#</th><th>Docente / Área</th><th>Modalidade</th>
-    <th class="num">Piso pts</th><th class="num">Orient.</th><th>PPG stricto sensu</th><th class="num">h</th><th>Pendência</th>
+    <th class="num">Piso pts</th><th class="num">Orient.</th><th>PPG stricto sensu</th><th class="num" title="h-index (Hirsch, 2005): maior número h tal que o docente tem h artigos com pelo menos h citações cada. Resume produção e impacto num só número. Fonte: OpenAlex (citações por DOI do Lattes) — tende a ser menor que no Google Scholar.">h&nbsp;ⓘ</th><th>Pendência</th>
   </tr></thead><tbody id="tChance"></tbody></table>
 </section>
 

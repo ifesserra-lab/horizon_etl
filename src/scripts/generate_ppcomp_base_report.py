@@ -98,9 +98,12 @@ def compute() -> dict:
             ingresso_ano[a] += 1
             sit_ano[a][x.get("situacao")] += 1
 
-    # tempo até defesa (anos)
+    # tempo até defesa (anos) — SÓ quem efetivamente DEFENDEU (evita misturar
+    # trancados/cancelados cuja data_defesa é prazo/qualificação, não defesa)
     tempos = []
     for x in d:
+        if x.get("situacao") != "Defendido":
+            continue
         ai = _ano(x.get("coorte"))
         ad = _ano_defesa(x.get("data_defesa"))
         if ai and ad and 0 <= ad - ai <= 8:
