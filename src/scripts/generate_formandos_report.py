@@ -519,12 +519,15 @@ def compute_integrated(sup_formando_counts: dict[str, int],
                 for linha in linhas:
                     coord = linha.get("Coordenador")
                     valor += _br_money(linha.get("Valor aprovado"))
-            elif "Equipe" in fn:
+            elif "Equipe" in fn and isinstance(linhas, list):
                 equipe = linhas
         if _is_excluded_coord(coord):
             return (False, None, 0.0)
+        # FACTO grava "Nenhum registro encontrado." (string) quando não há equipe;
+        # filtra só linhas-dict para não quebrar em projetos sem equipe.
         link = (_xkey(coord) in serra_profs) or any(
-            _xkey(m.get("Nome")) in serra_profs for m in equipe
+            _xkey(m.get("Nome")) in serra_profs
+            for m in equipe if isinstance(m, dict)
         )
         return (link, coord, valor)
 

@@ -13,6 +13,8 @@ PYTHON_ENV := $(PREFECT_ENV) PYTHONPATH=.
 PYTHON := $(PYTHON_ENV) $(PYTHON_BIN)
 FLOW_ENV := HORIZON_QUIET_PREFECT=1 PREFECT_LOGGING_TO_API_ENABLED=false
 FLOW_PYTHON := $(FLOW_ENV) $(PYTHON)
+# Geradores de relatório: scripts puros (sem Prefect/Docker), só precisam do PYTHONPATH.
+REPORT_PYTHON := PYTHONPATH=. $(PYTHON_BIN)
 
 CAMPUS ?= Serra
 WEEKLY_CAMPUS ?=
@@ -165,6 +167,37 @@ export-students-collaboration-graph: prefect-server ## Export students collabora
 
 export-rg-membership-manifest: prefect-server ## Export research group membership graphs manifest JSON
 	@$(FLOW_PYTHON) app.py rg_membership_manifest "$(OUTPUT_DIR)"
+
+# --- Reports ---
+# Relatórios HTML/JSON gerados a partir de data/exports (canonical), data/lattes_json
+# e das fontes FACTO/FAPES/bolsistas. Não precisam de Prefect nem Docker.
+
+.PHONY: reports report-captacao report-ppcomp-base report-ppcomp-egressos \
+	report-formandos report-formandos-exec report-docentes-exec report-institucional
+
+report-captacao: ## Relatório de captação de projetos (FAPES + FACTO)
+	@$(REPORT_PYTHON) -m src.scripts.generate_captacao_report
+
+report-ppcomp-base: ## Relatório base analítico do mestrado PPCOMP
+	@$(REPORT_PYTHON) -m src.scripts.generate_ppcomp_base_report
+
+report-ppcomp-egressos: ## Relatório de egressos do mestrado PPCOMP
+	@$(REPORT_PYTHON) -m src.scripts.generate_ppcomp_egressos_report
+
+report-formandos: ## Relatório consolidado Formandos × Pesquisa (todos os semestres)
+	@$(REPORT_PYTHON) -m src.scripts.generate_formandos_report --all
+
+report-formandos-exec: report-formandos ## Relatório executivo de formandos (depende de report-formandos)
+	@$(REPORT_PYTHON) -m src.scripts.generate_formandos_executive
+
+report-docentes-exec: ## Relatório executivo de docentes
+	@$(REPORT_PYTHON) -m src.scripts.generate_docentes_executive
+
+report-institucional: report-ppcomp-base report-ppcomp-egressos report-formandos ## Relatório institucional (depende de ppcomp + formandos)
+	@$(REPORT_PYTHON) -m src.scripts.generate_relatorio_institucional
+
+reports: report-captacao report-ppcomp-base report-ppcomp-egressos report-formandos report-formandos-exec report-docentes-exec report-institucional ## Gera TODOS os relatórios (FACTO/Lattes) na ordem correta
+	@echo "Relatórios gerados em $(OUTPUT_DIR) (formandos/, mestrado/, docentes/)."
 
 # --- LGPD ---
 
