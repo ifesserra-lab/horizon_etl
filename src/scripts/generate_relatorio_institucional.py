@@ -130,11 +130,18 @@ def facto_section() -> str:
     fvals, fcoord, fdurs, fconc = [], defaultdict(float), [], 0
     fnat = defaultdict(lambda: [0, 0.0])
     fano_val: dict[int, float] = defaultdict(float)
+    f_orc_coord = 0.0      # captação atribuível: valor de projetos COORDENADOS por docente do campus
+    n_proj_coord = 0
     today = datetime.now().date()
     for p in serra:
         i = _facto_info(p)
         v = _facto_brl(i.get("Valor aprovado"))
         fvals.append(v)
+        # captação atribuível = só quando o COORDENADOR PRINCIPAL é docente do campus
+        # (co-coordenação na equipe NÃO conta — evita somar projetos de outras instituições)
+        if _match_key(i.get("Coordenador")) in profs:
+            f_orc_coord += v
+            n_proj_coord += 1
         fcoord[(i.get("Coordenador") or "").strip()] += v
         nat = _facto_natureza(i.get("Tipo de Projeto"))
         fnat[nat][0] += 1
@@ -163,11 +170,11 @@ def facto_section() -> str:
     n_prof_coord = sum(1 for v in prof_proj.values() if v["coord"])
 
     kpi_g = [
-        (str(n_serra), "projetos do campus", f"de {total_portal} no portal FACTO"),
-        (_brl(f_orc), "valor aprovado total", "projetos com prof. da Serra"),
-        (_brl(f_orc / n_serra) if n_serra else "—", "ticket médio", f"{sum(1 for v in fvals if v>0)} c/ valor"),
+        (str(n_serra), "projetos com participação", f"de {total_portal} no portal FACTO"),
+        (str(n_proj_coord), "coordenados pelo campus", "entram na captação do campus"),
+        (_brl(f_orc_coord), "captação como coordenador", "valor atribuível ao campus"),
+        (_brl(f_orc), "valor total (participação)", "⚠ inclui projetos coord. por outras instituições"),
         (str(n_prof), "professores do campus", f"{n_prof_coord} como coordenador"),
-        (str(f_ncoord), "coordenadores distintos", f"{n_serra/f_ncoord:.1f} proj. cada" if f_ncoord else "—"),
         (f"{f_dur/12:.1f} anos", "duração média", f"{f_dur:.0f} meses"),
         (f"{round(f_maior/f_orc*100)}%", "no maior projeto", "concentração de valor"),
         (f"{round(fconc/n_serra*100)}%" if n_serra else "—", "taxa de conclusão", f"{fconc} encerrados"),
@@ -230,7 +237,10 @@ def facto_section() -> str:
         "Projetos FACTO do campus Serra",
         f"Projetos geridos pela fundação FACTO/Conveniar com participação de professores do "
         f"campus Serra. {n_serra} dos {total_portal} projetos do portal envolvem ao menos um "
-        f"docente da Serra (coordenação ou equipe), somando {_brl(f_orc)}.",
+        f"docente da Serra (coordenação ou equipe). Destes, {n_proj_coord} são "
+        f"<b>coordenados pelo campus</b> ({_brl(f_orc_coord)} — a captação atribuível); o valor "
+        f"total dos {n_serra} ({_brl(f_orc)}) inclui projetos coordenados por outras instituições "
+        f"e <b>não</b> deve ser lido como captação do campus.",
     )
     body = f"""
     <section class="section">
