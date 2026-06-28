@@ -1691,6 +1691,11 @@ def compute(formandos: list[dict], adv_projects: list[dict],
         for _rS in _recsS:
             if _rS["sponsor"] and _rS["sponsor"] != "Voluntário":
                 name_sponsors[_nmS].add(_rS["sponsor"])
+    # bolsistas FAPES formados têm financiamento FAPES real (fora do SigPesq):
+    # marca "Fapes" como financiador no breakdown por grupo de cotas, alinhado
+    # ao fix de sponsor_counts/sponsor_investment.
+    for _bn in bolsista_formado_names:
+        name_sponsors[_bn].add(_FAPES_KEY)
     for f in formandos:
         desc = f.get("admissao")
         g = admission_group(desc)
@@ -1706,9 +1711,11 @@ def compute(formandos: list[dict], adv_projects: list[dict],
             adm_group_ic[g] += 1
         # fellowship type cross
         ftype = _person_fel_type.get(nk, "no_ic")
+        # bolsista FAPES formado = bolsa paga real, mesmo sem fellowship no SigPesq
+        is_fapes_bolsista = nk in bolsista_formado_names
         if not has_ic:
             adm_grp_noic[g] += 1
-        elif ftype == "paid":
+        elif ftype == "paid" or is_fapes_bolsista:
             adm_grp_paid[g] += 1
             for _sp in name_sponsors.get(nk, set()):
                 adm_grp_sponsor[g][_sp] += 1
