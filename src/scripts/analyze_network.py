@@ -574,7 +574,7 @@ document.getElementById('spr').onclick=()=>applySpread(1.3);
 document.getElementById('cmp').onclick=()=>{if(spread/1.3>=0.4)applySpread(1/1.3);};
 document.getElementById('rst').onclick=()=>{spread=1;clearSel();};
 resize();
-</script></body></html>""".replace("</style>", MOBILE_CSS+"</style>", 1).replace("__DATA__", data).replace("__EXPL__", _EXPL_REDE).replace("__PATTERNS__", _patterns_html(payload.get("patterns") or {}))
+</script></body></html>""".replace("</style>", MOBILE_CSS+"</style>", 1).replace("__DATA__", data).replace("__EXPL__", _EXPL_REDE + _EXPL_COMUNIDADES).replace("__PATTERNS__", _patterns_html(payload.get("patterns") or {}))
 
 
 _EXPL_REDE = bloco_metrica({
@@ -593,6 +593,34 @@ _EXPL_REDE = bloco_metrica({
     ],
     "gestores": "Identificar <b>grupos</b> e <b>pontes</b>; estimular colaboração entre comunidades "
                 "isoladas e dar visibilidade a quem conecta áreas.",
+})
+
+_EXPL_COMUNIDADES = bloco_metrica({
+    "titulo": "Comunidades (Louvain) e o papel de cada pesquisador",
+    "o_que": "Como os pesquisadores se <b>agrupam em comunidades</b> de coautoria e qual o "
+             "<b>papel</b> de cada um dentro e entre esses grupos. A cor de cada nó é a comunidade "
+             "a que ele pertence.",
+    "formula": "Louvain: maximiza a modularidade Q (ligações DENTRO da comunidade − esperado ao acaso)",
+    "como_ler": "<b>Por que detectar comunidades:</b> o algoritmo <b>Louvain</b> separa, sem hipótese "
+                "prévia, conjuntos de pesquisadores que <b>publicam mais entre si</b> do que com o "
+                "resto — revelam linhas/temas e grupos de fato, não os declarados. <br>"
+                "<b>Papel de cada um</b> (pelas métricas de centralidade do nó):<br>"
+                "• <b>Hub</b> — grau alto (muitos coautores): núcleo que sustenta a comunidade.<br>"
+                "• <b>Ponte</b> — <i>betweenness</i> alto: conecta comunidades diferentes; se sair, a "
+                "rede se fragmenta. São quem faz a colaboração interdisciplinar acontecer.<br>"
+                "• <b>Influente</b> — <i>PageRank</i> alto: conectado a quem também é bem conectado.<br>"
+                "• <b>Periférico</b> — grau baixo: na borda da comunidade (novatos ou pontuais).",
+    "nao_concluir": [
+        "Comunidade <b>≠</b> grupo de pesquisa oficial: é coautoria <b>observada</b> no Lattes, não o "
+        "cadastro de grupos.",
+        "Ser <b>ponte/hub não é mérito</b> nem ser periférico é demérito — descreve posição na rede, "
+        "que depende de carreira, área e tamanho da amostra.",
+        "Cruzamento por <b>nome</b> (homônimos) e sem <b>coautores externos</b>; a partição Louvain "
+        "tem aleatoriedade (pode variar a cada execução). Versão <b>preliminar</b>.",
+    ],
+    "gestores": "Usar os <b>papéis</b> para decidir: proteger/valorizar as <b>pontes</b> (conexão "
+                "interdisciplinar), apoiar <b>hubs</b> emergentes, e aproximar <b>comunidades "
+                "isoladas</b> e <b>periféricos</b> via projetos e editais conjuntos.",
 })
 
 
