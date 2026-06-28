@@ -940,6 +940,28 @@ def compute(formandos: list[dict], adv_projects: list[dict],
     for (s, f), pids in sf_persons.items():
         sponsor_fellowship_unique[s][f] = len(pids)
 
+    # ---- bolsa FAPES (fonte FAPES, fora do SigPesq) somada ao financiador "Fapes" ----
+    # Bolsistas FAPES formados têm fomento real que o SigPesq não registra (ver
+    # bolsistas_cross / research_bolsistas_only). Sem isto, sponsor_counts e
+    # sponsor_investment subcontam a FAPES — só leem fellowships do SigPesq.
+    # Dedup por pessoa: só adiciona quem ainda NÃO consta como Fapes via SigPesq,
+    # evitando dupla contagem da mesma bolsa.
+    _FAPES_KEY = "Fapes"
+    _fapes_val_by_canon: dict[str, float] = defaultdict(float)
+    for _bu in _bolsistas_unicos:
+        _cn = mk_to_name.get(_match_key(_bu.get("bolsista_pesquisador_nome")))
+        if _cn in bolsista_formado_names:
+            _fapes_val_by_canon[_cn] += _bu.get("valor_alocado_total", 0) or 0
+    _fapes_sigpesq_names = {
+        pid_to_name.get(pid) for pid in sponsor_persons.get(_FAPES_KEY, set())
+    }
+    _fapes_novos = set(_fapes_val_by_canon) - _fapes_sigpesq_names
+    if _fapes_novos:
+        sponsor_counts[_FAPES_KEY] = sponsor_counts.get(_FAPES_KEY, 0) + len(_fapes_novos)
+        sponsor_investment[_FAPES_KEY] += sum(
+            _fapes_val_by_canon[n] for n in _fapes_novos
+        )
+
     # ---- curso × sponsor ----
     curso_sponsor: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     curso_sponsor_sets: dict[str, dict[str, set]] = defaultdict(lambda: defaultdict(set))
@@ -4810,7 +4832,7 @@ def main() -> None:
     print(f"  {len(lattes['ic'])} IC records, {len(lattes['tcc'])} TCC records")
 
     bolsistas = load_bolsistas()
-    print(f"Loading bolsistas... {len(bolsistas)} bolsistas únicos")
+    print(f"Loading bolsistas... {len(bolsistas.get('bolsistas_unicos', []))} bolsistas únicos")
 
     print("Computing statistics...")
     stats = compute(formandos, adv_projects, rgs, lattes=lattes,
