@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import shutil
@@ -299,10 +300,12 @@ def prefetch_lattes_cache(
 @task
 def get_researchers_from_db() -> List[Dict]:
     from research_domain.controllers import ResearcherController
+    import zipfile
 
     ctrl = ResearcherController()
     researchers = ctrl.get_all()
 
+    seen_ids: set = set()
     result: List[Dict] = []
     for r in researchers:
         lattes_id = str(getattr(r, "brand_id", "") or "")
@@ -312,10 +315,27 @@ def get_researchers_from_db() -> List[Dict]:
             if match:
                 lattes_id = match.group(0)
 
-        if lattes_id and LATTES_ID_RE.fullmatch(lattes_id):
+        if lattes_id and LATTES_ID_RE.fullmatch(lattes_id) and lattes_id not in seen_ids:
+            seen_ids.add(lattes_id)
             result.append({"name": r.name, "lattes_id": lattes_id})
 
-    logger.info(f"Found {len(result)} researchers with valid Lattes IDs in database.")
+    if len(result) < 20:
+        export_path = "data/exports/exports_canonical.zip"
+        if os.path.exists(export_path):
+            try:
+                with zipfile.ZipFile(export_path) as z:
+                    with z.open("data/exports/researchers_canonical.json") as f:
+                        historical = json.load(f)
+                for r in historical:
+                    cnpq_url = str(r.get("cnpq_url") or "")
+                    match = LATTES_ID_RE.search(cnpq_url)
+                    if match and match.group(0) not in seen_ids:
+                        seen_ids.add(match.group(0))
+                        result.append({"name": r["name"], "lattes_id": match.group(0)})
+            except Exception as e:
+                logger.warning(f"Historical export fallback failed: {e}")
+
+    logger.info(f"Found {len(result)} researchers with valid Lattes IDs.")
     return result
 
 
@@ -359,15 +379,9 @@ def download_lattes_flow():
     output_dir = os.path.join(base_dir, "lattes_json")
     cache_dir = os.path.abspath("cache")
 
-    override_list_path = os.path.abspath("cache/lattes.list")
-
-    if os.path.exists(override_list_path):
-        logger.info(f"Using override list file: {override_list_path}")
-        list_path = override_list_path
-    else:
-        logger.info("Using DB researchers for list generation.")
-        researchers = get_researchers_from_db()
-        list_path = generate_list(researchers)
+    logger.info("Using DB researchers for list generation.")
+    researchers = get_researchers_from_db()
+    list_path = generate_list(researchers)
 
     lattes_ids = collect_lattes_ids_from_list(list_path)
     if not lattes_ids:
