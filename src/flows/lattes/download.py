@@ -1,9 +1,12 @@
 import json
+import multiprocessing
 import os
 import re
 import shutil
 import subprocess
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import sys
+import tempfile
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Callable, Dict, List
 
@@ -19,6 +22,11 @@ LATTES_PREFETCH_ENABLED_ENV = "HORIZON_LATTES_PREFETCH"
 LATTES_PREFETCH_WORKERS_ENV = "HORIZON_LATTES_DOWNLOAD_WORKERS"
 LATTES_FORCE_DOWNLOAD_ENV = "HORIZON_LATTES_FORCE_DOWNLOAD"
 LattesDownloader = Callable[[str, str], None]
+DEFAULT_SCRIPT_WORKERS = 3
+SCRIPT_WORKERS_ENV = "HORIZON_LATTES_SCRIPT_WORKERS"
+PROJECT_ROOT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 
 class ScriptLattesRuntimeError(RuntimeError):
@@ -90,6 +98,19 @@ def get_lattes_prefetch_workers() -> int:
     if workers < 1:
         raise ValueError(f"{LATTES_PREFETCH_WORKERS_ENV} must be >= 1")
 
+    return workers
+
+
+def get_script_workers() -> int:
+    value = os.environ.get(SCRIPT_WORKERS_ENV)
+    if not value:
+        return DEFAULT_SCRIPT_WORKERS
+    try:
+        workers = int(value)
+    except ValueError as exc:
+        raise ValueError(f"{SCRIPT_WORKERS_ENV} must be an integer") from exc
+    if workers < 1:
+        raise ValueError(f"{SCRIPT_WORKERS_ENV} must be >= 1")
     return workers
 
 
@@ -297,10 +318,43 @@ def prefetch_lattes_cache(
     return [lid for lid in missing_ids if lid not in failed_ids]
 
 
+def _split_list_file(list_path: str, n: int, cache_dir: str) -> List[str]:
+    lines = Path(list_path).read_text().splitlines()
+    if not lines:
+        return []
+    chunks = [[] for _ in range(n)]
+    for i, line in enumerate(lines):
+        chunks[i % n].append(line)
+    paths = []
+    for i, chunk in enumerate(chunks):
+        if not chunk:
+            continue
+        path = os.path.join(cache_dir, f"lattes_chunk_{i}.list")
+        Path(path).write_text("\n".join(chunk))
+        paths.append(path)
+    return paths
+
+
+def _generate_chunk_config(chunk_dir: str, list_path: str, cache_dir: str) -> str:
+    generator = LattesConfigGenerator()
+    config_path = os.path.join(chunk_dir, "lattes.config")
+    generator.generate(config_path, chunk_dir, list_path, cache_dir=cache_dir)
+    return config_path
+
+
+def _run_script_lattes_chunk(chunk_dir: str, list_path: str, cache_dir: str) -> None:
+    from scriptLattes.run import executar_scriptLattes
+
+    patch_script_lattes_runtime()
+    config_path = _generate_chunk_config(chunk_dir, list_path, cache_dir)
+    executar_scriptLattes(config_path, somente_json=True)
+
+
 @task
 def get_researchers_from_db() -> List[Dict]:
-    from research_domain.controllers import ResearcherController
     import zipfile
+
+    from research_domain.controllers import ResearcherController
 
     ctrl = ResearcherController()
     researchers = ctrl.get_all()
@@ -315,7 +369,11 @@ def get_researchers_from_db() -> List[Dict]:
             if match:
                 lattes_id = match.group(0)
 
-        if lattes_id and LATTES_ID_RE.fullmatch(lattes_id) and lattes_id not in seen_ids:
+        if (
+            lattes_id
+            and LATTES_ID_RE.fullmatch(lattes_id)
+            and lattes_id not in seen_ids
+        ):
             seen_ids.add(lattes_id)
             result.append({"name": r.name, "lattes_id": lattes_id})
 
@@ -427,8 +485,46 @@ def download_lattes_flow():
     else:
         logger.info(f"Lattes cache prefetch disabled by {LATTES_PREFETCH_ENABLED_ENV}.")
 
-    config_path = generate_config(output_dir, effective_list_path, cache_dir)
-    run_script_lattes_real(config_path)
+    n_workers = get_script_workers()
+
+    if n_workers > 1 and len(lattes_ids) > n_workers:
+        chunk_list_paths = _split_list_file(effective_list_path, n_workers, cache_dir)
+        chunk_dirs = [
+            tempfile.mkdtemp(prefix=f"lattes_chunk_{i}_")
+            for i in range(len(chunk_list_paths))
+        ]
+
+        try:
+            ctx = multiprocessing.get_context("spawn")
+            with ProcessPoolExecutor(
+                max_workers=len(chunk_dirs), mp_context=ctx
+            ) as executor:
+                futures = [
+                    executor.submit(
+                        _run_script_lattes_chunk,
+                        cd,
+                        lp,
+                        cache_dir,
+                    )
+                    for cd, lp in zip(chunk_dirs, chunk_list_paths)
+                ]
+                for f in as_completed(futures):
+                    f.result()
+
+            merged = 0
+            for chunk_dir in chunk_dirs:
+                for json_file in Path(chunk_dir).glob("*.json"):
+                    shutil.copy2(str(json_file), output_dir)
+                    merged += 1
+            logger.info(
+                f"Merged {merged} JSON files from {len(chunk_dirs)} parallel chunks."
+            )
+        finally:
+            for chunk_dir in chunk_dirs:
+                shutil.rmtree(chunk_dir, ignore_errors=True)
+    else:
+        config_path = generate_config(output_dir, effective_list_path, cache_dir)
+        run_script_lattes_real(config_path)
 
 
 if __name__ == "__main__":
