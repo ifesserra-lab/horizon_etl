@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Callable, Dict, List
@@ -185,6 +186,202 @@ def validate_script_lattes_runtime(
     return "playwright-chromium"
 
 
+LATTES_RECAPTCHA_SITE_KEY = "6Le8-aQUAAAAAEh7lq-D8bscahYZDZ4RKXBEhiov"
+STEALTH_INIT_SCRIPT = """
+Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+Object.defineProperty(navigator, 'languages', { get: () => ['pt-BR', 'pt', 'en-US', 'en'] });
+Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
+window.chrome = { runtime: {} };
+"""
+
+
+def _patch_script_lattes_browser() -> None:
+    import scriptLattes.baixaLattes as baixa_lattes
+
+    original = baixa_lattes.LattesRobot.create_browser
+    if getattr(original, "_horizon_browser_patched", False):
+        return
+
+    patch_logger = logger.bind(patch="create_browser")
+
+    def patched_create_browser(self):
+        if baixa_lattes.sync_playwright is None:
+            raise ImportError("Playwright is not installed.")
+        self.playwright = baixa_lattes.sync_playwright().start()
+        self.browser = self.playwright.chromium.launch(
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+                "--disable-blink-features=AutomationControlled",
+            ],
+        )
+        user_agent = (
+            "Mozilla/5.0 (X11; Linux x86_64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/126.0.0.0 Safari/537.36"
+        )
+        self.context = self.browser.new_context(
+            viewport={"width": 1920, "height": 1080},
+            java_script_enabled=True,
+            user_agent=user_agent,
+        )
+        self.page = self.context.new_page()
+        self.page.add_init_script(STEALTH_INIT_SCRIPT)
+        patch_logger.debug("Browser created with stealth patches")
+
+    patched_create_browser._horizon_browser_patched = True
+    baixa_lattes.LattesRobot.create_browser = patched_create_browser
+
+    original_get_lids = baixa_lattes.LattesRobot._get_lids_10_16
+    if not getattr(original_get_lids, "_horizon_get_lids_patched", False):
+
+        def patched_get_lids_10_16(self, lid):
+            lids = {10: "", 16: ""}
+            if len(lid) == 10:
+                lids[10] = lid
+            if len(lid) == 16:
+                lids[16] = lid
+                self.page.goto(
+                    baixa_lattes.URL_LATTES_ID16.format(lid),
+                    wait_until="domcontentloaded",
+                )
+                current_url = self.page.url
+                parsed = baixa_lattes.urllib.parse.urlparse(current_url)
+                query_params = baixa_lattes.urllib.parse.parse_qs(parsed.query)
+                if "id" in query_params:
+                    lid10 = query_params["id"][0]
+                    if len(lid10) == 10:
+                        lids[10] = lid10
+            return lids
+
+        patched_get_lids_10_16._horizon_get_lids_patched = True
+        baixa_lattes.LattesRobot._get_lids_10_16 = patched_get_lids_10_16
+
+
+def _wait_grecaptcha_ready(page, timeout: float = 20.0) -> bool:
+    """Wait for grecaptcha.execute to become available (async defer loaded)."""
+    import time as _time
+
+    deadline = _time.monotonic() + timeout
+    while _time.monotonic() < deadline:
+        ready = page.evaluate(
+            "typeof grecaptcha !== 'undefined' && typeof grecaptcha.execute === 'function'"
+        )
+        if ready:
+            return True
+        page.wait_for_timeout(1000)
+    return False
+
+
+def _exec_grecaptcha_v3(page, site_key: str) -> str:
+    """Execute reCAPTCHA v3 and return the token string."""
+    return page.evaluate(
+        """
+        async (key) => {
+            try {
+                const t = await grecaptcha.execute(key, {action: 'id_form_previw'});
+                return typeof t === 'string' ? t : '';
+            } catch(e) {
+                return '';
+            }
+        }
+    """,
+        site_key,
+    )
+
+
+def _patch_script_lattes_execute_js() -> None:
+    import scriptLattes.baixaLattes as baixa_lattes
+
+    original = baixa_lattes.LattesRobot._execute_js
+    if getattr(original, "_horizon_exec_patched", False):
+        return
+
+    URL_LATTES_ID10 = baixa_lattes.URL_LATTES_ID10
+    exec_logger = logger.bind(patch="_execute_js")
+
+    def patched_execute_js(self, lids):
+        if not lids[10]:
+            return
+
+        lids_id = lids[10]
+        exec_logger.debug(f"Navigating to preview page for ID {lids_id}")
+        self.page.goto(baixa_lattes.URL.format(lids_id), wait_until="domcontentloaded")
+        self.page.wait_for_timeout(200)
+        self.page.set_default_timeout(30000)
+
+        has_recaptcha = self.page.evaluate(
+            "typeof grecaptcha !== 'undefined' && typeof grecaptcha.execute === 'function'"
+        )
+        page_content = self.page.content()
+        grecaptcha_in_html = "grecaptcha" in page_content
+
+        if has_recaptcha or grecaptcha_in_html:
+            if not has_recaptcha:
+                exec_logger.info("grecaptcha in HTML but not loaded yet, waiting...")
+                if not _wait_grecaptcha_ready(self.page):
+                    exec_logger.error(
+                        f"grecaptcha did not load for {lids_id}, skipping"
+                    )
+                    return
+
+            exec_logger.info(f"New Lattes format (reCAPTCHA v3) for ID {lids_id}")
+            try:
+                token = _exec_grecaptcha_v3(self.page, LATTES_RECAPTCHA_SITE_KEY)
+                if not token:
+                    exec_logger.warning("Empty token on first attempt, retrying...")
+                    self.page.wait_for_timeout(500)
+                    token = _exec_grecaptcha_v3(self.page, LATTES_RECAPTCHA_SITE_KEY)
+            except Exception as exc:
+                exec_logger.warning(f"reCAPTCHA execution failed for {lids_id}: {exc}")
+                token = ""
+
+            if not token:
+                exec_logger.error(
+                    f"Could not obtain reCAPTCHA token for {lids_id}, skipping"
+                )
+                return
+
+            exec_logger.debug(f"reCAPTCHA token obtained ({len(token)} chars)")
+            cv_url = (
+                URL_LATTES_ID10.format(lids_id)
+                + "&idiomaExibicao=1&tokenCaptchar="
+                + token
+            )
+            self.page.goto(cv_url, wait_until="domcontentloaded")
+            self.page.wait_for_timeout(500)
+        else:
+            exec_logger.debug(f"Old Lattes format (abreCV) for ID {lids_id}")
+            cmd_open_cv = "abreCV()"
+            self.page.evaluate(cmd_open_cv)
+
+            for delay in [1, 1, 2, 2, 2]:
+                self.page.wait_for_timeout(delay * 1000)
+                pages = self.context.pages
+                if len(pages) > 1:
+                    self.page = pages[-1]
+                    self.page.wait_for_load_state("networkidle")
+                    break
+
+        if not lids[16]:
+            page_content = self.page.content()
+            lids[16] = self._extract_lid16(page_content)
+            if self.lid_type == 16 and len(lids[16]) != 16:
+                exec_logger.warning(
+                    f"Could not extract 16-digit ID for {lids_id}, skipping"
+                )
+                return
+
+        self.store_html(lids[self.lid_type], self.page.content())
+        exec_logger.info(f"Stored HTML for ID {lids_id}")
+
+    patched_execute_js._horizon_exec_patched = True
+    baixa_lattes.LattesRobot._execute_js = patched_execute_js
+
+
 def patch_script_lattes_runtime(chrome_binary: str | None = None) -> None:
     try:
         import scriptLattes.baixaLattes as baixa_lattes
@@ -193,6 +390,9 @@ def patch_script_lattes_runtime(chrome_binary: str | None = None) -> None:
 
     if getattr(baixa_lattes, "_horizon_runtime_patched", False):
         return
+
+    _patch_script_lattes_browser()
+    _patch_script_lattes_execute_js()
 
     def get_data(id_lattes, diretorio):
         rob = baixa_lattes.LattesRobot(results_dir=diretorio)
@@ -220,6 +420,109 @@ def _script_lattes_downloader(lattes_id: str, cache_dir: str) -> None:
     import scriptLattes.baixaLattes as baixa_lattes
 
     baixa_lattes.baixaCVLattes(lattes_id, cache_dir)
+
+
+def _is_rate_limited(path: Path) -> bool:
+    """Check if a cached file is a rate-limit response (429)."""
+    if not path.exists():
+        return True
+    if path.stat().st_size < 2000:
+        with open(path) as f:
+            content = f.read(200)
+        if "429 Too Many Requests" in content:
+            return True
+    return False
+
+
+def _batch_script_lattes_downloader(
+    lattes_ids: List[str],
+    cache_dir: str,
+    max_retries: int = 3,
+) -> List[str]:
+    """Download multiple Lattes CVs in a single browser session.
+
+    Avoids the ~2s browser creation/destruction overhead per ID.
+    Retries rate-limited IDs with exponential backoff.
+    Returns the list of IDs that were successfully downloaded.
+    """
+    import scriptLattes.baixaLattes as baixa_lattes
+
+    batch_logger = logger.bind(batch="batch_download")
+    rate_limit_backoff = 1.0
+
+    # Phase 1: initial bulk download
+    rob = baixa_lattes.LattesRobot(results_dir=cache_dir)
+    for lid in lattes_ids:
+        rob.load_codes(lid)
+    rob.check_downloaded_cvs()
+
+    try:
+        rob.create_browser()
+        rob.collect_html_cvs(0, None)
+    finally:
+        if getattr(rob, "browser", None):
+            rob.browser.close()
+        if getattr(rob, "playwright", None):
+            rob.playwright.stop()
+
+    # Phase 2: retry rate-limited IDs
+    retry_ids = [lid for lid in lattes_ids if _is_rate_limited(Path(cache_dir) / lid)]
+
+    for attempt in range(max_retries):
+        if not retry_ids:
+            break
+
+        wait = rate_limit_backoff * (2**attempt)
+        batch_logger.warning(
+            f"Rate-limited {len(retry_ids)} IDs, "
+            f"retrying in {wait:.0f}s (attempt {attempt + 1}/{max_retries})"
+        )
+        time.sleep(wait)
+
+        # Remove stale 429 files so check_downloaded_cvs won't skip them
+        for lid in retry_ids:
+            cached_file = Path(cache_dir) / lid
+            if cached_file.exists():
+                cached_file.unlink()
+
+        rob = baixa_lattes.LattesRobot(results_dir=cache_dir)
+        for lid in retry_ids:
+            rob.load_codes(lid)
+        rob.check_downloaded_cvs()
+
+        try:
+            rob.create_browser()
+            rob.collect_html_cvs(0, None)
+        finally:
+            if getattr(rob, "browser", None):
+                rob.browser.close()
+            if getattr(rob, "playwright", None):
+                rob.playwright.stop()
+
+        still_limited = [
+            lid for lid in retry_ids if _is_rate_limited(Path(cache_dir) / lid)
+        ]
+        if len(still_limited) >= len(retry_ids) * 0.5:
+            rate_limit_backoff *= 2
+        retry_ids = still_limited
+
+    if retry_ids:
+        batch_logger.warning(
+            f"Giving up on {len(retry_ids)} rate-limited IDs after "
+            f"{max_retries} retries"
+        )
+
+    # Phase 3: collect results
+    successful = []
+    for lid in lattes_ids:
+        cached_file = Path(cache_dir) / lid
+        if cached_file.exists() and not _is_rate_limited(cached_file):
+            successful.append(lid)
+            batch_logger.debug(
+                f"Downloaded {lid} ({cached_file.stat().st_size:,} bytes)"
+            )
+
+    return successful
 
 
 def _download_lattes_to_cache(
@@ -260,14 +563,15 @@ def prefetch_lattes_cache(
         logger.info(f"All {len(seen_ids)} Lattes curricula are already cached.")
         return []
 
+    patch_script_lattes_runtime()
+
     if downloader is None:
-        patch_script_lattes_runtime()
-        downloader = _script_lattes_downloader
+        return _batch_prefetch(missing_ids, str(cache_path), max_workers)
 
     worker_count = min(max_workers, len(missing_ids))
     logger.info(
         f"Prefetching {len(missing_ids)} missing Lattes curricula into "
-        f"{cache_dir} with {worker_count} worker(s)."
+        f"{cache_dir} with {worker_count} worker(s) (legacy per-ID mode)."
     )
 
     if worker_count == 1:
@@ -310,6 +614,59 @@ def prefetch_lattes_cache(
         )
 
     return [lid for lid in missing_ids if lid not in failed_ids]
+
+
+def _batch_prefetch(
+    missing_ids: List[str], cache_dir: str, max_workers: int
+) -> List[str]:
+    """Download all missing IDs using batch mode (one browser per worker chunk)."""
+    n_workers = min(max_workers, len(missing_ids))
+    all_successful = []
+    all_failed = []
+
+    logger.info(
+        f"Batch-prefetching {len(missing_ids)} curricula into "
+        f"{cache_dir} with {n_workers} browser(s)."
+    )
+
+    if n_workers <= 1:
+        successful = _batch_script_lattes_downloader(missing_ids, cache_dir)
+        if len(successful) != len(missing_ids):
+            all_failed = [lid for lid in missing_ids if lid not in successful]
+            logger.warning(
+                f"Skipped {len(all_failed)} curricula due to download errors: {all_failed}"
+            )
+        return successful
+
+    chunks = []
+    chunk_size = (len(missing_ids) + n_workers - 1) // n_workers
+    for i in range(0, len(missing_ids), chunk_size):
+        chunks.append(missing_ids[i : i + chunk_size])
+
+    with ThreadPoolExecutor(max_workers=n_workers) as executor:
+        futures = {
+            executor.submit(_batch_script_lattes_downloader, chunk, cache_dir): i
+            for i, chunk in enumerate(chunks)
+        }
+        for future in as_completed(futures):
+            chunk_idx = futures[future]
+            try:
+                successful = future.result()
+                all_successful.extend(successful)
+                chunk_failed = [
+                    lid for lid in chunks[chunk_idx] if lid not in successful
+                ]
+                all_failed.extend(chunk_failed)
+            except Exception as exc:
+                logger.warning(f"Batch chunk {chunk_idx} failed: {exc}")
+                all_failed.extend(chunks[chunk_idx])
+
+    if all_failed:
+        logger.warning(
+            f"Skipped {len(all_failed)} curricula due to download errors: {all_failed}"
+        )
+
+    return [lid for lid in missing_ids if lid not in all_failed]
 
 
 @task
