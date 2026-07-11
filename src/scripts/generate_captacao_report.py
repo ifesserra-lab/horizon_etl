@@ -28,30 +28,48 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
+from src.scripts.didatica import MOBILE_CSS, bloco_metrica  # noqa: E402
 from src.scripts.generate_docentes_executive import ROSTER_IDS  # noqa: E402
-from src.scripts.didatica import bloco_metrica, MOBILE_CSS  # noqa: E402
 
-FAPES = ROOT / "data" / "exports" / "projetos-fapes" / "ifes-campus-serra-projetos-concluidos-em-andamento.json"
+FAPES = (
+    ROOT
+    / "data"
+    / "exports"
+    / "projetos-fapes"
+    / "ifes-campus-serra-projetos-concluidos-em-andamento.json"
+)
 FACTO = ROOT / "data" / "exports" / "projetos-facto" / "facto_projects_full.json"
 BOLSAS = ROOT / "data" / "exports" / "bolsistas" / "ifes-campus-serra-bolsistas.json"
 OUT = ROOT / "data" / "exports" / "docentes" / "captacao_projetos.html"
 
-FACTO_TIPOS_PESQUISA = {"Pesquisa, Desenvolvimento e Inovação", "Pesquisa", "Inovação",
-                        "Pesquisa e Extensão", "Pesquisa e Ensino", "Pesquisa, Ensino e Extensão"}
+FACTO_TIPOS_PESQUISA = {
+    "Pesquisa, Desenvolvimento e Inovação",
+    "Pesquisa",
+    "Inovação",
+    "Pesquisa e Extensão",
+    "Pesquisa e Ensino",
+    "Pesquisa, Ensino e Extensão",
+}
 
 
 def norm(s: str) -> str:
-    return " ".join(unicodedata.normalize("NFKD", s or "").encode("ascii", "ignore").decode().lower().split())
+    return " ".join(
+        unicodedata.normalize("NFKD", s or "")
+        .encode("ascii", "ignore")
+        .decode()
+        .lower()
+        .split()
+    )
 
 
-def _num(v) -> float:          # FAPES: campo numérico (float)
+def _num(v) -> float:  # FAPES: campo numérico (float)
     try:
         return float(v)
     except (TypeError, ValueError):
         return 0.0
 
 
-def _br(v) -> float:           # FACTO: número no formato BR ("1.256.355,65")
+def _br(v) -> float:  # FACTO: número no formato BR ("1.256.355,65")
     v = str(v or "").strip().replace(".", "").replace(",", ".")
     try:
         return float(v)
@@ -59,8 +77,14 @@ def _br(v) -> float:           # FACTO: número no formato BR ("1.256.355,65")
         return 0.0
 
 
-_FAIXAS = [(1e5, "≤ R$ 100 mil"), (5e5, "R$ 100–500 mil"), (1e6, "R$ 500 mil–1 mi"),
-           (5e6, "R$ 1–5 mi"), (2e7, "R$ 5–20 mi"), (5e7, "R$ 20–50 mi")]
+_FAIXAS = [
+    (1e5, "≤ R$ 100 mil"),
+    (5e5, "R$ 100–500 mil"),
+    (1e6, "R$ 500 mil–1 mi"),
+    (5e6, "R$ 1–5 mi"),
+    (2e7, "R$ 5–20 mi"),
+    (5e7, "R$ 20–50 mi"),
+]
 
 
 def faixa(v) -> str:
@@ -86,7 +110,11 @@ def ordem(v) -> str:
         return "menos de R$ 1 mi"
     e = 10 ** (len(str(int(mi))) - 1)
     r = int(round(mi / e) * e)
-    q = "centenas de milhões" if mi >= 100 else ("dezenas de milhões" if mi >= 10 else "milhões")
+    q = (
+        "centenas de milhões"
+        if mi >= 100
+        else ("dezenas de milhões" if mi >= 10 else "milhões")
+    )
     return f"~R$ {r} mi ({q})"
 
 
@@ -118,7 +146,7 @@ def carregar() -> dict:
             if c:
                 fap_coord[c]["n"] += 1
                 fap_coord[c]["v"] += v
-            for rb in (x.get("rubricas") or []):
+            for rb in x.get("rubricas") or []:
                 nm = (rb.get("rubrica") or rb.get("descricao_categoria") or "—").strip()
                 fap_rub[nm] += _num(rb.get("valor"))
     # --- BOLSAS (SigPesq) por ano de início ---
@@ -181,11 +209,20 @@ def carregar() -> dict:
             fct_ano[a]["v"] += v
     return {
         "roster": roster,
-        "fap_n": fap_n, "fap_v": fap_v, "fap_ano": dict(fap_ano), "fap_coord": dict(fap_coord),
+        "fap_n": fap_n,
+        "fap_v": fap_v,
+        "fap_ano": dict(fap_ano),
+        "fap_coord": dict(fap_coord),
         "fap_rub": dict(fap_rub),
-        "bol_ano": dict(bol_ano), "bol_total": bol_total, "bol_tipo": dict(bol_tipo),
-        "fct_coord_n": fct_coord_n, "fct_coord_v": fct_coord_v, "fct_part_n": fct_part_n,
-        "fct_ano": dict(fct_ano), "fct_fin": dict(fct_fin), "fct_tipo": dict(fct_tipo),
+        "bol_ano": dict(bol_ano),
+        "bol_total": bol_total,
+        "bol_tipo": dict(bol_tipo),
+        "fct_coord_n": fct_coord_n,
+        "fct_coord_v": fct_coord_v,
+        "fct_part_n": fct_part_n,
+        "fct_ano": dict(fct_ano),
+        "fct_fin": dict(fct_fin),
+        "fct_tipo": dict(fct_tipo),
         "fct_coord": dict(fct_coord),
     }
 
@@ -194,7 +231,9 @@ def carregar() -> dict:
 def _bars_vol(anos, fap, fct):
     """Barras verticais empilhadas: projetos/ano (FAPES + FACTO), eixo = contagem."""
     W, H, P = 760, 300, 36
-    mx = max([fap.get(a, {}).get("n", 0) + fct.get(a, {}).get("n", 0) for a in anos] + [1])
+    mx = max(
+        [fap.get(a, {}).get("n", 0) + fct.get(a, {}).get("n", 0) for a in anos] + [1]
+    )
     bw = (W - 2 * P) / len(anos) * 0.62
     gap = (W - 2 * P) / len(anos)
     bars = ""
@@ -211,20 +250,29 @@ def _bars_vol(anos, fap, fct):
             bars += f'<rect x="{x:.1f}" y="{yc:.1f}" width="{bw:.1f}" height="{hc:.1f}" fill="#2f6fb0"/>'
         tot = nf + nc
         if tot:
-            bars += (f'<text x="{x + bw/2:.1f}" y="{yc - 4:.1f}" text-anchor="middle" '
-                     f'font-size="11" font-weight="700" fill="#16241a">{tot}</text>')
-        bars += (f'<text x="{x + bw/2:.1f}" y="{H - P + 16:.1f}" text-anchor="middle" '
-                 f'font-size="10.5" fill="#71857a">{a}</text>')
-    return (f'<svg viewBox="0 0 {W} {H}" style="width:100%;height:auto;">'
-            f'<line x1="{P}" y1="{H-P}" x2="{W-P}" y2="{H-P}" stroke="#cfddd3"/>{bars}</svg>')
+            bars += (
+                f'<text x="{x + bw/2:.1f}" y="{yc - 4:.1f}" text-anchor="middle" '
+                f'font-size="11" font-weight="700" fill="#16241a">{tot}</text>'
+            )
+        bars += (
+            f'<text x="{x + bw/2:.1f}" y="{H - P + 16:.1f}" text-anchor="middle" '
+            f'font-size="10.5" fill="#71857a">{a}</text>'
+        )
+    return (
+        f'<svg viewBox="0 0 {W} {H}" style="width:100%;height:auto;">'
+        f'<line x1="{P}" y1="{H-P}" x2="{W-P}" y2="{H-P}" stroke="#cfddd3"/>{bars}</svg>'
+    )
 
 
 def _line_vol(anos, fap, fct):
     """Gráfico de LINHA: volume de projetos/ano (eixo Y) × ano (eixo X).
     Duas séries: FAPES (verde) e FACTO-campus (azul)."""
     W, H, P = 760, 300, 40
-    mx = max([fap.get(a, {}).get("n", 0) for a in anos]
-             + [fct.get(a, {}).get("n", 0) for a in anos] + [1])
+    mx = max(
+        [fap.get(a, {}).get("n", 0) for a in anos]
+        + [fct.get(a, {}).get("n", 0) for a in anos]
+        + [1]
+    )
     n = len(anos)
 
     def X(i):
@@ -239,9 +287,11 @@ def _line_vol(anos, fap, fct):
     for s in range(steps + 1):
         v = mx * s / steps
         y = Y(v)
-        grid += (f'<line x1="{P}" y1="{y:.1f}" x2="{W-P}" y2="{y:.1f}" stroke="#eef5f0"/>'
-                 f'<text x="{P-8:.0f}" y="{y+4:.0f}" text-anchor="end" font-size="10" '
-                 f'fill="#71857a">{round(v)}</text>')
+        grid += (
+            f'<line x1="{P}" y1="{y:.1f}" x2="{W-P}" y2="{y:.1f}" stroke="#eef5f0"/>'
+            f'<text x="{P-8:.0f}" y="{y+4:.0f}" text-anchor="end" font-size="10" '
+            f'fill="#71857a">{round(v)}</text>'
+        )
 
     def serie(get, color, dots=True):
         pts = " ".join(f"{X(i):.1f},{Y(get(a)):.1f}" for i, a in enumerate(anos))
@@ -249,22 +299,31 @@ def _line_vol(anos, fap, fct):
         if dots:
             for i, a in enumerate(anos):
                 v = get(a)
-                out += f'<circle cx="{X(i):.1f}" cy="{Y(v):.1f}" r="3.2" fill="{color}"/>'
+                out += (
+                    f'<circle cx="{X(i):.1f}" cy="{Y(v):.1f}" r="3.2" fill="{color}"/>'
+                )
                 if color == "#0f7a40" and v:
-                    out += (f'<text x="{X(i):.1f}" y="{Y(v)-8:.1f}" text-anchor="middle" '
-                            f'font-size="10.5" font-weight="700" fill="#0a5c30">{v}</text>')
+                    out += (
+                        f'<text x="{X(i):.1f}" y="{Y(v)-8:.1f}" text-anchor="middle" '
+                        f'font-size="10.5" font-weight="700" fill="#0a5c30">{v}</text>'
+                    )
         return out
 
     fap_line = serie(lambda a: fap.get(a, {}).get("n", 0), "#0f7a40")
     fct_line = serie(lambda a: fct.get(a, {}).get("n", 0), "#2f6fb0", dots=True)
-    xlabels = "".join(f'<text x="{X(i):.1f}" y="{H-P+18:.0f}" text-anchor="middle" '
-                      f'font-size="10.5" fill="#71857a">{a}</text>' for i, a in enumerate(anos))
-    return (f'<svg viewBox="0 0 {W} {H}" style="width:100%;height:auto;">{grid}'
-            f'<line x1="{P}" y1="{H-P}" x2="{W-P}" y2="{H-P}" stroke="#cfddd3"/>'
-            f'<line x1="{P}" y1="{P}" x2="{P}" y2="{H-P}" stroke="#cfddd3"/>'
-            f'{fct_line}{fap_line}{xlabels}'
-            f'<text x="14" y="{H/2:.0f}" transform="rotate(-90 14 {H/2:.0f})" text-anchor="middle" '
-            f'font-size="11" fill="#71857a">projetos / ano</text></svg>')
+    xlabels = "".join(
+        f'<text x="{X(i):.1f}" y="{H-P+18:.0f}" text-anchor="middle" '
+        f'font-size="10.5" fill="#71857a">{a}</text>'
+        for i, a in enumerate(anos)
+    )
+    return (
+        f'<svg viewBox="0 0 {W} {H}" style="width:100%;height:auto;">{grid}'
+        f'<line x1="{P}" y1="{H-P}" x2="{W-P}" y2="{H-P}" stroke="#cfddd3"/>'
+        f'<line x1="{P}" y1="{P}" x2="{P}" y2="{H-P}" stroke="#cfddd3"/>'
+        f"{fct_line}{fap_line}{xlabels}"
+        f'<text x="14" y="{H/2:.0f}" transform="rotate(-90 14 {H/2:.0f})" text-anchor="middle" '
+        f'font-size="11" fill="#71857a">projetos / ano</text></svg>'
+    )
 
 
 def _line1(anos, get, color, ylabel):
@@ -283,24 +342,33 @@ def _line1(anos, get, color, ylabel):
     for s in range(5):
         v = mx * s / 4
         y = Y(v)
-        grid += (f'<line x1="{P}" y1="{y:.1f}" x2="{W-P}" y2="{y:.1f}" stroke="#eef5f0"/>'
-                 f'<text x="{P-8:.0f}" y="{y+4:.0f}" text-anchor="end" font-size="10" fill="#71857a">{round(v)}</text>')
+        grid += (
+            f'<line x1="{P}" y1="{y:.1f}" x2="{W-P}" y2="{y:.1f}" stroke="#eef5f0"/>'
+            f'<text x="{P-8:.0f}" y="{y+4:.0f}" text-anchor="end" font-size="10" fill="#71857a">{round(v)}</text>'
+        )
     pts = " ".join(f"{X(i):.1f},{Y(get(a)):.1f}" for i, a in enumerate(anos))
     dots = ""
     for i, a in enumerate(anos):
         v = get(a)
         dots += f'<circle cx="{X(i):.1f}" cy="{Y(v):.1f}" r="3.2" fill="{color}"/>'
         if v:
-            dots += (f'<text x="{X(i):.1f}" y="{Y(v)-8:.1f}" text-anchor="middle" font-size="10.5" '
-                     f'font-weight="700" fill="{color}">{v}</text>')
-    xlabels = "".join(f'<text x="{X(i):.1f}" y="{H-P+18:.0f}" text-anchor="middle" font-size="10.5" '
-                      f'fill="#71857a">{a}</text>' for i, a in enumerate(anos))
-    return (f'<svg viewBox="0 0 {W} {H}" style="width:100%;height:auto;">{grid}'
-            f'<line x1="{P}" y1="{H-P}" x2="{W-P}" y2="{H-P}" stroke="#cfddd3"/>'
-            f'<line x1="{P}" y1="{P}" x2="{P}" y2="{H-P}" stroke="#cfddd3"/>'
-            f'<polyline points="{pts}" fill="none" stroke="{color}" stroke-width="2.5"/>{dots}{xlabels}'
-            f'<text x="14" y="{H/2:.0f}" transform="rotate(-90 14 {H/2:.0f})" text-anchor="middle" '
-            f'font-size="11" fill="#71857a">{ylabel}</text></svg>')
+            dots += (
+                f'<text x="{X(i):.1f}" y="{Y(v)-8:.1f}" text-anchor="middle" font-size="10.5" '
+                f'font-weight="700" fill="{color}">{v}</text>'
+            )
+    xlabels = "".join(
+        f'<text x="{X(i):.1f}" y="{H-P+18:.0f}" text-anchor="middle" font-size="10.5" '
+        f'fill="#71857a">{a}</text>'
+        for i, a in enumerate(anos)
+    )
+    return (
+        f'<svg viewBox="0 0 {W} {H}" style="width:100%;height:auto;">{grid}'
+        f'<line x1="{P}" y1="{H-P}" x2="{W-P}" y2="{H-P}" stroke="#cfddd3"/>'
+        f'<line x1="{P}" y1="{P}" x2="{P}" y2="{H-P}" stroke="#cfddd3"/>'
+        f'<polyline points="{pts}" fill="none" stroke="{color}" stroke-width="2.5"/>{dots}{xlabels}'
+        f'<text x="14" y="{H/2:.0f}" transform="rotate(-90 14 {H/2:.0f})" text-anchor="middle" '
+        f'font-size="11" fill="#71857a">{ylabel}</text></svg>'
+    )
 
 
 def _bars_idx(anos, serie):
@@ -318,12 +386,18 @@ def _bars_idx(anos, serie):
         y = H - P - h
         bars += f'<rect x="{x:.1f}" y="{y:.1f}" width="{bw:.1f}" height="{h:.1f}" rx="3" fill="#b8860b"/>'
         if idx:
-            bars += (f'<text x="{x + bw/2:.1f}" y="{y - 4:.1f}" text-anchor="middle" font-size="10.5" '
-                     f'font-weight="700" fill="#5e4a12">{idx}</text>')
-        bars += (f'<text x="{x + bw/2:.1f}" y="{H - P + 16:.1f}" text-anchor="middle" '
-                 f'font-size="10.5" fill="#71857a">{a}</text>')
-    return (f'<svg viewBox="0 0 {W} {H}" style="width:100%;height:auto;">'
-            f'<line x1="{P}" y1="{H-P}" x2="{W-P}" y2="{H-P}" stroke="#cfddd3"/>{bars}</svg>')
+            bars += (
+                f'<text x="{x + bw/2:.1f}" y="{y - 4:.1f}" text-anchor="middle" font-size="10.5" '
+                f'font-weight="700" fill="#5e4a12">{idx}</text>'
+            )
+        bars += (
+            f'<text x="{x + bw/2:.1f}" y="{H - P + 16:.1f}" text-anchor="middle" '
+            f'font-size="10.5" fill="#71857a">{a}</text>'
+        )
+    return (
+        f'<svg viewBox="0 0 {W} {H}" style="width:100%;height:auto;">'
+        f'<line x1="{P}" y1="{H-P}" x2="{W-P}" y2="{H-P}" stroke="#cfddd3"/>{bars}</svg>'
+    )
 
 
 def _hbars(rows, total):
@@ -334,31 +408,35 @@ def _hbars(rows, total):
     out = ""
     for nome, v, n in rows:
         w = max(v / mx * 100, 2)
-        out += (f'<div class="bar"><span class="bl">{nome}</span>'
-                f'<span class="bt"><span class="bf" style="width:{w:.0f}%"></span></span>'
-                f'<span class="bv">{faixa(v)} · {pct(v, total):.0f}% · {n} proj</span></div>')
+        out += (
+            f'<div class="bar"><span class="bl">{nome}</span>'
+            f'<span class="bt"><span class="bf" style="width:{w:.0f}%"></span></span>'
+            f'<span class="bv">{faixa(v)} · {pct(v, total):.0f}% · {n} proj</span></div>'
+        )
     return out
 
 
 # ---------------------------------------------------------------------------
-EXPL = bloco_metrica({
-    "titulo": "Captação de projetos (FAPES + FACTO)",
-    "o_que": "A <b>evolução</b> (volume de projetos e captação por ano) e o <b>volume</b> da "
-             "captação dos professores do campus na <b>FAPES</b> (fomento estadual) e na "
-             "<b>FACTO</b> (fundação de apoio).",
-    "como_ler": "<b>Volume</b> = nº de projetos por ano (barras). <b>Captação</b> = mostrada como "
-                "<b>índice</b> (100 = ano de maior captação) para revelar a <b>tendência</b> sem "
-                "expor cifras. Por coordenador/financiadora: <b>faixa + %</b> do total.",
-    "nao_concluir": [
-        "FAPES e FACTO são <b>fontes distintas</b> — não somar como se fossem o mesmo fluxo.",
-        "FACTO entra no captado do campus só quando o <b>coordenador é docente</b> do campus "
-        "(equipe não soma); a maioria dos projetos FACTO é de <b>outros campi</b>.",
-        "Captação não é execução: valores são <b>aprovado/contratado</b>, não necessariamente gasto.",
-        "Um ano de pico costuma refletir <b>1–2 projetos grandes</b>, não um salto geral.",
-    ],
-    "gestores": "Acompanhar a <b>tendência de volume</b> (capilaridade) e a <b>concentração</b> da "
-                "captação; diversificar fontes e apoiar novos coordenadores a captar.",
-})
+EXPL = bloco_metrica(
+    {
+        "titulo": "Captação de projetos (FAPES + FACTO)",
+        "o_que": "A <b>evolução</b> (volume de projetos e captação por ano) e o <b>volume</b> da "
+        "captação dos professores do campus na <b>FAPES</b> (fomento estadual) e na "
+        "<b>FACTO</b> (fundação de apoio).",
+        "como_ler": "<b>Volume</b> = nº de projetos por ano (barras). <b>Captação</b> = mostrada como "
+        "<b>índice</b> (100 = ano de maior captação) para revelar a <b>tendência</b> sem "
+        "expor cifras. Por coordenador/financiadora: <b>faixa + %</b> do total.",
+        "nao_concluir": [
+            "FAPES e FACTO são <b>fontes distintas</b> — não somar como se fossem o mesmo fluxo.",
+            "FACTO entra no captado do campus só quando o <b>coordenador é docente</b> do campus "
+            "(equipe não soma); a maioria dos projetos FACTO é de <b>outros campi</b>.",
+            "Captação não é execução: valores são <b>aprovado/contratado</b>, não necessariamente gasto.",
+            "Um ano de pico costuma refletir <b>1–2 projetos grandes</b>, não um salto geral.",
+        ],
+        "gestores": "Acompanhar a <b>tendência de volume</b> (capilaridade) e a <b>concentração</b> da "
+        "captação; diversificar fontes e apoiar novos coordenadores a captar.",
+    }
+)
 
 CSS = """
 :root{--ink:#16241a;--ink2:#3c4f42;--muted:#71857a;--line:#e3ece5;--line2:#cfddd3;--bg:#f4f8f5;
@@ -409,31 +487,48 @@ def render(d: dict) -> str:
     n_coord = len({c for c in d["fap_coord"]})
     top_coord = sorted(d["fap_coord"].items(), key=lambda kv: -kv[1]["v"])[:8]
     top_coord_rows = [(c.title(), v["v"], v["n"]) for c, v in top_coord]
-    fct_coord_rows = [(c, v["v"], v["n"]) for c, v in
-                      sorted(d["fct_coord"].items(), key=lambda kv: -kv[1]["v"])]
-    fin_rows = [(k, v["v"], v["n"]) for k, v in sorted(d["fct_fin"].items(), key=lambda kv: -kv[1]["v"])]
+    fct_coord_rows = [
+        (c, v["v"], v["n"])
+        for c, v in sorted(d["fct_coord"].items(), key=lambda kv: -kv[1]["v"])
+    ]
+    fin_rows = [
+        (k, v["v"], v["n"])
+        for k, v in sorted(d["fct_fin"].items(), key=lambda kv: -kv[1]["v"])
+    ]
     rub = d["fap_rub"]
     rub_tot = sum(rub.values()) or 1
-    rub_rows = "".join(
-        f'<tr><td>{k}</td><td>{pct(v, rub_tot):.0f}%</td><td>{faixa(v)}</td></tr>'
-        for k, v in sorted(rub.items(), key=lambda x: -x[1])) or '<tr><td class="muted">—</td><td></td><td></td></tr>'
+    rub_rows = (
+        "".join(
+            f"<tr><td>{k}</td><td>{pct(v, rub_tot):.0f}%</td><td>{faixa(v)}</td></tr>"
+            for k, v in sorted(rub.items(), key=lambda x: -x[1])
+        )
+        or '<tr><td class="muted">—</td><td></td><td></td></tr>'
+    )
     bol_ano = d["bol_ano"]
     bol_total = d["bol_total"]
     bunac = d["bol_tipo"].get("B-UnAC", 0)
-    vol_rows = (f'<tr><td>FAPES (fomento estadual)</td><td>{d["fap_n"]}</td>'
-                f'<td>{ordem(d["fap_v"])}</td></tr>'
-                f'<tr><td>FACTO — coordenados pelo campus</td><td>{d["fct_coord_n"]}</td>'
-                f'<td>{ordem(d["fct_coord_v"])}</td></tr>'
-                f'<tr><td>FACTO — com participação (coord. ou equipe)</td><td>{d["fct_part_n"]}</td>'
-                f'<td>contexto (rede)</td></tr>')
-    tipo_rows = "".join(f'<tr><td>{t}</td><td>{n}</td></tr>'
-                        for t, n in sorted(d["fct_tipo"].items(), key=lambda kv: -kv[1])) or \
-        '<tr><td class="muted">—</td><td>0</td></tr>'
-    banner = ('<div id="exp-banner" style="background:#b5455f;color:#fff;padding:10px 16px;'
-              'font-weight:600;font-size:13.5px;text-align:center;position:sticky;top:0;z-index:9999;'
-              "box-shadow:0 2px 6px rgba(0,0,0,.2);font-family:system-ui,sans-serif;\">⚠️ Estudo "
-              'experimental em condução — os dados são preliminares e podem ser modificados. '
-              'Não usar como fonte da verdade.</div>')
+    vol_rows = (
+        f'<tr><td>FAPES (fomento estadual)</td><td>{d["fap_n"]}</td>'
+        f'<td>{ordem(d["fap_v"])}</td></tr>'
+        f'<tr><td>FACTO — coordenados pelo campus</td><td>{d["fct_coord_n"]}</td>'
+        f'<td>{ordem(d["fct_coord_v"])}</td></tr>'
+        f'<tr><td>FACTO — com participação (coord. ou equipe)</td><td>{d["fct_part_n"]}</td>'
+        f"<td>contexto (rede)</td></tr>"
+    )
+    tipo_rows = (
+        "".join(
+            f"<tr><td>{t}</td><td>{n}</td></tr>"
+            for t, n in sorted(d["fct_tipo"].items(), key=lambda kv: -kv[1])
+        )
+        or '<tr><td class="muted">—</td><td>0</td></tr>'
+    )
+    banner = (
+        '<div id="exp-banner" style="background:#b5455f;color:#fff;padding:10px 16px;'
+        "font-weight:600;font-size:13.5px;text-align:center;position:sticky;top:0;z-index:9999;"
+        'box-shadow:0 2px 6px rgba(0,0,0,.2);font-family:system-ui,sans-serif;">⚠️ Estudo '
+        "experimental em condução — os dados são preliminares e podem ser modificados. "
+        "Não usar como fonte da verdade.</div>"
+    )
     gerado = datetime.now().strftime("%Y-%m-%d %H:%M")
     return f"""<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -562,9 +657,11 @@ def main() -> None:
     d = carregar()
     OUT.write_text(render(d), encoding="utf-8")
     print(f"OK -> {OUT.relative_to(ROOT)}")
-    print(f"FAPES: {d['fap_n']} proj · {ordem(d['fap_v'])} | "
-          f"FACTO campus: {d['fct_coord_n']} coord ({ordem(d['fct_coord_v'])}) · "
-          f"{d['fct_part_n']} c/ participação")
+    print(
+        f"FAPES: {d['fap_n']} proj · {ordem(d['fap_v'])} | "
+        f"FACTO campus: {d['fct_coord_n']} coord ({ordem(d['fct_coord_v'])}) · "
+        f"{d['fct_part_n']} c/ participação"
+    )
 
 
 if __name__ == "__main__":

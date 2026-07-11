@@ -44,12 +44,17 @@ def main() -> None:
             scrubbed = scrub_source_record_payload(payload)
             if scrubbed != payload:
                 stats["changed"] += 1
-                if isinstance(payload, dict) and payload.get("OrientadoCpf") is not None:
+                if (
+                    isinstance(payload, dict)
+                    and payload.get("OrientadoCpf") is not None
+                ):
                     stats["cpf"] += 1
                 updates.append((json.dumps(scrubbed, ensure_ascii=False), rid))
 
-        print(f"payloads: {stats['total']}, com PII a limpar: {stats['changed']} "
-              f"(com CPF: {stats['cpf']}), invalidos: {stats['unparseable']}")
+        print(
+            f"payloads: {stats['total']}, com PII a limpar: {stats['changed']} "
+            f"(com CPF: {stats['cpf']}), invalidos: {stats['unparseable']}"
+        )
 
         if not args.apply:
             print("Dry-run. Re-run with --apply.")

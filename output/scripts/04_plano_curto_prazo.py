@@ -29,16 +29,27 @@ sys.path.insert(0, str(ROOT))
 from src.scripts.generate_docentes_executive import ROSTER_IDS  # noqa: E402
 
 LATTES = ROOT / "data" / "lattes_json"
-FAPES = ROOT / "data" / "exports" / "projetos-fapes" / "ifes-campus-serra-projetos-concluidos-em-andamento.json"
+FAPES = (
+    ROOT
+    / "data"
+    / "exports"
+    / "projetos-fapes"
+    / "ifes-campus-serra-projetos-concluidos-em-andamento.json"
+)
 OPENALEX = ROOT / "data" / "exports" / "docentes" / "openalex_citacoes.json"
 OUT = ROOT / "output"
 
-JANELA_INI, JANELA_FIM = 2015, 2026          # janela-padrão (alinhada ao fomento FAPES)
-RECENTE_INI, RECENTE_FIM = 2021, 2025        # janela recente (5 anos fechados)
+JANELA_INI, JANELA_FIM = 2015, 2026  # janela-padrão (alinhada ao fomento FAPES)
+RECENTE_INI, RECENTE_FIM = 2021, 2025  # janela recente (5 anos fechados)
 
 
 def norm(s: str) -> str:
-    s = unicodedata.normalize("NFKD", s or "").encode("ascii", "ignore").decode().lower()
+    s = (
+        unicodedata.normalize("NFKD", s or "")
+        .encode("ascii", "ignore")
+        .decode()
+        .lower()
+    )
     return " ".join(s.split())
 
 
@@ -49,8 +60,14 @@ def num(v) -> float:
         return 0.0
 
 
-_FAIXAS = [(1e5, "≤ R$ 100 mil"), (5e5, "R$ 100–500 mil"), (1e6, "R$ 500 mil–1 mi"),
-           (5e6, "R$ 1–5 mi"), (2e7, "R$ 5–20 mi"), (5e7, "R$ 20–50 mi")]
+_FAIXAS = [
+    (1e5, "≤ R$ 100 mil"),
+    (5e5, "R$ 100–500 mil"),
+    (1e6, "R$ 500 mil–1 mi"),
+    (5e6, "R$ 1–5 mi"),
+    (2e7, "R$ 5–20 mi"),
+    (5e7, "R$ 20–50 mi"),
+]
 
 
 def faixa(v) -> str:
@@ -72,7 +89,11 @@ def ordem(v) -> str:
         return "menos de R$ 1 mi"
     e = 10 ** (len(str(int(mi))) - 1)
     r = int(round(mi / e) * e)
-    qual = "centenas de milhões" if mi >= 100 else ("dezenas de milhões" if mi >= 10 else "milhões")
+    qual = (
+        "centenas de milhões"
+        if mi >= 100
+        else ("dezenas de milhões" if mi >= 10 else "milhões")
+    )
     return f"ordem de ~R$ {r} mi ({qual})"
 
 
@@ -107,13 +128,19 @@ def _ano(v):
 def janelas_temporais():
     by_id = lattes_index()
     art_ano = defaultdict(int)
-    seen = set()  # dedup GLOBAL por título (artigo co-autorado conta 1x no total do campus)
+    seen = (
+        set()
+    )  # dedup GLOBAL por título (artigo co-autorado conta 1x no total do campus)
     for nome, lid in ROSTER_IDS.items():
         f = by_id.get(lid)
         if not f:
             continue
-        pb = (json.loads(Path(f).read_text(encoding="utf-8"))
-              .get("producao_bibliografica", {}) or {})
+        pb = (
+            json.loads(Path(f).read_text(encoding="utf-8")).get(
+                "producao_bibliografica", {}
+            )
+            or {}
+        )
         for i, a in enumerate(pb.get("artigos_periodicos", []) or []):
             t = norm(a.get("titulo", ""))
             key = t if t else f"__{lid}_{i}"
@@ -133,17 +160,26 @@ def janelas_temporais():
                 fap_ano[y] += num(x.get("orcamento_contratado"))
     anos = sorted(set(list(art_ano) + list(fap_ano)))
     # fomento por ano em FAIXA (sem R$ concreto)
-    linhas = [{"ano": y, "artigos": art_ano.get(y, 0),
-               "fapes_orcamento_faixa": faixa(fap_ano.get(y, 0)),
-               "na_janela_padrao": JANELA_INI <= y <= JANELA_FIM} for y in anos]
+    linhas = [
+        {
+            "ano": y,
+            "artigos": art_ano.get(y, 0),
+            "fapes_orcamento_faixa": faixa(fap_ano.get(y, 0)),
+            "na_janela_padrao": JANELA_INI <= y <= JANELA_FIM,
+        }
+        for y in anos
+    ]
 
     def soma(d, a, b):
         return sum(v for k, v in d.items() if a <= k <= b)
+
     resumo = {
-        "janela_padrao": [JANELA_INI, JANELA_FIM], "janela_recente": [RECENTE_INI, RECENTE_FIM],
+        "janela_padrao": [JANELA_INI, JANELA_FIM],
+        "janela_recente": [RECENTE_INI, RECENTE_FIM],
         "artigos_total": sum(art_ano.values()),
         "artigos_na_janela_padrao": soma(art_ano, JANELA_INI, JANELA_FIM),
-        "artigos_fora_janela": sum(art_ano.values()) - soma(art_ano, JANELA_INI, JANELA_FIM),
+        "artigos_fora_janela": sum(art_ano.values())
+        - soma(art_ano, JANELA_INI, JANELA_FIM),
         "artigos_recente": soma(art_ano, RECENTE_INI, RECENTE_FIM),
         "fapes_na_janela_padrao_ordem": ordem(soma(fap_ano, JANELA_INI, JANELA_FIM)),
         "fapes_recente_ordem": ordem(soma(fap_ano, RECENTE_INI, RECENTE_FIM)),
@@ -176,9 +212,14 @@ def gini_segregado():
             por_coord[c]["orc_total"] += orc
             if cls:
                 por_coord[c]["orc_inst"] += orc
-                inst_detalhe.append({"classe": cls, "coordenador": x.get("coordenador_nome"),
-                                     "faixa": faixa(orc),
-                                     "titulo": (x.get("projeto_titulo") or "")[:80]})
+                inst_detalhe.append(
+                    {
+                        "classe": cls,
+                        "coordenador": x.get("coordenador_nome"),
+                        "faixa": faixa(orc),
+                        "titulo": (x.get("projeto_titulo") or "")[:80],
+                    }
+                )
     base = [v["orc_total"] for v in por_coord.values()]
     # cenário A: remove só UnAC; B: remove UnAC + ConectaFapes (institucionais)
     sem_inst = [max(0.0, v["orc_total"] - v["orc_inst"]) for v in por_coord.values()]
@@ -194,7 +235,9 @@ def gini_segregado():
         "orcamento_total_ordem": ordem(total),
         "orcamento_institucional_ordem": ordem(inst_total),
         "pct_institucional": round(inst_total / total * 100, 1) if total else 0,
-        "projetos_institucionais": sorted(inst_detalhe, key=lambda r: (r["classe"], r["titulo"])),
+        "projetos_institucionais": sorted(
+            inst_detalhe, key=lambda r: (r["classe"], r["titulo"])
+        ),
     }
     return cenarios
 
@@ -208,12 +251,22 @@ def cobertura_openalex():
     docs = json.loads(OPENALEX.read_text(encoding="utf-8"))["docentes"]
     com = [d for d in docs if d.get("encontrados_openalex", 0) > 0]
     sem = [d for d in docs if d.get("encontrados_openalex", 0) == 0]
-    linhas = [{"docente": d["nome"], "lattes_id": d.get("lattes_id", ""),
-               "artigos_com_doi": d.get("artigos_com_doi", 0),
-               "encontrados_openalex": d.get("encontrados_openalex", 0)} for d in docs]
-    resumo = {"n_total": len(docs), "n_com_openalex": len(com), "n_sem": len(sem),
-              "cobertura_pct": round(len(com) / len(docs) * 100, 1) if docs else 0,
-              "sem_match": [d["nome"] for d in sem]}
+    linhas = [
+        {
+            "docente": d["nome"],
+            "lattes_id": d.get("lattes_id", ""),
+            "artigos_com_doi": d.get("artigos_com_doi", 0),
+            "encontrados_openalex": d.get("encontrados_openalex", 0),
+        }
+        for d in docs
+    ]
+    resumo = {
+        "n_total": len(docs),
+        "n_com_openalex": len(com),
+        "n_sem": len(sem),
+        "cobertura_pct": round(len(com) / len(docs) * 100, 1) if docs else 0,
+        "sem_match": [d["nome"] for d in sem],
+    }
     return resumo, linhas
 
 
@@ -238,21 +291,38 @@ def patentes_worklist():
         n_soft_pat = len(pt.get("softwares_com_patente") or [])
         n_soft = len(pt.get("softwares_sem_patente") or []) + n_soft_pat
         n_prod = len(pt.get("produtos_tecnologicos") or [])
-        tot_pat += n_pat; tot_soft_pat += n_soft_pat; tot_soft += n_soft; tot_prod += n_prod
+        tot_pat += n_pat
+        tot_soft_pat += n_soft_pat
+        tot_soft += n_soft
+        tot_prod += n_prod
         prioridade = "alta" if (n_soft + n_prod) >= 1 else "baixa"
-        rows.append({
-            "docente": nome,
-            "patentes_lattes": n_pat, "softwares_lattes": n_soft, "produtos_tec_lattes": n_prod,
-            "prioridade_inpi": prioridade,
-            "verificar_inpi": "SIM (busca por inventor)",
-        })
-    rows.sort(key=lambda r: (r["prioridade_inpi"] != "alta",
-                             -(r["softwares_lattes"] + r["produtos_tec_lattes"]), r["docente"]))
+        rows.append(
+            {
+                "docente": nome,
+                "patentes_lattes": n_pat,
+                "softwares_lattes": n_soft,
+                "produtos_tec_lattes": n_prod,
+                "prioridade_inpi": prioridade,
+                "verificar_inpi": "SIM (busca por inventor)",
+            }
+        )
+    rows.sort(
+        key=lambda r: (
+            r["prioridade_inpi"] != "alta",
+            -(r["softwares_lattes"] + r["produtos_tec_lattes"]),
+            r["docente"],
+        )
+    )
     n_alta = sum(1 for r in rows if r["prioridade_inpi"] == "alta")
-    return rows, {"patentes_lattes": tot_pat, "softwares_com_patente": tot_soft_pat,
-                  "softwares_total": tot_soft, "produtos_tec": tot_prod,
-                  "docentes_prioridade_alta": n_alta, "docentes_total": len(rows),
-                  "metodo": "Lattes=0 patentes; checar INPI por nome do inventor (sem API; manual/RPA)"}
+    return rows, {
+        "patentes_lattes": tot_pat,
+        "softwares_com_patente": tot_soft_pat,
+        "softwares_total": tot_soft,
+        "produtos_tec": tot_prod,
+        "docentes_prioridade_alta": n_alta,
+        "docentes_total": len(rows),
+        "metodo": "Lattes=0 patentes; checar INPI por nome do inventor (sem API; manual/RPA)",
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -264,42 +334,97 @@ def main():
     pwork, pres = patentes_worklist()
 
     with (OUT / "janelas_temporais.csv").open("w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, fieldnames=["ano", "artigos", "fapes_orcamento_faixa", "na_janela_padrao"])
-        w.writeheader(); w.writerows(jl)
+        w = csv.DictWriter(
+            fh,
+            fieldnames=["ano", "artigos", "fapes_orcamento_faixa", "na_janela_padrao"],
+        )
+        w.writeheader()
+        w.writerows(jl)
     with (OUT / "gini_segregado.csv").open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["cenario", "gini", "descricao"])
-        w.writerow(["base_todos", gseg["gini_base_todos"], "todos os coordenadores (inclui institucionais)"])
-        w.writerow(["sem_institucionais", gseg["gini_sem_institucionais"], "remove UnAC + ConectaFapes (mantém coords com 0)"])
-        w.writerow(["sem_institucionais_pos", gseg["gini_sem_institucionais_pos"], "só coords com fomento de pesquisa > 0"])
+        w.writerow(
+            [
+                "base_todos",
+                gseg["gini_base_todos"],
+                "todos os coordenadores (inclui institucionais)",
+            ]
+        )
+        w.writerow(
+            [
+                "sem_institucionais",
+                gseg["gini_sem_institucionais"],
+                "remove UnAC + ConectaFapes (mantém coords com 0)",
+            ]
+        )
+        w.writerow(
+            [
+                "sem_institucionais_pos",
+                gseg["gini_sem_institucionais_pos"],
+                "só coords com fomento de pesquisa > 0",
+            ]
+        )
     with (OUT / "cobertura_openalex.csv").open("w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, fieldnames=["docente", "lattes_id", "artigos_com_doi", "encontrados_openalex"])
-        w.writeheader(); w.writerows(olin)
-    with (OUT / "patentes_worklist_inpi.csv").open("w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, fieldnames=["docente", "patentes_lattes", "softwares_lattes",
-                                           "produtos_tec_lattes", "prioridade_inpi", "verificar_inpi"])
-        w.writeheader(); w.writerows(pwork)
+        w = csv.DictWriter(
+            fh,
+            fieldnames=[
+                "docente",
+                "lattes_id",
+                "artigos_com_doi",
+                "encontrados_openalex",
+            ],
+        )
+        w.writeheader()
+        w.writerows(olin)
+    with (OUT / "patentes_worklist_inpi.csv").open(
+        "w", newline="", encoding="utf-8"
+    ) as fh:
+        w = csv.DictWriter(
+            fh,
+            fieldnames=[
+                "docente",
+                "patentes_lattes",
+                "softwares_lattes",
+                "produtos_tec_lattes",
+                "prioridade_inpi",
+                "verificar_inpi",
+            ],
+        )
+        w.writeheader()
+        w.writerows(pwork)
 
-    payload = {"janelas": {"resumo": jres, "por_ano": jl},
-               "gini_segregado": gseg, "cobertura_openalex": ocov,
-               "patentes": pres}
+    payload = {
+        "janelas": {"resumo": jres, "por_ano": jl},
+        "gini_segregado": gseg,
+        "cobertura_openalex": ocov,
+        "patentes": pres,
+    }
     (OUT / "plano_curto_prazo.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
     print("== 1. Janelas ==")
-    print(f"  artigos total={jres['artigos_total']} · na janela {JANELA_INI}-{JANELA_FIM}="
-          f"{jres['artigos_na_janela_padrao']} · fora={jres['artigos_fora_janela']} · "
-          f"recente {RECENTE_INI}-{RECENTE_FIM}={jres['artigos_recente']}")
+    print(
+        f"  artigos total={jres['artigos_total']} · na janela {JANELA_INI}-{JANELA_FIM}="
+        f"{jres['artigos_na_janela_padrao']} · fora={jres['artigos_fora_janela']} · "
+        f"recente {RECENTE_INI}-{RECENTE_FIM}={jres['artigos_recente']}"
+    )
     print("== 2. Gini segregado ==")
-    print(f"  base={gseg['gini_base_todos']} · sem institucionais={gseg['gini_sem_institucionais']} "
-          f"· só pesquisa(>0)={gseg['gini_sem_institucionais_pos']} · "
-          f"institucional={gseg['pct_institucional']}% do orçamento")
+    print(
+        f"  base={gseg['gini_base_todos']} · sem institucionais={gseg['gini_sem_institucionais']} "
+        f"· só pesquisa(>0)={gseg['gini_sem_institucionais_pos']} · "
+        f"institucional={gseg['pct_institucional']}% do orçamento"
+    )
     print("== 3. Cobertura OpenAlex ==")
-    print(f"  {ocov.get('n_com_openalex')}/{ocov.get('n_total')} = {ocov.get('cobertura_pct')}% "
-          f"· sem match={ocov.get('n_sem')}")
+    print(
+        f"  {ocov.get('n_com_openalex')}/{ocov.get('n_total')} = {ocov.get('cobertura_pct')}% "
+        f"· sem match={ocov.get('n_sem')}"
+    )
     print("== 4. Patentes ==")
-    print(f"  patentes Lattes={pres['patentes_lattes']} (zero) · softwares Lattes={pres['softwares_total']} "
-          f"· prioridade alta INPI={pres['docentes_prioridade_alta']}/{pres['docentes_total']} docentes")
+    print(
+        f"  patentes Lattes={pres['patentes_lattes']} (zero) · softwares Lattes={pres['softwares_total']} "
+        f"· prioridade alta INPI={pres['docentes_prioridade_alta']}/{pres['docentes_total']} docentes"
+    )
 
 
 if __name__ == "__main__":

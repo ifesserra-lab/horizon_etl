@@ -17,7 +17,9 @@ def atomic_write_text(path: str, content: str, encoding: str = "utf-8") -> None:
     """Write text to `path` atomically (temp file + fsync + os.replace)."""
     directory = os.path.dirname(os.path.abspath(path))
     os.makedirs(directory, exist_ok=True)
-    fd, tmp_path = tempfile.mkstemp(dir=directory, prefix=".tmp-", suffix=os.path.basename(path))
+    fd, tmp_path = tempfile.mkstemp(
+        dir=directory, prefix=".tmp-", suffix=os.path.basename(path)
+    )
     try:
         with os.fdopen(fd, "w", encoding=encoding) as f:
             f.write(content)
@@ -32,6 +34,8 @@ def atomic_write_text(path: str, content: str, encoding: str = "utf-8") -> None:
         raise
 
 
-def atomic_write_json(path: str, data: Any, *, indent: int = 4, ensure_ascii: bool = False) -> None:
+def atomic_write_json(
+    path: str, data: Any, *, indent: int = 4, ensure_ascii: bool = False
+) -> None:
     """Serialize `data` as JSON and write it to `path` atomically."""
     atomic_write_text(path, json.dumps(data, indent=indent, ensure_ascii=ensure_ascii))

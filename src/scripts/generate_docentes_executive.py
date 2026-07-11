@@ -126,7 +126,7 @@ ROSTER_IDS: dict[str, str] = {
 
 # IDs ainda não confirmados (CV baixado é de outra pessoa) — fora dos indicadores.
 ROSTER_SUSPECT: dict[str, str] = {
-    "Tatiane Policário Chagas": "4370865107182288",   # baixou "Tatiane Leal Bastos"
+    "Tatiane Policário Chagas": "4370865107182288",  # baixou "Tatiane Leal Bastos"
     "Weverthon Lobo de Oliveira": "6404017817382636",  # baixou "Marcia de Oliveira Gomes"
 }
 
@@ -135,12 +135,13 @@ ROSTER_SUSPECT: dict[str, str] = {
 # Data loading + indicators
 # ---------------------------------------------------------------------------
 
+
 def _stat(d: dict, key: str) -> int:
     return int((d.get("estatisticas") or {}).get(key, 0) or 0)
 
 
 def _orient_by_level(d: dict, bucket: str) -> dict[str, int]:
-    o = ((d.get("orientacoes") or {}).get(bucket) or {})
+    o = (d.get("orientacoes") or {}).get(bucket) or {}
     return {k: len(v) if isinstance(v, list) else 0 for k, v in o.items()}
 
 
@@ -192,8 +193,15 @@ def compute(matched: list[dict]) -> dict:
     per_doc = []
     bolsistas_pq = []
 
-    LEVELS = ["doutorado", "mestrado", "especializacao", "tcc",
-              "iniciacao_cientifica", "pos_doutorado", "outros"]
+    LEVELS = [
+        "doutorado",
+        "mestrado",
+        "especializacao",
+        "tcc",
+        "iniciacao_cientifica",
+        "pos_doutorado",
+        "outros",
+    ]
 
     for m in matched:
         d = m["cv"]
@@ -233,18 +241,25 @@ def compute(matched: list[dict]) -> dict:
             if ga:
                 areas[ga] += 1
 
-        bp = ((d.get("informacoes_pessoais") or {}).get("bolsa_produtividade") or "").strip()
+        bp = (
+            (d.get("informacoes_pessoais") or {}).get("bolsa_produtividade") or ""
+        ).strip()
         if bp:
             bolsistas_pq.append({"nome": m["nome"], "bolsa": bp})
 
-        per_doc.append({
-            "nome": m["nome"],
-            "orient_conc": oc, "orient_and": oa,
-            "producao": art + cong + liv + cap,
-            "artigos": art, "congressos": cong,
-            "projetos": pp + pe + pd,
-            "tecnica": tec, "patentes": pat,
-        })
+        per_doc.append(
+            {
+                "nome": m["nome"],
+                "orient_conc": oc,
+                "orient_and": oa,
+                "producao": art + cong + liv + cap,
+                "artigos": art,
+                "congressos": cong,
+                "projetos": pp + pe + pd,
+                "tecnica": tec,
+                "patentes": pat,
+            }
+        )
 
     prod_total = agg["artigos"] + agg["congressos"] + agg["livros"] + agg["capitulos"]
     proj_total = agg["proj_pesq"] + agg["proj_ext"] + agg["proj_dev"]
@@ -436,10 +451,22 @@ def stacked_bar(label, concl, andamento, max_total):
     tot = concl + andamento
     wc = (concl / max_total * 100) if max_total else 0
     wa = (andamento / max_total * 100) if max_total else 0
-    seg_c = (f'<div class="seg" style="width:{wc:.1f}%;background:var(--brand);" '
-             f'title="{concl} concluídas"></div>') if concl else ""
-    seg_a = (f'<div class="seg" style="width:{wa:.1f}%;background:var(--amber);" '
-             f'title="{andamento} em andamento"></div>') if andamento else ""
+    seg_c = (
+        (
+            f'<div class="seg" style="width:{wc:.1f}%;background:var(--brand);" '
+            f'title="{concl} concluídas"></div>'
+        )
+        if concl
+        else ""
+    )
+    seg_a = (
+        (
+            f'<div class="seg" style="width:{wa:.1f}%;background:var(--amber);" '
+            f'title="{andamento} em andamento"></div>'
+        )
+        if andamento
+        else ""
+    )
     return (
         f'<div class="brow"><span class="bl">{label}</span>'
         f'<div class="btrack stack">{seg_c}{seg_a}</div>'
@@ -449,9 +476,12 @@ def stacked_bar(label, concl, andamento, max_total):
 
 
 _LVL_LABEL = {
-    "doutorado": "Doutorado", "mestrado": "Mestrado",
-    "especializacao": "Especialização", "tcc": "TCC / Graduação",
-    "iniciacao_cientifica": "Iniciação científica", "pos_doutorado": "Pós-doutorado",
+    "doutorado": "Doutorado",
+    "mestrado": "Mestrado",
+    "especializacao": "Especialização",
+    "tcc": "TCC / Graduação",
+    "iniciacao_cientifica": "Iniciação científica",
+    "pos_doutorado": "Pós-doutorado",
     "outros": "Outros",
 }
 
@@ -475,10 +505,12 @@ def build(s: dict, generated_at: str, faltam: list) -> str:
     </section>"""
 
     # Formação de pessoas (orientações por nível)
-    oc = s["orient_c_by_level"]; oa = s["orient_a_by_level"]
+    oc = s["orient_c_by_level"]
+    oa = s["orient_a_by_level"]
     levels = [k for k in oc if oc[k] or oa[k]]
     maxtot = max([oc[k] + oa[k] for k in levels] + [1])
-    tot_c = s["orient_conc_total"]; tot_a = s["orient_and_total"]
+    tot_c = s["orient_conc_total"]
+    tot_a = s["orient_and_total"]
     orient_bars = "".join(
         stacked_bar(_LVL_LABEL.get(k, k), oc[k], oa[k], maxtot)
         for k in sorted(levels, key=lambda k: -(oc[k] + oa[k]))
@@ -487,7 +519,7 @@ def build(s: dict, generated_at: str, faltam: list) -> str:
         '<div class="legend">'
         '<span><i style="background:var(--brand)"></i>Concluídas</span>'
         '<span><i style="background:var(--amber)"></i>Em andamento (pipeline)</span>'
-        '</div>'
+        "</div>"
     )
     sec_orient = f"""
     <section class="section">
@@ -520,9 +552,11 @@ def build(s: dict, generated_at: str, faltam: list) -> str:
     </section>"""
 
     # Projetos
-    pj = [("Pesquisa", agg.get("proj_pesq", 0), "g"),
-          ("Extensão", agg.get("proj_ext", 0), "b"),
-          ("Desenvolvimento", agg.get("proj_dev", 0), "a")]
+    pj = [
+        ("Pesquisa", agg.get("proj_pesq", 0), "g"),
+        ("Extensão", agg.get("proj_ext", 0), "b"),
+        ("Desenvolvimento", agg.get("proj_dev", 0), "a"),
+    ]
     cmp_proj = "".join(
         f'<div class="c"><div class="lab">{lab}</div>'
         f'<div class="v {cls}">{val}</div><div class="sub">projetos</div></div>'
@@ -538,7 +572,9 @@ def build(s: dict, generated_at: str, faltam: list) -> str:
 
     # Áreas de conhecimento
     maxa = s["areas"][0][1] if s["areas"] else 1
-    area_bars = "".join(bar(a, c, maxa, "var(--brand)", note=f"{c} docentes") for a, c in s["areas"])
+    area_bars = "".join(
+        bar(a, c, maxa, "var(--brand)", note=f"{c} docentes") for a, c in s["areas"]
+    )
     sec_areas = f"""
     <section class="section">
       <div class="eyebrow">Áreas de conhecimento</div>
@@ -554,6 +590,7 @@ def build(s: dict, generated_at: str, faltam: list) -> str:
             f'<td>{d["producao"]}</td><td>{d["projetos"]}</td></tr>'
             for d in items
         )
+
     top_table = f"""
     <section class="section">
       <div class="eyebrow">Destaques</div>
@@ -569,8 +606,13 @@ def build(s: dict, generated_at: str, faltam: list) -> str:
 
     # Inovação + bolsistas produtividade
     n_bp = len(s["bolsistas_pq"])
-    bp_list = "".join(f"<li>{b['nome']} — <span style='color:var(--muted)'>{b['bolsa']}</span></li>"
-                      for b in s["bolsistas_pq"]) or "<li>Nenhum bolsista de produtividade identificado.</li>"
+    bp_list = (
+        "".join(
+            f"<li>{b['nome']} — <span style='color:var(--muted)'>{b['bolsa']}</span></li>"
+            for b in s["bolsistas_pq"]
+        )
+        or "<li>Nenhum bolsista de produtividade identificado.</li>"
+    )
     sec_inov = f"""
     <section class="section">
       <div class="eyebrow">Inovação e reconhecimento</div>
@@ -608,12 +650,15 @@ def build(s: dict, generated_at: str, faltam: list) -> str:
       </div>
     </section>"""
 
-    falta_note = (f' · {len(faltam)} sem CV: {", ".join(faltam)}' if faltam else "")
+    falta_note = f' · {len(faltam)} sem CV: {", ".join(faltam)}' if faltam else ""
     if ROSTER_SUSPECT:
-        falta_note += (f' · {len(ROSTER_SUSPECT)} com Lattes ID a confirmar '
-                       f'(fora dos indicadores): {", ".join(ROSTER_SUSPECT)}')
+        falta_note += (
+            f" · {len(ROSTER_SUSPECT)} com Lattes ID a confirmar "
+            f'(fora dos indicadores): {", ".join(ROSTER_SUSPECT)}'
+        )
 
-    return f"""<!DOCTYPE html>
+    return (
+        f"""<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Executivo de Docentes — IFES Campus Serra</title>
@@ -634,7 +679,18 @@ def build(s: dict, generated_at: str, faltam: list) -> str:
   {{KPIS}}{{ORIENT}}{{PROD}}{{PROJ}}{{AREAS}}{{TOP}}{{INOV}}{{CALLOUT}}
   <div class="foot"><span>Gerado em {generated_at} · fonte: currículos Lattes (data/lattes_json)</span>
   <span>{n} docentes{falta_note}</span></div>
-</div></body></html>""".replace("{CSS}", CSS).replace("{KPIS}", kpis).replace("{ORIENT}", sec_orient).replace("{PROD}", sec_prod).replace("{PROJ}", sec_proj).replace("{AREAS}", sec_areas).replace("{TOP}", top_table).replace("{INOV}", sec_inov).replace("{CALLOUT}", callout)
+</div></body></html>""".replace(
+            "{CSS}", CSS
+        )
+        .replace("{KPIS}", kpis)
+        .replace("{ORIENT}", sec_orient)
+        .replace("{PROD}", sec_prod)
+        .replace("{PROJ}", sec_proj)
+        .replace("{AREAS}", sec_areas)
+        .replace("{TOP}", top_table)
+        .replace("{INOV}", sec_inov)
+        .replace("{CALLOUT}", callout)
+    )
 
 
 def main():
@@ -642,7 +698,9 @@ def main():
     ap.add_argument("--out", default=str(DEFAULT_OUT))
     args = ap.parse_args()
 
-    print(f"Roster: {len(ROSTER_IDS)} docentes (+{len(ROSTER_SUSPECT)} com ID a confirmar)")
+    print(
+        f"Roster: {len(ROSTER_IDS)} docentes (+{len(ROSTER_SUSPECT)} com ID a confirmar)"
+    )
     matched, faltam = load_docentes(ROSTER_IDS)
     print(f"  casados com CV: {len(matched)}")
     if faltam:

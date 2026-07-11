@@ -35,13 +35,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 import sys as _sys
+
 _sys.path.insert(0, str(ROOT))
-from src.scripts.didatica import bloco_metrica, MOBILE_CSS  # noqa: E402
+from src.scripts.didatica import MOBILE_CSS, bloco_metrica  # noqa: E402
+
 EXPORTS = ROOT / "data" / "exports" / "docentes"
 SRC_CITACOES = EXPORTS / "openalex_citacoes.json"
 SRC_RANKING = EXPORTS / "ranking_impacto.json"
 SRC_RESEARCHERS = ROOT / "data" / "exports" / "researchers_canonical.json"
-SRC_MESTRADOS = ROOT / "data" / "exports" / "professores-mestrado" / "corpo_docente_mestrados.json"
+SRC_MESTRADOS = (
+    ROOT / "data" / "exports" / "professores-mestrado" / "corpo_docente_mestrados.json"
+)
 OUT_JSON = EXPORTS / "ppp_edital_13_2026.json"
 OUT_HTML = EXPORTS / "ppp_edital_13_2026.html"
 
@@ -55,6 +59,7 @@ def _lattes_id(r: dict) -> str | None:
 
 def _norm(s: str) -> str:
     import unicodedata
+
     s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower()
     return " ".join(s.split())
 
@@ -74,7 +79,9 @@ def carregar_researchers() -> dict:
             by_lid.setdefault(lid, r)
         nm = _norm(r["name"])
         prev = by_name.get(nm)
-        if prev is None or len(r.get("initiatives") or []) > len(prev.get("initiatives") or []):
+        if prev is None or len(r.get("initiatives") or []) > len(
+            prev.get("initiatives") or []
+        ):
             by_name[nm] = r
     return {"by_lid": by_lid, "by_name": by_name}
 
@@ -90,31 +97,42 @@ def extrai_sigpesq(r: dict | None) -> dict:
     O mesmo projeto/orientacao/grupo aparece repetido (Lattes + SigPesq, ou varias
     linhas). Conta nomes distintos (normalizados)."""
     if not r:
-        return {"orientacoes_concluidas": -1, "grupos_pesquisa": [],
-                "projetos_coordenados": 0, "projetos_total": 0}
+        return {
+            "orientacoes_concluidas": -1,
+            "grupos_pesquisa": [],
+            "projetos_coordenados": 0,
+            "projetos_total": 0,
+        }
 
     # orientacoes concluidas: nomes distintos
     orient_nomes = {
         _norm(a.get("name") or "")
         for a in (r.get("advisorships") or [])
-        if a.get("initiative_type") == "Advisorship" and a.get("status") == "Concluded" and a.get("name")
+        if a.get("initiative_type") == "Advisorship"
+        and a.get("status") == "Concluded"
+        and a.get("name")
     }
 
     # grupos de pesquisa: nomes distintos
-    grupos = sorted({
-        g.get("name") for g in (r.get("research_groups") or [])
-        if isinstance(g, dict) and g.get("name")
-    })
+    grupos = sorted(
+        {
+            g.get("name")
+            for g in (r.get("research_groups") or [])
+            if isinstance(g, dict) and g.get("name")
+        }
+    )
 
     # projetos: agrupa por nome; coordenado se algum registro tem role Coordinator
     coord_por_nome: dict[str, bool] = {}
-    for i in (r.get("initiatives") or []):
+    for i in r.get("initiatives") or []:
         if _itype(i) != "Research Project":
             continue
         nm = _norm(i.get("name") or "")
         if not nm:
             continue
-        coord_por_nome[nm] = coord_por_nome.get(nm, False) or (i.get("role") == "Coordinator")
+        coord_por_nome[nm] = coord_por_nome.get(nm, False) or (
+            i.get("role") == "Coordinator"
+        )
 
     return {
         "orientacoes_concluidas": len(orient_nomes),
@@ -138,7 +156,8 @@ def carregar_ppg() -> dict:
     for p in profs:
         ativos = [
             {"programa": v["programa"], "categoria": v["categoria"]}
-            for v in p.get("programas", []) if v.get("ativo")
+            for v in p.get("programas", [])
+            if v.get("ativo")
         ]
         if not ativos:
             continue
@@ -163,25 +182,33 @@ def analisar() -> dict:
         ]
         r = idx["by_lid"].get(d["lattes_id"]) or idx["by_name"].get(_norm(d["nome"]))
         sig = extrai_sigpesq(r)
-        ppg_vinculos = ppg["by_lid"].get(d["lattes_id"]) or ppg["by_name"].get(_norm(d["nome"])) or []
+        ppg_vinculos = (
+            ppg["by_lid"].get(d["lattes_id"])
+            or ppg["by_name"].get(_norm(d["nome"]))
+            or []
+        )
         q = qmap.get(d["nome"], {})
-        rows.append({
-            "nome": d["nome"],
-            "area": q.get("area", "—"),
-            "lattes_id": d["lattes_id"],
-            "artigos_2021_2026": artigos,          # BRUTO: HTML calcula os pontos
-            "orientacoes_concluidas": sig["orientacoes_concluidas"],  # -1 = sem registro
-            "grupos_pesquisa": sig["grupos_pesquisa"],      # SigPesq — elegibilidade
-            "projetos_coordenados": sig["projetos_coordenados"],  # SigPesq
-            "projetos_total": sig["projetos_total"],        # SigPesq
-            "ppg_stricto_sensu": ppg_vinculos,     # vinculos ATIVOS [{programa,categoria}]
-            "h_index": d.get("h_index", 0),
-            "fwci_medio": round(d.get("fwci_medio", 0) or 0, 2),
-            "citacoes_total": d.get("citacoes_total", 0),
-            "qualis_score_all_time": q.get("score_qualis", 0),
-            "qualis_A1": q.get("A1", 0),
-            "qualis_A2": q.get("A2", 0),
-        })
+        rows.append(
+            {
+                "nome": d["nome"],
+                "area": q.get("area", "—"),
+                "lattes_id": d["lattes_id"],
+                "artigos_2021_2026": artigos,  # BRUTO: HTML calcula os pontos
+                "orientacoes_concluidas": sig[
+                    "orientacoes_concluidas"
+                ],  # -1 = sem registro
+                "grupos_pesquisa": sig["grupos_pesquisa"],  # SigPesq — elegibilidade
+                "projetos_coordenados": sig["projetos_coordenados"],  # SigPesq
+                "projetos_total": sig["projetos_total"],  # SigPesq
+                "ppg_stricto_sensu": ppg_vinculos,  # vinculos ATIVOS [{programa,categoria}]
+                "h_index": d.get("h_index", 0),
+                "fwci_medio": round(d.get("fwci_medio", 0) or 0, 2),
+                "citacoes_total": d.get("citacoes_total", 0),
+                "qualis_score_all_time": q.get("score_qualis", 0),
+                "qualis_A1": q.get("A1", 0),
+                "qualis_A2": q.get("A2", 0),
+            }
+        )
 
     return {
         "gerado_em": datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -199,17 +226,57 @@ def analisar() -> dict:
             "orientacoes_min_rota_ic": {"PQ-1": 9, "PQ-2": 6, "PQ-3": 3},
         },
         "prazos": [
-            {"etapa": "Lançamento do edital", "quando": "01/06/2026", "fim": "2026-06-01"},
-            {"etapa": "Submissão das propostas", "quando": "01–14/06/2026", "fim": "2026-06-14"},
-            {"etapa": "Avaliação das propostas", "quando": "15–26/06/2026", "fim": "2026-06-26"},
-            {"etapa": "Resultado preliminar", "quando": "29/06/2026", "fim": "2026-06-29"},
+            {
+                "etapa": "Lançamento do edital",
+                "quando": "01/06/2026",
+                "fim": "2026-06-01",
+            },
+            {
+                "etapa": "Submissão das propostas",
+                "quando": "01–14/06/2026",
+                "fim": "2026-06-14",
+            },
+            {
+                "etapa": "Avaliação das propostas",
+                "quando": "15–26/06/2026",
+                "fim": "2026-06-26",
+            },
+            {
+                "etapa": "Resultado preliminar",
+                "quando": "29/06/2026",
+                "fim": "2026-06-29",
+            },
             {"etapa": "Pedido de recurso", "quando": "30/06/2026", "fim": "2026-06-30"},
-            {"etapa": "Avaliação dos recursos", "quando": "01–03/07/2026", "fim": "2026-07-03"},
-            {"etapa": "Resultado final", "quando": "a partir de 06/07/2026", "fim": "2026-07-06"},
-            {"etapa": "Designação · início das atividades", "quando": "até 31/07 · início 01/08/2026", "fim": "2026-08-01"},
-            {"etapa": "Relatório parcial #1", "quando": "até 31/08/2027", "fim": "2027-08-31"},
-            {"etapa": "Relatório parcial #2", "quando": "até 31/08/2028", "fim": "2028-08-31"},
-            {"etapa": "Relatório final", "quando": "até 31/08/2029", "fim": "2029-08-31"},
+            {
+                "etapa": "Avaliação dos recursos",
+                "quando": "01–03/07/2026",
+                "fim": "2026-07-03",
+            },
+            {
+                "etapa": "Resultado final",
+                "quando": "a partir de 06/07/2026",
+                "fim": "2026-07-06",
+            },
+            {
+                "etapa": "Designação · início das atividades",
+                "quando": "até 31/07 · início 01/08/2026",
+                "fim": "2026-08-01",
+            },
+            {
+                "etapa": "Relatório parcial #1",
+                "quando": "até 31/08/2027",
+                "fim": "2027-08-31",
+            },
+            {
+                "etapa": "Relatório parcial #2",
+                "quando": "até 31/08/2028",
+                "fim": "2028-08-31",
+            },
+            {
+                "etapa": "Relatório final",
+                "quando": "até 31/08/2029",
+                "fim": "2029-08-31",
+            },
         ],
         "total_docentes": len(rows),
         "docentes": rows,
@@ -498,30 +565,33 @@ setInterval(renderPrazos, 3600000); // re-checa a cada hora: vira o dia, status 
 """
 
 
-EXPL_PPP = bloco_metrica({
-    "titulo": "Elegibilidade PQ — como é estimada",
-    "o_que": "A pontuação de cada docente pelos critérios do <b>Edital PRPPG 13/2026</b>: "
-             "produção por <b>percentil de citação</b> (Tabela 1, via OpenAlex, janela 2021–2026) "
-             "+ <b>orientações concluídas</b>, classificando em <b>PQ-1 / PQ-2 / PQ-3</b>.",
-    "formula": "pontos = Σ pontos por percentil do artigo (Tabela 1) + orientações concluídas",
-    "como_ler": "A pontuação indica a modalidade PQ que o docente <b>alcança pelo cálculo "
-                "automático</b> — uma triagem para montar shortlists.",
-    "nao_concluir": [
-        "É um <b>piso</b> (lower bound): o cache OpenAlex guarda só os artigos com <b>DOI</b> mais "
-        "citados → subestima quem publica muito ou sem DOI (livros, capítulos, eventos).",
-        "O <b>nível</b> da orientação (IC × stricto sensu) não consta; usa-se o total concluído.",
-        "<b>Vínculo a PPG</b> e <b>colaboração internacional</b> (exigências PQ-1/PQ-2) não estão "
-        "nos dados — exigem <b>conferência manual</b> do Lattes. Não é decisão oficial.",
-    ],
-    "gestores": "Usar como <b>triagem/shortlist</b>; confirmar manualmente no Lattes (produção sem "
-                "DOI, vínculo PPG, colaboração internacional) antes de orientar a submissão.",
-})
+EXPL_PPP = bloco_metrica(
+    {
+        "titulo": "Elegibilidade PQ — como é estimada",
+        "o_que": "A pontuação de cada docente pelos critérios do <b>Edital PRPPG 13/2026</b>: "
+        "produção por <b>percentil de citação</b> (Tabela 1, via OpenAlex, janela 2021–2026) "
+        "+ <b>orientações concluídas</b>, classificando em <b>PQ-1 / PQ-2 / PQ-3</b>.",
+        "formula": "pontos = Σ pontos por percentil do artigo (Tabela 1) + orientações concluídas",
+        "como_ler": "A pontuação indica a modalidade PQ que o docente <b>alcança pelo cálculo "
+        "automático</b> — uma triagem para montar shortlists.",
+        "nao_concluir": [
+            "É um <b>piso</b> (lower bound): o cache OpenAlex guarda só os artigos com <b>DOI</b> mais "
+            "citados → subestima quem publica muito ou sem DOI (livros, capítulos, eventos).",
+            "O <b>nível</b> da orientação (IC × stricto sensu) não consta; usa-se o total concluído.",
+            "<b>Vínculo a PPG</b> e <b>colaboração internacional</b> (exigências PQ-1/PQ-2) não estão "
+            "nos dados — exigem <b>conferência manual</b> do Lattes. Não é decisão oficial.",
+        ],
+        "gestores": "Usar como <b>triagem/shortlist</b>; confirmar manualmente no Lattes (produção sem "
+        "DOI, vínculo PPG, colaboração internacional) antes de orientar a submissão.",
+    }
+)
 
 
 def render_html(data: dict) -> str:
     payload = json.dumps(
         {"docentes": data["docentes"], "prazos": data["prazos"]},
-        ensure_ascii=False, separators=(",", ":"),
+        ensure_ascii=False,
+        separators=(",", ":"),
     )
     cfg = json.dumps(data["config_calculo"], ensure_ascii=False)
     return f"""<!DOCTYPE html>
@@ -772,7 +842,9 @@ def render_html(data: dict) -> str:
 
 def main() -> None:
     data = analisar()
-    OUT_JSON.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    OUT_JSON.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     OUT_HTML.write_text(render_html(data), encoding="utf-8")
     # resumo no terminal (mesma logica do JS)
     faixas = data["config_calculo"]["faixas_tabela1"]
@@ -786,6 +858,7 @@ def main() -> None:
         return 0, "-"
 
     from collections import Counter
+
     tiers = Counter()
     orient_ok = 0
     for d in data["docentes"]:
@@ -797,15 +870,25 @@ def main() -> None:
             e[es] += 1
         hasAB = e["A"] + e["B"] > 0
         hasAD = hasAB or e["C"] + e["D"] > 0
-        t = "PQ-1" if (bib >= piso["PQ-1"] and hasAB) else "PQ-2" if (bib >= piso["PQ-2"] and hasAD) else "PQ-3" if bib >= piso["PQ-3"] else "—"
+        t = (
+            "PQ-1"
+            if (bib >= piso["PQ-1"] and hasAB)
+            else (
+                "PQ-2"
+                if (bib >= piso["PQ-2"] and hasAD)
+                else "PQ-3" if bib >= piso["PQ-3"] else "—"
+            )
+        )
         tiers[t] += 1
         oc = d["orientacoes_concluidas"]
         if t != "—" and oc >= ormin[t]:
             orient_ok += 1
     print(f"OK -> {OUT_JSON.relative_to(ROOT)}")
     print(f"OK -> {OUT_HTML.relative_to(ROOT)}")
-    print(f"Docentes: {data['total_docentes']} | PQ-1={tiers['PQ-1']} PQ-2={tiers['PQ-2']} "
-          f"PQ-3={tiers['PQ-3']} sem_dados={tiers['—']} | biblio+orient OK={orient_ok}")
+    print(
+        f"Docentes: {data['total_docentes']} | PQ-1={tiers['PQ-1']} PQ-2={tiers['PQ-2']} "
+        f"PQ-3={tiers['PQ-3']} sem_dados={tiers['—']} | biblio+orient OK={orient_ok}"
+    )
 
 
 if __name__ == "__main__":

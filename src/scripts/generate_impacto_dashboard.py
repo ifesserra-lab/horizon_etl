@@ -26,19 +26,34 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from src.scripts.didatica import bloco_metrica, MOBILE_CSS  # noqa: E402
+from src.scripts.didatica import MOBILE_CSS, bloco_metrica  # noqa: E402
+
 EXPORTS = ROOT / "data" / "exports" / "docentes"
 SRC_CIT = EXPORTS / "openalex_citacoes.json"
 SRC_RANK = EXPORTS / "ranking_impacto.json"
-SRC_FAPES = ROOT / "data" / "exports" / "projetos-fapes" / "ifes-campus-serra-projetos-concluidos-em-andamento.json"
-SRC_BOLSAS = ROOT / "data" / "exports" / "bolsistas" / "ifes-campus-serra-bolsistas.json"
+SRC_FAPES = (
+    ROOT
+    / "data"
+    / "exports"
+    / "projetos-fapes"
+    / "ifes-campus-serra-projetos-concluidos-em-andamento.json"
+)
+SRC_BOLSAS = (
+    ROOT / "data" / "exports" / "bolsistas" / "ifes-campus-serra-bolsistas.json"
+)
 OUT_JSON = EXPORTS / "impacto_dashboard.json"
 OUT_HTML = EXPORTS / "impacto_dashboard.html"
 
 
 def _norm(s: str) -> str:
     import unicodedata
-    s = unicodedata.normalize("NFKD", s or "").encode("ascii", "ignore").decode().lower()
+
+    s = (
+        unicodedata.normalize("NFKD", s or "")
+        .encode("ascii", "ignore")
+        .decode()
+        .lower()
+    )
     return " ".join(s.split())
 
 
@@ -55,14 +70,18 @@ def carregar_fomento() -> dict:
     fomento = {}
     if SRC_FAPES.exists():
         d = json.loads(SRC_FAPES.read_text(encoding="utf-8"))
-        projs = next((v for v in d.values() if isinstance(v, list)), []) if isinstance(d, dict) else d
+        projs = (
+            next((v for v in d.values() if isinstance(v, list)), [])
+            if isinstance(d, dict)
+            else d
+        )
         for p in projs:
             nm = _norm(p.get("coordenador_nome"))
             if nm:
                 fomento[nm] = fomento.get(nm, 0.0) + _num(p.get("orcamento_contratado"))
     if SRC_BOLSAS.exists():
         d = json.loads(SRC_BOLSAS.read_text(encoding="utf-8"))
-        for a in (d.get("alocacoes") or []):
+        for a in d.get("alocacoes") or []:
             nm = _norm(a.get("coordenador_nome"))
             if nm:
                 fomento[nm] = fomento.get(nm, 0.0) + _num(a.get("valor_alocado_total"))
@@ -122,8 +141,10 @@ def _roi(d: dict, fomento_map: dict) -> dict:
         "fomento_faixa": _faixa_fomento(f),
         "tem_fomento": f > 0,
         "fomento_x": round(f / 1000),  # eixo do scatter, em R$ mil (interno)
-        "roi_cit": round(cit / (f / 1000), 1) if f > 0 else None,    # citações por R$ mil
-        "roi_elite": round(top10 / (f / 100_000), 1) if f > 0 else None,  # top10 por R$ 100k
+        "roi_cit": round(cit / (f / 1000), 1) if f > 0 else None,  # citações por R$ mil
+        "roi_elite": (
+            round(top10 / (f / 100_000), 1) if f > 0 else None
+        ),  # top10 por R$ 100k
     }
 
 
@@ -139,42 +160,51 @@ def analisar() -> dict:
         _area = area_de.get(d["nome"], "—")
         if _area in ("—", "", None):
             _area = "Não classificada"
-        docentes.append({
-            "nome": d["nome"],
-            "lattes_id": d.get("lattes_id", ""),
-            "area": _area,
-            "artigos": d.get("encontrados_openalex", 0),
-            "artigos_doi": d.get("artigos_com_doi", 0),
-            "cit": d.get("citacoes_total", 0),
-            "h": d.get("h_index", 0),
-            "g": d.get("g_index", 0),
-            "m": round(d.get("m_index", 0) or 0, 2),
-            "idade": d.get("idade_academica", 0),
-            "cpp": round(d.get("citacoes_por_artigo", 0) or 0, 1),
-            "cit_med": d.get("citacoes_mediana", 0),
-            "art_frac": round(d.get("artigos_fracionados", 0) or 0, 1),
-            "cit_frac": round(d.get("citacoes_fracionadas", 0) or 0, 1),
-            "i10": d.get("i10", 0),
-            "mais_citado": d.get("mais_citado", 0),
-            "fwci": round(d.get("fwci_medio", 0) or 0, 2),
-            "fwci_delta": round(d.get("fwci_delta", 0) or 0, 2),
-            "fwci_recente": round(d.get("fwci_recente", 0) or 0, 2),
-            "top10": d.get("artigos_top10pct", 0),
-            "top1": d.get("artigos_top1pct", 0),
-            "recent2a": d.get("citacoes_recentes_2a", 0),
-            "momentum": d.get("momentum_pct", 0),
-            "qualis": qualis_de.get(d["nome"], 0),
-            "asc": d.get("artigo_ascensao"),   # artigo em ascensão (OpenAlex counts_by_year)
-            "serie": d.get("citacoes_por_ano") or {},  # sparkline citações/ano
-            # artigos-fonte: principais artigos (mais citados) que sustentam as métricas
-            "arts": [
-                {"t": a.get("titulo", ""), "ano": a.get("ano"),
-                 "cit": a.get("citacoes", 0), "fwci": round(a.get("fwci", 0) or 0, 2),
-                 "pct": a.get("percentil", 0), "doi": a.get("doi", "")}
-                for a in (d.get("top_artigos") or [])
-            ],
-            **_qualidade_veiculo(rk.get(d["nome"], {})),
-        })
+        docentes.append(
+            {
+                "nome": d["nome"],
+                "lattes_id": d.get("lattes_id", ""),
+                "area": _area,
+                "artigos": d.get("encontrados_openalex", 0),
+                "artigos_doi": d.get("artigos_com_doi", 0),
+                "cit": d.get("citacoes_total", 0),
+                "h": d.get("h_index", 0),
+                "g": d.get("g_index", 0),
+                "m": round(d.get("m_index", 0) or 0, 2),
+                "idade": d.get("idade_academica", 0),
+                "cpp": round(d.get("citacoes_por_artigo", 0) or 0, 1),
+                "cit_med": d.get("citacoes_mediana", 0),
+                "art_frac": round(d.get("artigos_fracionados", 0) or 0, 1),
+                "cit_frac": round(d.get("citacoes_fracionadas", 0) or 0, 1),
+                "i10": d.get("i10", 0),
+                "mais_citado": d.get("mais_citado", 0),
+                "fwci": round(d.get("fwci_medio", 0) or 0, 2),
+                "fwci_delta": round(d.get("fwci_delta", 0) or 0, 2),
+                "fwci_recente": round(d.get("fwci_recente", 0) or 0, 2),
+                "top10": d.get("artigos_top10pct", 0),
+                "top1": d.get("artigos_top1pct", 0),
+                "recent2a": d.get("citacoes_recentes_2a", 0),
+                "momentum": d.get("momentum_pct", 0),
+                "qualis": qualis_de.get(d["nome"], 0),
+                "asc": d.get(
+                    "artigo_ascensao"
+                ),  # artigo em ascensão (OpenAlex counts_by_year)
+                "serie": d.get("citacoes_por_ano") or {},  # sparkline citações/ano
+                # artigos-fonte: principais artigos (mais citados) que sustentam as métricas
+                "arts": [
+                    {
+                        "t": a.get("titulo", ""),
+                        "ano": a.get("ano"),
+                        "cit": a.get("citacoes", 0),
+                        "fwci": round(a.get("fwci", 0) or 0, 2),
+                        "pct": a.get("percentil", 0),
+                        "doi": a.get("doi", ""),
+                    }
+                    for a in (d.get("top_artigos") or [])
+                ],
+                **_qualidade_veiculo(rk.get(d["nome"], {})),
+            }
+        )
 
     com_oa = [d for d in docentes if d["artigos"] > 0]
 
@@ -186,19 +216,23 @@ def analisar() -> dict:
     for area, ds in por_area.items():
         n = len(ds)
         fwcis = [x["fwci"] for x in ds if x["fwci"] > 0]
-        areas.append({
-            "area": area,
-            "n": n,
-            "cit": sum(x["cit"] for x in ds),
-            "fwci_mediano": _median(fwcis),   # mediana: robusta a outlier (amostra pequena)
-            "top10": sum(x["top10"] for x in ds),
-            "h_medio": round(sum(x["h"] for x in ds) / n, 1) if n else 0,
-        })
+        areas.append(
+            {
+                "area": area,
+                "n": n,
+                "cit": sum(x["cit"] for x in ds),
+                "fwci_mediano": _median(
+                    fwcis
+                ),  # mediana: robusta a outlier (amostra pequena)
+                "top10": sum(x["top10"] for x in ds),
+                "h_medio": round(sum(x["h"] for x in ds) / n, 1) if n else 0,
+            }
+        )
     areas.sort(key=lambda a: -a["cit"])
 
     cits = [d["cit"] for d in com_oa]
     fwcis = sorted(d["fwci"] for d in com_oa if d["fwci"] > 0)
-    fwci_med = _median(fwcis)   # mediana correta (média dos 2 centrais em lista par)
+    fwci_med = _median(fwcis)  # mediana correta (média dos 2 centrais em lista par)
     kpis = {
         "n_docentes": len(docentes),
         "com_openalex": len(com_oa),
@@ -483,85 +517,96 @@ render();
 """
 
 
-EXPL_CONC = bloco_metrica({
-    "titulo": "Concentração (Gini / Lorenz)",
-    "o_que": "O quanto as citações se concentram em <b>poucos docentes</b>. A curva de Lorenz "
-             "afunda quanto mais concentrado; o Gini resume isso num número.",
-    "formula": "Gini: 0 = todos iguais · 1 = um docente concentra tudo",
-    "como_ler": "Gini alto = um <b>núcleo pequeno</b> gera a maior parte do impacto. É comum e "
-                "esperado em ciência (poucos trabalhos recebem muitas citações).",
-    "nao_concluir": [
-        "Não significa que \"poucos trabalham\" — concentração de <b>citações</b> é a norma "
-        "(lei de Price/Lotka), não medida de esforço.",
-        "Não ranquear pessoas pelo Gini; ele descreve o <b>conjunto</b>, não indivíduos.",
-    ],
-    "gestores": "Sinaliza <b>dependência de um núcleo</b>: vale difundir boas práticas, apoiar quem "
-                "está abaixo da mediana e planejar sucessão — risco e oportunidade de difusão.",
-})
-EXPL_TRAJ = bloco_metrica({
-    "titulo": "Ascensão e declínio (ΔFWCI)",
-    "o_que": "<b>Ascensão</b>: o artigo de cada docente que mais ganhou citações nos últimos 2 "
-             "anos. <b>Declínio</b>: ΔFWCI (impacto relativo recente − antigo) mais negativo.",
-    "como_ler": "Ascensão mostra o trabalho <b>\"quente\" agora</b>. ΔFWCI negativo indica que os "
-                "artigos recentes ainda renderam menos citações, <b>na comparação mundial</b>, que os antigos.",
-    "nao_concluir": [
-        "ΔFWCI negativo <b>NÃO</b> é \"parou de produzir\" nem trabalho ruim.",
-        "Causas benignas: citação leva <b>2–4 anos</b>; regressão à média após um paper excepcional; "
-        "mudança de linha/veículo.",
-    ],
-    "gestores": "Usar como <b>sinal de atenção e apoio</b>, não de mérito. Celebrar ascensões; "
-                "conversar (não cobrar) sobre quedas relativas recentes.",
-})
-EXPL_ELITE = bloco_metrica({
-    "titulo": "Produção de elite e eficiência",
-    "o_que": "<b>Elite</b>: nº de artigos no <b>top 10%</b> mundial de citações da área. "
-             "<b>Eficiência</b>: citações <b>fracionadas</b> por autoria (crédito atribuível).",
-    "formula": "top 10% = percentil ≥ 90 · crédito = Σ (citações ÷ nº de autores)",
-    "como_ler": "Top 10% = produção de <b>classe mundial</b>. O fracionado corrige a hipercoautoria "
-                "— mostra o impacto realmente <b>atribuível</b> ao docente.",
-    "nao_concluir": [
-        "Poucos artigos no top 10% <b>não</b> significam pesquisa fraca — áreas citam em ritmos "
-        "muito diferentes.",
-        "Não comparar áreas por <b>volume bruto</b>; usar sempre o percentil/normalização.",
-    ],
-    "gestores": "Reconhecer a produção de elite; usar o crédito fracionado para enxergar a "
-                "contribuição real além de listas longas de autores.",
-})
-EXPL_BENCH = bloco_metrica({
-    "titulo": "Benchmark por área e precocidade (FWCI, m-index)",
-    "o_que": "<b>FWCI mediano</b> por grande área (impacto normalizado por campo) e <b>m-index</b> "
-             "(h-index ÷ anos de carreira), que mede a <b>velocidade</b> de construção de impacto.",
-    "formula": "FWCI = citações observadas ÷ esperadas (campo·ano·tipo); 1,0 = média mundial · m = h ÷ anos",
-    "como_ler": "FWCI permite comparar <b>áreas diferentes de forma justa</b> (acima de 1,0 = acima "
-                "da média mundial). m alto = construiu impacto <b>cedo</b> (talento emergente).",
-    "nao_concluir": [
-        "FWCI baixo de uma área <b>não</b> é \"qualidade ruim\": amostra pequena e cobertura por DOI "
-        "(OpenAlex) afetam o número.",
-        "Não usar o m-index para comparar seniores com iniciantes como se fosse mérito absoluto.",
-    ],
-    "gestores": "Identificar <b>áreas e talentos emergentes</b> a apoiar; ler o FWCI por área junto "
-                "com o tamanho da amostra.",
-})
-EXPL_VEIC = bloco_metrica({
-    "titulo": "Qualidade de veículo (Q1/Q2 SJR · A1-A2 Qualis)",
-    "o_que": "% de artigos publicados em revistas do <b>quartil superior</b> (SJR/SCImago) e do "
-             "<b>estrato alto</b> (Qualis/CAPES). É métrica <b>do veículo</b>, não do artigo.",
-    "como_ler": "Mostra <b>onde</b> o campus publica. Q1/Q2 e A1-A2 indicam veículos de maior "
-                "prestígio — contexto, não o impacto do artigo em si.",
-    "nao_concluir": [
-        "Bom veículo <b>≠</b> artigo de alto impacto — a <b>DORA</b> desaconselha avaliar o artigo "
-        "pelo prestígio do periódico.",
-        "Cobertura por <b>ISSN</b> é parcial (periódicos nacionais sem indexação ficam de fora).",
-    ],
-    "gestores": "Orientar a escolha de veículos e ler <b>junto com o FWCI</b> (impacto real) — veículo "
-                "forte com FWCI baixo merece atenção, e vice-versa.",
-})
+EXPL_CONC = bloco_metrica(
+    {
+        "titulo": "Concentração (Gini / Lorenz)",
+        "o_que": "O quanto as citações se concentram em <b>poucos docentes</b>. A curva de Lorenz "
+        "afunda quanto mais concentrado; o Gini resume isso num número.",
+        "formula": "Gini: 0 = todos iguais · 1 = um docente concentra tudo",
+        "como_ler": "Gini alto = um <b>núcleo pequeno</b> gera a maior parte do impacto. É comum e "
+        "esperado em ciência (poucos trabalhos recebem muitas citações).",
+        "nao_concluir": [
+            'Não significa que "poucos trabalham" — concentração de <b>citações</b> é a norma '
+            "(lei de Price/Lotka), não medida de esforço.",
+            "Não ranquear pessoas pelo Gini; ele descreve o <b>conjunto</b>, não indivíduos.",
+        ],
+        "gestores": "Sinaliza <b>dependência de um núcleo</b>: vale difundir boas práticas, apoiar quem "
+        "está abaixo da mediana e planejar sucessão — risco e oportunidade de difusão.",
+    }
+)
+EXPL_TRAJ = bloco_metrica(
+    {
+        "titulo": "Ascensão e declínio (ΔFWCI)",
+        "o_que": "<b>Ascensão</b>: o artigo de cada docente que mais ganhou citações nos últimos 2 "
+        "anos. <b>Declínio</b>: ΔFWCI (impacto relativo recente − antigo) mais negativo.",
+        "como_ler": 'Ascensão mostra o trabalho <b>"quente" agora</b>. ΔFWCI negativo indica que os '
+        "artigos recentes ainda renderam menos citações, <b>na comparação mundial</b>, que os antigos.",
+        "nao_concluir": [
+            'ΔFWCI negativo <b>NÃO</b> é "parou de produzir" nem trabalho ruim.',
+            "Causas benignas: citação leva <b>2–4 anos</b>; regressão à média após um paper excepcional; "
+            "mudança de linha/veículo.",
+        ],
+        "gestores": "Usar como <b>sinal de atenção e apoio</b>, não de mérito. Celebrar ascensões; "
+        "conversar (não cobrar) sobre quedas relativas recentes.",
+    }
+)
+EXPL_ELITE = bloco_metrica(
+    {
+        "titulo": "Produção de elite e eficiência",
+        "o_que": "<b>Elite</b>: nº de artigos no <b>top 10%</b> mundial de citações da área. "
+        "<b>Eficiência</b>: citações <b>fracionadas</b> por autoria (crédito atribuível).",
+        "formula": "top 10% = percentil ≥ 90 · crédito = Σ (citações ÷ nº de autores)",
+        "como_ler": "Top 10% = produção de <b>classe mundial</b>. O fracionado corrige a hipercoautoria "
+        "— mostra o impacto realmente <b>atribuível</b> ao docente.",
+        "nao_concluir": [
+            "Poucos artigos no top 10% <b>não</b> significam pesquisa fraca — áreas citam em ritmos "
+            "muito diferentes.",
+            "Não comparar áreas por <b>volume bruto</b>; usar sempre o percentil/normalização.",
+        ],
+        "gestores": "Reconhecer a produção de elite; usar o crédito fracionado para enxergar a "
+        "contribuição real além de listas longas de autores.",
+    }
+)
+EXPL_BENCH = bloco_metrica(
+    {
+        "titulo": "Benchmark por área e precocidade (FWCI, m-index)",
+        "o_que": "<b>FWCI mediano</b> por grande área (impacto normalizado por campo) e <b>m-index</b> "
+        "(h-index ÷ anos de carreira), que mede a <b>velocidade</b> de construção de impacto.",
+        "formula": "FWCI = citações observadas ÷ esperadas (campo·ano·tipo); 1,0 = média mundial · m = h ÷ anos",
+        "como_ler": "FWCI permite comparar <b>áreas diferentes de forma justa</b> (acima de 1,0 = acima "
+        "da média mundial). m alto = construiu impacto <b>cedo</b> (talento emergente).",
+        "nao_concluir": [
+            'FWCI baixo de uma área <b>não</b> é "qualidade ruim": amostra pequena e cobertura por DOI '
+            "(OpenAlex) afetam o número.",
+            "Não usar o m-index para comparar seniores com iniciantes como se fosse mérito absoluto.",
+        ],
+        "gestores": "Identificar <b>áreas e talentos emergentes</b> a apoiar; ler o FWCI por área junto "
+        "com o tamanho da amostra.",
+    }
+)
+EXPL_VEIC = bloco_metrica(
+    {
+        "titulo": "Qualidade de veículo (Q1/Q2 SJR · A1-A2 Qualis)",
+        "o_que": "% de artigos publicados em revistas do <b>quartil superior</b> (SJR/SCImago) e do "
+        "<b>estrato alto</b> (Qualis/CAPES). É métrica <b>do veículo</b>, não do artigo.",
+        "como_ler": "Mostra <b>onde</b> o campus publica. Q1/Q2 e A1-A2 indicam veículos de maior "
+        "prestígio — contexto, não o impacto do artigo em si.",
+        "nao_concluir": [
+            "Bom veículo <b>≠</b> artigo de alto impacto — a <b>DORA</b> desaconselha avaliar o artigo "
+            "pelo prestígio do periódico.",
+            "Cobertura por <b>ISSN</b> é parcial (periódicos nacionais sem indexação ficam de fora).",
+        ],
+        "gestores": "Orientar a escolha de veículos e ler <b>junto com o FWCI</b> (impacto real) — veículo "
+        "forte com FWCI baixo merece atenção, e vice-versa.",
+    }
+)
 
 
 def render_html(data: dict) -> str:
     payload = json.dumps(
         {"docentes": data["docentes"], "areas": data["areas"], "kpis": data["kpis"]},
-        ensure_ascii=False, separators=(",", ":"),
+        ensure_ascii=False,
+        separators=(",", ":"),
     )
     return f"""<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="UTF-8">
@@ -823,14 +868,18 @@ document.getElementById('k_n2').textContent=DATA.kpis.com_openalex;
 
 def main() -> None:
     data = analisar()
-    OUT_JSON.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    OUT_JSON.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     OUT_HTML.write_text(render_html(data), encoding="utf-8")
     k = data["kpis"]
     print(f"OK -> {OUT_JSON.relative_to(ROOT)}")
     print(f"OK -> {OUT_HTML.relative_to(ROOT)}")
-    print(f"Docentes c/ OpenAlex: {k['com_openalex']}/{k['n_docentes']} | "
-          f"citações={k['citacoes_total']} | FWCI méd={k['fwci_medio']} | "
-          f"top10={k['top10_total']} | Gini={k['gini_citacoes']}")
+    print(
+        f"Docentes c/ OpenAlex: {k['com_openalex']}/{k['n_docentes']} | "
+        f"citações={k['citacoes_total']} | FWCI méd={k['fwci_medio']} | "
+        f"top10={k['top10_total']} | Gini={k['gini_citacoes']}"
+    )
 
 
 if __name__ == "__main__":

@@ -34,7 +34,9 @@ def _json_safe(value: Any) -> Any:
 
 
 def stable_hash(value: Any) -> str:
-    payload = json.dumps(value, sort_keys=True, ensure_ascii=False, default=_json_default)
+    payload = json.dumps(
+        value, sort_keys=True, ensure_ascii=False, default=_json_default
+    )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -87,7 +89,9 @@ class TrackingRecorder:
                 pass
 
     @contextmanager
-    def run_context(self, *, source_system: str, flow_name: str, notes: Optional[str] = None):
+    def run_context(
+        self, *, source_system: str, flow_name: str, notes: Optional[str] = None
+    ):
         with self._controller(
             getattr(self, "_ingestion_run_controller_cls", IngestionRunController),
             legacy_attr="ingestion_run_ctrl",
@@ -102,7 +106,9 @@ class TrackingRecorder:
         run_token = current_ingestion_run_id.set(run_id)
         source_token = current_source_system.set(source_system)
         try:
-            yield SimpleNamespace(id=run_id, source_system=source_system, flow_name=flow_name)
+            yield SimpleNamespace(
+                id=run_id, source_system=source_system, flow_name=flow_name
+            )
             with self._controller(
                 getattr(self, "_ingestion_run_controller_cls", IngestionRunController),
                 legacy_attr="ingestion_run_ctrl",

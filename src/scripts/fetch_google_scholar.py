@@ -49,13 +49,19 @@ def _roster_names() -> list[str]:
     """Nomes dos docentes — reaproveita o roster do executivo de docentes."""
     try:
         from src.scripts.generate_docentes_executive import ROSTER_IDS, ROSTER_SUSPECT
+
         return list(ROSTER_IDS.keys()) + list(ROSTER_SUSPECT.keys())
     except Exception:
         return []
 
 
 def _norm(s: str) -> str:
-    return unicodedata.normalize("NFKD", s or "").encode("ascii", "ignore").decode().lower()
+    return (
+        unicodedata.normalize("NFKD", s or "")
+        .encode("ascii", "ignore")
+        .decode()
+        .lower()
+    )
 
 
 def _affiliation_ok(affiliation: str) -> bool:
@@ -85,11 +91,12 @@ def _save(out_path: Path, results: dict, generated_at: str) -> None:
             key=lambda r: -(r.get("h_index") or 0),
         ),
     }
-    out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    out_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
 
-def fetch_one(scholarly, name: str, query_suffix: str,
-              check_affiliation: bool) -> dict:
+def fetch_one(scholarly, name: str, query_suffix: str, check_affiliation: bool) -> dict:
     """Busca um docente no Scholar e extrai métricas. Nunca levanta exceção."""
     rec: dict = {"nome": name, "encontrado": False, "erro": None}
     try:
@@ -109,38 +116,46 @@ def fetch_one(scholarly, name: str, query_suffix: str,
             rec["afiliacao_encontrada"] = affiliation
             return rec
 
-        full = scholarly.fill(author, sections=["basics", "indices", "counts", "publications"])
+        full = scholarly.fill(
+            author, sections=["basics", "indices", "counts", "publications"]
+        )
 
         pubs = full.get("publications", []) or []
+
         def _cit(p):
             return p.get("num_citations", 0) or 0
+
         top = sorted(pubs, key=_cit, reverse=True)[:TOP_ARTICLES]
         top_articles = []
         for p in top:
             bib = p.get("bib", {}) or {}
-            top_articles.append({
-                "titulo": bib.get("title", ""),
-                "ano": bib.get("pub_year", ""),
-                "veiculo": bib.get("venue", "") or bib.get("citation", ""),
-                "citacoes": _cit(p),
-            })
+            top_articles.append(
+                {
+                    "titulo": bib.get("title", ""),
+                    "ano": bib.get("pub_year", ""),
+                    "veiculo": bib.get("venue", "") or bib.get("citation", ""),
+                    "citacoes": _cit(p),
+                }
+            )
 
-        rec.update({
-            "encontrado": True,
-            "scholar_id": full.get("scholar_id", ""),
-            "nome_scholar": full.get("name", ""),
-            "afiliacao": affiliation,
-            "areas": full.get("interests", []),
-            "h_index": full.get("hindex"),
-            "h_index_5y": full.get("hindex5y"),
-            "i10_index": full.get("i10index"),
-            "i10_index_5y": full.get("i10index5y"),
-            "citacoes_total": full.get("citedby"),
-            "citacoes_5y": full.get("citedby5y"),
-            "n_publicacoes": len(pubs),
-            "url": f"https://scholar.google.com/citations?user={full.get('scholar_id','')}",
-            "artigos_mais_citados": top_articles,
-        })
+        rec.update(
+            {
+                "encontrado": True,
+                "scholar_id": full.get("scholar_id", ""),
+                "nome_scholar": full.get("name", ""),
+                "afiliacao": affiliation,
+                "areas": full.get("interests", []),
+                "h_index": full.get("hindex"),
+                "h_index_5y": full.get("hindex5y"),
+                "i10_index": full.get("i10index"),
+                "i10_index_5y": full.get("i10index5y"),
+                "citacoes_total": full.get("citedby"),
+                "citacoes_5y": full.get("citedby5y"),
+                "n_publicacoes": len(pubs),
+                "url": f"https://scholar.google.com/citations?user={full.get('scholar_id','')}",
+                "artigos_mais_citados": top_articles,
+            }
+        )
     except StopIteration:
         rec["erro"] = "perfil não encontrado"
     except Exception as exc:  # bloqueio, parsing, rede
@@ -149,26 +164,44 @@ def fetch_one(scholarly, name: str, query_suffix: str,
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Coleta métricas do Google Scholar dos docentes.")
+    ap = argparse.ArgumentParser(
+        description="Coleta métricas do Google Scholar dos docentes."
+    )
     ap.add_argument("--out", default=str(DEFAULT_OUT))
-    ap.add_argument("--limit", type=int, default=0, help="limita nº de docentes (0 = todos)")
+    ap.add_argument(
+        "--limit", type=int, default=0, help="limita nº de docentes (0 = todos)"
+    )
     ap.add_argument("--sleep", type=float, default=6.0, help="pausa entre buscas (s)")
     ap.add_argument("--names", nargs="*", help="processa apenas estes nomes")
-    ap.add_argument("--query-suffix", default=DEFAULT_QUERY_SUFFIX,
-                    help="sufixo de afiliação adicionado à busca")
-    ap.add_argument("--no-affiliation-check", action="store_true",
-                    help="aceita o 1º perfil mesmo sem casar afiliação (arriscado)")
-    ap.add_argument("--use-proxy", action="store_true",
-                    help="usa ProxyGenerator (free proxies) para reduzir bloqueio")
-    ap.add_argument("--no-resume", action="store_true",
-                    help="ignora resultados já salvos e refaz tudo")
+    ap.add_argument(
+        "--query-suffix",
+        default=DEFAULT_QUERY_SUFFIX,
+        help="sufixo de afiliação adicionado à busca",
+    )
+    ap.add_argument(
+        "--no-affiliation-check",
+        action="store_true",
+        help="aceita o 1º perfil mesmo sem casar afiliação (arriscado)",
+    )
+    ap.add_argument(
+        "--use-proxy",
+        action="store_true",
+        help="usa ProxyGenerator (free proxies) para reduzir bloqueio",
+    )
+    ap.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="ignora resultados já salvos e refaz tudo",
+    )
     args = ap.parse_args()
 
     try:
-        from scholarly import scholarly, ProxyGenerator
+        from scholarly import ProxyGenerator, scholarly
     except ImportError:
-        print("ERRO: lib 'scholarly' não instalada. Rode: pip install scholarly",
-              file=sys.stderr)
+        print(
+            "ERRO: lib 'scholarly' não instalada. Rode: pip install scholarly",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     if args.use_proxy:
@@ -192,17 +225,25 @@ def main() -> None:
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     pend = [n for n in names if n not in results or results[n].get("erro")]
-    print(f"Docentes: {len(names)} · já coletados: {len(names) - len(pend)} · "
-          f"a processar: {len(pend)} · sleep={args.sleep}s")
+    print(
+        f"Docentes: {len(names)} · já coletados: {len(names) - len(pend)} · "
+        f"a processar: {len(pend)} · sleep={args.sleep}s"
+    )
 
     for i, name in enumerate(pend, 1):
         print(f"[{i}/{len(pend)}] {name} ... ", end="", flush=True)
-        rec = fetch_one(scholarly, name, args.query_suffix,
-                        check_affiliation=not args.no_affiliation_check)
+        rec = fetch_one(
+            scholarly,
+            name,
+            args.query_suffix,
+            check_affiliation=not args.no_affiliation_check,
+        )
         results[name] = rec
         if rec["encontrado"]:
-            print(f"h={rec.get('h_index')} cit={rec.get('citacoes_total')} "
-                  f"({len(rec.get('artigos_mais_citados', []))} artigos top)")
+            print(
+                f"h={rec.get('h_index')} cit={rec.get('citacoes_total')} "
+                f"({len(rec.get('artigos_mais_citados', []))} artigos top)"
+            )
         else:
             print(f"— {rec.get('erro')}")
         _save(out_path, results, now)  # salva incremental

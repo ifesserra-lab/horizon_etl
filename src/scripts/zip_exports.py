@@ -51,9 +51,15 @@ def make_zip(files: list[Path], out: Path) -> tuple[int, int]:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Compacta exports/dados em .zip e (opcional) commita.")
+    ap = argparse.ArgumentParser(
+        description="Compacta exports/dados em .zip e (opcional) commita."
+    )
     ap.add_argument("--out", default=str(DEFAULT_OUT), help="caminho do .zip de saída")
-    ap.add_argument("--glob", action="append", help="padrão(s) de arquivo (repetível); substitui os padrões")
+    ap.add_argument(
+        "--glob",
+        action="append",
+        help="padrão(s) de arquivo (repetível); substitui os padrões",
+    )
     ap.add_argument("--commit", action="store_true", help="git add do zip + commit")
     args = ap.parse_args()
 
@@ -69,15 +75,19 @@ def main() -> None:
     orig, zsz = make_zip(files, out)
     ratio = (zsz / orig * 100) if orig else 0
     print(f"Zip: {out.relative_to(ROOT)}")
-    print(f"  {len(files)} arquivos · {orig/1e6:.1f} MB -> {zsz/1e6:.1f} MB ({ratio:.0f}% do original)")
+    print(
+        f"  {len(files)} arquivos · {orig/1e6:.1f} MB -> {zsz/1e6:.1f} MB ({ratio:.0f}% do original)"
+    )
     for f in files:
         print("  +", f.relative_to(ROOT))
 
     if args.commit:
         rel = str(out.relative_to(ROOT))
         subprocess.run(["git", "-C", str(ROOT), "add", rel], check=True)
-        msg = (f"chore: snapshot zip de dados/exports "
-               f"({len(files)} arquivos, {zsz/1e6:.1f} MB, {datetime.now():%Y-%m-%d})")
+        msg = (
+            f"chore: snapshot zip de dados/exports "
+            f"({len(files)} arquivos, {zsz/1e6:.1f} MB, {datetime.now():%Y-%m-%d})"
+        )
         r = subprocess.run(["git", "-C", str(ROOT), "commit", "-m", msg])
         print("commit:", "OK" if r.returncode == 0 else "nada a commitar ou erro")
 

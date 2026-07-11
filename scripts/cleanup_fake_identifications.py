@@ -64,7 +64,7 @@ def classify(conn: sqlite3.Connection) -> dict[str, list[int]]:
             continue
 
         if ident.startswith("LGPD-"):
-            digest16 = ident[len("LGPD-"):]
+            digest16 = ident[len("LGPD-") :]
             email_prefixes = {
                 e.split("@", 1)[0]
                 for e in emails_by_person.get(pid, [])
@@ -87,7 +87,9 @@ def classify(conn: sqlite3.Connection) -> dict[str, list[int]]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", default="db/horizon.db")
-    parser.add_argument("--apply", action="store_true", help="write changes (default: dry-run)")
+    parser.add_argument(
+        "--apply", action="store_true", help="write changes (default: dry-run)"
+    )
     args = parser.parse_args()
 
     conn = sqlite3.connect(args.db)
@@ -98,8 +100,10 @@ def main() -> None:
 
         to_null = buckets["fake_name_hash"] + buckets["fake_email_hash"]
         if not args.apply:
-            print(f"\nDry-run: would NULL identification_id of {len(to_null)} persons. "
-                  "Re-run with --apply.")
+            print(
+                f"\nDry-run: would NULL identification_id of {len(to_null)} persons. "
+                "Re-run with --apply."
+            )
             return
 
         with conn:
