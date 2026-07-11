@@ -22,9 +22,11 @@ OUT_DIR = BASE / "data" / "exports" / "formandos"
 DEFAULT_JSON = OUT_DIR / "formandos_pesquisa_all_generated.json"
 
 GROUPS = ["Cotas / Reserva de vagas", "Ampla Concorrência", "Transferência"]
-GSHORT = {"Cotas / Reserva de vagas": "Cotistas",
-          "Ampla Concorrência": "Ampla concorrência",
-          "Transferência": "Transferência"}
+GSHORT = {
+    "Cotas / Reserva de vagas": "Cotistas",
+    "Ampla Concorrência": "Ampla concorrência",
+    "Transferência": "Transferência",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -166,12 +168,19 @@ tbody tr:last-child td{border-bottom:none;}
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _pct(part: float, whole: float) -> float:
     return round(part / whole * 100, 1) if whole else 0.0
 
 
-def bar(label: str, value, max_val: float, color: str, suffix: str = "",
-        note: str | None = None) -> str:
+def bar(
+    label: str,
+    value,
+    max_val: float,
+    color: str,
+    suffix: str = "",
+    note: str | None = None,
+) -> str:
     """Horizontal bar; value label always sits OUTSIDE the track (right)."""
     w = (value / max_val * 100) if max_val else 0
     val_txt = note if note is not None else f"{value}{suffix}"
@@ -187,11 +196,13 @@ def bar(label: str, value, max_val: float, color: str, suffix: str = "",
 # Build
 # ---------------------------------------------------------------------------
 
+
 def build(payload: dict, generated_at: str) -> str:
     s = payload["stats"]
     sems = payload.get("semesters") or []
-    period = (f"{sems[0].replace('_', '.')} – {sems[-1].replace('_', '.')}"
-              if sems else "")
+    period = (
+        f"{sems[0].replace('_', '.')} – {sems[-1].replace('_', '.')}" if sems else ""
+    )
     total = s["total"]
     a = s["admission"]
     gt = s["graduation_time"]
@@ -213,10 +224,14 @@ def build(payload: dict, generated_at: str) -> str:
     ampla_ic_pct = g_ic.get("Ampla Concorrência", {}).get("pct", 0)
     cota_paid_pct = g_fel.get("Cotas / Reserva de vagas", {}).get("pct_paid_total", 0)
     ampla_paid_pct = g_fel.get("Ampla Concorrência", {}).get("pct_paid_total", 0)
-    cota_grad = by_adm.get("Cotas / Reserva de vagas", {}).get("overall", {}).get("mean", 0)
+    cota_grad = (
+        by_adm.get("Cotas / Reserva de vagas", {}).get("overall", {}).get("mean", 0)
+    )
     ampla_grad = by_adm.get("Ampla Concorrência", {}).get("overall", {}).get("mean", 0)
     # atraso = semestres além do currículo previsto (SI=8, ECA=12) — comparável entre cursos
-    cota_delay = by_adm.get("Cotas / Reserva de vagas", {}).get("delay", {}).get("mean", 0)
+    cota_delay = (
+        by_adm.get("Cotas / Reserva de vagas", {}).get("delay", {}).get("mean", 0)
+    )
     ampla_delay = by_adm.get("Ampla Concorrência", {}).get("delay", {}).get("mean", 0)
     exp = gt.get("expected", {})
 
@@ -233,6 +248,7 @@ def build(payload: dict, generated_at: str) -> str:
         accel = sum(c for v, c in dist.items() if -2 <= int(v) <= -1)
         suspect = sum(c for v, c in dist.items() if int(v) <= -3)
         return accel, suspect, dl.get("n", 0)
+
     _cota_accel, _cota_susp, _cota_nn = _atraso_breakdown("Cotas / Reserva de vagas")
     _ampla_accel, _ampla_susp, _ampla_nn = _atraso_breakdown("Ampla Concorrência")
     cota_susp_pct = round(_cota_susp / _cota_nn * 100) if _cota_nn else 0
@@ -322,21 +338,33 @@ def build(payload: dict, generated_at: str) -> str:
 
     # === COTAS DISTRIBUTION ===
     gmax = max(g_counts.values()) if g_counts else 1
-    GCOL = {"Cotas / Reserva de vagas": "var(--brand)",
-            "Ampla Concorrência": "var(--blue)",
-            "Transferência": "var(--amber)"}
+    GCOL = {
+        "Cotas / Reserva de vagas": "var(--brand)",
+        "Ampla Concorrência": "var(--blue)",
+        "Transferência": "var(--amber)",
+    }
     grp_bars = "".join(
-        bar(GSHORT.get(g, g), g_counts.get(g, 0), gmax, GCOL.get(g, "var(--muted)"),
-            note=f"{g_counts.get(g,0)} · {_pct(g_counts.get(g,0), total)}%")
-        for g in GROUPS if g_counts.get(g)
+        bar(
+            GSHORT.get(g, g),
+            g_counts.get(g, 0),
+            gmax,
+            GCOL.get(g, "var(--muted)"),
+            note=f"{g_counts.get(g,0)} · {_pct(g_counts.get(g,0), total)}%",
+        )
+        for g in GROUPS
+        if g_counts.get(g)
     )
     flags = a["flag_counts"]
     fmax = max(flags.values()) if flags else 1
-    FCOL = {"Escola Pública": "var(--brand)", "PPI": "#3a9c63", "Renda": "var(--amber)",
-            "Ação Afirmativa": "var(--blue)", "Pessoa c/ Deficiência": "var(--rose)"}
+    FCOL = {
+        "Escola Pública": "var(--brand)",
+        "PPI": "#3a9c63",
+        "Renda": "var(--amber)",
+        "Ação Afirmativa": "var(--blue)",
+        "Pessoa c/ Deficiência": "var(--rose)",
+    }
     flag_bars = "".join(
-        bar(k, v, fmax, FCOL.get(k, "var(--muted)"),
-            note=f"{v} · {_pct(v, total)}%")
+        bar(k, v, fmax, FCOL.get(k, "var(--muted)"), note=f"{v} · {_pct(v, total)}%")
         for k, v in flags.items()
     )
     cotas_sec = f"""
@@ -355,9 +383,14 @@ def build(payload: dict, generated_at: str) -> str:
     cmp_cards = ""
     win_key = min(
         (g for g in GROUPS if by_adm.get(g, {}).get("delay")),
-        key=lambda g: by_adm[g]["delay"]["mean"], default=None,
+        key=lambda g: by_adm[g]["delay"]["mean"],
+        default=None,
     )
-    CCOL = {"Cotas / Reserva de vagas": "g", "Ampla Concorrência": "b", "Transferência": "a"}
+    CCOL = {
+        "Cotas / Reserva de vagas": "g",
+        "Ampla Concorrência": "b",
+        "Transferência": "a",
+    }
     for g in GROUPS:
         dl = by_adm.get(g, {}).get("delay")
         if not dl:
@@ -369,9 +402,9 @@ def build(payload: dict, generated_at: str) -> str:
             f'<div class="sub">semestres de atraso · n={dl["n"]}</div></div>'
         )
     # per-curso table: raw mean vs previsto
-    cursos = sorted({
-        c for g in GROUPS for c in (by_adm.get(g, {}).get("by_curso", {}) or {})
-    })
+    cursos = sorted(
+        {c for g in GROUPS for c in (by_adm.get(g, {}).get("by_curso", {}) or {})}
+    )
     crows = ""
     for c in cursos:
         short = "ECA" if "Controle" in c else "SI"
@@ -379,10 +412,15 @@ def build(payload: dict, generated_at: str) -> str:
         tds = ""
         for g in GROUPS:
             st = (by_adm.get(g, {}).get("by_curso", {}) or {}).get(c) or {}
-            tds += (f'<td>{st["mean"]} <span style="color:var(--muted);">(n={st["n"]})</span></td>'
-                    if st else "<td>—</td>")
-        crows += (f'<tr><td><b>{short}</b> — {c} '
-                  f'<span style="color:var(--muted);font-weight:400;">· prev. {ce} sem</span></td>{tds}</tr>')
+            tds += (
+                f'<td>{st["mean"]} <span style="color:var(--muted);">(n={st["n"]})</span></td>'
+                if st
+                else "<td>—</td>"
+            )
+        crows += (
+            f"<tr><td><b>{short}</b> — {c} "
+            f'<span style="color:var(--muted);font-weight:400;">· prev. {ce} sem</span></td>{tds}</tr>'
+        )
     chead = "".join(f"<th>{GSHORT.get(g, g)}</th>" for g in GROUPS)
     grad_sec = f"""
     <section class="section">
@@ -411,8 +449,10 @@ def build(payload: dict, generated_at: str) -> str:
         if not r:
             return ""
         n = r.get("n") or 0
+
         def p(k):
             return round((r.get(k) or 0) / n * 100) if n else 0
+
         md = r.get("atraso_median")
         return f"""
       <div class="card" style="margin-bottom:18px;">
@@ -429,10 +469,15 @@ def build(payload: dict, generated_at: str) -> str:
         </tbody></table>
       </div>"""
 
-    _blocks = (_cblock("SI", "Sistemas de Informação", _ci.get("Sistemas de Informação"))
-               + _cblock("ECA", "Engenharia de Controle e Automação",
-                         _ci.get("Engenharia de Controle e Automação")))
-    cohort_sec = (f"""
+    _blocks = _cblock(
+        "SI", "Sistemas de Informação", _ci.get("Sistemas de Informação")
+    ) + _cblock(
+        "ECA",
+        "Engenharia de Controle e Automação",
+        _ci.get("Engenharia de Controle e Automação"),
+    )
+    cohort_sec = (
+        f"""
     <section class="section">
       <div class="eyebrow">Tempo de formação · cada curso na própria régua</div>
       <h2>Cada curso analisado isoladamente</h2>
@@ -447,7 +492,10 @@ def build(payload: dict, generated_at: str) -> str:
       “suspeito”. No <b>ECA</b>, removendo artefato e antigos não sobra coorte recente mensurável: a
       janela 2020–2025 ainda não acumulou formações limpas de turmas novas de um curso de 6 anos.
       Leia cada curso isolado.</div>
-    </section>""" if _blocks else "")
+    </section>"""
+        if _blocks
+        else ""
+    )
 
     # === EQUITY CALLOUT ===
     callout = f"""
@@ -472,8 +520,9 @@ def build(payload: dict, generated_at: str) -> str:
     for g in GROUPS:
         for ag, n in (g_fel.get(g, {}).get("sponsors", {}) or {}).items():
             ag_grp.setdefault(ag, {})[g] = ag_grp.get(ag, {}).get(g, 0) + n
-    ag_order = [x for x in ["Fapes", "Ifes", "CNPq"] if x in ag_grp] + \
-               [x for x in ag_grp if x not in ("Fapes", "Ifes", "CNPq")]
+    ag_order = [x for x in ["Fapes", "Ifes", "CNPq"] if x in ag_grp] + [
+        x for x in ag_grp if x not in ("Fapes", "Ifes", "CNPq")
+    ]
     ag_rows = ""
     col_tot = {g: 0 for g in GROUPS}
     for ag in ag_order:
@@ -486,8 +535,10 @@ def build(payload: dict, generated_at: str) -> str:
         ag_rows += f'<tr><td><b>{ag}</b></td>{tds}<td>{tot}</td><td style="color:var(--brand-d);font-weight:700;">{round(cot_pct)}%</td></tr>'
     gtot = sum(col_tot.values())
     tot_tds = "".join(f"<td>{col_tot[g]}</td>" for g in GROUPS)
-    ag_rows += (f'<tr class="tot"><td>Total</td>{tot_tds}<td>{gtot}</td>'
-                f'<td>{round(_pct(col_tot["Cotas / Reserva de vagas"], gtot))}%</td></tr>')
+    ag_rows += (
+        f'<tr class="tot"><td>Total</td>{tot_tds}<td>{gtot}</td>'
+        f'<td>{round(_pct(col_tot["Cotas / Reserva de vagas"], gtot))}%</td></tr>'
+    )
     ahead = "".join(f"<th>{GSHORT.get(g, g)}</th>" for g in GROUPS)
     agency_sec = f"""
     <section class="section">
@@ -506,19 +557,26 @@ def build(payload: dict, generated_at: str) -> str:
     bc = s.get("bolsistas_cross") or {}
     bolsistas_sec = ""
     if bc.get("formaram"):
+
         def _brl(v):
-            return f'R$ {v:,.0f}'.replace(",", "X").replace(".", ",").replace("X", ".")
+            return f"R$ {v:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
         sig_n = s.get("with_research_sigpesq", with_research)
         sig_pct = s.get("pct_research_sigpesq", pct_research)
         novos = bc.get("novos_pesquisa", 0)
         brows = ""
         for x in bc.get("por_bolsa", []):
-            faixa = (_brl(x["valor_min"]) if x["valor_min"] == x["valor_max"]
-                     else f'{_brl(x["valor_min"])} – {_brl(x["valor_max"])}')
-            brows += (f'<tr><td><b>{x["sigla"]}</b> '
-                      f'<span style="color:var(--muted);">{x["nome"]}</span></td>'
-                      f'<td>{x["formados"]}</td><td>{faixa}</td>'
-                      f'<td>{_brl(x["valor_alocado"])}</td></tr>')
+            faixa = (
+                _brl(x["valor_min"])
+                if x["valor_min"] == x["valor_max"]
+                else f'{_brl(x["valor_min"])} – {_brl(x["valor_max"])}'
+            )
+            brows += (
+                f'<tr><td><b>{x["sigla"]}</b> '
+                f'<span style="color:var(--muted);">{x["nome"]}</span></td>'
+                f'<td>{x["formados"]}</td><td>{faixa}</td>'
+                f'<td>{_brl(x["valor_alocado"])}</td></tr>'
+            )
         bolsistas_sec = f"""
     <section class="section">
       <div class="eyebrow">Bolsas FAPES</div>
@@ -604,9 +662,15 @@ def build(payload: dict, generated_at: str) -> str:
 def compute_payload() -> dict:
     """Compute stats from source data — self-contained, no cached JSON needed."""
     from src.scripts.generate_formandos_report import (
-        SEMESTER_FILE_MAP, DATA_FORMANDOS, load_formandos, load_json,
-        load_lattes, load_bolsistas, compute,
+        DATA_FORMANDOS,
+        SEMESTER_FILE_MAP,
+        compute,
+        load_bolsistas,
+        load_formandos,
+        load_json,
+        load_lattes,
     )
+
     # dedup by matrícula across all semester snapshots (earliest occurrence wins)
     seen: dict[str, dict] = {}
     semesters_used: list[str] = []
@@ -624,16 +688,24 @@ def compute_payload() -> dict:
     rgs = load_json("research_groups_canonical.json")
     lattes = load_lattes()
     bolsistas = load_bolsistas()
-    stats = compute(formandos, adv, rgs, lattes=lattes,
-                    grad_semester=grad_semester, bolsistas=bolsistas)
+    stats = compute(
+        formandos,
+        adv,
+        rgs,
+        lattes=lattes,
+        grad_semester=grad_semester,
+        bolsistas=bolsistas,
+    )
     return {"semester": "all", "semesters": semesters_used, "stats": stats}
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Gera o relatório executivo Formandos × Pesquisa (IFES Serra).")
-    parser.add_argument("--json", default=None,
-                        help="Usar um JSON já gerado em vez de recalcular")
+        description="Gera o relatório executivo Formandos × Pesquisa (IFES Serra)."
+    )
+    parser.add_argument(
+        "--json", default=None, help="Usar um JSON já gerado em vez de recalcular"
+    )
     parser.add_argument("--out", default=None)
     args = parser.parse_args()
 
@@ -645,8 +717,10 @@ def main() -> None:
     else:
         print("Calculando estatísticas a partir dos dados...")
         payload = compute_payload()
-        print(f"  {payload['stats']['total']} formandos únicos "
-              f"({len(payload['semesters'])} semestres)")
+        print(
+            f"  {payload['stats']['total']} formandos únicos "
+            f"({len(payload['semesters'])} semestres)"
+        )
 
     now = datetime.now().strftime("%d/%m/%Y %H:%M")
     html = build(payload, now)

@@ -15,14 +15,15 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from pathlib import Path
 
-import sys
 import markdown  # 3.x, com extensão 'tables'
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from src.scripts.didatica import bloco_metrica, MOBILE_CSS  # noqa: E402
+from src.scripts.didatica import MOBILE_CSS, bloco_metrica  # noqa: E402
+
 OUT = ROOT / "output"
 MD = OUT / "relatorio_roi_pesquisa.md"
 INTER = OUT / "roi_intermediate.json"
@@ -34,42 +35,86 @@ JSON_OUT = OUT / "relatorio_roi_pesquisa.json"
 # Referências (estruturadas → entram no JSON; o MD já as traz em texto).
 # "citações não verificadas nesta execução" (sem checagem automática de contagem).
 REFERENCIAS = [
-    {"autor": "Buxton, M.; Hanney, S.", "ano": 1996,
-     "titulo": "How can payback from health services research be assessed?",
-     "fonte": "J. Health Services Research & Policy 1(1):35-43",
-     "doi": "10.1177/135581969600100107", "citacoes": "não verificadas nesta execução"},
-    {"autor": "Canadian Academy of Health Sciences", "ano": 2009,
-     "titulo": "Making an Impact: A Preferred Framework and Indicators to Measure Returns on Investment in Health Research (CAHS)",
-     "fonte": "CAHS", "doi": None, "citacoes": "não verificadas nesta execução"},
-    {"autor": "Hicks, D.; Wouters, P.; Waltman, L.; de Rijcke, S.; Rafols, I.", "ano": 2015,
-     "titulo": "The Leiden Manifesto for research metrics",
-     "fonte": "Nature 520:429-431", "doi": "10.1038/520429a",
-     "citacoes": "não verificadas nesta execução"},
-    {"autor": "DORA", "ano": 2012,
-     "titulo": "San Francisco Declaration on Research Assessment",
-     "fonte": "DORA", "doi": None, "citacoes": "não verificadas nesta execução"},
-    {"autor": "CoARA", "ano": 2022,
-     "titulo": "Agreement on Reforming Research Assessment",
-     "fonte": "CoARA", "doi": None, "citacoes": "não verificadas nesta execução"},
-    {"autor": "REF", "ano": 2021,
-     "titulo": "Research Excellence Framework — guidance on submissions (impact case studies)",
-     "fonte": "Research England", "doi": None, "citacoes": "não verificadas nesta execução"},
-    {"autor": "Penfield, T.; Baker, M. J.; Scoble, R.; Wykes, M. C.", "ano": 2014,
-     "titulo": "Assessment, evaluations, and definitions of research impact: A review",
-     "fonte": "Research Evaluation 23(1):21-32", "doi": "10.1093/reseval/rvt021",
-     "citacoes": "não verificadas nesta execução"},
-    {"autor": "Greenhalgh, T. et al.", "ano": 2016,
-     "titulo": "Research impact: a narrative review",
-     "fonte": "BMC Medicine 14:78", "doi": "10.1186/s12916-016-0620-8",
-     "citacoes": "não verificadas nesta execução"},
-    {"autor": "Waltman, L.", "ano": 2016,
-     "titulo": "A review of the literature on citation impact indicators",
-     "fonte": "J. Informetrics 10(2):365-391", "doi": "10.1016/j.joi.2016.02.007",
-     "citacoes": "não verificadas nesta execução"},
-    {"autor": "Priem, J.; Piwowar, H.; Orr, R.", "ano": 2022,
-     "titulo": "OpenAlex: A fully-open index of scholarly works",
-     "fonte": "arXiv:2205.01833", "doi": "10.48550/arXiv.2205.01833",
-     "citacoes": "não verificadas nesta execução"},
+    {
+        "autor": "Buxton, M.; Hanney, S.",
+        "ano": 1996,
+        "titulo": "How can payback from health services research be assessed?",
+        "fonte": "J. Health Services Research & Policy 1(1):35-43",
+        "doi": "10.1177/135581969600100107",
+        "citacoes": "não verificadas nesta execução",
+    },
+    {
+        "autor": "Canadian Academy of Health Sciences",
+        "ano": 2009,
+        "titulo": "Making an Impact: A Preferred Framework and Indicators to Measure Returns on Investment in Health Research (CAHS)",
+        "fonte": "CAHS",
+        "doi": None,
+        "citacoes": "não verificadas nesta execução",
+    },
+    {
+        "autor": "Hicks, D.; Wouters, P.; Waltman, L.; de Rijcke, S.; Rafols, I.",
+        "ano": 2015,
+        "titulo": "The Leiden Manifesto for research metrics",
+        "fonte": "Nature 520:429-431",
+        "doi": "10.1038/520429a",
+        "citacoes": "não verificadas nesta execução",
+    },
+    {
+        "autor": "DORA",
+        "ano": 2012,
+        "titulo": "San Francisco Declaration on Research Assessment",
+        "fonte": "DORA",
+        "doi": None,
+        "citacoes": "não verificadas nesta execução",
+    },
+    {
+        "autor": "CoARA",
+        "ano": 2022,
+        "titulo": "Agreement on Reforming Research Assessment",
+        "fonte": "CoARA",
+        "doi": None,
+        "citacoes": "não verificadas nesta execução",
+    },
+    {
+        "autor": "REF",
+        "ano": 2021,
+        "titulo": "Research Excellence Framework — guidance on submissions (impact case studies)",
+        "fonte": "Research England",
+        "doi": None,
+        "citacoes": "não verificadas nesta execução",
+    },
+    {
+        "autor": "Penfield, T.; Baker, M. J.; Scoble, R.; Wykes, M. C.",
+        "ano": 2014,
+        "titulo": "Assessment, evaluations, and definitions of research impact: A review",
+        "fonte": "Research Evaluation 23(1):21-32",
+        "doi": "10.1093/reseval/rvt021",
+        "citacoes": "não verificadas nesta execução",
+    },
+    {
+        "autor": "Greenhalgh, T. et al.",
+        "ano": 2016,
+        "titulo": "Research impact: a narrative review",
+        "fonte": "BMC Medicine 14:78",
+        "doi": "10.1186/s12916-016-0620-8",
+        "citacoes": "não verificadas nesta execução",
+    },
+    {
+        "autor": "Waltman, L.",
+        "ano": 2016,
+        "titulo": "A review of the literature on citation impact indicators",
+        "fonte": "J. Informetrics 10(2):365-391",
+        "doi": "10.1016/j.joi.2016.02.007",
+        "citacoes": "não verificadas nesta execução",
+    },
+    {
+        "autor": "Priem, J.; Piwowar, H.; Orr, R.",
+        "ano": 2022,
+        "titulo": "OpenAlex: A fully-open index of scholarly works",
+        "fonte": "arXiv:2205.01833",
+        "doi": "10.48550/arXiv.2205.01833",
+        "citacoes": "não verificadas nesta execução",
+    },
 ]
 
 
@@ -89,16 +134,25 @@ def artigos_fonte() -> list[dict]:
         arts = d.get("top_artigos") or []
         if not arts:
             continue
-        out.append({
-            "docente": d["nome"], "lattes_id": d.get("lattes_id", ""),
-            "citacoes_total": d.get("citacoes_total", 0), "h_index": d.get("h_index", 0),
-            "artigos": [
-                {"titulo": a.get("titulo", ""), "ano": a.get("ano"),
-                 "citacoes": a.get("citacoes") or 0, "fwci": round(a.get("fwci", 0) or 0, 2),
-                 "percentil": a.get("percentil") or 0, "doi": _clean_doi(a.get("doi", ""))}
-                for a in arts
-            ],
-        })
+        out.append(
+            {
+                "docente": d["nome"],
+                "lattes_id": d.get("lattes_id", ""),
+                "citacoes_total": d.get("citacoes_total", 0),
+                "h_index": d.get("h_index", 0),
+                "artigos": [
+                    {
+                        "titulo": a.get("titulo", ""),
+                        "ano": a.get("ano"),
+                        "citacoes": a.get("citacoes") or 0,
+                        "fwci": round(a.get("fwci", 0) or 0, 2),
+                        "percentil": a.get("percentil") or 0,
+                        "doi": _clean_doi(a.get("doi", "")),
+                    }
+                    for a in arts
+                ],
+            }
+        )
     out.sort(key=lambda x: x["docente"].lower())
     return out
 
@@ -116,34 +170,62 @@ def secao_artigos_html(fonte: list[dict]) -> str:
         lis = ""
         for a in arts:
             t = _esc(a["titulo"]) or "(sem título)"
-            ttl = (f'<a href="https://doi.org/{_esc(a["doi"])}" target="_blank" rel="noopener">{t}</a>'
-                   if a["doi"] else t)
-            tag = "top 1%" if a["percentil"] >= 99 else ("top 10%" if a["percentil"] >= 90 else "")
-            badges = " · ".join(x for x in [f'{a["citacoes"]} cit',
-                                            (f'FWCI {a["fwci"]}' if a["fwci"] else ""), tag] if x)
-            lis += (f'<li><span class="yr">[{a["ano"] or "?"}]</span> {ttl} '
-                    f'<span class="bdg">{badges}</span></li>')
-        rows += (f'<details class="doc"><summary><b>{_esc(d["docente"])}</b> '
-                 f'<span class="meta">{d["citacoes_total"]} citações · h={d["h_index"]} · '
-                 f'{len(arts)} artigos-fonte</span></summary><ul>{lis}</ul></details>')
-    return (f'<h2 id="artigos-fonte">Anexo — Artigos-fonte das métricas científicas</h2>'
-            f'<p class="desc">Rastreabilidade: de quais artigos vêm as métricas científicas '
-            f'(citações, FWCI, top 10%). Fonte: <b>OpenAlex</b>, casado por <b>DOI</b> do '
-            f'Lattes — <b>{n_doc} docentes</b>, <b>{n_art} artigos</b>. Clique para expandir; '
-            f'títulos com DOI linkam para o artigo.</p>'
-            f'<div class="arts">{rows}</div>')
+            ttl = (
+                f'<a href="https://doi.org/{_esc(a["doi"])}" target="_blank" rel="noopener">{t}</a>'
+                if a["doi"]
+                else t
+            )
+            tag = (
+                "top 1%"
+                if a["percentil"] >= 99
+                else ("top 10%" if a["percentil"] >= 90 else "")
+            )
+            badges = " · ".join(
+                x
+                for x in [
+                    f'{a["citacoes"]} cit',
+                    (f'FWCI {a["fwci"]}' if a["fwci"] else ""),
+                    tag,
+                ]
+                if x
+            )
+            lis += (
+                f'<li><span class="yr">[{a["ano"] or "?"}]</span> {ttl} '
+                f'<span class="bdg">{badges}</span></li>'
+            )
+        rows += (
+            f'<details class="doc"><summary><b>{_esc(d["docente"])}</b> '
+            f'<span class="meta">{d["citacoes_total"]} citações · h={d["h_index"]} · '
+            f"{len(arts)} artigos-fonte</span></summary><ul>{lis}</ul></details>"
+        )
+    return (
+        f'<h2 id="artigos-fonte">Anexo — Artigos-fonte das métricas científicas</h2>'
+        f'<p class="desc">Rastreabilidade: de quais artigos vêm as métricas científicas '
+        f"(citações, FWCI, top 10%). Fonte: <b>OpenAlex</b>, casado por <b>DOI</b> do "
+        f"Lattes — <b>{n_doc} docentes</b>, <b>{n_art} artigos</b>. Clique para expandir; "
+        f"títulos com DOI linkam para o artigo.</p>"
+        f'<div class="arts">{rows}</div>'
+    )
 
 
 def referencias_html() -> str:
     items = ""
     for r in REFERENCIAS:
-        doi = (f' · DOI: <a href="https://doi.org/{r["doi"]}" target="_blank" '
-               f'rel="noopener">{r["doi"]}</a>' if r["doi"] else "")
-        items += (f'<li><b>{_esc(r["autor"])}</b> ({r["ano"]}). <i>{_esc(r["titulo"])}</i>. '
-                  f'{_esc(r["fonte"])}.{doi} '
-                  f'<span class="cit">[citações: {r["citacoes"]}]</span></li>')
-    return (f'<h2 id="referencias-estruturadas">Referências (estruturadas)</h2>'
-            f'<ol class="refs">{items}</ol>')
+        doi = (
+            f' · DOI: <a href="https://doi.org/{r["doi"]}" target="_blank" '
+            f'rel="noopener">{r["doi"]}</a>'
+            if r["doi"]
+            else ""
+        )
+        items += (
+            f'<li><b>{_esc(r["autor"])}</b> ({r["ano"]}). <i>{_esc(r["titulo"])}</i>. '
+            f'{_esc(r["fonte"])}.{doi} '
+            f'<span class="cit">[citações: {r["citacoes"]}]</span></li>'
+        )
+    return (
+        f'<h2 id="referencias-estruturadas">Referências (estruturadas)</h2>'
+        f'<ol class="refs">{items}</ol>'
+    )
 
 
 CSS = """
@@ -200,14 +282,35 @@ ol.refs li,.refs li{font-size:13.5px;margin:7px 0;} .cit{color:var(--muted);font
 """
 
 
-_TABS = [("geral", "Visão geral"), ("metodo", "Metodologia"), ("analise", "Análise"),
-         ("recom", "Recomendações"), ("anexos", "Anexos")]
-_TABMAP_NUM = {1: "geral", 5: "geral", 6: "geral",
-               2: "metodo", 3: "metodo", 4: "metodo",
-               7: "analise", 8: "analise", 9: "analise", 10: "analise",
-               11: "recom", 12: "recom", 13: "recom", 15: "recom", 14: "anexos"}
-_TABMAP_ID = {"explicadores": "anexos", "artigos-fonte": "anexos",
-              "referencias-estruturadas": "anexos"}
+_TABS = [
+    ("geral", "Visão geral"),
+    ("metodo", "Metodologia"),
+    ("analise", "Análise"),
+    ("recom", "Recomendações"),
+    ("anexos", "Anexos"),
+]
+_TABMAP_NUM = {
+    1: "geral",
+    5: "geral",
+    6: "geral",
+    2: "metodo",
+    3: "metodo",
+    4: "metodo",
+    7: "analise",
+    8: "analise",
+    9: "analise",
+    10: "analise",
+    11: "recom",
+    12: "recom",
+    13: "recom",
+    15: "recom",
+    14: "anexos",
+}
+_TABMAP_ID = {
+    "explicadores": "anexos",
+    "artigos-fonte": "anexos",
+    "referencias-estruturadas": "anexos",
+}
 
 
 def build_tabs(body: str):
@@ -220,14 +323,20 @@ def build_tabs(body: str):
         hid = m.group(1) if m else ""
         txt = re.sub(r"<[^>]+>", "", m.group(2)) if m else ""
         num = re.match(r"\s*(\d+)", txt)
-        tab = (_TABMAP_NUM.get(int(num.group(1))) if num else None) or _TABMAP_ID.get(hid) or "anexos"
+        tab = (
+            (_TABMAP_NUM.get(int(num.group(1))) if num else None)
+            or _TABMAP_ID.get(hid)
+            or "anexos"
+        )
         panels[tab] += sec
     btns = "".join(
         f'<button class="tabbtn{" active" if i == 0 else ""}" data-t="{t}">{label}</button>'
-        for i, (t, label) in enumerate(_TABS))
+        for i, (t, label) in enumerate(_TABS)
+    )
     pans = "".join(
         f'<div class="tabpanel" id="tab-{t}"{"" if i == 0 else " hidden"}>{panels[t]}</div>'
-        for i, (t, label) in enumerate(_TABS))
+        for i, (t, label) in enumerate(_TABS)
+    )
     return preamble, f'<nav class="tabbar">{btns}</nav>', pans
 
 
@@ -239,37 +348,41 @@ def main() -> None:
     body = re.sub(r"^\s*<h1[^>]*>.*?</h1>", "", body, count=1, flags=re.S)
 
     body += '<h2 id="explicadores">Como ler as métricas (interpretação)</h2>'
-    body += bloco_metrica({
-        "titulo": "Razões de produtividade (produção por R$)",
-        "o_que": "Indicadores que dividem a produção (itens científicos, titulados, ativos "
-                 "tecnológicos) pelo <b>fomento de pesquisa consolidado</b> (ordem de grandeza).",
-        "como_ler": "Dão uma <b>ordem de grandeza</b> institucional de 'quanto se produz por real "
-                    "investido' — útil para comparar anos ou planejar, não para precisão contábil.",
-        "nao_concluir": [
-            "<b>Não é causalidade</b>: a produção do Lattes <b>não está ligada</b> a um projeto "
-            "financiado específico — é uma proporção institucional bruta.",
-            "Numerador (produção, carreira inteira) e denominador (fomento de um período) têm "
-            "<b>janelas diferentes</b> — confiança baixa.",
-        ],
-        "gestores": "Usar como <b>ordem de grandeza</b> e tendência ao longo do tempo; nunca atribuir "
-                    "a produtividade de um real a um docente ou projeto isolado.",
-    })
-    body += bloco_metrica({
-        "titulo": "Concentração do fomento (Gini)",
-        "o_que": "O quanto o orçamento de pesquisa se concentra em poucos coordenadores (Gini "
-                 "0–1) — e o efeito de segregar projetos institucionais (UnAC/ConectaFapes).",
-        "formula": "Gini: 0 = igual entre coordenadores · 1 = um concentra tudo",
-        "como_ler": "Gini alto = captação concentrada num núcleo. Parte da concentração é "
-                    "<b>infraestrutura/programa</b> (não captação individual) — por isso reportamos "
-                    "também o Gini <b>sem os institucionais</b>.",
-        "nao_concluir": [
-            "Concentração de captação <b>não</b> mede esforço nem mérito individual.",
-            "Projetos <b>institucionais/programáticos</b> (UnAC, ConectaFapes) inflam o Gini 'por "
-            "coordenador' — separá-los é essencial.",
-        ],
-        "gestores": "Diversificar a base de captação; apoiar novos coordenadores; separar sempre "
-                    "fomento <b>institucional</b> de <b>pesquisa individual</b>.",
-    })
+    body += bloco_metrica(
+        {
+            "titulo": "Razões de produtividade (produção por R$)",
+            "o_que": "Indicadores que dividem a produção (itens científicos, titulados, ativos "
+            "tecnológicos) pelo <b>fomento de pesquisa consolidado</b> (ordem de grandeza).",
+            "como_ler": "Dão uma <b>ordem de grandeza</b> institucional de 'quanto se produz por real "
+            "investido' — útil para comparar anos ou planejar, não para precisão contábil.",
+            "nao_concluir": [
+                "<b>Não é causalidade</b>: a produção do Lattes <b>não está ligada</b> a um projeto "
+                "financiado específico — é uma proporção institucional bruta.",
+                "Numerador (produção, carreira inteira) e denominador (fomento de um período) têm "
+                "<b>janelas diferentes</b> — confiança baixa.",
+            ],
+            "gestores": "Usar como <b>ordem de grandeza</b> e tendência ao longo do tempo; nunca atribuir "
+            "a produtividade de um real a um docente ou projeto isolado.",
+        }
+    )
+    body += bloco_metrica(
+        {
+            "titulo": "Concentração do fomento (Gini)",
+            "o_que": "O quanto o orçamento de pesquisa se concentra em poucos coordenadores (Gini "
+            "0–1) — e o efeito de segregar projetos institucionais (UnAC/ConectaFapes).",
+            "formula": "Gini: 0 = igual entre coordenadores · 1 = um concentra tudo",
+            "como_ler": "Gini alto = captação concentrada num núcleo. Parte da concentração é "
+            "<b>infraestrutura/programa</b> (não captação individual) — por isso reportamos "
+            "também o Gini <b>sem os institucionais</b>.",
+            "nao_concluir": [
+                "Concentração de captação <b>não</b> mede esforço nem mérito individual.",
+                "Projetos <b>institucionais/programáticos</b> (UnAC, ConectaFapes) inflam o Gini 'por "
+                "coordenador' — separá-los é essencial.",
+            ],
+            "gestores": "Diversificar a base de captação; apoiar novos coordenadores; separar sempre "
+            "fomento <b>institucional</b> de <b>pesquisa individual</b>.",
+        }
+    )
 
     fonte = artigos_fonte()
     body += secao_artigos_html(fonte)
@@ -311,18 +424,31 @@ def main() -> None:
             "titulo": "Relatório de ROI e Impacto da Pesquisa",
             "instituicao": "IFES — Campus Serra",
             "unidade_analise": "93 docentes (roster oficial)",
-            "frameworks": ["Payback", "CAHS", "Bibliometria responsável",
-                           "Monetização seletiva", "Estudos de caso REF"],
+            "frameworks": [
+                "Payback",
+                "CAHS",
+                "Bibliometria responsável",
+                "Monetização seletiva",
+                "Estudos de caso REF",
+            ],
             "convencao_evidencia": {"O": "Observado", "I": "Inferido", "A": "Ausente"},
             "aviso": "ROI financeiro (%) não calculável: sem benefícios monetizados. "
-                     "Citações cobrem 64/93 (OpenAlex por DOI). Impacto social ausente.",
+            "Citações cobrem 64/93 (OpenAlex por DOI). Impacto social ausente.",
         },
         "secoes": [
-            "1. Sumário executivo", "2. Objetivo e escopo", "3. Dados utilizados",
-            "4. Metodologia", "5. Painel de métricas", "6. Indicadores calculados",
-            "7. Enriquecimento externo", "8. Matriz Payback/CAHS",
-            "9. Monetização seletiva", "10. Estudos de caso REF",
-            "11. Recomendações", "12. Limitações e riscos", "13. Plano de implementação",
+            "1. Sumário executivo",
+            "2. Objetivo e escopo",
+            "3. Dados utilizados",
+            "4. Metodologia",
+            "5. Painel de métricas",
+            "6. Indicadores calculados",
+            "7. Enriquecimento externo",
+            "8. Matriz Payback/CAHS",
+            "9. Monetização seletiva",
+            "10. Estudos de caso REF",
+            "11. Recomendações",
+            "12. Limitações e riscos",
+            "13. Plano de implementação",
             "14. Referências",
         ],
         "inputs": inter.get("fapes", {}),
@@ -335,23 +461,34 @@ def main() -> None:
         "derivados": inter.get("derivados", {}),
         "metricas": inter.get("metricas", []),
         "candidatos_estudo_caso": inter.get("candidatos_caso", []),
-        "plano_curto_prazo": (json.loads(PLANO.read_text(encoding="utf-8"))
-                              if PLANO.exists() else {}),
+        "plano_curto_prazo": (
+            json.loads(PLANO.read_text(encoding="utf-8")) if PLANO.exists() else {}
+        ),
         "referencias": REFERENCIAS,
         "artigos_fonte": fonte,
         "arquivos": [
-            "relatorio_roi_pesquisa.md", "relatorio_roi_pesquisa.html",
-            "relatorio_roi_pesquisa.json", "metricas_roi_pesquisa.csv",
-            "matriz_payback_cahs.csv", "por_coordenador.csv", "dicionario_dados.md",
-            "estudos_de_caso_ref.md", "lacunas_e_recomendacoes.md", "roi_intermediate.json",
+            "relatorio_roi_pesquisa.md",
+            "relatorio_roi_pesquisa.html",
+            "relatorio_roi_pesquisa.json",
+            "metricas_roi_pesquisa.csv",
+            "matriz_payback_cahs.csv",
+            "por_coordenador.csv",
+            "dicionario_dados.md",
+            "estudos_de_caso_ref.md",
+            "lacunas_e_recomendacoes.md",
+            "roi_intermediate.json",
         ],
     }
-    JSON_OUT.write_text(json.dumps(relatorio_json, ensure_ascii=False, indent=2), encoding="utf-8")
+    JSON_OUT.write_text(
+        json.dumps(relatorio_json, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
     print(f"OK -> {HTML.relative_to(ROOT)} ({len(page):,} bytes)")
     print(f"OK -> {JSON_OUT.relative_to(ROOT)}")
-    print(f"Artigos-fonte: {len(fonte)} docentes · "
-          f"{sum(len(d['artigos']) for d in fonte)} artigos · {len(REFERENCIAS)} referências")
+    print(
+        f"Artigos-fonte: {len(fonte)} docentes · "
+        f"{sum(len(d['artigos']) for d in fonte)} artigos · {len(REFERENCIAS)} referências"
+    )
 
 
 if __name__ == "__main__":

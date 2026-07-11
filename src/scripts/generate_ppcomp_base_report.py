@@ -54,8 +54,11 @@ def _orient_full(nome: str) -> str:
 
 # situação → cor
 SIT_COL = {
-    "Defendido": "var(--brand)", "Ativo": "var(--blue)", "Cancelado": "var(--rose)",
-    "Trancado": "var(--amber)", "Desistência (indicada)": "#6a4c93",
+    "Defendido": "var(--brand)",
+    "Ativo": "var(--blue)",
+    "Cancelado": "var(--rose)",
+    "Trancado": "var(--amber)",
+    "Desistência (indicada)": "#6a4c93",
 }
 EVASAO = {"Cancelado", "Trancado", "Desistência (indicada)"}
 
@@ -80,6 +83,7 @@ def _ano_defesa(s) -> int | None:
 # ---------------------------------------------------------------------------
 # Compute
 # ---------------------------------------------------------------------------
+
 
 def compute() -> dict:
     d = json.loads(SRC.read_text())
@@ -127,7 +131,12 @@ def compute() -> dict:
     pipeline = {"total": 0, "por_situacao": {}, "por_curso": {}}
     try:
         from src.scripts.generate_formandos_report import (
-            SEMESTER_FILE_MAP, DATA_FORMANDOS, load_formandos, _match_key)
+            DATA_FORMANDOS,
+            SEMESTER_FILE_MAP,
+            _match_key,
+            load_formandos,
+        )
+
         seen = {}
         for sem in sorted(SEMESTER_FILE_MAP):
             if (DATA_FORMANDOS / SEMESTER_FILE_MAP[sem]).exists():
@@ -141,7 +150,9 @@ def compute() -> dict:
             "defendidos": sum(1 for x in de_form if x.get("situacao") == "Defendido"),
             "ativos": sum(1 for x in de_form if x.get("situacao") == "Ativo"),
             "por_situacao": dict(Counter(x.get("situacao") for x in de_form)),
-            "por_curso": dict(Counter(form[_match_key(x["nome_completo"])]["curso"] for x in de_form)),
+            "por_curso": dict(
+                Counter(form[_match_key(x["nome_completo"])]["curso"] for x in de_form)
+            ),
         }
     except Exception:
         pass
@@ -151,25 +162,42 @@ def compute() -> dict:
     taxa_defesa = round(defendidos / desfecho * 100, 1) if desfecho else 0
 
     # cruzamento com bolsas pagas FAPES + FACTO
-    bolsas = {"fapes": 0, "facto": 0, "uniao": 0, "ambos": 0, "valor_fapes": 0,
-              "por_situacao": {}, "registros": []}
+    bolsas = {
+        "fapes": 0,
+        "facto": 0,
+        "uniao": 0,
+        "ambos": 0,
+        "valor_fapes": 0,
+        "por_situacao": {},
+        "registros": [],
+    }
     try:
         from src.scripts.generate_formandos_report import _match_key as _mk
+
         mk_mest = {_mk(x["nome_completo"]): x for x in d if x.get("nome_completo")}
         bdir = BASE / "data" / "exports"
-        fp = json.loads((bdir / "bolsistas" / "ifes-campus-serra-bolsistas.json").read_text())
-        fapes_val = {_mk(b["bolsista_pesquisador_nome"]): b.get("valor_alocado_total", 0) or 0
-                     for b in fp.get("bolsistas_unicos", [])}
+        fp = json.loads(
+            (bdir / "bolsistas" / "ifes-campus-serra-bolsistas.json").read_text()
+        )
+        fapes_val = {
+            _mk(b["bolsista_pesquisador_nome"]): b.get("valor_alocado_total", 0) or 0
+            for b in fp.get("bolsistas_unicos", [])
+        }
         ftipos = defaultdict(set)
         for a in fp.get("alocacoes", []):
             ftipos[_mk(a["bolsista_pesquisador_nome"])].add(a.get("bolsa_sigla"))
-        fa = json.loads((bdir / "projetos-facto" / "facto_projects_full.json").read_text())
+        fa = json.loads(
+            (bdir / "projetos-facto" / "facto_projects_full.json").read_text()
+        )
         facto_p = set()
         for p in fa.get("projects", []):
             for k, rows in (p.get("csv") or {}).items():
                 if k.endswith("Equipe.csv"):
                     for r in rows:
-                        if r.get("Nome") and "bolsista" in (r.get("Função") or "").lower():
+                        if (
+                            r.get("Nome")
+                            and "bolsista" in (r.get("Função") or "").lower()
+                        ):
                             facto_p.add(_mk(r["Nome"]))
         m_fapes = {mk for mk in mk_mest if mk in fapes_val}
         m_facto = {mk for mk in mk_mest if mk in facto_p}
@@ -177,15 +205,23 @@ def compute() -> dict:
         regs = []
         for mk in uniao:
             x = mk_mest[mk]
-            fontes = ([("FAPES")] if mk in m_fapes else []) + (["FACTO"] if mk in m_facto else [])
-            regs.append({
-                "nome": x["nome_completo"], "situacao": x.get("situacao"),
-                "fontes": fontes, "valor_fapes": fapes_val.get(mk, 0),
-                "tipos": sorted(t for t in ftipos.get(mk, set()) if t),
-            })
+            fontes = ([("FAPES")] if mk in m_fapes else []) + (
+                ["FACTO"] if mk in m_facto else []
+            )
+            regs.append(
+                {
+                    "nome": x["nome_completo"],
+                    "situacao": x.get("situacao"),
+                    "fontes": fontes,
+                    "valor_fapes": fapes_val.get(mk, 0),
+                    "tipos": sorted(t for t in ftipos.get(mk, set()) if t),
+                }
+            )
         regs.sort(key=lambda r: -r["valor_fapes"])
         bolsas = {
-            "fapes": len(m_fapes), "facto": len(m_facto), "uniao": len(uniao),
+            "fapes": len(m_fapes),
+            "facto": len(m_facto),
+            "uniao": len(uniao),
             "ambos": len(m_fapes & m_facto),
             "valor_fapes": sum(fapes_val[mk] for mk in m_fapes),
             "por_situacao": dict(Counter(mk_mest[mk].get("situacao") for mk in uniao)),
@@ -271,9 +307,11 @@ display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;}
 
 def _bar(label, value, mx, color, note):
     w = value / mx * 100 if mx else 0
-    return (f'<div class="brow"><span class="bl">{label}</span>'
-            f'<div class="btrack"><div class="bfill" style="width:{max(w,1.5):.1f}%;background:{color};"></div></div>'
-            f'<span class="bv">{note}</span></div>')
+    return (
+        f'<div class="brow"><span class="bl">{label}</span>'
+        f'<div class="btrack"><div class="bfill" style="width:{max(w,1.5):.1f}%;background:{color};"></div></div>'
+        f'<span class="bv">{note}</span></div>'
+    )
 
 
 def _stacked_bar_year(sit_ano: dict, anos: list) -> str:
@@ -290,20 +328,27 @@ def _stacked_bar_year(sit_ano: dict, anos: list) -> str:
             if not v:
                 continue
             pctw = v / tot * 100
-            lbl = str(v) if pctw >= 7 else ""   # mostra nº se o segmento couber
-            segs += (f'<div style="width:{pctw:.1f}%;background:{SIT_COL.get(s,"var(--muted)")};'
-                     f'display:flex;align-items:center;justify-content:center;color:#fff;'
-                     f'font-size:11px;font-weight:700;" title="{s}: {v}">{lbl}</div>')
+            lbl = str(v) if pctw >= 7 else ""  # mostra nº se o segmento couber
+            segs += (
+                f'<div style="width:{pctw:.1f}%;background:{SIT_COL.get(s,"var(--muted)")};'
+                f"display:flex;align-items:center;justify-content:center;color:#fff;"
+                f'font-size:11px;font-weight:700;" title="{s}: {v}">{lbl}</div>'
+            )
         rows += (
             f'<div style="display:grid;grid-template-columns:56px 1fr 40px;align-items:center;gap:12px;margin-bottom:7px;">'
             f'<span style="font-size:12.5px;color:var(--ink2);">{a}</span>'
             f'<div style="display:flex;height:24px;border-radius:5px;overflow:hidden;width:{tot/mx*100:.0f}%;">{segs}</div>'
             f'<span style="font-size:12px;color:var(--muted);text-align:right;font-weight:600;">{tot}</span></div>'
         )
-    legend = '<div style="display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:12px;">' + "".join(
-        f'<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);">'
-        f'<span style="width:12px;height:12px;border-radius:3px;background:{SIT_COL.get(s)};"></span>{s}</span>'
-        for s in order) + '</div>'
+    legend = (
+        '<div style="display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:12px;">'
+        + "".join(
+            f'<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);">'
+            f'<span style="width:12px;height:12px;border-radius:3px;background:{SIT_COL.get(s)};"></span>{s}</span>'
+            for s in order
+        )
+        + "</div>"
+    )
     return rows + legend
 
 
@@ -315,24 +360,35 @@ def _line_chart(anos, vals, color, fmt, aria):
     iw, ih = W - ml - mr, H - mt - mb
     vmax = max(vals) or 1
     nn = len(anos)
-    def x(i): return ml + (iw * i / (nn - 1) if nn > 1 else iw / 2)
-    def y(v): return mt + ih - (v / vmax * ih)
+
+    def x(i):
+        return ml + (iw * i / (nn - 1) if nn > 1 else iw / 2)
+
+    def y(v):
+        return mt + ih - (v / vmax * ih)
+
     grid = ""
     for g in range(6):
         gy = y(vmax * g / 5)
-        grid += (f'<line x1="{ml}" y1="{gy:.0f}" x2="{W-mr}" y2="{gy:.0f}" stroke="var(--line)"/>'
-                 f'<text x="{ml-8}" y="{gy+4:.0f}" text-anchor="end" font-size="11" fill="var(--muted)">{fmt(vmax*g/5)}</text>')
+        grid += (
+            f'<line x1="{ml}" y1="{gy:.0f}" x2="{W-mr}" y2="{gy:.0f}" stroke="var(--line)"/>'
+            f'<text x="{ml-8}" y="{gy+4:.0f}" text-anchor="end" font-size="11" fill="var(--muted)">{fmt(vmax*g/5)}</text>'
+        )
     pts = [(x(i), y(vals[i])) for i in range(nn)]
     poly = " ".join(f"{a:.0f},{b:.0f}" for a, b in pts)
     dots = ""
     for i, a in enumerate(anos):
         px, py = pts[i]
-        dots += (f'<circle cx="{px:.0f}" cy="{py:.0f}" r="4" fill="{color}" stroke="#fff" stroke-width="1.5"/>'
-                 f'<text x="{px:.0f}" y="{py-11:.0f}" text-anchor="middle" font-size="11" font-weight="700" fill="{color}">{fmt(vals[i])}</text>'
-                 f'<text x="{px:.0f}" y="{mt+ih+18:.0f}" text-anchor="middle" font-size="11" fill="var(--ink2)">{a}</text>')
-    return (f'<div style="overflow-x:auto;"><svg viewBox="0 0 {W} {H}" style="width:100%;min-width:560px;height:auto;'
-            f'font-family:var(--font);" role="img" aria-label="{aria}">{grid}'
-            f'<polyline points="{poly}" fill="none" stroke="{color}" stroke-width="2.5" stroke-linejoin="round"/>{dots}</svg></div>')
+        dots += (
+            f'<circle cx="{px:.0f}" cy="{py:.0f}" r="4" fill="{color}" stroke="#fff" stroke-width="1.5"/>'
+            f'<text x="{px:.0f}" y="{py-11:.0f}" text-anchor="middle" font-size="11" font-weight="700" fill="{color}">{fmt(vals[i])}</text>'
+            f'<text x="{px:.0f}" y="{mt+ih+18:.0f}" text-anchor="middle" font-size="11" fill="var(--ink2)">{a}</text>'
+        )
+    return (
+        f'<div style="overflow-x:auto;"><svg viewBox="0 0 {W} {H}" style="width:100%;min-width:560px;height:auto;'
+        f'font-family:var(--font);" role="img" aria-label="{aria}">{grid}'
+        f'<polyline points="{poly}" fill="none" stroke="{color}" stroke-width="2.5" stroke-linejoin="round"/>{dots}</svg></div>'
+    )
 
 
 def render(s: dict) -> str:
@@ -344,8 +400,13 @@ def render(s: dict) -> str:
         for k, v in sit.items()
     )
     anos = [a for a in s["ingresso_ano"]]
-    ing_chart = _line_chart(anos, [s["ingresso_ano"][a] for a in anos], "var(--brand)",
-                            lambda v: f"{v:.0f}", "Ingressantes por ano")
+    ing_chart = _line_chart(
+        anos,
+        [s["ingresso_ano"][a] for a in anos],
+        "var(--brand)",
+        lambda v: f"{v:.0f}",
+        "Ingressantes por ano",
+    )
     sit_ano = {int(a): Counter(c) for a, c in s["sit_ano"].items()}
     stacked = _stacked_bar_year(sit_ano, sorted(sit_ano))
 
@@ -359,7 +420,8 @@ def render(s: dict) -> str:
     # orientadores
     omax = s["orientadores"][0][1] if s["orientadores"] else 1
     orient_rows = "".join(
-        f'<tr><td>{nome}</td><td class="r">{v}</td></tr>' for nome, v in s["orientadores"]
+        f'<tr><td>{nome}</td><td class="r">{v}</td></tr>'
+        for nome, v in s["orientadores"]
     )
 
     # pipeline graduação → mestrado
@@ -373,8 +435,14 @@ def render(s: dict) -> str:
 
     # bolsas FAPES/FACTO
     _bo = s.get("bolsas", {})
+
     def _brl(v):
-        return f'R$ {v:,.0f}'.replace(",", "X").replace(".", ",").replace("X", ".") if v else "—"
+        return (
+            f"R$ {v:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            if v
+            else "—"
+        )
+
     bo_rows = "".join(
         f'<tr><td>{r["nome"]}</td><td>{r.get("situacao")}</td>'
         f'<td>{" + ".join(r["fontes"])}{(" · "+", ".join(r["tipos"])) if r["tipos"] else ""}</td></tr>'
@@ -504,9 +572,14 @@ def render(s: dict) -> str:
 
 def _find_chrome():
     import shutil
-    for c in ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-              "/Applications/Chromium.app/Contents/MacOS/Chromium",
-              "google-chrome", "chromium", "chrome"]:
+
+    for c in [
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+        "google-chrome",
+        "chromium",
+        "chrome",
+    ]:
         if os.path.isfile(c):
             return c
         w = shutil.which(c)
@@ -523,13 +596,17 @@ def main() -> None:
 
     print("Analisando base PPComp...")
     s = compute()
-    print(f"  {s['total']} discentes · {s['defendidos']} defendidos · "
-          f"{s['ativos']} ativos · evasão {s['evasao']} · tempo médio {s['tempo_medio_anos']} anos")
+    print(
+        f"  {s['total']} discentes · {s['defendidos']} defendidos · "
+        f"{s['ativos']} ativos · evasão {s['evasao']} · tempo médio {s['tempo_medio_anos']} anos"
+    )
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     out = Path(args.out) if args.out else OUT_DIR / "ppcomp_base_analitico.html"
     out.write_text(render(s), encoding="utf-8")
-    out.with_suffix(".json").write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
+    out.with_suffix(".json").write_text(
+        json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     print(f"Written: {out}")
     print(f"Written: {out.with_suffix('.json')}")
 
@@ -537,10 +614,20 @@ def main() -> None:
         chrome = _find_chrome()
         if chrome:
             pdf = out.with_suffix(".pdf")
-            subprocess.run([chrome, "--headless", "--disable-gpu", "--no-pdf-header-footer",
-                            "--virtual-time-budget=8000", "--run-all-compositor-stages-before-draw",
-                            f"--print-to-pdf={pdf}", out.resolve().as_uri()],
-                           capture_output=True, timeout=120)
+            subprocess.run(
+                [
+                    chrome,
+                    "--headless",
+                    "--disable-gpu",
+                    "--no-pdf-header-footer",
+                    "--virtual-time-budget=8000",
+                    "--run-all-compositor-stages-before-draw",
+                    f"--print-to-pdf={pdf}",
+                    out.resolve().as_uri(),
+                ],
+                capture_output=True,
+                timeout=120,
+            )
             if pdf.exists():
                 print(f"Written: {pdf}")
         else:

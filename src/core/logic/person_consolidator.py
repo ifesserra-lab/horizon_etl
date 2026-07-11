@@ -115,13 +115,16 @@ class PersonConsolidator:
     def _identifier_conflict(self, members: List[Dict[str, Any]]) -> Optional[str]:
         """Returns the conflicting identifier name when members carry distinct
         strong identifiers (i.e. they are homonyms, not duplicates)."""
+
         def _lattes_key(url: Optional[str]) -> Optional[str]:
             if not url:
                 return None
             return url.rstrip("/").rsplit("/", 1)[-1].strip() or None
 
         cnpq_ids = {
-            _lattes_key(m.get("cnpq_url")) for m in members if _lattes_key(m.get("cnpq_url"))
+            _lattes_key(m.get("cnpq_url"))
+            for m in members
+            if _lattes_key(m.get("cnpq_url"))
         }
         if len(cnpq_ids) > 1:
             return f"cnpq_url ({sorted(cnpq_ids)})"
@@ -217,11 +220,21 @@ class PersonConsolidator:
                 if self._table_exists(conn, "advisorship_members"):
                     self._merge_advisorship_members(conn, winner_id, loser_id)
                 else:
-                    self._update_fk_column(conn, "advisorships", "supervisor_id", winner_id, loser_id)
-                    self._update_fk_column(conn, "advisorships", "student_id", winner_id, loser_id)
-                self._update_fk_column(conn, "academic_educations", "researcher_id", winner_id, loser_id)
-                self._update_fk_column(conn, "academic_educations", "advisor_id", winner_id, loser_id)
-                self._update_fk_column(conn, "academic_educations", "co_advisor_id", winner_id, loser_id)
+                    self._update_fk_column(
+                        conn, "advisorships", "supervisor_id", winner_id, loser_id
+                    )
+                    self._update_fk_column(
+                        conn, "advisorships", "student_id", winner_id, loser_id
+                    )
+                self._update_fk_column(
+                    conn, "academic_educations", "researcher_id", winner_id, loser_id
+                )
+                self._update_fk_column(
+                    conn, "academic_educations", "advisor_id", winner_id, loser_id
+                )
+                self._update_fk_column(
+                    conn, "academic_educations", "co_advisor_id", winner_id, loser_id
+                )
                 if self._table_exists(conn, "production_authors"):
                     self._merge_simple_link_table(
                         conn,
@@ -233,16 +246,26 @@ class PersonConsolidator:
                         target_column="researcher_id",
                     )
                 if self._table_exists(conn, "awards"):
-                    self._update_fk_column(conn, "awards", "researcher_id", winner_id, loser_id)
+                    self._update_fk_column(
+                        conn, "awards", "researcher_id", winner_id, loser_id
+                    )
                 if self._table_exists(conn, "professional_activities"):
-                    self._update_fk_column(conn, "professional_activities", "researcher_id", winner_id, loser_id)
+                    self._update_fk_column(
+                        conn,
+                        "professional_activities",
+                        "researcher_id",
+                        winner_id,
+                        loser_id,
+                    )
                 if self._table_exists(conn, "proficiencies"):
                     self._merge_proficiencies(conn, winner_id, loser_id)
                 self._remap_lineage(conn, winner_id, loser_id)
                 conn.execute("DELETE FROM researchers WHERE id = ?", (loser_id,))
                 conn.execute("DELETE FROM persons WHERE id = ?", (loser_id,))
 
-    def _merge_person_record(self, conn: sqlite3.Connection, winner_id: int, loser_id: int) -> None:
+    def _merge_person_record(
+        self, conn: sqlite3.Connection, winner_id: int, loser_id: int
+    ) -> None:
         winner = conn.execute(
             "SELECT identification_id, birthday FROM persons WHERE id = ?",
             (winner_id,),
@@ -271,7 +294,9 @@ class PersonConsolidator:
                 (loser["birthday"], winner_id),
             )
 
-    def _merge_researcher_record(self, conn: sqlite3.Connection, winner_id: int, loser_id: int) -> None:
+    def _merge_researcher_record(
+        self, conn: sqlite3.Connection, winner_id: int, loser_id: int
+    ) -> None:
         winner_exists = conn.execute(
             "SELECT 1 FROM researchers WHERE id = ?",
             (winner_id,),
@@ -316,7 +341,9 @@ class PersonConsolidator:
             (loser_id, loser_id, loser_id, loser_id, winner_id),
         )
 
-    def _merge_person_emails(self, conn: sqlite3.Connection, winner_id: int, loser_id: int) -> None:
+    def _merge_person_emails(
+        self, conn: sqlite3.Connection, winner_id: int, loser_id: int
+    ) -> None:
         emails = conn.execute(
             "SELECT id, email FROM person_emails WHERE person_id = ?",
             (loser_id,),
@@ -393,7 +420,9 @@ class PersonConsolidator:
 
         conn.execute(f"DELETE FROM {table} WHERE {target_column} = ?", (loser_id,))
 
-    def _merge_team_members(self, conn: sqlite3.Connection, winner_id: int, loser_id: int) -> None:
+    def _merge_team_members(
+        self, conn: sqlite3.Connection, winner_id: int, loser_id: int
+    ) -> None:
         rows = conn.execute(
             """
             SELECT id, team_id, role_id, start_date, end_date
@@ -473,7 +502,9 @@ class PersonConsolidator:
                     (winner_id, row["id"]),
                 )
 
-    def _merge_proficiencies(self, conn: sqlite3.Connection, winner_id: int, loser_id: int) -> None:
+    def _merge_proficiencies(
+        self, conn: sqlite3.Connection, winner_id: int, loser_id: int
+    ) -> None:
         conn.execute(
             """
             UPDATE proficiencies SET researcher_id = ?
@@ -486,7 +517,9 @@ class PersonConsolidator:
         )
         conn.execute("DELETE FROM proficiencies WHERE researcher_id = ?", (loser_id,))
 
-    def _remap_lineage(self, conn: sqlite3.Connection, winner_id: int, loser_id: int) -> None:
+    def _remap_lineage(
+        self, conn: sqlite3.Connection, winner_id: int, loser_id: int
+    ) -> None:
         """Repoints tracking/lineage rows at the winner so entity_matches,
         attribute_assertions and entity_change_logs never reference a deleted
         person. UNIQUE-conflicting rows (same source record already linked to

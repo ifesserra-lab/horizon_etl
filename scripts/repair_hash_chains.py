@@ -28,8 +28,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.core.logic.pii_anonymizer import SALT  # noqa: E402
 import hashlib  # noqa: E402
+
+from src.core.logic.pii_anonymizer import SALT  # noqa: E402
 
 MAX_DEPTH = 40
 
@@ -107,7 +108,9 @@ def build_ident_index(
     for cpf in cpfs:
         register(cpf, "cpf", _h(cpf))
 
-    for pid, name in conn.execute("SELECT id, name FROM persons WHERE name IS NOT NULL"):
+    for pid, name in conn.execute(
+        "SELECT id, name FROM persons WHERE name IS NOT NULL"
+    ):
         for variant in {name, name.strip(), name.upper(), name.strip().upper()}:
             if variant:
                 register(variant, "name", None)
@@ -132,12 +135,18 @@ def build_email_index(seed_conn: sqlite3.Connection) -> dict[str, str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", default="db/horizon.db")
-    parser.add_argument("--seed-db", default=None,
-                        help="DB to read raw CPF/email seeds from (use a pre-scrub "
-                             "backup when the live DB payloads were already scrubbed)")
+    parser.add_argument(
+        "--seed-db",
+        default=None,
+        help="DB to read raw CPF/email seeds from (use a pre-scrub "
+        "backup when the live DB payloads were already scrubbed)",
+    )
     parser.add_argument("--apply", action="store_true")
-    parser.add_argument("--null-unknown", action="store_true",
-                        help="also NULL unrecoverable LGPD- identifications")
+    parser.add_argument(
+        "--null-unknown",
+        action="store_true",
+        help="also NULL unrecoverable LGPD- identifications",
+    )
     args = parser.parse_args()
 
     conn = sqlite3.connect(args.db)
@@ -148,7 +157,14 @@ def main() -> None:
         resets: list[tuple[str, int]] = []
         nulls: list[int] = []
         unknown: list[int] = []
-        stats = {"lattes": 0, "cpf": 0, "name": 0, "email": 0, "unknown": 0, "already_ok": 0}
+        stats = {
+            "lattes": 0,
+            "cpf": 0,
+            "name": 0,
+            "email": 0,
+            "unknown": 0,
+            "already_ok": 0,
+        }
 
         for pid, ident in conn.execute(
             "SELECT id, identification_id FROM persons "
@@ -182,8 +198,10 @@ def main() -> None:
         print("identification_id classification:", stats)
         print(f"  -> reset to canonical H1: {len(resets)}")
         print(f"  -> NULL (name/email pollution): {len(nulls)}")
-        print(f"  -> unknown kept: {0 if args.null_unknown else len(unknown)}"
-              f"{' (will NULL)' if args.null_unknown else ''}")
+        print(
+            f"  -> unknown kept: {0 if args.null_unknown else len(unknown)}"
+            f"{' (will NULL)' if args.null_unknown else ''}"
+        )
         print(f"person_emails: reset {len(email_resets)}, unknown {email_unknown}")
 
         if not args.apply:
@@ -192,7 +210,11 @@ def main() -> None:
 
         with conn:
             # Free the unique index before re-assigning canonical values.
-            all_touched = [pid for _, pid in resets] + nulls + (unknown if args.null_unknown else [])
+            all_touched = (
+                [pid for _, pid in resets]
+                + nulls
+                + (unknown if args.null_unknown else [])
+            )
             conn.executemany(
                 "UPDATE persons SET identification_id = NULL WHERE id = ?",
                 [(pid,) for pid in all_touched],
@@ -203,7 +225,9 @@ def main() -> None:
                     (canonical, pid),
                 ).fetchone()
                 if clash:
-                    print(f"  ! canonical ident of person {pid} already used by {clash[0]}; left NULL")
+                    print(
+                        f"  ! canonical ident of person {pid} already used by {clash[0]}; left NULL"
+                    )
                     continue
                 conn.execute(
                     "UPDATE persons SET identification_id = ? WHERE id = ?",

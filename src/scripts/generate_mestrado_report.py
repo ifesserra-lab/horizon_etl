@@ -22,19 +22,27 @@ from thefuzz import fuzz
 
 # ── constantes ────────────────────────────────────────────────────────────────
 
-DEFAULT_EGRESSOS   = "data/mestrado/egressos_PPComp.xlsx"
+DEFAULT_EGRESSOS = "data/mestrado/egressos_PPComp.xlsx"
 DEFAULT_ADVISORSHIPS = "data/exports/advisorships_canonical.json"
 DEFAULT_LATTES_DIR = "data/lattes_json"
-DEFAULT_OUTPUT     = "data/exports/mestrado_ic_pesquisa.html"
+DEFAULT_OUTPUT = "data/exports/mestrado_ic_pesquisa.html"
 
 IC_PROGRAMS = {
-    "PIBIC", "PIVIC", "PIBIT", "PIBITI",
-    "PIBIC-AF", "PIBIC-EM", "PIBIC-JR", "PIVITI", "JTC",
+    "PIBIC",
+    "PIVIC",
+    "PIBIT",
+    "PIBITI",
+    "PIBIC-AF",
+    "PIBIC-EM",
+    "PIBIC-JR",
+    "PIVITI",
+    "JTC",
 }
 
 FUZZY_THRESHOLD = 85
 
 # ── carregamento de dados ─────────────────────────────────────────────────────
+
 
 def load_egressos(path: str) -> list[str]:
     df = pd.read_excel(path, header=None)
@@ -69,8 +77,8 @@ def load_sigpesq_rp(advisorships_path: str) -> defaultdict:
 
 def load_lattes_data(lattes_dir: str) -> tuple[list, list, list]:
     """Retorna (ic_records, tcc_records, banca_records) de todos os Lattes."""
-    ic_records    = []
-    tcc_records   = []
+    ic_records = []
+    tcc_records = []
     banca_records = []
 
     for filepath in glob.glob(os.path.join(lattes_dir, "*.json")):
@@ -121,25 +129,30 @@ def load_lattes_data(lattes_dir: str) -> tuple[list, list, list]:
                 for item in items:
                     aluno = (item.get("aluno") or "").strip()
                     if aluno:
-                        banca_records.append({
-                            "aluno": aluno,
-                            "advisor": advisor,
-                            "tipo": banca_type,
-                            "ano": item.get("ano"),
-                            "titulo": str(
-                                item.get("titulo_trabalho")
-                                or item.get("descricao")
-                                or ""
-                            ),
-                        })
+                        banca_records.append(
+                            {
+                                "aluno": aluno,
+                                "advisor": advisor,
+                                "tipo": banca_type,
+                                "ano": item.get("ano"),
+                                "titulo": str(
+                                    item.get("titulo_trabalho")
+                                    or item.get("descricao")
+                                    or ""
+                                ),
+                            }
+                        )
 
     return ic_records, tcc_records, banca_records
 
+
 # ── matching ──────────────────────────────────────────────────────────────────
+
 
 def fuzzy_list(name: str, records: list, key: str) -> list:
     return [
-        r for r in records
+        r
+        for r in records
         if fuzz.token_sort_ratio(name.lower(), r[key].lower()) >= FUZZY_THRESHOLD
     ]
 
@@ -162,59 +175,82 @@ def build_results(
 ) -> list[dict]:
     results = []
     for name in egressos:
-        sp_ic  = fuzzy_dict(name, sigpesq_ic)
-        lt_ic_ = fuzzy_list(name, lt_ic,   "orientando")
-        lt_tcc_= fuzzy_list(name, lt_tcc,  "orientando")
-        lt_rp  = fuzzy_dict(name, sigpesq_rp)
+        sp_ic = fuzzy_dict(name, sigpesq_ic)
+        lt_ic_ = fuzzy_list(name, lt_ic, "orientando")
+        lt_tcc_ = fuzzy_list(name, lt_tcc, "orientando")
+        lt_rp = fuzzy_dict(name, sigpesq_rp)
         bancas = fuzzy_list(name, lt_bancas, "aluno")
 
-        results.append({
-            "name":    name,
-            "sp_ic":   sp_ic,
-            "lt_ic":   lt_ic_,
-            "lt_tcc":  lt_tcc_,
-            "lt_rp":   lt_rp,
-            "bancas":  bancas,
-            "has_ic":  bool(sp_ic or lt_ic_),
-            "has_tcc": bool(lt_tcc_),
-            "has_rp":  bool(lt_rp),
-            "has_banca": bool(bancas),
-        })
+        results.append(
+            {
+                "name": name,
+                "sp_ic": sp_ic,
+                "lt_ic": lt_ic_,
+                "lt_tcc": lt_tcc_,
+                "lt_rp": lt_rp,
+                "bancas": bancas,
+                "has_ic": bool(sp_ic or lt_ic_),
+                "has_tcc": bool(lt_tcc_),
+                "has_rp": bool(lt_rp),
+                "has_banca": bool(bancas),
+            }
+        )
 
-    results.sort(key=lambda r: (
-        0 if (r["has_ic"] and r["has_tcc"]) else
-        1 if r["has_ic"]  else
-        2 if r["has_tcc"] else
-        3 if r["has_rp"]  else
-        4 if r["has_banca"] else 5,
-        r["name"],
-    ))
+    results.sort(
+        key=lambda r: (
+            (
+                0
+                if (r["has_ic"] and r["has_tcc"])
+                else (
+                    1
+                    if r["has_ic"]
+                    else (
+                        2
+                        if r["has_tcc"]
+                        else 3 if r["has_rp"] else 4 if r["has_banca"] else 5
+                    )
+                )
+            ),
+            r["name"],
+        )
+    )
     return results
 
+
 # ── helpers HTML ──────────────────────────────────────────────────────────────
+
 
 def fmt_date(d) -> str:
     return str(d)[:10] if d else "—"
 
 
 def status_chip(s: str) -> str:
-    color = {"Concluded": "#22c55e", "In Progress": "#3b82f6", "Active": "#3b82f6"}.get(s, "#94a3b8")
+    color = {"Concluded": "#22c55e", "In Progress": "#3b82f6", "Active": "#3b82f6"}.get(
+        s, "#94a3b8"
+    )
     return f'<span class="badge" style="background:{color}">{s or "—"}</span>'
 
 
 def category_badges(r: dict) -> str:
     tags = []
-    if r["sp_ic"]:    tags.append('<span class="cat-badge cat-ic-sp">IC SigPesq</span>')
-    if r["lt_ic"]:    tags.append('<span class="cat-badge cat-ic-lt">IC Lattes</span>')
-    if r["has_tcc"]:  tags.append('<span class="cat-badge cat-tcc">TCC IFES</span>')
-    if r["has_rp"]:   tags.append('<span class="cat-badge cat-research">Pesquisa</span>')
-    if r["has_banca"]:tags.append('<span class="cat-badge cat-banca">Defesa Mestrado</span>')
-    if not tags:       tags.append('<span class="cat-badge cat-none">Sem Registro</span>')
+    if r["sp_ic"]:
+        tags.append('<span class="cat-badge cat-ic-sp">IC SigPesq</span>')
+    if r["lt_ic"]:
+        tags.append('<span class="cat-badge cat-ic-lt">IC Lattes</span>')
+    if r["has_tcc"]:
+        tags.append('<span class="cat-badge cat-tcc">TCC IFES</span>')
+    if r["has_rp"]:
+        tags.append('<span class="cat-badge cat-research">Pesquisa</span>')
+    if r["has_banca"]:
+        tags.append('<span class="cat-badge cat-banca">Defesa Mestrado</span>')
+    if not tags:
+        tags.append('<span class="cat-badge cat-none">Sem Registro</span>')
     return " ".join(tags)
 
 
 def tbl_sp_ic(records: list) -> str:
-    rows = "".join(f"""<tr>
+    rows = "".join(
+        f"""<tr>
       <td>{r.get('name','—')}</td>
       <td><span class="prog-badge">{(r.get('fellowship') or {}).get('name','—')}</span></td>
       <td>{r.get('supervisor_name','—')}</td>
@@ -222,7 +258,9 @@ def tbl_sp_ic(records: list) -> str:
       <td>{fmt_date(r.get('end_date'))}</td>
       <td>{(r.get('fellowship') or {}).get('sponsor_name','—')}</td>
       <td>{status_chip(r.get('status'))}</td>
-    </tr>""" for r in records)
+    </tr>"""
+        for r in records
+    )
     return f"""<div class="section-label ic-sp-label">IC — SigPesq (bolsa registrada)</div>
     <table class="detail-table"><thead><tr>
       <th>Título</th><th>Programa</th><th>Orientador</th>
@@ -231,13 +269,16 @@ def tbl_sp_ic(records: list) -> str:
 
 
 def tbl_lt_orient(records: list, label: str, css: str) -> str:
-    rows = "".join(f"""<tr>
+    rows = "".join(
+        f"""<tr>
       <td>{r.get('titulo','—')}</td>
       <td>{r.get('advisor','—')}</td>
       <td>{r.get('ano_inicio','—')}</td>
       <td>{r.get('ano_conclusao','—')}</td>
       <td>{status_chip(r.get('status'))}</td>
-    </tr>""" for r in records)
+    </tr>"""
+        for r in records
+    )
     return f"""<div class="section-label {css}">{label}</div>
     <table class="detail-table"><thead><tr>
       <th>Título</th><th>Orientador</th><th>Início</th><th>Fim</th><th>Status</th>
@@ -245,13 +286,16 @@ def tbl_lt_orient(records: list, label: str, css: str) -> str:
 
 
 def tbl_rp(records: list) -> str:
-    rows = "".join(f"""<tr>
+    rows = "".join(
+        f"""<tr>
       <td>{r.get('name','—')}</td>
       <td>{r.get('supervisor_name','—')}</td>
       <td>{fmt_date(r.get('start_date'))}</td>
       <td>{fmt_date(r.get('end_date'))}</td>
       <td>{status_chip(r.get('status'))}</td>
-    </tr>""" for r in records)
+    </tr>"""
+        for r in records
+    )
     return f"""<div class="section-label proj-label">Projetos de pesquisa (Lattes)</div>
     <table class="detail-table"><thead><tr>
       <th>Título</th><th>Orientador</th><th>Início</th><th>Fim</th><th>Status</th>
@@ -263,15 +307,18 @@ def tbl_bancas(records: list) -> str:
     for b in records:
         key = (b["titulo"][:70].strip().lower(), b["ano"])
         by_thesis[key]["titulo"] = b["titulo"][:100]
-        by_thesis[key]["ano"]    = b["ano"]
+        by_thesis[key]["ano"] = b["ano"]
         if b["advisor"] not in by_thesis[key]["advisors"]:
             by_thesis[key]["advisors"].append(b["advisor"])
 
-    rows = "".join(f"""<tr>
+    rows = "".join(
+        f"""<tr>
       <td>{v['titulo'] or '—'}</td>
       <td>{v['ano'] or '—'}</td>
       <td style="font-size:.78rem;color:#5b21b6">{' · '.join(v['advisors'])}</td>
-    </tr>""" for v in sorted(by_thesis.values(), key=lambda x: x["ano"] or 0, reverse=True))
+    </tr>"""
+        for v in sorted(by_thesis.values(), key=lambda x: x["ano"] or 0, reverse=True)
+    )
     return f"""<div class="section-label banca-label">Defesa de Mestrado (bancas nos CVs dos professores)</div>
     <table class="detail-table"><thead><tr>
       <th>Título da dissertação</th><th>Ano</th><th>Membros da banca</th>
@@ -280,17 +327,23 @@ def tbl_bancas(records: list) -> str:
 
 def build_card(i: int, r: dict) -> str:
     body = ""
-    if r["sp_ic"]:   body += tbl_sp_ic(r["sp_ic"])
-    if r["lt_ic"]:   body += tbl_lt_orient(r["lt_ic"],  "IC — Lattes dos professores", "ic-lt-label")
-    if r["lt_tcc"]:  body += tbl_lt_orient(r["lt_tcc"], "TCC — Lattes dos professores", "tcc-label")
-    if r["lt_rp"]:   body += tbl_rp(r["lt_rp"])
-    if r["bancas"]:  body += tbl_bancas(r["bancas"])
-    if not body:      body = '<div class="no-record">Sem registros em nenhuma fonte</div>'
+    if r["sp_ic"]:
+        body += tbl_sp_ic(r["sp_ic"])
+    if r["lt_ic"]:
+        body += tbl_lt_orient(r["lt_ic"], "IC — Lattes dos professores", "ic-lt-label")
+    if r["lt_tcc"]:
+        body += tbl_lt_orient(r["lt_tcc"], "TCC — Lattes dos professores", "tcc-label")
+    if r["lt_rp"]:
+        body += tbl_rp(r["lt_rp"])
+    if r["bancas"]:
+        body += tbl_bancas(r["bancas"])
+    if not body:
+        body = '<div class="no-record">Sem registros em nenhuma fonte</div>'
 
-    ic_n    = len(r["sp_ic"]) + len(r["lt_ic"])
-    tcc_n   = len(r["lt_tcc"])
+    ic_n = len(r["sp_ic"]) + len(r["lt_ic"])
+    tcc_n = len(r["lt_tcc"])
     banca_n = len({(b["titulo"][:50], b["ano"]) for b in r["bancas"]})
-    rp_n    = len(r["lt_rp"])
+    rp_n = len(r["lt_rp"])
 
     return f"""<div class="person-card" id="p{i}">
   <div class="person-header">
@@ -305,6 +358,7 @@ def build_card(i: int, r: dict) -> str:
   </div>
   <div class="person-body">{body}</div>
 </div>"""
+
 
 # ── geração HTML ──────────────────────────────────────────────────────────────
 
@@ -386,19 +440,19 @@ function fc(){
 
 
 def js_charts(stats: dict) -> str:
-    total    = stats["total"]
-    n_ic     = stats["n_ic"]
-    n_sp     = stats["n_sp"]
-    n_lt_ic  = stats["n_lt_ic"]
-    n_tcc    = stats["n_tcc"]
-    n_both   = stats["n_both"]
-    n_banca  = stats["n_banca"]
-    n_none   = stats["n_none"]
+    total = stats["total"]
+    n_ic = stats["n_ic"]
+    n_sp = stats["n_sp"]
+    n_lt_ic = stats["n_lt_ic"]
+    n_tcc = stats["n_tcc"]
+    n_both = stats["n_both"]
+    n_banca = stats["n_banca"]
+    n_none = stats["n_none"]
     n_no_ic_tcc = total - n_ic - n_tcc + n_both  # unique sem IC nem TCC
 
-    pct_ifes  = round((n_ic + n_tcc - n_both) / total * 100, 1)
+    pct_ifes = round((n_ic + n_tcc - n_both) / total * 100, 1)
     pct_nifes = round(100 - pct_ifes, 1)
-    ifes_n    = n_ic + n_tcc - n_both
+    ifes_n = n_ic + n_tcc - n_both
 
     return f"""
 Chart.register(ChartDataLabels);
@@ -502,14 +556,14 @@ new Chart(ctx2, {{
 
 
 def generate_html(results: list[dict], stats: dict, generated_at: str) -> str:
-    total   = stats["total"]
-    n_ic    = stats["n_ic"]
-    n_sp    = stats["n_sp"]
+    total = stats["total"]
+    n_ic = stats["n_ic"]
+    n_sp = stats["n_sp"]
     n_lt_ic = stats["n_lt_ic"]
-    n_tcc   = stats["n_tcc"]
-    n_both  = stats["n_both"]
+    n_tcc = stats["n_tcc"]
+    n_both = stats["n_both"]
     n_banca = stats["n_banca"]
-    n_none  = stats["n_none"]
+    n_none = stats["n_none"]
 
     cards_html = "\n".join(build_card(i, r) for i, r in enumerate(results))
 
@@ -589,40 +643,63 @@ def generate_html(results: list[dict], stats: dict, generated_at: str) -> str:
 </body>
 </html>"""
 
+
 # ── main ──────────────────────────────────────────────────────────────────────
 
+
 def main():
-    parser = argparse.ArgumentParser(description="Gera relatório HTML dos egressos PPComp")
-    parser.add_argument("--egressos",     default=DEFAULT_EGRESSOS)
+    parser = argparse.ArgumentParser(
+        description="Gera relatório HTML dos egressos PPComp"
+    )
+    parser.add_argument("--egressos", default=DEFAULT_EGRESSOS)
     parser.add_argument("--advisorships", default=DEFAULT_ADVISORSHIPS)
-    parser.add_argument("--lattes",       default=DEFAULT_LATTES_DIR)
-    parser.add_argument("--output",       default=DEFAULT_OUTPUT)
+    parser.add_argument("--lattes", default=DEFAULT_LATTES_DIR)
+    parser.add_argument("--output", default=DEFAULT_OUTPUT)
     args = parser.parse_args()
 
     print("Carregando dados…")
-    egressos    = load_egressos(args.egressos)
-    sigpesq_ic  = load_sigpesq_ic(args.advisorships)
-    sigpesq_rp  = load_sigpesq_rp(args.advisorships)
+    egressos = load_egressos(args.egressos)
+    sigpesq_ic = load_sigpesq_ic(args.advisorships)
+    sigpesq_rp = load_sigpesq_rp(args.advisorships)
     lt_ic, lt_tcc, lt_bancas = load_lattes_data(args.lattes)
 
-    print(f"  {len(egressos)} egressos · {len(lt_ic)} IC Lattes · {len(lt_tcc)} TCC Lattes · {len(lt_bancas)} bancas")
+    print(
+        f"  {len(egressos)} egressos · {len(lt_ic)} IC Lattes · {len(lt_tcc)} TCC Lattes · {len(lt_bancas)} bancas"
+    )
 
     print("Cruzando nomes…")
     results = build_results(egressos, sigpesq_ic, sigpesq_rp, lt_ic, lt_tcc, lt_bancas)
 
-    total   = len(results)
-    n_ic    = sum(1 for r in results if r["has_ic"])
-    n_sp    = sum(1 for r in results if r["sp_ic"])
+    total = len(results)
+    n_ic = sum(1 for r in results if r["has_ic"])
+    n_sp = sum(1 for r in results if r["sp_ic"])
     n_lt_ic = sum(1 for r in results if r["lt_ic"])
-    n_tcc   = sum(1 for r in results if r["has_tcc"])
-    n_both  = sum(1 for r in results if r["has_ic"] and r["has_tcc"])
+    n_tcc = sum(1 for r in results if r["has_tcc"])
+    n_both = sum(1 for r in results if r["has_ic"] and r["has_tcc"])
     n_banca = sum(1 for r in results if r["has_banca"])
-    n_none  = sum(1 for r in results if not r["has_ic"] and not r["has_tcc"] and not r["has_rp"] and not r["has_banca"])
+    n_none = sum(
+        1
+        for r in results
+        if not r["has_ic"]
+        and not r["has_tcc"]
+        and not r["has_rp"]
+        and not r["has_banca"]
+    )
 
-    stats = dict(total=total, n_ic=n_ic, n_sp=n_sp, n_lt_ic=n_lt_ic,
-                 n_tcc=n_tcc, n_both=n_both, n_banca=n_banca, n_none=n_none)
+    stats = dict(
+        total=total,
+        n_ic=n_ic,
+        n_sp=n_sp,
+        n_lt_ic=n_lt_ic,
+        n_tcc=n_tcc,
+        n_both=n_both,
+        n_banca=n_banca,
+        n_none=n_none,
+    )
 
-    print(f"  IC={n_ic} (SigPesq={n_sp}, Lattes={n_lt_ic}) · TCC={n_tcc} · IC+TCC={n_both} · sem nada={n_none}")
+    print(
+        f"  IC={n_ic} (SigPesq={n_sp}, Lattes={n_lt_ic}) · TCC={n_tcc} · IC+TCC={n_both} · sem nada={n_none}"
+    )
 
     html = generate_html(results, stats, datetime.now().strftime("%d/%m/%Y %H:%M"))
 

@@ -12,6 +12,7 @@ Dois formatos (ambos colapsáveis, estilo inline com fallback de cores):
 
 As cores usam var(--brand)…; se a página não definir as variáveis, há fallback.
 """
+
 from __future__ import annotations
 
 # paleta com fallback (caso a página não tenha as variáveis CSS)
@@ -23,18 +24,26 @@ _MUT = "var(--muted,#71857a)"
 _LINE = "var(--line,#e3ece5)"
 _PAPER = "var(--paper,#fff)"
 
-_IC = (f"width:28px;height:28px;flex:0 0 28px;border-radius:8px;background:{_BRAND_L};"
-       f"color:{_BRAND_D};display:grid;place-items:center;font-size:14px;font-weight:800;")
-_BOXBASE = ("border-radius:10px;padding:11px 14px;margin:10px 0;font-size:13.5px;"
-            "border-left:4px solid;line-height:1.5;")
+_IC = (
+    f"width:28px;height:28px;flex:0 0 28px;border-radius:8px;background:{_BRAND_L};"
+    f"color:{_BRAND_D};display:grid;place-items:center;font-size:14px;font-weight:800;"
+)
+_BOXBASE = (
+    "border-radius:10px;padding:11px 14px;margin:10px 0;font-size:13.5px;"
+    "border-left:4px solid;line-height:1.5;"
+)
 _EV = f"{_BOXBASE}background:{_BRAND_L};border-color:{_BRAND};color:#14361f;"
 _HIP = f"{_BOXBASE}background:#fbf4df;border-color:#b8860b;color:#5e4a12;"
 _REC = f"{_BOXBASE}background:#eaf1f9;border-color:#2f6fb0;color:#1f4d7a;"
 _WARN = f"{_BOXBASE}background:#f8e9ed;border-color:#b5455f;color:#7a2536;"
-_TAG = ("display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;"
-        "letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:5px;")
-_CENTRAL = ("background:linear-gradient(180deg,#0f7a40,#0a5c30);color:#fff;border-radius:12px;"
-            "padding:16px 18px;font-size:15.5px;line-height:1.5;")
+_TAG = (
+    "display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;"
+    "letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:5px;"
+)
+_CENTRAL = (
+    "background:linear-gradient(180deg,#0f7a40,#0a5c30);color:#fff;border-radius:12px;"
+    "padding:16px 18px;font-size:15.5px;line-height:1.5;"
+)
 
 
 # CSS responsivo compartilhado (mobile-first): empilha grids/barras, contém tabelas,
@@ -72,15 +81,20 @@ img,svg{max-width:100%;height:auto;}
 
 
 def _el(num, titulo, corpo, extra=""):
-    return (f'<div style="margin-top:18px;"><div style="display:flex;gap:10px;align-items:center;'
-            f'margin-bottom:5px;"><span style="{_IC}">{num}</span>'
-            f'<span style="font-size:16px;font-weight:700;color:{_INK};">{titulo}</span>'
-            f'</div><div style="padding-left:38px;">{corpo}{extra}</div></div>')
+    return (
+        f'<div style="margin-top:18px;"><div style="display:flex;gap:10px;align-items:center;'
+        f'margin-bottom:5px;"><span style="{_IC}">{num}</span>'
+        f'<span style="font-size:16px;font-weight:700;color:{_INK};">{titulo}</span>'
+        f'</div><div style="padding-left:38px;">{corpo}{extra}</div></div>'
+    )
 
 
 def _ul(items):
-    return ('<ul style="margin:4px 0 0 4px;padding-left:18px;">'
-            + "".join(f"<li>{x}</li>" for x in items) + "</ul>")
+    return (
+        '<ul style="margin:4px 0 0 4px;padding-left:18px;">'
+        + "".join(f"<li>{x}</li>" for x in items)
+        + "</ul>"
+    )
 
 
 def _details(summary, legenda_html, inner):
@@ -95,20 +109,38 @@ def _details(summary, legenda_html, inner):
 
 
 def _legenda_full():
-    return (f'<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:{_MUT};margin:2px 0 8px;">'
-            f'<span style="{_TAG}background:{_BRAND_L};color:{_BRAND_D};">Evidência</span> medido nos dados'
-            f'<span style="{_TAG}background:#fbf4df;color:#7a5b06;">Hipótese</span> plausível'
-            f'<span style="{_TAG}background:#eaf1f9;color:#1f4d7a;">Recomendação</span> ação sugerida</div>')
+    return (
+        f'<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:{_MUT};margin:2px 0 8px;">'
+        f'<span style="{_TAG}background:{_BRAND_L};color:{_BRAND_D};">Evidência</span> medido nos dados'
+        f'<span style="{_TAG}background:#fbf4df;color:#7a5b06;">Hipótese</span> plausível'
+        f'<span style="{_TAG}background:#eaf1f9;color:#1f4d7a;">Recomendação</span> ação sugerida</div>'
+    )
 
 
 def bloco_didatico(d: dict) -> str:
     """10 elementos (formação). Chaves: titulo, analisa, importa, mostram, evidencia?,
     interpretar, atencao?, cuidados(list), pesquisadores, recomendacao?, professores,
     hipotese?, estudantes, central, acoes(list)."""
-    ev = f'<div style="{_EV}"><b>Evidência:</b> {d["evidencia"]}</div>' if d.get("evidencia") else ""
-    at = f'<div style="{_HIP}"><b>Atenção — associação, não causa:</b> {d["atencao"]}</div>' if d.get("atencao") else ""
-    rec = f'<div style="{_REC}"><b>Recomendação:</b> {d["recomendacao"]}</div>' if d.get("recomendacao") else ""
-    hip = f'<div style="{_HIP}"><b>Hipótese a confirmar:</b> {d["hipotese"]}</div>' if d.get("hipotese") else ""
+    ev = (
+        f'<div style="{_EV}"><b>Evidência:</b> {d["evidencia"]}</div>'
+        if d.get("evidencia")
+        else ""
+    )
+    at = (
+        f'<div style="{_HIP}"><b>Atenção — associação, não causa:</b> {d["atencao"]}</div>'
+        if d.get("atencao")
+        else ""
+    )
+    rec = (
+        f'<div style="{_REC}"><b>Recomendação:</b> {d["recomendacao"]}</div>'
+        if d.get("recomendacao")
+        else ""
+    )
+    hip = (
+        f'<div style="{_HIP}"><b>Hipótese a confirmar:</b> {d["hipotese"]}</div>'
+        if d.get("hipotese")
+        else ""
+    )
     central = f'<div style="{_CENTRAL}">{d["central"]}</div>'
     inner = (
         _el(1, "O que esta seção analisa", d["analisa"])
@@ -136,18 +168,28 @@ def bloco_metrica(d: dict) -> str:
         n += 1
         partes.append(_el(n, titulo, corpo, extra))
 
-    ev = f'<div style="{_EV}"><b>Evidência:</b> {d["evidencia"]}</div>' if d.get("evidencia") else ""
+    ev = (
+        f'<div style="{_EV}"><b>Evidência:</b> {d["evidencia"]}</div>'
+        if d.get("evidencia")
+        else ""
+    )
     _add("O que esta seção mostra", d["o_que"], ev)
     if d.get("formula"):
-        _add("Como é calculada",
-             f'<span style="font-family:Georgia,serif;background:{_BRAND_L};border-radius:6px;'
-             f'padding:3px 9px;display:inline-block;">{d["formula"]}</span>')
+        _add(
+            "Como é calculada",
+            f'<span style="font-family:Georgia,serif;background:{_BRAND_L};border-radius:6px;'
+            f'padding:3px 9px;display:inline-block;">{d["formula"]}</span>',
+        )
     _add("Como ler", d["como_ler"])
-    _add("O que NÃO concluir",
-         _ul(d["nao_concluir"]) + f'<div style="{_WARN}">Métricas isoladas enganam: '
-         "leia em conjunto e com juízo qualitativo (Manifesto de Leiden).</div>")
+    _add(
+        "O que NÃO concluir",
+        _ul(d["nao_concluir"]) + f'<div style="{_WARN}">Métricas isoladas enganam: '
+        "leia em conjunto e com juízo qualitativo (Manifesto de Leiden).</div>",
+    )
     _add("Para gestores", d["gestores"])
-    legenda = (f'<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:{_MUT};margin:2px 0 8px;">'
-               f'<span style="{_TAG}background:{_BRAND_L};color:{_BRAND_D};">Evidência</span> medido'
-               f'<span style="{_TAG}background:#f8e9ed;color:#7a2536;">Cuidado</span> o que evitar</div>')
+    legenda = (
+        f'<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:{_MUT};margin:2px 0 8px;">'
+        f'<span style="{_TAG}background:{_BRAND_L};color:{_BRAND_D};">Evidência</span> medido'
+        f'<span style="{_TAG}background:#f8e9ed;color:#7a2536;">Cuidado</span> o que evitar</div>'
+    )
     return _details(f'📊 Como ler esta seção — {d["titulo"]}', legenda, "".join(partes))

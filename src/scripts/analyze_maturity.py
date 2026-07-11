@@ -19,6 +19,7 @@ Uso:
   python -m src.scripts.analyze_maturity
   python -m src.scripts.analyze_maturity --min-artigos 2
 """
+
 from __future__ import annotations
 
 import argparse
@@ -30,11 +31,21 @@ from datetime import datetime
 from pathlib import Path
 
 from src.scripts.analyze_venues import (
-    LATTES_DIR, OUT_DIR, REF_DIR, SCIMAGO_CSV,
-    QUALIS_WEIGHT, _A_STRATA,
-    _docente_area, _grande_from_scimago_area,
-    download_scimago, load_qualis, load_scimago, load_openalex,
-    norm_issn, norm_name, _roster,
+    _A_STRATA,
+    LATTES_DIR,
+    OUT_DIR,
+    QUALIS_WEIGHT,
+    REF_DIR,
+    SCIMAGO_CSV,
+    _docente_area,
+    _grande_from_scimago_area,
+    _roster,
+    download_scimago,
+    load_openalex,
+    load_qualis,
+    load_scimago,
+    norm_issn,
+    norm_name,
 )
 
 SExports = OUT_DIR
@@ -50,6 +61,7 @@ _Q_SCORE = {"Q1": 1.0, "Q2": 0.66, "Q3": 0.40, "Q4": 0.20}
 # ---------------------------------------------------------------------------
 # Coleta de artigos por (docente, área)
 # ---------------------------------------------------------------------------
+
 
 def _article_records(roster: dict[str, str], scimago: dict, qualis: dict):
     """Gera (lattes_id, nome, grande_area, titulo, doi, quartil, estrato|None,
@@ -92,15 +104,18 @@ def _article_records(roster: dict[str, str], scimago: dict, qualis: dict):
                 ano = None
             titulo = (a.get("titulo") or "").strip()
             doi = (a.get("doi") or "").strip()
-            recs.append((lid, nome, grande, titulo, doi, q or "",
-                         estrato, q_score, ano))
+            recs.append(
+                (lid, nome, grande, titulo, doi, q or "", estrato, q_score, ano)
+            )
     return recs
 
 
 def _signals(records: list[tuple], now_year: int) -> dict:
     """Calcula sinais brutos para um conjunto de artigos de UMA área/entidade."""
     n = len(records)
-    estratos = [QUALIS_WEIGHT[e] / 100 for *_, e, _q, _a in records if e in QUALIS_WEIGHT]
+    estratos = [
+        QUALIS_WEIGHT[e] / 100 for *_, e, _q, _a in records if e in QUALIS_WEIGHT
+    ]
     qs = [q for *_, _e, q, _a in records if q is not None]
     anos = sorted({a for *_, _e, _q, a in records if a})
     n_qualis = len(estratos)
@@ -113,18 +128,24 @@ def _signals(records: list[tuple], now_year: int) -> dict:
         ultimo = anos[-1]
         atividade = min(1.0, distinct / 5)
         gap = now_year - ultimo
-        recencia = 1.0 if gap <= 2 else (0.6 if gap <= 4 else (0.3 if gap <= 6 else 0.0))
+        recencia = (
+            1.0 if gap <= 2 else (0.6 if gap <= 4 else (0.3 if gap <= 6 else 0.0))
+        )
         consistencia = 0.5 * atividade + 0.5 * recencia
     else:
         span = distinct = 0
         ultimo = None
         consistencia = 0.0
     return {
-        "n": n, "n_qualis": n_qualis, "n_sjr": n_sjr,
+        "n": n,
+        "n_qualis": n_qualis,
+        "n_sjr": n_sjr,
         "qualidade": round(qualidade, 3),
         "impacto": round(impacto, 3),
         "consistencia": round(consistencia, 3),
-        "ultimo_ano": ultimo, "anos_distintos": distinct, "span": span,
+        "ultimo_ano": ultimo,
+        "anos_distintos": distinct,
+        "span": span,
     }
 
 
@@ -154,27 +175,41 @@ def _entity_areas(records: list[tuple], now_year: int, min_artigos: int) -> dict
             continue
         sig = _signals(recs, now_year)
         volume = round(min(1.0, len(recs) / max_vol), 3)
-        score = round((volume + sig["qualidade"] + sig["impacto"]
-                       + sig["consistencia"]) / 4, 3)
+        score = round(
+            (volume + sig["qualidade"] + sig["impacto"] + sig["consistencia"]) / 4, 3
+        )
         # artigos-fonte da área (titulo, doi, ano, estrato, quartil)
-        arts = [{"t": r[3], "doi": r[4], "ano": r[8],
-                 "estrato": r[6] or "", "quartil": r[5] or ""}
-                for r in recs]
+        arts = [
+            {
+                "t": r[3],
+                "doi": r[4],
+                "ano": r[8],
+                "estrato": r[6] or "",
+                "quartil": r[5] or "",
+            }
+            for r in recs
+        ]
         arts.sort(key=lambda x: (-(x["ano"] or 0), x["t"].lower()))
         out[area] = {
-            "n": sig["n"], "volume": volume,
-            "qualidade": sig["qualidade"], "impacto": sig["impacto"],
-            "consistencia": sig["consistencia"], "score": score,
+            "n": sig["n"],
+            "volume": volume,
+            "qualidade": sig["qualidade"],
+            "impacto": sig["impacto"],
+            "consistencia": sig["consistencia"],
+            "score": score,
             "label": _label(score, sig, now_year),
-            "ultimo_ano": sig["ultimo_ano"], "anos_distintos": sig["anos_distintos"],
-            "cobertura_qualis": sig["n_qualis"], "cobertura_sjr": sig["n_sjr"],
+            "ultimo_ano": sig["ultimo_ano"],
+            "anos_distintos": sig["anos_distintos"],
+            "cobertura_qualis": sig["n_qualis"],
+            "cobertura_sjr": sig["n_sjr"],
             "artigos": arts,
         }
     return out
 
 
-def build_payload(roster: dict[str, str], scimago: dict, qualis: dict,
-                  min_artigos: int) -> dict:
+def build_payload(
+    roster: dict[str, str], scimago: dict, qualis: dict, min_artigos: int
+) -> dict:
     now_year = datetime.now().year
     recs = _article_records(roster, scimago, qualis)
 
@@ -201,12 +236,14 @@ def build_payload(roster: dict[str, str], scimago: dict, qualis: dict,
     all_areas = set(prog_areas)
     for e in entities.values():
         all_areas |= set(e["areas"])
-    areas_order = sorted(all_areas,
-                         key=lambda a: (-prog_areas.get(a, {}).get("n", 0), a))
+    areas_order = sorted(
+        all_areas, key=lambda a: (-prog_areas.get(a, {}).get("n", 0), a)
+    )
 
     ordem_docentes = sorted(
         ((lid, e["nome"]) for lid, e in entities.items() if lid != PROGRAMA),
-        key=lambda kv: kv[1].lower())
+        key=lambda kv: kv[1].lower(),
+    )
 
     return {
         "gerado_em": datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -227,6 +264,7 @@ def build_payload(roster: dict[str, str], scimago: dict, qualis: dict,
 # ---------------------------------------------------------------------------
 # HTML (SVG + JS vanilla, sem CDN)
 # ---------------------------------------------------------------------------
+
 
 def render_html(payload: dict) -> str:
     data_json = json.dumps(payload, ensure_ascii=False)
@@ -466,14 +504,22 @@ init();
 # main
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", default=str(DEFAULT_JSON))
     ap.add_argument("--html", default=str(DEFAULT_HTML))
-    ap.add_argument("--qualis", default=str(REF_DIR / "qualis.csv"),
-                    help="CSV Qualis (melhor estrato entre áreas)")
-    ap.add_argument("--min-artigos", type=int, default=2,
-                    help="mín. de artigos p/ uma área aparecer no radar do docente")
+    ap.add_argument(
+        "--qualis",
+        default=str(REF_DIR / "qualis.csv"),
+        help="CSV Qualis (melhor estrato entre áreas)",
+    )
+    ap.add_argument(
+        "--min-artigos",
+        type=int,
+        default=2,
+        help="mín. de artigos p/ uma área aparecer no radar do docente",
+    )
     args = ap.parse_args()
 
     if not SCIMAGO_CSV.exists():
@@ -495,7 +541,9 @@ def main() -> None:
 
     out_json = Path(args.json)
     out_json.parent.mkdir(parents=True, exist_ok=True)
-    out_json.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    out_json.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     print(f"Written: {out_json}")
 
     out_html = Path(args.html)

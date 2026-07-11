@@ -22,17 +22,23 @@ from datetime import datetime
 from pathlib import Path
 
 from src.scripts import generate_formandos_executive as EX
-from src.scripts import generate_ppcomp_egressos_report as PP
 from src.scripts import generate_ppcomp_base_report as PPB
+from src.scripts import generate_ppcomp_egressos_report as PP
+from src.scripts.didatica import MOBILE_CSS, bloco_didatico
 from src.scripts.generate_formandos_report import _match_key, normalize_name
-from src.scripts.didatica import bloco_didatico, MOBILE_CSS
 
 OUT_DIR = EX.OUT_DIR  # data/exports/formandos
 DEFAULT_OUT = OUT_DIR / "relatorio_institucional.html"
-PROJETOS_FILE = (EX.BASE / "data" / "exports" / "projetos-fapes"
-                 / "ifes-campus-serra-projetos-concluidos-em-andamento.json")
-FACTO_FILE = (EX.BASE / "data" / "exports" / "projetos-facto"
-              / "facto_projects_full.json")
+PROJETOS_FILE = (
+    EX.BASE
+    / "data"
+    / "exports"
+    / "projetos-fapes"
+    / "ifes-campus-serra-projetos-concluidos-em-andamento.json"
+)
+FACTO_FILE = (
+    EX.BASE / "data" / "exports" / "projetos-facto" / "facto_projects_full.json"
+)
 LATTES_DIR = EX.BASE / "data" / "lattes_json"
 
 
@@ -68,7 +74,9 @@ def _facto_info(p: dict) -> dict:
 
 
 def _facto_brl(s) -> float:
-    if isinstance(s, (int, float)):   # já numérico: não aplicar parsing BR (evitaria inflar 100x)
+    if isinstance(
+        s, (int, float)
+    ):  # já numérico: não aplicar parsing BR (evitaria inflar 100x)
         return float(s)
     s = (str(s) or "").strip()
     if not s:
@@ -99,12 +107,13 @@ def facto_section() -> str:
     if not FACTO_FILE.exists():
         return ""
     from datetime import date as _date
+
     d = json.loads(FACTO_FILE.read_text())
     profs = _professores_campus()
     total_portal = len(d["projects"])
 
     # ---- identifica projetos Serra PELOS PROFESSORES (coord ou equipe) ----
-    proj_profs: dict[str, dict[str, set]] = {}   # pid → {coord, membro} (nomes)
+    proj_profs: dict[str, dict[str, set]] = {}  # pid → {coord, membro} (nomes)
     prof_proj = defaultdict(lambda: {"coord": set(), "membro": set()})
     for p in d["projects"]:
         i = _facto_info(p)
@@ -132,7 +141,9 @@ def facto_section() -> str:
     fvals, fcoord, fdurs, fconc = [], defaultdict(float), [], 0
     fnat = defaultdict(lambda: [0, 0.0])
     fano_val: dict[int, float] = defaultdict(float)
-    f_orc_coord = 0.0      # captação atribuível: valor de projetos COORDENADOS por docente do campus
+    f_orc_coord = (
+        0.0  # captação atribuível: valor de projetos COORDENADOS por docente do campus
+    )
     n_proj_coord = 0
     today = datetime.now().date()
     for p in serra:
@@ -172,14 +183,26 @@ def facto_section() -> str:
     n_prof_coord = sum(1 for v in prof_proj.values() if v["coord"])
 
     kpi_g = [
-        (str(n_serra), "projetos com participação", f"de {total_portal} no portal FACTO"),
+        (
+            str(n_serra),
+            "projetos com participação",
+            f"de {total_portal} no portal FACTO",
+        ),
         (str(n_proj_coord), "coordenados pelo campus", "entram na captação do campus"),
         (_brl(f_orc_coord), "captação como coordenador", "valor atribuível ao campus"),
-        (_brl(f_orc), "valor total (participação)", "⚠ inclui projetos coord. por outras instituições"),
+        (
+            _brl(f_orc),
+            "valor total (participação)",
+            "⚠ inclui projetos coord. por outras instituições",
+        ),
         (str(n_prof), "professores do campus", f"{n_prof_coord} como coordenador"),
         (f"{f_dur/12:.1f} anos", "duração média", f"{f_dur:.0f} meses"),
         (f"{round(f_maior/f_orc*100)}%", "no maior projeto", "concentração de valor"),
-        (f"{round(fconc/n_serra*100)}%" if n_serra else "—", "taxa de conclusão", f"{fconc} encerrados"),
+        (
+            f"{round(fconc/n_serra*100)}%" if n_serra else "—",
+            "taxa de conclusão",
+            f"{fconc} encerrados",
+        ),
     ]
     g_cards = "".join(
         f'<div class="kpi"><div class="n" style="font-size:30px;">{nn}</div>'
@@ -188,9 +211,14 @@ def facto_section() -> str:
     )
 
     # natureza (campo oficial "Tipo de Projeto")
-    NCOL = {"Pesquisa, Desenv. e Inovação": "var(--brand)", "Extensão": "var(--amber)",
-            "Ensino": "var(--blue)", "Seleção/Concurso": "#6a4c93",
-            "Sem tipo": "var(--line2)", "Outros": "var(--muted)"}
+    NCOL = {
+        "Pesquisa, Desenv. e Inovação": "var(--brand)",
+        "Extensão": "var(--amber)",
+        "Ensino": "var(--blue)",
+        "Seleção/Concurso": "#6a4c93",
+        "Sem tipo": "var(--line2)",
+        "Outros": "var(--muted)",
+    }
     nmax = max((v[0] for v in fnat.values()), default=1)
     nat_bars = "".join(
         f'<div class="brow"><span class="bl">{k}</span>'
@@ -201,14 +229,27 @@ def facto_section() -> str:
     )
     # valor por ano (line)
     fanos = sorted(a for a in fano_val if a)
-    facto_ano_chart = _line_chart(
-        fanos, [fano_val[a] for a in fanos], _brl, "var(--brand)", "gfacto",
-        "Valor FACTO (campus) aprovado por ano") if fanos else ""
+    facto_ano_chart = (
+        _line_chart(
+            fanos,
+            [fano_val[a] for a in fanos],
+            _brl,
+            "var(--brand)",
+            "gfacto",
+            "Valor FACTO (campus) aprovado por ano",
+        )
+        if fanos
+        else ""
+    )
 
     # tabela: os projetos Serra (todos), com professores envolvidos
-    _facto_tot = sum(_facto_brl(_facto_info(p).get("Valor aprovado")) for p in serra) or 1
+    _facto_tot = (
+        sum(_facto_brl(_facto_info(p).get("Valor aprovado")) for p in serra) or 1
+    )
     proj_rows = ""
-    for p in sorted(serra, key=lambda p: -_facto_brl(_facto_info(p).get("Valor aprovado"))):
+    for p in sorted(
+        serra, key=lambda p: -_facto_brl(_facto_info(p).get("Valor aprovado"))
+    ):
         i = _facto_info(p)
         v = _facto_brl(i.get("Valor aprovado"))
         fp = proj_profs[p["id"]]
@@ -224,15 +265,21 @@ def facto_section() -> str:
 
     # tabela: professores do campus e seus projetos
     prof_rows = ""
-    for nome, v in sorted(prof_proj.items(), key=lambda x: -(len(x[1]["coord"]) + len(x[1]["membro"]))):
+    for nome, v in sorted(
+        prof_proj.items(), key=lambda x: -(len(x[1]["coord"]) + len(x[1]["membro"]))
+    ):
         papel = ""
         if v["coord"]:
             papel += '<span class="chip g">Coordenador</span>'
         if v["membro"]:
             papel += '<span class="chip b">Equipe</span>'
-        pids = sorted(v["coord"] | v["membro"], key=lambda x: int(x) if str(x).isdigit() else 0)
-        prof_rows += (f'<tr><td>{nome}</td><td>{papel}</td><td>{len(pids)}</td>'
-                      f'<td style="color:var(--muted);font-size:12px;">{" · ".join("["+i+"]" for i in pids)}</td></tr>')
+        pids = sorted(
+            v["coord"] | v["membro"], key=lambda x: int(x) if str(x).isdigit() else 0
+        )
+        prof_rows += (
+            f"<tr><td>{nome}</td><td>{papel}</td><td>{len(pids)}</td>"
+            f'<td style="color:var(--muted);font-size:12px;">{" · ".join("["+i+"]" for i in pids)}</td></tr>'
+        )
 
     divider = _divider(
         "Parte 4 · FACTO",
@@ -286,15 +333,28 @@ def _brl(v: float) -> str:
 def _faixa(v: float) -> str:
     """Faixa de valor (sem cifra exata) — usada em 'Orçamento por rubrica'."""
     v = v or 0
-    for lim, rot in [(1e5, "≤ R$ 100 mil"), (5e5, "R$ 100–500 mil"), (1e6, "R$ 500 mil–1 mi"),
-                     (5e6, "R$ 1–5 mi"), (2e7, "R$ 5–20 mi"), (5e7, "R$ 20–50 mi")]:
+    for lim, rot in [
+        (1e5, "≤ R$ 100 mil"),
+        (5e5, "R$ 100–500 mil"),
+        (1e6, "R$ 500 mil–1 mi"),
+        (5e6, "R$ 1–5 mi"),
+        (2e7, "R$ 5–20 mi"),
+        (5e7, "R$ 20–50 mi"),
+    ]:
         if v <= lim:
             return rot
     return "> R$ 50 mi"
 
 
-def _line_chart(anos: list[int], vals: list[float], fmt, color: str,
-                grad_id: str, aria: str, sublabels: list[str] | None = None) -> str:
+def _line_chart(
+    anos: list[int],
+    vals: list[float],
+    fmt,
+    color: str,
+    grad_id: str,
+    aria: str,
+    sublabels: list[str] | None = None,
+) -> str:
     """Gráfico de linha SVG inline genérico: X = ano, Y = valor (fmt)."""
     if not anos:
         return ""
@@ -303,8 +363,10 @@ def _line_chart(anos: list[int], vals: list[float], fmt, color: str,
     iw, ih = W - ml - mr, H - mt - mb
     vmax = max(vals) or 1
     n = len(anos)
+
     def x(i):
         return ml + (iw * i / (n - 1) if n > 1 else iw / 2)
+
     def y(v):
         return mt + ih - (v / vmax * ih)
 
@@ -312,28 +374,40 @@ def _line_chart(anos: list[int], vals: list[float], fmt, color: str,
     for g in range(6):
         val = vmax * g / 5
         gy = y(val)
-        grid += (f'<line x1="{ml}" y1="{gy:.1f}" x2="{W-mr}" y2="{gy:.1f}" '
-                 f'stroke="var(--line)" stroke-width="1"/>'
-                 f'<text x="{ml-10}" y="{gy+4:.1f}" text-anchor="end" '
-                 f'font-size="11" fill="var(--muted)">{fmt(val)}</text>')
+        grid += (
+            f'<line x1="{ml}" y1="{gy:.1f}" x2="{W-mr}" y2="{gy:.1f}" '
+            f'stroke="var(--line)" stroke-width="1"/>'
+            f'<text x="{ml-10}" y="{gy+4:.1f}" text-anchor="end" '
+            f'font-size="11" fill="var(--muted)">{fmt(val)}</text>'
+        )
 
     pts = [(x(i), y(vals[i])) for i in range(n)]
     poly = " ".join(f"{px:.1f},{py:.1f}" for px, py in pts)
-    area = (f'M {pts[0][0]:.1f},{mt+ih:.1f} L '
-            + " L ".join(f"{px:.1f},{py:.1f}" for px, py in pts)
-            + f' L {pts[-1][0]:.1f},{mt+ih:.1f} Z')
+    area = (
+        f"M {pts[0][0]:.1f},{mt+ih:.1f} L "
+        + " L ".join(f"{px:.1f},{py:.1f}" for px, py in pts)
+        + f" L {pts[-1][0]:.1f},{mt+ih:.1f} Z"
+    )
 
     dots = ""
     for i, a in enumerate(anos):
         px, py = pts[i]
-        sub = (f'<text x="{px:.1f}" y="{mt+ih+32:.1f}" text-anchor="middle" font-size="9" '
-               f'fill="var(--muted)">{sublabels[i]}</text>') if sublabels else ""
-        dots += (f'<circle cx="{px:.1f}" cy="{py:.1f}" r="4" fill="{color}" '
-                 f'stroke="#fff" stroke-width="1.5"/>'
-                 f'<text x="{px:.1f}" y="{py-12:.1f}" text-anchor="middle" font-size="10" '
-                 f'font-weight="700" fill="{color}">{fmt(vals[i])}</text>'
-                 f'<text x="{px:.1f}" y="{mt+ih+18:.1f}" text-anchor="middle" font-size="11" '
-                 f'fill="var(--ink2)">{a}</text>{sub}')
+        sub = (
+            (
+                f'<text x="{px:.1f}" y="{mt+ih+32:.1f}" text-anchor="middle" font-size="9" '
+                f'fill="var(--muted)">{sublabels[i]}</text>'
+            )
+            if sublabels
+            else ""
+        )
+        dots += (
+            f'<circle cx="{px:.1f}" cy="{py:.1f}" r="4" fill="{color}" '
+            f'stroke="#fff" stroke-width="1.5"/>'
+            f'<text x="{px:.1f}" y="{py-12:.1f}" text-anchor="middle" font-size="10" '
+            f'font-weight="700" fill="{color}">{fmt(vals[i])}</text>'
+            f'<text x="{px:.1f}" y="{mt+ih+18:.1f}" text-anchor="middle" font-size="11" '
+            f'fill="var(--ink2)">{a}</text>{sub}'
+        )
 
     return (
         f'<div style="overflow-x:auto;"><svg viewBox="0 0 {W} {H}" '
@@ -345,12 +419,13 @@ def _line_chart(anos: list[int], vals: list[float], fmt, color: str,
         f'{grid}<path d="{area}" fill="url(#{grad_id})"/>'
         f'<polyline points="{poly}" fill="none" stroke="{color}" '
         f'stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
-        f'{dots}</svg></div>'
+        f"{dots}</svg></div>"
     )
 
 
-def _multiline_chart(anos: list[int], series: list[dict], fmt, aria: str,
-                     uid: str = "ml") -> str:
+def _multiline_chart(
+    anos: list[int], series: list[dict], fmt, aria: str, uid: str = "ml"
+) -> str:
     """Multi-linha SVG inline com legenda clicável (toggle por série).
 
     series: [{"name": str, "color": str, "values": [..], "width": float?}]
@@ -362,8 +437,10 @@ def _multiline_chart(anos: list[int], series: list[dict], fmt, aria: str,
     iw, ih = W - ml - mr, H - mt - mb
     vmax = max((v for s in series for v in s["values"]), default=1) or 1
     n = len(anos)
+
     def x(i):
         return ml + (iw * i / (n - 1) if n > 1 else iw / 2)
+
     def y(v):
         return mt + ih - (v / vmax * ih)
 
@@ -371,13 +448,17 @@ def _multiline_chart(anos: list[int], series: list[dict], fmt, aria: str,
     for g in range(6):
         val = vmax * g / 5
         gy = y(val)
-        grid += (f'<line x1="{ml}" y1="{gy:.1f}" x2="{W-mr}" y2="{gy:.1f}" '
-                 f'stroke="var(--line)" stroke-width="1"/>'
-                 f'<text x="{ml-8}" y="{gy+4:.1f}" text-anchor="end" font-size="11" '
-                 f'fill="var(--muted)">{fmt(val)}</text>')
+        grid += (
+            f'<line x1="{ml}" y1="{gy:.1f}" x2="{W-mr}" y2="{gy:.1f}" '
+            f'stroke="var(--line)" stroke-width="1"/>'
+            f'<text x="{ml-8}" y="{gy+4:.1f}" text-anchor="end" font-size="11" '
+            f'fill="var(--muted)">{fmt(val)}</text>'
+        )
     xlabels = "".join(
         f'<text x="{x(i):.1f}" y="{mt+ih+18:.1f}" text-anchor="middle" font-size="11" '
-        f'fill="var(--ink2)">{a}</text>' for i, a in enumerate(anos))
+        f'fill="var(--ink2)">{a}</text>'
+        for i, a in enumerate(anos)
+    )
 
     lines = ""
     for si, s in enumerate(series):
@@ -386,22 +467,32 @@ def _multiline_chart(anos: list[int], series: list[dict], fmt, aria: str,
         w = s.get("width", 2)
         dots = "".join(
             f'<circle cx="{px:.1f}" cy="{py:.1f}" r="3" fill="{s["color"]}" '
-            f'stroke="#fff" stroke-width="1"/>' for px, py in pts)
-        lines += (f'<g class="ser" data-i="{si}">'
-                  f'<polyline points="{poly}" fill="none" stroke="{s["color"]}" '
-                  f'stroke-width="{w}" stroke-linejoin="round" stroke-linecap="round" '
-                  f'opacity="0.92"/>{dots}</g>')
+            f'stroke="#fff" stroke-width="1"/>'
+            for px, py in pts
+        )
+        lines += (
+            f'<g class="ser" data-i="{si}">'
+            f'<polyline points="{poly}" fill="none" stroke="{s["color"]}" '
+            f'stroke-width="{w}" stroke-linejoin="round" stroke-linecap="round" '
+            f'opacity="0.92"/>{dots}</g>'
+        )
 
-    legend = (f'<div class="ml-legend" style="display:flex;flex-wrap:wrap;gap:8px 12px;'
-              f'margin-top:14px;">') + "".join(
-        f'<button type="button" class="leg-item" data-i="{si}" '
-        f'style="display:inline-flex;align-items:center;gap:6px;font-size:12px;'
-        f'color:var(--ink2);background:var(--soft);border:1px solid var(--line);'
-        f'border-radius:999px;padding:4px 11px;cursor:pointer;font-family:inherit;">'
-        f'<span style="width:14px;height:3px;border-radius:2px;background:{s["color"]};'
-        f'display:inline-block;"></span>{s["name"]}</button>'
-        for si, s in enumerate(series)
-    ) + '</div>'
+    legend = (
+        (
+            f'<div class="ml-legend" style="display:flex;flex-wrap:wrap;gap:8px 12px;'
+            f'margin-top:14px;">'
+        )
+        + "".join(
+            f'<button type="button" class="leg-item" data-i="{si}" '
+            f'style="display:inline-flex;align-items:center;gap:6px;font-size:12px;'
+            f"color:var(--ink2);background:var(--soft);border:1px solid var(--line);"
+            f'border-radius:999px;padding:4px 11px;cursor:pointer;font-family:inherit;">'
+            f'<span style="width:14px;height:3px;border-radius:2px;background:{s["color"]};'
+            f'display:inline-block;"></span>{s["name"]}</button>'
+            for si, s in enumerate(series)
+        )
+        + "</div>"
+    )
 
     svg = (
         f'<div style="overflow-x:auto;"><svg viewBox="0 0 {W} {H}" '
@@ -423,9 +514,21 @@ def _multiline_chart(anos: list[int], series: list[dict], fmt, aria: str,
 def _bolsa_familia(tipo: str | None) -> str:
     """Família da bolsa (BPIG, B-UnAC, ICT...) a partir do tipo_bolsa completo."""
     t = (tipo or "").upper()
-    fams = [("B-UNAC", "B-UnAC"), ("BPIG", "BPIG"), ("ICJR", "ICJr"), ("ICT", "ICT"),
-            ("ME", "ME"), ("EXT", "EXT"), ("DTI", "DTI"), ("AT-N", "AT"), ("BCO", "BCO"),
-            ("BTU", "BTU"), ("BMO", "BMO"), ("TPQ", "TPq"), ("BPC", "BPC")]
+    fams = [
+        ("B-UNAC", "B-UnAC"),
+        ("BPIG", "BPIG"),
+        ("ICJR", "ICJr"),
+        ("ICT", "ICT"),
+        ("ME", "ME"),
+        ("EXT", "EXT"),
+        ("DTI", "DTI"),
+        ("AT-N", "AT"),
+        ("BCO", "BCO"),
+        ("BTU", "BTU"),
+        ("BMO", "BMO"),
+        ("TPQ", "TPq"),
+        ("BPC", "BPC"),
+    ]
     for pref, disp in fams:
         if t.startswith(pref):
             return disp
@@ -453,6 +556,7 @@ def projetos_section(with_research: int | None = None) -> str:
     if not PROJETOS_FILE.exists():
         return ""
     from datetime import date as _date
+
     d = json.loads(PROJETOS_FILE.read_text())
     r = d["resumo"]
     tot = r["total_status_ou_prazo"]
@@ -489,25 +593,42 @@ def projetos_section(with_research: int | None = None) -> str:
         (str(n_coord), "coordenadores captando", f"{npj/n_coord:.1f} projetos cada"),
         (f"{round(vb/orc*100)}%", "do orçamento em bolsas", _brl(vb)),
         (f"{dur_med/12:.1f} anos", "duração média", f"{dur_med:.0f} meses"),
-        (f"{round(top5/orc*100)}%", "nos top-5 coordenadores", "concentração de fomento"),
-        (f"{venc['quantidade_projetos']}", "projetos com prazo vencido",
-         f"{round(venc['quantidade_projetos']/npj*100)}% do total"),
-        (f"{round(conc['quantidade_projetos']/npj*100)}%", "taxa de conclusão",
-         f"{conc['quantidade_projetos']} concluídos"),
+        (
+            f"{round(top5/orc*100)}%",
+            "nos top-5 coordenadores",
+            "concentração de fomento",
+        ),
+        (
+            f"{venc['quantidade_projetos']}",
+            "projetos com prazo vencido",
+            f"{round(venc['quantidade_projetos']/npj*100)}% do total",
+        ),
+        (
+            f"{round(conc['quantidade_projetos']/npj*100)}%",
+            "taxa de conclusão",
+            f"{conc['quantidade_projetos']} concluídos",
+        ),
     ]
     if with_research:
         kpi_gestao.append(
-            (_brl(vb / with_research), "em bolsas por aluno-pesquisa",
-             f"{_brl(vb)} ÷ {with_research}"))
+            (
+                _brl(vb / with_research),
+                "em bolsas por aluno-pesquisa",
+                f"{_brl(vb)} ÷ {with_research}",
+            )
+        )
     gestao_cards = "".join(
         f'<div class="kpi"><div class="n" style="font-size:30px;">{n}</div>'
         f'<div class="u">{u}</div><div class="s">{s}</div></div>'
         for n, u, s in kpi_gestao
     )
-    _aluno_txt = (f'<li><b>Bolsas por aluno-pesquisa</b> — total investido em bolsas dividido '
-                  f'pelos {with_research} egressos com participação em pesquisa; aproxima o '
-                  f'custo de formar um aluno pesquisador. <i>Cruza fomento com a graduação.</i></li>'
-                  if with_research else "")
+    _aluno_txt = (
+        f"<li><b>Bolsas por aluno-pesquisa</b> — total investido em bolsas dividido "
+        f"pelos {with_research} egressos com participação em pesquisa; aproxima o "
+        f"custo de formar um aluno pesquisador. <i>Cruza fomento com a graduação.</i></li>"
+        if with_research
+        else ""
+    )
     explic = f"""
       <div class="card" style="margin-top:20px;">
         <h3>O que cada indicador significa</h3>
@@ -557,16 +678,40 @@ def projetos_section(with_research: int | None = None) -> str:
     </div></section>"""
 
     # status bars
-    smax = max(conc['quantidade_projetos'], and_['quantidade_projetos'], venc['quantidade_projetos'], 1)
+    smax = max(
+        conc["quantidade_projetos"],
+        and_["quantidade_projetos"],
+        venc["quantidade_projetos"],
+        1,
+    )
+
     def _bar(lbl, v, color, sub):
         w = v / smax * 100
-        return (f'<div class="brow"><span class="bl">{lbl}</span>'
-                f'<div class="btrack"><div class="bfill" style="width:{max(w,2):.1f}%;background:{color};"></div></div>'
-                f'<span class="bv">{v} · {sub}</span></div>')
+        return (
+            f'<div class="brow"><span class="bl">{lbl}</span>'
+            f'<div class="btrack"><div class="bfill" style="width:{max(w,2):.1f}%;background:{color};"></div></div>'
+            f'<span class="bv">{v} · {sub}</span></div>'
+        )
+
     status = (
-        _bar("Concluídos", conc['quantidade_projetos'], "var(--brand)", _brl(conc['orcamento_contratado_total']))
-        + _bar("Em andamento (no prazo)", and_['quantidade_projetos'], "var(--blue)", _brl(and_['orcamento_contratado_total']))
-        + _bar("Em andamento (prazo vencido)", venc['quantidade_projetos'], "var(--amber)", _brl(venc['orcamento_contratado_total']))
+        _bar(
+            "Concluídos",
+            conc["quantidade_projetos"],
+            "var(--brand)",
+            _brl(conc["orcamento_contratado_total"]),
+        )
+        + _bar(
+            "Em andamento (no prazo)",
+            and_["quantidade_projetos"],
+            "var(--blue)",
+            _brl(and_["orcamento_contratado_total"]),
+        )
+        + _bar(
+            "Em andamento (prazo vencido)",
+            venc["quantidade_projetos"],
+            "var(--amber)",
+            _brl(venc["orcamento_contratado_total"]),
+        )
     )
 
     # top coordenadores
@@ -592,13 +737,23 @@ def projetos_section(with_research: int | None = None) -> str:
         a[2] += p.get("quantidade_bolsas", 0) or 0
     anos = sorted(a for a in ano if a)
     ano_chart = _line_chart(
-        anos, [ano[a][1] for a in anos], _brl, "var(--brand)", "gano",
+        anos,
+        [ano[a][1] for a in anos],
+        _brl,
+        "var(--brand)",
+        "gano",
         "Orçamento FAPES contratado por ano",
-        sublabels=[f"{ano[a][0]}p" for a in anos])
+        sublabels=[f"{ano[a][0]}p" for a in anos],
+    )
     bolsa_chart = _line_chart(
-        anos, [ano[a][2] for a in anos], lambda v: f"{v:.0f}", "var(--blue)", "gbol",
+        anos,
+        [ano[a][2] for a in anos],
+        lambda v: f"{v:.0f}",
+        "var(--blue)",
+        "gbol",
         "Bolsas alocadas por ano",
-        sublabels=[f"{ano[a][0]}p" for a in anos])
+        sublabels=[f"{ano[a][0]}p" for a in anos],
+    )
 
     # bolsas por família × ano (multi-linha)
     fam_ano: dict[str, dict[int, float]] = defaultdict(lambda: defaultdict(float))
@@ -607,27 +762,43 @@ def projetos_section(with_research: int | None = None) -> str:
         a = p.get("ano")
         if not a:
             continue
-        for b in (p.get("bolsas") or []):
+        for b in p.get("bolsas") or []:
             fam = _bolsa_familia(b.get("tipo_bolsa"))
             q = b.get("quantidade", 0) or 0
             fam_ano[fam][a] += q
             fam_total[fam] += q
-    _PAL = ["var(--brand)", "var(--blue)", "var(--amber)", "var(--rose)",
-            "#6a4c93", "#1f9d57", "var(--muted)"]
+    _PAL = [
+        "var(--brand)",
+        "var(--blue)",
+        "var(--amber)",
+        "var(--rose)",
+        "#6a4c93",
+        "#1f9d57",
+        "var(--muted)",
+    ]
     top_fams = [f for f, _ in sorted(fam_total.items(), key=lambda x: -x[1])[:6]]
     fam_series = [
-        {"name": f, "color": _PAL[i % len(_PAL)],
-         "values": [fam_ano[f].get(a, 0) for a in anos]}
+        {
+            "name": f,
+            "color": _PAL[i % len(_PAL)],
+            "values": [fam_ano[f].get(a, 0) for a in anos],
+        }
         for i, f in enumerate(top_fams)
     ]
     bolsa_tipo_chart = _multiline_chart(
-        anos, fam_series, lambda v: f"{v:.0f}",
-        "Bolsas alocadas por tipo ao longo dos anos", uid="chart-bolsa-tipo")
+        anos,
+        fam_series,
+        lambda v: f"{v:.0f}",
+        "Bolsas alocadas por tipo ao longo dos anos",
+        uid="chart-bolsa-tipo",
+    )
 
     # projetos por ano × status (multi-linha)
-    _ST = [("concluidos", "Concluídos", "var(--brand)"),
-           ("em_andamento", "Em andamento (no prazo)", "var(--blue)"),
-           ("status_em_andamento_prazo_encerrado", "Prazo vencido", "var(--amber)")]
+    _ST = [
+        ("concluidos", "Concluídos", "var(--brand)"),
+        ("em_andamento", "Em andamento (no prazo)", "var(--blue)"),
+        ("status_em_andamento_prazo_encerrado", "Prazo vencido", "var(--amber)"),
+    ]
     st_ano: dict[str, dict[int, int]] = {k: defaultdict(int) for k, _, _ in _ST}
     for key, _, _ in _ST:
         for p in d["projetos"].get(key, []):
@@ -638,33 +809,52 @@ def projetos_section(with_research: int | None = None) -> str:
         for key, lbl, col in _ST
     ]
     status_chart = _multiline_chart(
-        anos, status_series, lambda v: f"{v:.0f}",
-        "Projetos por ano e status", uid="chart-status-ano")
+        anos,
+        status_series,
+        lambda v: f"{v:.0f}",
+        "Projetos por ano e status",
+        uid="chart-status-ano",
+    )
 
     # categorização por natureza (ensino/pesquisa/extensão) via tipo de bolsa
     cat = defaultdict(lambda: [0, 0.0, 0])  # categoria → [n_proj, orcamento, bolsas]
     cat_ano: dict[str, dict[int, int]] = defaultdict(lambda: defaultdict(int))
     for p in allp:
         val_by = defaultdict(float)
-        for b in (p.get("bolsas") or []):
-            val_by[_categoria_bolsa(b.get("tipo_bolsa"))] += b.get("valor_total", 0) or 0
+        for b in p.get("bolsas") or []:
+            val_by[_categoria_bolsa(b.get("tipo_bolsa"))] += (
+                b.get("valor_total", 0) or 0
+            )
         c = max(val_by, key=val_by.get) if val_by else "Sem bolsa (custeio/equipamento)"
         cat[c][0] += 1
         cat[c][1] += p.get("orcamento_contratado", 0) or 0
         cat[c][2] += p.get("quantidade_bolsas", 0) or 0
         if p.get("ano"):
             cat_ano[c][p["ano"]] += 1
-    CATCOL = {"Ensino": "var(--blue)", "Pesquisa": "var(--brand)", "Extensão": "var(--amber)",
-              "Institucional/Governo": "#6a4c93", "Apoio/Gestão": "var(--muted)",
-              "Outros": "var(--line2)", "Sem bolsa (custeio/equipamento)": "#b5455f"}
+    CATCOL = {
+        "Ensino": "var(--blue)",
+        "Pesquisa": "var(--brand)",
+        "Extensão": "var(--amber)",
+        "Institucional/Governo": "#6a4c93",
+        "Apoio/Gestão": "var(--muted)",
+        "Outros": "var(--line2)",
+        "Sem bolsa (custeio/equipamento)": "#b5455f",
+    }
     cat_series = [
-        {"name": k if "Sem bolsa" not in k else "Sem bolsa", "color": CATCOL.get(k, "var(--muted)"),
-         "values": [cat_ano[k].get(a, 0) for a in anos]}
+        {
+            "name": k if "Sem bolsa" not in k else "Sem bolsa",
+            "color": CATCOL.get(k, "var(--muted)"),
+            "values": [cat_ano[k].get(a, 0) for a in anos],
+        }
         for k, _ in sorted(cat.items(), key=lambda x: -x[1][0])
     ]
     cat_chart = _multiline_chart(
-        anos, cat_series, lambda v: f"{v:.0f}",
-        "Projetos por ano e natureza", uid="chart-cat-ano")
+        anos,
+        cat_series,
+        lambda v: f"{v:.0f}",
+        "Projetos por ano e natureza",
+        uid="chart-cat-ano",
+    )
     cat_total_orc = sum(v[1] for v in cat.values()) or 1
     cat_rows = "".join(
         f'<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;'
@@ -673,7 +863,9 @@ def projetos_section(with_research: int | None = None) -> str:
         f'<td class="r">{round(v[1]/cat_total_orc*100)}%</td><td>{v[2]}</td></tr>'
         for k, v in sorted(cat.items(), key=lambda x: -x[1][1])
     )
-    inst_pct = round(cat.get("Institucional/Governo", [0, 0, 0])[1] / cat_total_orc * 100)
+    inst_pct = round(
+        cat.get("Institucional/Governo", [0, 0, 0])[1] / cat_total_orc * 100
+    )
     pesquisa_n = cat.get("Pesquisa", [0, 0, 0])[0]
 
     # orçamento por rubrica (descricao_categoria) — decompõe todo o orçamento
@@ -681,7 +873,7 @@ def projetos_section(with_research: int | None = None) -> str:
     rub_ano: dict[str, dict[int, float]] = defaultdict(lambda: defaultdict(float))
     for p in allp:
         a = p.get("ano")
-        for r in (p.get("rubricas") or []):
+        for r in p.get("rubricas") or []:
             k = r.get("descricao_categoria") or "Outros"
             v = r.get("valor", 0) or 0
             rub[k] += v
@@ -689,10 +881,15 @@ def projetos_section(with_research: int | None = None) -> str:
                 rub_ano[k][a] += v
     rub_tot = sum(rub.values()) or 1
     rmax = max(rub.values()) if rub else 1
-    RCOL = {"Bolsas": "var(--brand)", "Equipamentos e Material Permanente": "var(--blue)",
-            "Outros Serviços de Terceiros": "#6a4c93", "Material de Consumo": "var(--amber)",
-            "Diárias": "var(--rose)", "Passagens": "#1f9d57",
-            "Hospedagem e Alimentação": "var(--muted)"}
+    RCOL = {
+        "Bolsas": "var(--brand)",
+        "Equipamentos e Material Permanente": "var(--blue)",
+        "Outros Serviços de Terceiros": "#6a4c93",
+        "Material de Consumo": "var(--amber)",
+        "Diárias": "var(--rose)",
+        "Passagens": "#1f9d57",
+        "Hospedagem e Alimentação": "var(--muted)",
+    }
     rub_bars = "".join(
         f'<div class="brow"><span class="bl">{k}</span>'
         f'<div class="btrack"><div class="bfill" style="width:{max(v/rmax*100,1.5):.1f}%;'
@@ -701,12 +898,20 @@ def projetos_section(with_research: int | None = None) -> str:
         for k, v in sorted(rub.items(), key=lambda x: -x[1])
     )
     rub_series = [
-        {"name": k if len(k) < 22 else k[:20] + "…", "color": RCOL.get(k, "var(--muted)"),
-         "values": [rub_ano[k].get(a, 0) for a in anos]}
+        {
+            "name": k if len(k) < 22 else k[:20] + "…",
+            "color": RCOL.get(k, "var(--muted)"),
+            "values": [rub_ano[k].get(a, 0) for a in anos],
+        }
         for k, _ in sorted(rub.items(), key=lambda x: -x[1])
     ]
     rub_chart = _multiline_chart(
-        anos, rub_series, _faixa, "Valor por rubrica ao longo dos anos (faixas)", uid="chart-rubrica-ano")
+        anos,
+        rub_series,
+        _faixa,
+        "Valor por rubrica ao longo dos anos (faixas)",
+        uid="chart-rubrica-ano",
+    )
 
     divider = _divider(
         "Parte 3 · Projetos",
@@ -846,18 +1051,19 @@ def _divider(eyebrow: str, title: str, lead: str) -> str:
 
 def build(grad_payload: dict, ppbase: dict, generated_at: str) -> str:
     grad_html = EX.build(grad_payload, generated_at)
-    ppcomp_html = PPB.render(ppbase)          # Parte 2 = base completa (269 discentes)
+    ppcomp_html = PPB.render(ppbase)  # Parte 2 = base completa (269 discentes)
 
     grad_body = _body(grad_html)
     ppcomp_body = _body(ppcomp_html)
 
     s = grad_payload["stats"]
     sems = grad_payload.get("semesters") or []
-    period = (f"{sems[0].replace('_', '.')} – {sems[-1].replace('_', '.')}"
-              if sems else "")
+    period = (
+        f"{sems[0].replace('_', '.')} – {sems[-1].replace('_', '.')}" if sems else ""
+    )
     total = s["total"]
     pct = s["pct_research"]
-    n_egr = ppbase["total"]                   # discentes do mestrado (base completa)
+    n_egr = ppbase["total"]  # discentes do mestrado (base completa)
     defendidos = ppbase["defendidos"]
     pipeline = ppbase.get("pipeline", {}).get("total", 0)  # vindos da graduação Serra
 
@@ -865,8 +1071,10 @@ def build(grad_payload: dict, ppbase: dict, generated_at: str) -> str:
     proj_meta = ""
     if PROJETOS_FILE.exists():
         _pr = json.loads(PROJETOS_FILE.read_text())["resumo"]["total_status_ou_prazo"]
-        proj_meta = (f'<span>Projetos FAPES: <b>{_pr["quantidade_projetos"]}</b> · '
-                     f'<b>{_brl(_pr["orcamento_contratado_total"])}</b></span>')
+        proj_meta = (
+            f'<span>Projetos FAPES: <b>{_pr["quantidade_projetos"]}</b> · '
+            f'<b>{_brl(_pr["orcamento_contratado_total"])}</b></span>'
+        )
 
     css = EX.CSS + "\n/* ---- ppcomp base ---- */\n" + PPB.CSS
 
@@ -922,8 +1130,11 @@ def build(grad_payload: dict, ppbase: dict, generated_at: str) -> str:
         if _m is None:
             continue
         _atraso = round(_m - _prev, 1)
-        _atr_txt = (f"atraso médio +{_atraso} sem" if _atraso > 0
-                    else (f"{_atraso} sem" if _atraso < 0 else "no prazo previsto"))
+        _atr_txt = (
+            f"atraso médio +{_atraso} sem"
+            if _atraso > 0
+            else (f"{_atraso} sem" if _atraso < 0 else "no prazo previsto")
+        )
         _tempo_cards += (
             f'<div class="kpi"><div class="n">{_m:.1f}</div>'
             f'<div class="u">semestres em média · {_sigla}</div>'
@@ -932,16 +1143,21 @@ def build(grad_payload: dict, ppbase: dict, generated_at: str) -> str:
     _ov_mean = gt.get("overall", {}).get("mean")
     _n_tempo = gt.get("overall", {}).get("n", 0)
     _n_excl = total - _n_tempo
-    _ov_txt = (f'Média geral dos dois cursos: <b>{_ov_mean:.1f} semestres</b> '
-               f'({_ov_mean / 2:.1f} anos). ' if _ov_mean else "")
+    _ov_txt = (
+        f"Média geral dos dois cursos: <b>{_ov_mean:.1f} semestres</b> "
+        f"({_ov_mean / 2:.1f} anos). "
+        if _ov_mean
+        else ""
+    )
     _cov_note = (
         f'<div class="note-line">{_ov_txt}Base do cálculo: <b>{_n_tempo} de {total}</b> egressos '
-        f'com duração calculável. <b>{_n_excl}</b> ficam de fora porque a matrícula indica ingresso '
-        f'no <b>mesmo semestre</b> da formatura (duração não mensurável — provável reingresso ou '
-        f'matrícula nova). Esses {_n_excl} seguem contando no total e na divisão por forma de ingresso, '
-        f'só não entram na média de tempo.</div>'
+        f"com duração calculável. <b>{_n_excl}</b> ficam de fora porque a matrícula indica ingresso "
+        f"no <b>mesmo semestre</b> da formatura (duração não mensurável — provável reingresso ou "
+        f"matrícula nova). Esses {_n_excl} seguem contando no total e na divisão por forma de ingresso, "
+        f"só não entram na média de tempo.</div>"
     )
-    tempo_formacao = (f"""
+    tempo_formacao = (
+        f"""
     <section class="section">
       <div class="eyebrow">Tempo de formação</div>
       <h2>Quantos semestres até a formatura</h2>
@@ -949,7 +1165,10 @@ def build(grad_payload: dict, ppbase: dict, generated_at: str) -> str:
       prevista no currículo — BSI: 8 semestres (4 anos) · ECA: 12 semestres (6 anos).</p>
       <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));">{_tempo_cards}</div>
       {_cov_note}
-    </section>""" if _tempo_cards else "")
+    </section>"""
+        if _tempo_cards
+        else ""
+    )
 
     # ---------- blocos didáticos das Partes 1 e 2 ----------
     _si_m = _by_curso.get("Sistemas de Informação", {}).get("mean")
@@ -957,106 +1176,112 @@ def build(grad_payload: dict, ppbase: dict, generated_at: str) -> str:
     _si_txt = f"SI ~{_si_m:.0f} sem (previsto 8)" if _si_m else "SI"
     _eca_txt = f"ECA ~{_eca_m:.0f} sem (previsto 12)" if _eca_m else "ECA"
     _ger_txt = f"média geral ~{_ov_mean:.0f} semestres" if _ov_mean else "média geral"
-    bloco_tempo = bloco_didatico({
-        "titulo": "Tempo de formação",
-        "analisa": "Quanto tempo o estudante leva do <b>ingresso à formatura</b>, em cada curso, "
-                   "comparado à <b>duração prevista</b> no currículo.",
-        "importa": "O tempo de formação conversa com <b>permanência, evasão, custo e eficiência</b> "
-                   "do curso — e é insumo direto para a gestão acadêmica planejar apoio ao estudante.",
-        "mostram": f"{_si_txt}; {_eca_txt}; {_ger_txt}. Cada curso é lido na <b>própria régua</b>: "
-                   "comparar SI e ECA diretamente não faz sentido (durações diferentes).",
-        "interpretar": "Algum atraso em relação ao previsto é <b>comum e multifatorial</b> "
-                       "(trabalho, reprovações, estágio, TCC). É um retrato de percurso, não de mérito.",
-        "atencao": "os dados <b>não dizem</b> se a participação em pesquisa acelera ou atrasa a "
-                   "formatura — isso exigiria comparar quem fez e quem não fez IC, o que esta seção "
-                   "não faz. Não inferir causa.",
-        "cuidados": [
-            "<b>SI ≠ ECA</b> (diurno 4 anos × noturno 6 anos) — réguas distintas, nunca comparar.",
-            "Ingresso é <b>inferido da matrícula</b>; alguns egressos ficam fora da média (reingresso).",
-            "Atraso levemente negativo é <b>plausível</b> (aproveitamento/reingresso), não erro.",
-        ],
-        "pesquisadores": "Saber o tempo típico do orientando ajuda a <b>dimensionar projetos</b> e "
-                         "prazos de IC compatíveis com a jornada do curso.",
-        "professores": "Tempo longo concentrado em certas fases pode sinalizar <b>gargalos "
-                       "curriculares</b> que valem investigação — não culpa do estudante.",
-        "estudantes": "Planeje sua jornada: a IC <b>não precisa atrasar</b> a formatura se bem "
-                      "encaixada no semestre — e agrega bolsa e currículo no caminho.",
-        "central": "Cada curso tem sua <b>régua própria</b> de tempo; o dado serve para gerir "
-                   "permanência e apoio, não para ranquear estudantes ou cursos.",
-        "acoes": [
-            "<b>Gestão:</b> investigar gargalos por fase do curso; apoio a quem atrasa.",
-            "<b>Cursos:</b> integrar a IC ao fluxo curricular para não competir com disciplinas.",
-            "<b>Estudantes:</b> conversar com a coordenação sobre encaixar IC sem estender o curso.",
-        ],
-    })
-    bloco_cotas = bloco_didatico({
-        "titulo": "Cotas e inclusão na pesquisa",
-        "analisa": "Se estudantes <b>cotistas</b> chegam à pesquisa e às <b>bolsas</b> na mesma "
-                   "medida — ou seja, se a pesquisa também é via de inclusão.",
-        "importa": "Pesquisa e bolsa são poderosos vetores de <b>permanência e equidade</b> para "
-                   "grupos historicamente sub-representados; a cota no ingresso só se completa se "
-                   "alcançar também a formação científica.",
-        "mostram": "Os dados indicam que a <b>FAPES destina a maior parte de suas bolsas a "
-                   "cotistas</b>, enquanto a Ifes distribui de forma mais equilibrada — sinal de que "
-                   "a pesquisa <b>está</b> alcançando os cotistas, não só o ingresso.",
-        "evidencia": "presença expressiva de cotistas entre os bolsistas de pesquisa (ver seção de financiamento).",
-        "interpretar": "É um indício de que a política de cotas <b>transborda do acesso para a "
-                       "formação em pesquisa</b> — um dos melhores caminhos de inclusão real.",
-        "atencao": "<b>presença não é igualdade plena</b>: para afirmar equidade, é preciso comparar "
-                   "a proporção de cotistas na pesquisa com a proporção no corpo discente — não feito aqui.",
-        "cuidados": [
-            "Critérios de reserva de vaga <b>se sobrepõem</b> (um aluno pode atender a vários).",
-            "Participação por <b>autodeclaração</b> e casamento por nome — subestima.",
-            "Recortes por grupo têm <b>amostra menor</b> — ler com cautela.",
-        ],
-        "pesquisadores": "Acolher cotistas em projetos <b>amplia o repertório de talentos</b> e "
-                         "cumpre a missão social da instituição.",
-        "professores": "A IC pode ser uma <b>ferramenta de permanência</b> para o estudante "
-                       "cotista — vínculo, renda e propósito.",
-        "estudantes": "Se você entrou por cota: <b>pesquisa e bolsa são para você também</b> — e os "
-                      "dados mostram colegas cotistas já nesse caminho.",
-        "central": "A pesquisa do campus está funcionando como <b>via de inclusão</b>: cotistas "
-                   "chegam à iniciação científica e às bolsas, não só à matrícula.",
-        "acoes": [
-            "<b>Gestão:</b> monitorar a participação de cotistas na IC vs sua presença no corpo discente.",
-            "<b>Editais:</b> reservar/priorizar bolsas de IC com recorte social.",
-            "<b>Cursos:</b> divulgar ativamente a IC entre estudantes cotistas.",
-        ],
-    })
-    bloco_mestrado = bloco_didatico({
-        "titulo": "Mestrado PPComp — permanência, tempo e desfecho",
-        "analisa": f"A trajetória dos <b>{n_egr} discentes</b> do mestrado PPComp: quantos defendem, "
-                   "em quanto tempo, quantos evadem e quantos vieram da própria graduação do campus.",
-        "importa": "O mestrado é o <b>topo da formação em pesquisa</b> do campus e o destino natural "
-                   "de parte dos egressos da graduação — fecha o ciclo IC → pós-graduação.",
-        "mostram": f"<b>{defendidos}</b> defesas entre os {n_egr} discentes; <b>{pipeline}</b> "
-                   "vieram da própria graduação do campus (pipeline interno); a maioria defende em "
-                   "torno de <b>2 anos</b> (prazo regulamentar de 24 meses). A evasão (cancelamentos "
-                   "e trancamentos) existe e merece atenção.",
-        "evidencia": f"{defendidos}/{n_egr} defenderam; {pipeline} via pipeline interno; mediana ~2 anos.",
-        "interpretar": "Defesa em ~2 anos indica <b>aderência ao prazo</b>; o pipeline interno mostra "
-                       "que a graduação <b>alimenta</b> o mestrado. A evasão é o ponto a vigiar.",
-        "atencao": "a evasão tem <b>causas múltiplas</b> (trabalho, orientação, vida pessoal, "
-                   "mercado) — não atribuível a um único fator nem ao programa isoladamente.",
-        "cuidados": [
-            "<b>Datas mistas</b> na base (sentinela 1905 inválida foi descartada do tempo).",
-            "Coortes <b>recentes</b> têm muitos ativos (ainda sem desfecho) — não comparar com antigas.",
-            "Orientador registrado em <b>nome curto</b>; pipeline casado por nome (sem acento).",
-        ],
-        "pesquisadores": "Acompanhar <b>evasão e tempo até a defesa</b> ajuda a calibrar seleção, "
-                         "orientação e oferta de bolsas.",
-        "professores": "Integrar graduação e mestrado (projetos conjuntos, convites a egressos) "
-                       "<b>fortalece o pipeline interno</b>.",
-        "estudantes": f"O mestrado da casa é uma <b>continuidade natural</b> da IC: {pipeline} "
-                      "colegas da graduação do campus já fizeram essa transição.",
-        "central": "O PPComp converte a formação em pesquisa da graduação em <b>titulação de "
-                   "mestrado</b>, com prazo aderente — a <b>evasão</b> é o principal ponto a monitorar.",
-        "acoes": [
-            "<b>Gestão/Programa:</b> monitorar evasão por coorte e criar apoio a discente em risco.",
-            "<b>Cursos:</b> fortalecer a ponte graduação → mestrado (divulgação, projetos conjuntos).",
-            "<b>Orientadores:</b> acompanhamento próximo nos primeiros 12 meses (fase de maior evasão).",
-        ],
-    })
+    bloco_tempo = bloco_didatico(
+        {
+            "titulo": "Tempo de formação",
+            "analisa": "Quanto tempo o estudante leva do <b>ingresso à formatura</b>, em cada curso, "
+            "comparado à <b>duração prevista</b> no currículo.",
+            "importa": "O tempo de formação conversa com <b>permanência, evasão, custo e eficiência</b> "
+            "do curso — e é insumo direto para a gestão acadêmica planejar apoio ao estudante.",
+            "mostram": f"{_si_txt}; {_eca_txt}; {_ger_txt}. Cada curso é lido na <b>própria régua</b>: "
+            "comparar SI e ECA diretamente não faz sentido (durações diferentes).",
+            "interpretar": "Algum atraso em relação ao previsto é <b>comum e multifatorial</b> "
+            "(trabalho, reprovações, estágio, TCC). É um retrato de percurso, não de mérito.",
+            "atencao": "os dados <b>não dizem</b> se a participação em pesquisa acelera ou atrasa a "
+            "formatura — isso exigiria comparar quem fez e quem não fez IC, o que esta seção "
+            "não faz. Não inferir causa.",
+            "cuidados": [
+                "<b>SI ≠ ECA</b> (diurno 4 anos × noturno 6 anos) — réguas distintas, nunca comparar.",
+                "Ingresso é <b>inferido da matrícula</b>; alguns egressos ficam fora da média (reingresso).",
+                "Atraso levemente negativo é <b>plausível</b> (aproveitamento/reingresso), não erro.",
+            ],
+            "pesquisadores": "Saber o tempo típico do orientando ajuda a <b>dimensionar projetos</b> e "
+            "prazos de IC compatíveis com a jornada do curso.",
+            "professores": "Tempo longo concentrado em certas fases pode sinalizar <b>gargalos "
+            "curriculares</b> que valem investigação — não culpa do estudante.",
+            "estudantes": "Planeje sua jornada: a IC <b>não precisa atrasar</b> a formatura se bem "
+            "encaixada no semestre — e agrega bolsa e currículo no caminho.",
+            "central": "Cada curso tem sua <b>régua própria</b> de tempo; o dado serve para gerir "
+            "permanência e apoio, não para ranquear estudantes ou cursos.",
+            "acoes": [
+                "<b>Gestão:</b> investigar gargalos por fase do curso; apoio a quem atrasa.",
+                "<b>Cursos:</b> integrar a IC ao fluxo curricular para não competir com disciplinas.",
+                "<b>Estudantes:</b> conversar com a coordenação sobre encaixar IC sem estender o curso.",
+            ],
+        }
+    )
+    bloco_cotas = bloco_didatico(
+        {
+            "titulo": "Cotas e inclusão na pesquisa",
+            "analisa": "Se estudantes <b>cotistas</b> chegam à pesquisa e às <b>bolsas</b> na mesma "
+            "medida — ou seja, se a pesquisa também é via de inclusão.",
+            "importa": "Pesquisa e bolsa são poderosos vetores de <b>permanência e equidade</b> para "
+            "grupos historicamente sub-representados; a cota no ingresso só se completa se "
+            "alcançar também a formação científica.",
+            "mostram": "Os dados indicam que a <b>FAPES destina a maior parte de suas bolsas a "
+            "cotistas</b>, enquanto a Ifes distribui de forma mais equilibrada — sinal de que "
+            "a pesquisa <b>está</b> alcançando os cotistas, não só o ingresso.",
+            "evidencia": "presença expressiva de cotistas entre os bolsistas de pesquisa (ver seção de financiamento).",
+            "interpretar": "É um indício de que a política de cotas <b>transborda do acesso para a "
+            "formação em pesquisa</b> — um dos melhores caminhos de inclusão real.",
+            "atencao": "<b>presença não é igualdade plena</b>: para afirmar equidade, é preciso comparar "
+            "a proporção de cotistas na pesquisa com a proporção no corpo discente — não feito aqui.",
+            "cuidados": [
+                "Critérios de reserva de vaga <b>se sobrepõem</b> (um aluno pode atender a vários).",
+                "Participação por <b>autodeclaração</b> e casamento por nome — subestima.",
+                "Recortes por grupo têm <b>amostra menor</b> — ler com cautela.",
+            ],
+            "pesquisadores": "Acolher cotistas em projetos <b>amplia o repertório de talentos</b> e "
+            "cumpre a missão social da instituição.",
+            "professores": "A IC pode ser uma <b>ferramenta de permanência</b> para o estudante "
+            "cotista — vínculo, renda e propósito.",
+            "estudantes": "Se você entrou por cota: <b>pesquisa e bolsa são para você também</b> — e os "
+            "dados mostram colegas cotistas já nesse caminho.",
+            "central": "A pesquisa do campus está funcionando como <b>via de inclusão</b>: cotistas "
+            "chegam à iniciação científica e às bolsas, não só à matrícula.",
+            "acoes": [
+                "<b>Gestão:</b> monitorar a participação de cotistas na IC vs sua presença no corpo discente.",
+                "<b>Editais:</b> reservar/priorizar bolsas de IC com recorte social.",
+                "<b>Cursos:</b> divulgar ativamente a IC entre estudantes cotistas.",
+            ],
+        }
+    )
+    bloco_mestrado = bloco_didatico(
+        {
+            "titulo": "Mestrado PPComp — permanência, tempo e desfecho",
+            "analisa": f"A trajetória dos <b>{n_egr} discentes</b> do mestrado PPComp: quantos defendem, "
+            "em quanto tempo, quantos evadem e quantos vieram da própria graduação do campus.",
+            "importa": "O mestrado é o <b>topo da formação em pesquisa</b> do campus e o destino natural "
+            "de parte dos egressos da graduação — fecha o ciclo IC → pós-graduação.",
+            "mostram": f"<b>{defendidos}</b> defesas entre os {n_egr} discentes; <b>{pipeline}</b> "
+            "vieram da própria graduação do campus (pipeline interno); a maioria defende em "
+            "torno de <b>2 anos</b> (prazo regulamentar de 24 meses). A evasão (cancelamentos "
+            "e trancamentos) existe e merece atenção.",
+            "evidencia": f"{defendidos}/{n_egr} defenderam; {pipeline} via pipeline interno; mediana ~2 anos.",
+            "interpretar": "Defesa em ~2 anos indica <b>aderência ao prazo</b>; o pipeline interno mostra "
+            "que a graduação <b>alimenta</b> o mestrado. A evasão é o ponto a vigiar.",
+            "atencao": "a evasão tem <b>causas múltiplas</b> (trabalho, orientação, vida pessoal, "
+            "mercado) — não atribuível a um único fator nem ao programa isoladamente.",
+            "cuidados": [
+                "<b>Datas mistas</b> na base (sentinela 1905 inválida foi descartada do tempo).",
+                "Coortes <b>recentes</b> têm muitos ativos (ainda sem desfecho) — não comparar com antigas.",
+                "Orientador registrado em <b>nome curto</b>; pipeline casado por nome (sem acento).",
+            ],
+            "pesquisadores": "Acompanhar <b>evasão e tempo até a defesa</b> ajuda a calibrar seleção, "
+            "orientação e oferta de bolsas.",
+            "professores": "Integrar graduação e mestrado (projetos conjuntos, convites a egressos) "
+            "<b>fortalece o pipeline interno</b>.",
+            "estudantes": f"O mestrado da casa é uma <b>continuidade natural</b> da IC: {pipeline} "
+            "colegas da graduação do campus já fizeram essa transição.",
+            "central": "O PPComp converte a formação em pesquisa da graduação em <b>titulação de "
+            "mestrado</b>, com prazo aderente — a <b>evasão</b> é o principal ponto a monitorar.",
+            "acoes": [
+                "<b>Gestão/Programa:</b> monitorar evasão por coorte e criar apoio a discente em risco.",
+                "<b>Cursos:</b> fortalecer a ponte graduação → mestrado (divulgação, projetos conjuntos).",
+                "<b>Orientadores:</b> acompanhamento próximo nos primeiros 12 meses (fase de maior evasão).",
+            ],
+        }
+    )
 
     return f"""<!DOCTYPE html>
 <html lang="pt-BR"><head>
@@ -1084,8 +1309,6 @@ def build(grad_payload: dict, ppbase: dict, generated_at: str) -> str:
 </div></body></html>"""
 
 
-
-
 def _funnel_svg(estagios: list[tuple], total: int) -> str:
     """Desenho de funil em SVG: trapézios à esquerda, rótulos à direita."""
     if not estagios or not total:
@@ -1094,7 +1317,7 @@ def _funnel_svg(estagios: list[tuple], total: int) -> str:
     W, H = 820, 104 * n + 16
     mt, gap = 12, 28
     bh = (H - mt - gap * (n - 1) - 8) / n
-    funnel_w = 440          # área do funil
+    funnel_w = 440  # área do funil
     label_x = funnel_w + 36  # início dos rótulos
     cx = funnel_w / 2
     vals = [v for _, v, _ in estagios]
@@ -1110,26 +1333,34 @@ def _funnel_svg(estagios: list[tuple], total: int) -> str:
         pct = v / total * 100
         cy = y + bh / 2
         # trapézio
-        out += (f'<path d="M {cx-top:.1f},{y:.1f} L {cx+top:.1f},{y:.1f} '
-                f'L {cx+bot:.1f},{y+bh:.1f} L {cx-bot:.1f},{y+bh:.1f} Z" '
-                f'fill="{col}" opacity="0.92"/>')
+        out += (
+            f'<path d="M {cx-top:.1f},{y:.1f} L {cx+top:.1f},{y:.1f} '
+            f'L {cx+bot:.1f},{y+bh:.1f} L {cx-bot:.1f},{y+bh:.1f} Z" '
+            f'fill="{col}" opacity="0.92"/>'
+        )
         # valor + % dentro da banda quando há largura
         if top > 60:
-            out += (f'<text x="{cx:.1f}" y="{cy-2:.1f}" text-anchor="middle" '
-                    f'fill="#fff" font-size="16" font-weight="800">{v}</text>'
-                    f'<text x="{cx:.1f}" y="{cy+16:.1f}" text-anchor="middle" '
-                    f'fill="#fff" font-size="12" font-weight="600" opacity="0.95">{pct:.0f}%</text>')
+            out += (
+                f'<text x="{cx:.1f}" y="{cy-2:.1f}" text-anchor="middle" '
+                f'fill="#fff" font-size="16" font-weight="800">{v}</text>'
+                f'<text x="{cx:.1f}" y="{cy+16:.1f}" text-anchor="middle" '
+                f'fill="#fff" font-size="12" font-weight="600" opacity="0.95">{pct:.0f}%</text>'
+            )
         elif top > 24:
-            out += (f'<text x="{cx:.1f}" y="{cy+5:.1f}" text-anchor="middle" '
-                    f'fill="#fff" font-size="13" font-weight="800">{pct:.0f}%</text>')
+            out += (
+                f'<text x="{cx:.1f}" y="{cy+5:.1f}" text-anchor="middle" '
+                f'fill="#fff" font-size="13" font-weight="800">{pct:.0f}%</text>'
+            )
         # conector + rótulo à direita (sempre visível)
-        out += (f'<line x1="{cx+top:.1f}" y1="{cy:.1f}" x2="{label_x-10:.1f}" y2="{cy:.1f}" '
-                f'stroke="{col}" stroke-width="1.5" opacity="0.5"/>'
-                f'<rect x="{label_x:.1f}" y="{cy-9:.1f}" width="13" height="13" rx="3" fill="{col}"/>'
-                f'<text x="{label_x+20:.1f}" y="{cy-2:.1f}" font-size="14" font-weight="700" '
-                f'fill="var(--ink)">{lbl}</text>'
-                f'<text x="{label_x+20:.1f}" y="{cy+15:.1f}" font-size="12.5" '
-                f'fill="var(--muted)">{v} egressos · {pct:.0f}% do total</text>')
+        out += (
+            f'<line x1="{cx+top:.1f}" y1="{cy:.1f}" x2="{label_x-10:.1f}" y2="{cy:.1f}" '
+            f'stroke="{col}" stroke-width="1.5" opacity="0.5"/>'
+            f'<rect x="{label_x:.1f}" y="{cy-9:.1f}" width="13" height="13" rx="3" fill="{col}"/>'
+            f'<text x="{label_x+20:.1f}" y="{cy-2:.1f}" font-size="14" font-weight="700" '
+            f'fill="var(--ink)">{lbl}</text>'
+            f'<text x="{label_x+20:.1f}" y="{cy+15:.1f}" font-size="12.5" '
+            f'fill="var(--muted)">{v} egressos · {pct:.0f}% do total</text>'
+        )
         # variação vs etapa anterior — só quando a etapa seguinte é MENOR (estreitamento);
         # as etapas são medidas independentes sobre o total, não retenção estrita garantida.
         if idx + 1 < n:
@@ -1147,9 +1378,11 @@ def _funnel_svg(estagios: list[tuple], total: int) -> str:
                 )
         y += bh + gap
 
-    return (f'<div style="overflow-x:auto;"><svg viewBox="0 0 {W} {H}" '
-            f'style="width:100%;min-width:580px;height:auto;font-family:var(--font);" '
-            f'role="img" aria-label="Funil de pesquisa">{out}</svg></div>')
+    return (
+        f'<div style="overflow-x:auto;"><svg viewBox="0 0 {W} {H}" '
+        f'style="width:100%;min-width:580px;height:auto;font-family:var(--font);" '
+        f'role="img" aria-label="Funil de pesquisa">{out}</svg></div>'
+    )
 
 
 def analises_section(s: dict, ppbase: dict) -> str:
@@ -1157,8 +1390,13 @@ def analises_section(s: dict, ppbase: dict) -> str:
     total = s["total"]
     with_research = s["with_research"]
     # bolsa paga = SigPesq pago ∪ bolsistas FAPES (consistente com 'research')
-    com_bolsa = s.get("with_paid_bolsa",
-                      sum(v.get("paid", 0) for v in s.get("admission", {}).get("group_fellowship", {}).values()))
+    com_bolsa = s.get(
+        "with_paid_bolsa",
+        sum(
+            v.get("paid", 0)
+            for v in s.get("admission", {}).get("group_fellowship", {}).values()
+        ),
+    )
     # ingressaram no mestrado = formandos que entraram no PPComp (base completa)
     mestrado = ppbase.get("pipeline", {}).get("total", 0)
 
@@ -1173,7 +1411,12 @@ def analises_section(s: dict, ppbase: dict) -> str:
 
     # ---- 2. PRODUTIVIDADE DOCENTE (IC no Lattes, casando orientando ↔ egresso da base) ----
     from src.scripts.generate_formandos_report import (
-        load_lattes, load_formandos, SEMESTER_FILE_MAP, DATA_FORMANDOS)
+        DATA_FORMANDOS,
+        SEMESTER_FILE_MAP,
+        load_formandos,
+        load_lattes,
+    )
+
     _seen_f: dict[str, dict] = {}
     for _sem in sorted(SEMESTER_FILE_MAP):
         if (DATA_FORMANDOS / SEMESTER_FILE_MAP[_sem]).exists():
@@ -1181,26 +1424,37 @@ def analises_section(s: dict, ppbase: dict) -> str:
                 _seen_f.setdefault(_f["matricula"] or _f["nome"].strip().lower(), _f)
     _form_keys = {_match_key(_f["nome"]) for _f in _seen_f.values()}
     _lat = load_lattes()
-    _ic_egr: dict[str, set] = defaultdict(set)   # orientador → {egressos distintos}
+    _ic_egr: dict[str, set] = defaultdict(set)  # orientador → {egressos distintos}
     for r in _lat.get("ic", []):
         if r.get("supervisor") and _match_key(r.get("orientando")) in _form_keys:
             _ic_egr[normalize_name(r["supervisor"])].add(_match_key(r["orientando"]))
     _n_orient = len(_ic_egr)
     _top_orient = sorted(_ic_egr.items(), key=lambda x: -len(x[1]))[:10]
     prod_rows = "".join(
-        f'<tr><td>{nome}</td><td>{len(al)}</td></tr>' for nome, al in _top_orient
+        f"<tr><td>{nome}</td><td>{len(al)}</td></tr>" for nome, al in _top_orient
     )
 
     # ---- 3. COORTES POR ANO DE INGRESSO ----
     co = {int(y): dd for y, dd in s.get("cohort_analysis", {}).items()}
     anos = sorted(y for y, dd in co.items() if dd.get("total", 0) >= 3)
     co_series = [
-        {"name": "% com pesquisa", "color": "var(--brand)",
-         "values": [co[a]["ic_pct"] for a in anos]},
+        {
+            "name": "% com pesquisa",
+            "color": "var(--brand)",
+            "values": [co[a]["ic_pct"] for a in anos],
+        },
     ]
-    cohort_chart = _multiline_chart(
-        anos, co_series, lambda v: f"{v:.0f}%",
-        "Percentual com pesquisa por ano de ingresso", uid="chart-cohort") if anos else ""
+    cohort_chart = (
+        _multiline_chart(
+            anos,
+            co_series,
+            lambda v: f"{v:.0f}%",
+            "Percentual com pesquisa por ano de ingresso",
+            uid="chart-cohort",
+        )
+        if anos
+        else ""
+    )
     co_size = [co[a]["total"] for a in anos]
 
     # ---- 4. EFICIÊNCIA DE FOMENTO ----
@@ -1212,14 +1466,26 @@ def analises_section(s: dict, ppbase: dict) -> str:
         fapes_conc_n = pr["concluidos"]["quantidade_projetos"]
         fapes_conc_orc = pr["concluidos"]["orcamento_contratado_total"]
     ef = [
-        (_brl(fapes_bolsas / with_research) if with_research else "—",
-         "bolsas FAPES por aluno-pesquisa", f"{_brl(fapes_bolsas)} ÷ {with_research}"),
-        (_brl(fapes_conc_orc / fapes_conc_n) if fapes_conc_n else "—",
-         "custo por projeto concluído", f"{fapes_conc_n} concluídos"),
-        (_brl(fapes_orc / total) if total else "—",
-         "orçamento FAPES por egresso", "fomento ÷ egressos"),
-        (f"{round(fapes_bolsas/fapes_orc*100)}%" if fapes_orc else "—",
-         "do orçamento vira bolsa", "pessoas vs custeio"),
+        (
+            _brl(fapes_bolsas / with_research) if with_research else "—",
+            "bolsas FAPES por aluno-pesquisa",
+            f"{_brl(fapes_bolsas)} ÷ {with_research}",
+        ),
+        (
+            _brl(fapes_conc_orc / fapes_conc_n) if fapes_conc_n else "—",
+            "custo por projeto concluído",
+            f"{fapes_conc_n} concluídos",
+        ),
+        (
+            _brl(fapes_orc / total) if total else "—",
+            "orçamento FAPES por egresso",
+            "fomento ÷ egressos",
+        ),
+        (
+            f"{round(fapes_bolsas/fapes_orc*100)}%" if fapes_orc else "—",
+            "do orçamento vira bolsa",
+            "pessoas vs custeio",
+        ),
     ]
     ef_cards = "".join(
         f'<div class="kpi"><div class="n" style="font-size:26px;">{nn}</div>'
@@ -1235,41 +1501,50 @@ def analises_section(s: dict, ppbase: dict) -> str:
     )
 
     # --- Leitura institucional/didática do funil (significado, não só números) ---
-    _pp = round(with_research / total * 100) if total else 0   # % pesquisa
-    _pb = round(com_bolsa / total * 100) if total else 0       # % bolsa paga
-    _pm = round(mestrado / total * 100) if total else 0        # % mestrado
-    _tag = ('display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;'
-            'letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:5px;')
-    _box = 'border-radius:10px;padding:11px 14px;margin:12px 0;font-size:14px;border-left:4px solid;line-height:1.5;'
-    _ev = f'{_box}background:var(--brand-l);border-color:var(--brand);color:#14361f;'
-    _hip = f'{_box}background:#fbf4df;border-color:var(--amber);color:#5e4a12;'
-    _rec = f'{_box}background:#eaf1f9;border-color:var(--blue);color:#1f4d7a;'
+    _pp = round(with_research / total * 100) if total else 0  # % pesquisa
+    _pb = round(com_bolsa / total * 100) if total else 0  # % bolsa paga
+    _pm = round(mestrado / total * 100) if total else 0  # % mestrado
+    _tag = (
+        "display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;"
+        "letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:5px;"
+    )
+    _box = "border-radius:10px;padding:11px 14px;margin:12px 0;font-size:14px;border-left:4px solid;line-height:1.5;"
+    _ev = f"{_box}background:var(--brand-l);border-color:var(--brand);color:#14361f;"
+    _hip = f"{_box}background:#fbf4df;border-color:var(--amber);color:#5e4a12;"
+    _rec = f"{_box}background:#eaf1f9;border-color:var(--blue);color:#1f4d7a;"
 
     def _el(num, titulo, corpo):
-        return (f'<div style="margin-top:22px;">'
-                f'<div style="display:flex;gap:10px;align-items:center;margin-bottom:6px;">'
-                f'<span style="width:28px;height:28px;flex:0 0 28px;border-radius:8px;'
-                f'background:var(--brand-l);color:var(--brand-d);display:grid;place-items:center;'
-                f'font-size:14px;font-weight:800;">{num}</span>'
-                f'<span style="font-size:17px;font-weight:700;color:var(--ink,#16241a);">{titulo}</span>'
-                f'</div><div style="padding-left:38px;">{corpo}</div></div>')
+        return (
+            f'<div style="margin-top:22px;">'
+            f'<div style="display:flex;gap:10px;align-items:center;margin-bottom:6px;">'
+            f'<span style="width:28px;height:28px;flex:0 0 28px;border-radius:8px;'
+            f"background:var(--brand-l);color:var(--brand-d);display:grid;place-items:center;"
+            f'font-size:14px;font-weight:800;">{num}</span>'
+            f'<span style="font-size:17px;font-weight:700;color:var(--ink,#16241a);">{titulo}</span>'
+            f'</div><div style="padding-left:38px;">{corpo}</div></div>'
+        )
 
     def _frow(lbl, val, p, color):
         w = max(p, 6)
-        return (f'<div style="display:grid;grid-template-columns:200px 1fr 60px;align-items:center;'
-                f'gap:12px;margin:8px 0;font-size:13.5px;">'
-                f'<span style="color:var(--ink2,#3c4f42);line-height:1.2;">{lbl}</span>'
-                f'<span style="background:var(--bg,#f4f8f5);border-radius:7px;height:28px;overflow:hidden;">'
-                f'<span style="display:flex;align-items:center;height:100%;width:{w}%;background:{color};'
-                f'color:#fff;font-weight:700;font-size:12.5px;padding-left:10px;border-radius:7px;">{p}%</span></span>'
-                f'<span style="text-align:right;font-weight:800;color:var(--brand-d);'
-                f'font-variant-numeric:tabular-nums;">{val}</span></div>')
+        return (
+            f'<div style="display:grid;grid-template-columns:200px 1fr 60px;align-items:center;'
+            f'gap:12px;margin:8px 0;font-size:13.5px;">'
+            f'<span style="color:var(--ink2,#3c4f42);line-height:1.2;">{lbl}</span>'
+            f'<span style="background:var(--bg,#f4f8f5);border-radius:7px;height:28px;overflow:hidden;">'
+            f'<span style="display:flex;align-items:center;height:100%;width:{w}%;background:{color};'
+            f'color:#fff;font-weight:700;font-size:12.5px;padding-left:10px;border-radius:7px;">{p}%</span></span>'
+            f'<span style="text-align:right;font-weight:800;color:var(--brand-d);'
+            f'font-variant-numeric:tabular-nums;">{val}</span></div>'
+        )
 
     _funil_bars = (
         _frow("Egressos (SI + ECA)", total, 100, "#0a5c30")
-        + _frow("Passaram por <b>iniciação científica</b>", with_research, _pp, "#0f7a40")
+        + _frow(
+            "Passaram por <b>iniciação científica</b>", with_research, _pp, "#0f7a40"
+        )
         + _frow("Tiveram <b>bolsa paga</b>", com_bolsa, _pb, "#2f6fb0")
-        + _frow("Seguiram para o <b>mestrado</b>", mestrado, _pm, "#b8860b"))
+        + _frow("Seguiram para o <b>mestrado</b>", mestrado, _pm, "#b8860b")
+    )
 
     didatica = f"""
     <section class="section">
@@ -1371,106 +1646,112 @@ def analises_section(s: dict, ppbase: dict) -> str:
     _o_n = len(_top_orient[0][1]) if _top_orient else 0
     _anos_v = [a for a, n in zip(anos, co_size) if n >= 3]
     _faixa_turmas = f"{_anos_v[0]}–{_anos_v[-1]}" if _anos_v else "—"
-    bloco_prod = bloco_didatico({
-        "titulo": "Produtividade docente",
-        "analisa": "Quais docentes orientaram em iniciação científica os egressos da base — a "
-                   "<b>face humana</b> da formação em pesquisa.",
-        "importa": "A orientação é o motor da IC: sem orientador, não há projeto. Ver a "
-                   "<b>distribuição</b> entre docentes mostra se a formação depende de poucos ou "
-                   "está espalhada pelo corpo docente.",
-        "mostram": f"<b>{_n_orient} docentes</b> têm ao menos um egresso orientado em IC. O mais "
-                   f"ativo (<b>{_o_nome}</b>) orientou <b>{_o_n}</b> egressos da base. A orientação "
-                   f"é, portanto, <b>distribuída</b> — não concentrada em uma ou duas pessoas.",
-        "evidencia": f"{_n_orient} orientadores com ≥1 egresso; topo em {_o_n} egressos.",
-        "interpretar": "Orientação distribuída é um <b>sinal de saúde</b>: a formação em pesquisa "
-                       "não fica refém de poucos docentes e resiste a saídas/aposentadorias. O "
-                       "topo da lista é natural (quem tem mais tempo de casa orienta mais).",
-        "cuidados": [
-            "Casamento <b>por nome (sem acento)</b> orientando↔egresso → <b>subestima</b>.",
-            "Conta só a <b>IC declarada no Lattes</b> do docente; coorientação informal escapa.",
-            "Quem chegou há pouco ao campus aparece com menos egressos (viés de tempo).",
-        ],
-        "pesquisadores": "Orientar é <b>impacto formativo</b> tão real quanto publicar — e alimenta "
-                         "o próprio grupo. Vale registrar todas as orientações no Lattes.",
-        "recomendacao": "reconhecer a orientação de IC na avaliação docente e na distribuição de bolsas.",
-        "professores": "Assumir um orientando de IC é uma das formas mais diretas de <b>engajar</b> "
-                       "e formar — e há espaço para novos orientadores entrarem.",
-        "estudantes": "Há <b>muitos</b> docentes que acolhem iniciação científica — procurar um "
-                      "orientador alinhado ao seu interesse é mais fácil do que parece.",
-        "central": "A formação em pesquisa do campus se apoia em uma <b>base ampla de "
-                   "orientadores</b>, não em poucos nomes — o que a torna resiliente e expansível.",
-        "acoes": [
-            "<b>Gestão:</b> reconhecer orientação de IC na carreira e nos editais de bolsa.",
-            "<b>Cursos:</b> apresentar os grupos/orientadores aos ingressantes.",
-            "<b>Grupos:</b> criar mentoria para novos docentes assumirem orientandos.",
-            "<b>Estudantes:</b> mapear orientadores por linha de pesquisa e procurar cedo.",
-        ],
-    })
-    bloco_ano = bloco_didatico({
-        "titulo": "Pesquisa por ano de ingresso",
-        "analisa": "A <b>tendência ao longo do tempo</b>: que fração de cada turma (por ano de "
-                   "ingresso) participou de pesquisa.",
-        "importa": "Diz se a cultura de pesquisa do campus está <b>crescendo, estável ou "
-                   "recuando</b> — algo que o número total (78%) sozinho esconde.",
-        "mostram": f"A série cobre as turmas de <b>{_faixa_turmas}</b> (só anos com 3+ egressos). "
-                   "A participação é <b>consistentemente alta</b> na maior parte do período.",
-        "interpretar": "As turmas <b>mais recentes</b> tiveram menos tempo para registrar IC, "
-                       "concluir TCC ou ingressar no mestrado — então uma participação menor nos "
-                       "anos finais <b>pode ser maturação</b>, não recuo real da cultura de pesquisa.",
-        "atencao": "uma eventual queda nas turmas recentes provavelmente reflete o <b>tempo de "
-                   "maturação</b> da trajetória, não uma perda de interesse — comparar turmas "
-                   "antigas com recentes mistura coisas diferentes.",
-        "cuidados": [
-            "<b>Amostra pequena</b> por ano nos primeiros anos → série ruidosa.",
-            "<b>Viés de maturação</b>: turmas novas ainda não completaram a trajetória.",
-            "Participação por <b>autodeclaração</b> (Lattes/SigPesq) — subestima.",
-        ],
-        "pesquisadores": "Acompanhar a participação por coorte ajuda a <b>planejar captação</b> e a "
-                         "perceber cedo quedas reais de engajamento.",
-        "professores": "Engajar as turmas <b>logo no início</b> do curso antecipa a entrada na "
-                       "pesquisa e melhora a série das próximas coortes.",
-        "estudantes": "Quanto <b>mais cedo</b> você entra na IC, mais tempo tem para bolsa, "
-                      "currículo e a transição para o mestrado.",
-        "central": "A participação em pesquisa é <b>consistente entre as turmas</b>; quedas nos anos "
-                   "recentes pedem leitura cuidadosa (maturação), não alarme.",
-        "acoes": [
-            "<b>Gestão:</b> publicar a série por coorte todo ano e ler a tendência (não o ponto).",
-            "<b>Cursos:</b> ação de <b>entrada precoce</b> na IC já no 1º/2º período.",
-            "<b>Grupos:</b> reservar vagas de IC para calouros.",
-        ],
-    })
-    bloco_efic = bloco_didatico({
-        "titulo": "Eficiência do fomento",
-        "analisa": "Quanto de <b>recurso FAPES</b> sustenta a formação em pesquisa — uma noção de "
-                   "custo por <b>aluno-pesquisador</b> formado.",
-        "importa": "Conecta diretamente <b>investimento</b> e <b>formação de pessoas</b>: bolsa não "
-                   "é gasto, é o que viabiliza o estudante dedicar-se à pesquisa.",
-        "mostram": f"Dividindo as bolsas FAPES pelos <b>{with_research} egressos com pesquisa</b>, "
-                   "chega-se a um <b>custo médio por aluno-pesquisador</b> (alguns milhares de "
-                   "reais) — uma ordem de grandeza, não um preço exato.",
-        "interpretar": "Esse valor é <b>custo de formar gente</b>, não desperdício: é investimento "
-                       "em <b>capital humano</b> que retorna como produção, mestrandos e captação futura.",
-        "cuidados": [
-            "Numerador (bolsas) e denominador (egressos com pesquisa) vêm de <b>janelas e fontes "
-            "diferentes</b> — é aproximação, não atribuição 1:1.",
-            "O <b>valor pago</b> consta <b>zerado</b> na fonte (só o alocado) — subestima a execução.",
-            "Nem toda bolsa do período foi para esses egressos específicos.",
-        ],
-        "pesquisadores": "Bolsas <b>formam pessoas</b> e renovam o grupo — argumento direto para "
-                         "justificar e renovar captação.",
-        "recomendacao": "acompanhar o custo por aluno-pesquisador ao longo dos anos, não num ponto isolado.",
-        "professores": "Bolsas viabilizam a <b>orientação</b>: sem fomento, o aluno precisa trabalhar "
-                       "e abandona a IC.",
-        "estudantes": "A bolsa é muitas vezes a <b>condição de permanência</b> que permite você se "
-                      "dedicar à pesquisa em vez de só ao emprego.",
-        "central": "Investir em bolsas de IC é investir na <b>formação</b>: o custo por "
-                   "aluno-pesquisador é métrica de <b>capital humano</b>, não de despesa.",
-        "acoes": [
-            "<b>Gestão:</b> proteger o orçamento de bolsas de IC; cobrar o registro do valor pago.",
-            "<b>Cursos:</b> divulgar editais de bolsa amplamente, não só aos melhores alunos.",
-            "<b>Estudantes:</b> candidatar-se a bolsas cedo — é o que sustenta a dedicação.",
-        ],
-    })
+    bloco_prod = bloco_didatico(
+        {
+            "titulo": "Produtividade docente",
+            "analisa": "Quais docentes orientaram em iniciação científica os egressos da base — a "
+            "<b>face humana</b> da formação em pesquisa.",
+            "importa": "A orientação é o motor da IC: sem orientador, não há projeto. Ver a "
+            "<b>distribuição</b> entre docentes mostra se a formação depende de poucos ou "
+            "está espalhada pelo corpo docente.",
+            "mostram": f"<b>{_n_orient} docentes</b> têm ao menos um egresso orientado em IC. O mais "
+            f"ativo (<b>{_o_nome}</b>) orientou <b>{_o_n}</b> egressos da base. A orientação "
+            f"é, portanto, <b>distribuída</b> — não concentrada em uma ou duas pessoas.",
+            "evidencia": f"{_n_orient} orientadores com ≥1 egresso; topo em {_o_n} egressos.",
+            "interpretar": "Orientação distribuída é um <b>sinal de saúde</b>: a formação em pesquisa "
+            "não fica refém de poucos docentes e resiste a saídas/aposentadorias. O "
+            "topo da lista é natural (quem tem mais tempo de casa orienta mais).",
+            "cuidados": [
+                "Casamento <b>por nome (sem acento)</b> orientando↔egresso → <b>subestima</b>.",
+                "Conta só a <b>IC declarada no Lattes</b> do docente; coorientação informal escapa.",
+                "Quem chegou há pouco ao campus aparece com menos egressos (viés de tempo).",
+            ],
+            "pesquisadores": "Orientar é <b>impacto formativo</b> tão real quanto publicar — e alimenta "
+            "o próprio grupo. Vale registrar todas as orientações no Lattes.",
+            "recomendacao": "reconhecer a orientação de IC na avaliação docente e na distribuição de bolsas.",
+            "professores": "Assumir um orientando de IC é uma das formas mais diretas de <b>engajar</b> "
+            "e formar — e há espaço para novos orientadores entrarem.",
+            "estudantes": "Há <b>muitos</b> docentes que acolhem iniciação científica — procurar um "
+            "orientador alinhado ao seu interesse é mais fácil do que parece.",
+            "central": "A formação em pesquisa do campus se apoia em uma <b>base ampla de "
+            "orientadores</b>, não em poucos nomes — o que a torna resiliente e expansível.",
+            "acoes": [
+                "<b>Gestão:</b> reconhecer orientação de IC na carreira e nos editais de bolsa.",
+                "<b>Cursos:</b> apresentar os grupos/orientadores aos ingressantes.",
+                "<b>Grupos:</b> criar mentoria para novos docentes assumirem orientandos.",
+                "<b>Estudantes:</b> mapear orientadores por linha de pesquisa e procurar cedo.",
+            ],
+        }
+    )
+    bloco_ano = bloco_didatico(
+        {
+            "titulo": "Pesquisa por ano de ingresso",
+            "analisa": "A <b>tendência ao longo do tempo</b>: que fração de cada turma (por ano de "
+            "ingresso) participou de pesquisa.",
+            "importa": "Diz se a cultura de pesquisa do campus está <b>crescendo, estável ou "
+            "recuando</b> — algo que o número total (78%) sozinho esconde.",
+            "mostram": f"A série cobre as turmas de <b>{_faixa_turmas}</b> (só anos com 3+ egressos). "
+            "A participação é <b>consistentemente alta</b> na maior parte do período.",
+            "interpretar": "As turmas <b>mais recentes</b> tiveram menos tempo para registrar IC, "
+            "concluir TCC ou ingressar no mestrado — então uma participação menor nos "
+            "anos finais <b>pode ser maturação</b>, não recuo real da cultura de pesquisa.",
+            "atencao": "uma eventual queda nas turmas recentes provavelmente reflete o <b>tempo de "
+            "maturação</b> da trajetória, não uma perda de interesse — comparar turmas "
+            "antigas com recentes mistura coisas diferentes.",
+            "cuidados": [
+                "<b>Amostra pequena</b> por ano nos primeiros anos → série ruidosa.",
+                "<b>Viés de maturação</b>: turmas novas ainda não completaram a trajetória.",
+                "Participação por <b>autodeclaração</b> (Lattes/SigPesq) — subestima.",
+            ],
+            "pesquisadores": "Acompanhar a participação por coorte ajuda a <b>planejar captação</b> e a "
+            "perceber cedo quedas reais de engajamento.",
+            "professores": "Engajar as turmas <b>logo no início</b> do curso antecipa a entrada na "
+            "pesquisa e melhora a série das próximas coortes.",
+            "estudantes": "Quanto <b>mais cedo</b> você entra na IC, mais tempo tem para bolsa, "
+            "currículo e a transição para o mestrado.",
+            "central": "A participação em pesquisa é <b>consistente entre as turmas</b>; quedas nos anos "
+            "recentes pedem leitura cuidadosa (maturação), não alarme.",
+            "acoes": [
+                "<b>Gestão:</b> publicar a série por coorte todo ano e ler a tendência (não o ponto).",
+                "<b>Cursos:</b> ação de <b>entrada precoce</b> na IC já no 1º/2º período.",
+                "<b>Grupos:</b> reservar vagas de IC para calouros.",
+            ],
+        }
+    )
+    bloco_efic = bloco_didatico(
+        {
+            "titulo": "Eficiência do fomento",
+            "analisa": "Quanto de <b>recurso FAPES</b> sustenta a formação em pesquisa — uma noção de "
+            "custo por <b>aluno-pesquisador</b> formado.",
+            "importa": "Conecta diretamente <b>investimento</b> e <b>formação de pessoas</b>: bolsa não "
+            "é gasto, é o que viabiliza o estudante dedicar-se à pesquisa.",
+            "mostram": f"Dividindo as bolsas FAPES pelos <b>{with_research} egressos com pesquisa</b>, "
+            "chega-se a um <b>custo médio por aluno-pesquisador</b> (alguns milhares de "
+            "reais) — uma ordem de grandeza, não um preço exato.",
+            "interpretar": "Esse valor é <b>custo de formar gente</b>, não desperdício: é investimento "
+            "em <b>capital humano</b> que retorna como produção, mestrandos e captação futura.",
+            "cuidados": [
+                "Numerador (bolsas) e denominador (egressos com pesquisa) vêm de <b>janelas e fontes "
+                "diferentes</b> — é aproximação, não atribuição 1:1.",
+                "O <b>valor pago</b> consta <b>zerado</b> na fonte (só o alocado) — subestima a execução.",
+                "Nem toda bolsa do período foi para esses egressos específicos.",
+            ],
+            "pesquisadores": "Bolsas <b>formam pessoas</b> e renovam o grupo — argumento direto para "
+            "justificar e renovar captação.",
+            "recomendacao": "acompanhar o custo por aluno-pesquisador ao longo dos anos, não num ponto isolado.",
+            "professores": "Bolsas viabilizam a <b>orientação</b>: sem fomento, o aluno precisa trabalhar "
+            "e abandona a IC.",
+            "estudantes": "A bolsa é muitas vezes a <b>condição de permanência</b> que permite você se "
+            "dedicar à pesquisa em vez de só ao emprego.",
+            "central": "Investir em bolsas de IC é investir na <b>formação</b>: o custo por "
+            "aluno-pesquisador é métrica de <b>capital humano</b>, não de despesa.",
+            "acoes": [
+                "<b>Gestão:</b> proteger o orçamento de bolsas de IC; cobrar o registro do valor pago.",
+                "<b>Cursos:</b> divulgar editais de bolsa amplamente, não só aos melhores alunos.",
+                "<b>Estudantes:</b> candidatar-se a bolsas cedo — é o que sustenta a dedicação.",
+            ],
+        }
+    )
 
     body = f"""
     <section class="section">
@@ -1524,11 +1805,15 @@ def analises_section(s: dict, ppbase: dict) -> str:
 def _find_chrome() -> str | None:
     """Localiza um navegador Chromium para renderizar o PDF."""
     import shutil
+
     candidates = [
         "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
         "/Applications/Chromium.app/Contents/MacOS/Chromium",
         "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-        "google-chrome", "chromium", "chromium-browser", "chrome",
+        "google-chrome",
+        "chromium",
+        "chromium-browser",
+        "chrome",
     ]
     for c in candidates:
         if os.path.isfile(c):
@@ -1542,14 +1827,20 @@ def _find_chrome() -> str | None:
 def html_to_pdf(html_path: Path, pdf_path: Path) -> bool:
     """Gera PDF a partir do HTML via headless Chrome (SVG + CSS de impressão)."""
     import subprocess
+
     chrome = _find_chrome()
     if not chrome:
         print("PDF: navegador Chromium não encontrado — pulei a geração.")
         return False
     cmd = [
-        chrome, "--headless", "--disable-gpu", "--no-pdf-header-footer",
-        "--virtual-time-budget=8000", "--run-all-compositor-stages-before-draw",
-        f"--print-to-pdf={pdf_path}", html_path.resolve().as_uri(),
+        chrome,
+        "--headless",
+        "--disable-gpu",
+        "--no-pdf-header-footer",
+        "--virtual-time-budget=8000",
+        "--run-all-compositor-stages-before-draw",
+        f"--print-to-pdf={pdf_path}",
+        html_path.resolve().as_uri(),
     ]
     try:
         subprocess.run(cmd, check=True, capture_output=True, timeout=120)
@@ -1567,13 +1858,17 @@ def main() -> None:
 
     print("Calculando dados da graduação...")
     grad_payload = EX.compute_payload()
-    print(f"  {grad_payload['stats']['total']} formandos · "
-          f"{grad_payload['stats']['pct_research']}% com pesquisa")
+    print(
+        f"  {grad_payload['stats']['total']} formandos · "
+        f"{grad_payload['stats']['pct_research']}% com pesquisa"
+    )
 
     print("Calculando base PPComp (mestrado)...")
     ppbase = PPB.compute()
-    print(f"  {ppbase['total']} discentes · {ppbase['defendidos']} defenderam · "
-          f"{ppbase['pipeline']['total']} vindos da graduação Serra")
+    print(
+        f"  {ppbase['total']} discentes · {ppbase['defendidos']} defenderam · "
+        f"{ppbase['pipeline']['total']} vindos da graduação Serra"
+    )
 
     now = datetime.now().strftime("%d/%m/%Y %H:%M")
     html = build(grad_payload, ppbase, now)

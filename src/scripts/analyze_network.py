@@ -28,9 +28,9 @@ from pathlib import Path
 
 import networkx as nx
 
-from src.scripts.generate_docentes_executive import ROSTER_IDS
 from src.scripts.analyze_venues import _docente_area
-from src.scripts.didatica import bloco_metrica, MOBILE_CSS
+from src.scripts.didatica import MOBILE_CSS, bloco_metrica
+from src.scripts.generate_docentes_executive import ROSTER_IDS
 
 BASE = Path(__file__).resolve().parents[2]
 LATTES_DIR = BASE / "data" / "lattes_json"
@@ -41,7 +41,12 @@ _SUFFIX = {"junior", "jr", "filho", "neto", "segundo", "sobrinho"}
 
 
 def _norm(s: str) -> str:
-    s = unicodedata.normalize("NFKD", s or "").encode("ascii", "ignore").decode().lower()
+    s = (
+        unicodedata.normalize("NFKD", s or "")
+        .encode("ascii", "ignore")
+        .decode()
+        .lower()
+    )
     return re.sub(r"[^a-z ]", " ", s)
 
 
@@ -90,24 +95,29 @@ def collect_coauthorship(roster_idx: dict[tuple, str]):
         if m:
             by_id[m.group(1)] = f
 
-    pair_w: Counter = Counter()          # (id_a, id_b) -> nº trabalhos juntos
+    pair_w: Counter = Counter()  # (id_a, id_b) -> nº trabalhos juntos
     ext_collab: dict[str, Counter] = defaultdict(Counter)  # id -> coautor externo -> n
     papers_with_coauthor: Counter = Counter()
-    seen: set = set()                    # dedup global por título
+    seen: set = set()  # dedup global por título
 
     for lid, f in by_id.items():
         if lid not in ROSTER_IDS.values():
             continue
         pb = json.loads(Path(f).read_text()).get("producao_bibliografica", {}) or {}
-        items = (pb.get("artigos_periodicos", []) or []) + \
-                (pb.get("trabalhos_completos_congressos", []) or [])
+        items = (pb.get("artigos_periodicos", []) or []) + (
+            pb.get("trabalhos_completos_congressos", []) or []
+        )
         for it in items:
             title_k = _norm(it.get("titulo", "")).strip()
             if not title_k or title_k in seen:
                 continue
             seen.add(title_k)
-            authors = [a.strip() for a in (it.get("autores") or "").split(";") if a.strip()]
-            roster_here = sorted({rid for a in authors if (rid := map_author(a, roster_idx))})
+            authors = [
+                a.strip() for a in (it.get("autores") or "").split(";") if a.strip()
+            ]
+            roster_here = sorted(
+                {rid for a in authors if (rid := map_author(a, roster_idx))}
+            )
             ext = [a for a in authors if map_author(a, roster_idx) is None]
             for rid in roster_here:
                 papers_with_coauthor[rid] += 1
@@ -132,7 +142,11 @@ def compute(G: nx.Graph) -> dict:
     # métricas (no maior componente p/ betweenness ser comparável; calcula em todo G)
     deg = dict(G.degree())
     wdeg = dict(G.degree(weight="weight"))
-    btw = nx.betweenness_centrality(G, weight=None, normalized=True) if G.number_of_edges() else {}
+    btw = (
+        nx.betweenness_centrality(G, weight=None, normalized=True)
+        if G.number_of_edges()
+        else {}
+    )
     try:
         pr = nx.pagerank(G, weight="weight") if G.number_of_edges() else {}
     except Exception:
@@ -148,6 +162,7 @@ def compute(G: nx.Graph) -> dict:
     # layout determinístico. Pesos amortecidos (log) p/ laços fortes não colapsarem
     # o núcleo; k maior espalha; isolados num anel externo p/ não amontoar.
     import math
+
     # Layout POR COMUNIDADE: cada comunidade ocupa um setor próprio (centro num
     # círculo grande) e é desenhada com spring local. Evita o "blob" único —
     # os grupos densos ficam separados na tela.
@@ -165,16 +180,26 @@ def compute(G: nx.Graph) -> dict:
             ccx, ccy = Rcirc * math.cos(ang), Rcirc * math.sin(ang)
             sub = G.subgraph(members)
             if sub.number_of_edges():
-                sp = nx.spring_layout(sub, seed=42,
-                                      k=3.0 / math.sqrt(max(len(members), 1)),
-                                      iterations=300)
+                sp = nx.spring_layout(
+                    sub,
+                    seed=42,
+                    k=3.0 / math.sqrt(max(len(members), 1)),
+                    iterations=300,
+                )
             else:
                 sp = {m: (0.0, 0.0) for m in members}
             r = 0.34 * math.sqrt(len(members) / maxsz)  # raio do cluster ~ tamanho
             for m in members:
                 x, y = sp.get(m, (0.0, 0.0))
                 pos[m] = (ccx + x * r, ccy + y * r)
-    return {"deg": deg, "wdeg": wdeg, "btw": btw, "pr": pr, "comm": comm_map, "pos": pos}
+    return {
+        "deg": deg,
+        "wdeg": wdeg,
+        "btw": btw,
+        "pr": pr,
+        "comm": comm_map,
+        "pos": pos,
+    }
 
 
 def _areas(roster_ids: list[str]) -> dict:
@@ -219,13 +244,18 @@ def collect_projects(id2name: dict) -> tuple[Counter, Counter]:
     for lid, f in by_id.items():
         if lid not in id2name:
             continue
-        for p in (json.loads(Path(f).read_text()).get("projetos_pesquisa", []) or []):
+        for p in json.loads(Path(f).read_text()).get("projetos_pesquisa", []) or []:
             pk = _norm(p.get("nome", "")).strip()
             if not pk or pk in seen:
                 continue
             seen.add(pk)
-            members = sorted({mid for ig in (p.get("integrantes") or [])
-                              if (mid := match(ig.get("nome", "")))})
+            members = sorted(
+                {
+                    mid
+                    for ig in (p.get("integrantes") or [])
+                    if (mid := match(ig.get("nome", "")))
+                }
+            )
             for mid in members:
                 pcount[mid] += 1
             for a, b in combinations(members, 2):
@@ -233,12 +263,22 @@ def collect_projects(id2name: dict) -> tuple[Counter, Counter]:
     return pair, pcount
 
 
-def analyze_patterns(G, m, id2name, areas, proj_pair: Counter, proj_count: Counter,
-                     impact: dict | None = None) -> dict:
-    impact = impact or {}     # id -> {score, qualidade, estrato_A, sjr_q1q2, artigos_qualis}
+def analyze_patterns(
+    G,
+    m,
+    id2name,
+    areas,
+    proj_pair: Counter,
+    proj_count: Counter,
+    impact: dict | None = None,
+) -> dict:
+    impact = (
+        impact or {}
+    )  # id -> {score, qualidade, estrato_A, sjr_q1q2, artigos_qualis}
 
     def imp(x):
         return impact.get(x, {})
+
     comm = m["comm"]
     # ---- perfis de comunidade (ordenados por RELEVÂNCIA = impacto Qualis) ----
     groups: dict[int, list] = defaultdict(list)
@@ -248,8 +288,9 @@ def analyze_patterns(G, m, id2name, areas, proj_pair: Counter, proj_count: Count
     for ci, members in groups.items():
         gareas = Counter(areas.get(x, ("—", "—"))[0] for x in members)
         gsub = Counter(areas.get(x, ("—", "—"))[1] for x in members)
-        internal = sum(1 for a, b in G.edges(members)
-                       if comm.get(a) == ci and comm.get(b) == ci)
+        internal = sum(
+            1 for a, b in G.edges(members) if comm.get(a) == ci and comm.get(b) == ci
+        )
         n = len(members)
         dens = round(2 * internal / (n * (n - 1)), 3) if n > 1 else 0
         # relevância: soma dos pesos Qualis; qualidade média; estrato A; Q1+Q2
@@ -257,20 +298,30 @@ def analyze_patterns(G, m, id2name, areas, proj_pair: Counter, proj_count: Count
         a_tot = sum(imp(x).get("estrato_A", 0) for x in members)
         q1q2_tot = sum(imp(x).get("sjr_q1q2", 0) for x in members)
         com_pub = [x for x in members if imp(x).get("artigos_qualis", 0) > 0]
-        qmean = round(sum(imp(x).get("qualidade", 0) for x in com_pub) / len(com_pub), 1) if com_pub else 0
+        qmean = (
+            round(sum(imp(x).get("qualidade", 0) for x in com_pub) / len(com_pub), 1)
+            if com_pub
+            else 0
+        )
         # top membros por IMPACTO (score Qualis), não por volume
         top = sorted(members, key=lambda x: -imp(x).get("score", 0))[:4]
         bridge = max(members, key=lambda x: m["btw"].get(x, 0))
-        comm_profiles.append({
-            "id": ci + 1, "n": n,
-            "area": gareas.most_common(1)[0][0],
-            "subareas": [f"{k} ({v})" for k, v in gsub.most_common(3)],
-            "lacos_internos": internal, "densidade": dens,
-            "score": score_tot, "qualidade_media": qmean,
-            "estrato_A": a_tot, "q1q2": q1q2_tot,
-            "membros_top": [f"{id2name[x]} ({imp(x).get('score',0)})" for x in top],
-            "ponte": id2name[bridge],
-        })
+        comm_profiles.append(
+            {
+                "id": ci + 1,
+                "n": n,
+                "area": gareas.most_common(1)[0][0],
+                "subareas": [f"{k} ({v})" for k, v in gsub.most_common(3)],
+                "lacos_internos": internal,
+                "densidade": dens,
+                "score": score_tot,
+                "qualidade_media": qmean,
+                "estrato_A": a_tot,
+                "q1q2": q1q2_tot,
+                "membros_top": [f"{id2name[x]} ({imp(x).get('score',0)})" for x in top],
+                "ponte": id2name[bridge],
+            }
+        )
     comm_profiles.sort(key=lambda c: -c["score"])
     for i, c in enumerate(comm_profiles, 1):
         c["rank"] = i
@@ -287,13 +338,19 @@ def analyze_patterns(G, m, id2name, areas, proj_pair: Counter, proj_count: Count
         else:
             inter += 1
     tot_e = intra + inter
-    area_pairs = [{"a": k[0], "b": k[1], "n": v}
-                  for k, v in sorted(area_mat.items(), key=lambda x: -x[1])][:10]
+    area_pairs = [
+        {"a": k[0], "b": k[1], "n": v}
+        for k, v in sorted(area_mat.items(), key=lambda x: -x[1])
+    ][:10]
 
     # ---- hubs (autores) ----
     def topn(d, k=8):
-        return [{"name": id2name[i], "v": round(v, 4) if isinstance(v, float) else v}
-                for i, v in sorted(d.items(), key=lambda x: -x[1])[:k] if v]
+        return [
+            {"name": id2name[i], "v": round(v, 4) if isinstance(v, float) else v}
+            for i, v in sorted(d.items(), key=lambda x: -x[1])[:k]
+            if v
+        ]
+
     hubs = {
         "grau_ponderado": topn(m["wdeg"]),
         "intermediacao": topn(m["btw"]),
@@ -301,15 +358,28 @@ def analyze_patterns(G, m, id2name, areas, proj_pair: Counter, proj_count: Count
     }
 
     # ---- pares (coautoria mais forte) ----
-    pares = sorted(({"a": id2name[a], "b": id2name[b], "w": G[a][b]["weight"]}
-                    for a, b in G.edges), key=lambda x: -x["w"])[:12]
+    pares = sorted(
+        (
+            {"a": id2name[a], "b": id2name[b], "w": G[a][b]["weight"]}
+            for a, b in G.edges
+        ),
+        key=lambda x: -x["w"],
+    )[:12]
 
     # ---- projetos (co-participação) ----
-    proj_pairs = sorted(({"a": id2name[a], "b": id2name[b], "n": w}
-                         for (a, b), w in proj_pair.items() if a in id2name and b in id2name),
-                        key=lambda x: -x["n"])[:12]
-    proj_top = [{"name": id2name[i], "n": c}
-                for i, c in proj_count.most_common(10) if i in id2name]
+    proj_pairs = sorted(
+        (
+            {"a": id2name[a], "b": id2name[b], "n": w}
+            for (a, b), w in proj_pair.items()
+            if a in id2name and b in id2name
+        ),
+        key=lambda x: -x["n"],
+    )[:12]
+    proj_top = [
+        {"name": id2name[i], "n": c}
+        for i, c in proj_count.most_common(10)
+        if i in id2name
+    ]
     # sobreposição coautoria × projeto
     coaut_pairs = {tuple(sorted((a, b))) for a, b in G.edges}
     projp = {tuple(sorted(k)) for k in proj_pair}
@@ -317,15 +387,26 @@ def analyze_patterns(G, m, id2name, areas, proj_pair: Counter, proj_count: Count
 
     return {
         "comunidades": comm_profiles,
-        "area": {"pares": area_pairs, "intra": intra, "inter": inter,
-                 "pct_intra": round(100 * intra / tot_e) if tot_e else 0},
-        "hubs": hubs, "pares": pares,
-        "projetos": {"pares": proj_pairs, "top": proj_top,
-                     "overlap_coautoria": overlap, "n_pares_proj": len(projp)},
+        "area": {
+            "pares": area_pairs,
+            "intra": intra,
+            "inter": inter,
+            "pct_intra": round(100 * intra / tot_e) if tot_e else 0,
+        },
+        "hubs": hubs,
+        "pares": pares,
+        "projetos": {
+            "pares": proj_pairs,
+            "top": proj_top,
+            "overlap_coautoria": overlap,
+            "n_pares_proj": len(projp),
+        },
     }
 
 
-def emit(G, id2name, m, ext_collab, papers, out_path: Path, patterns: dict | None = None) -> dict:
+def emit(
+    G, id2name, m, ext_collab, papers, out_path: Path, patterns: dict | None = None
+) -> dict:
     areas = _areas(list(id2name))
     xs = [p[0] for p in m["pos"].values()]
     ys = [p[1] for p in m["pos"].values()]
@@ -338,25 +419,41 @@ def emit(G, id2name, m, ext_collab, papers, out_path: Path, patterns: dict | Non
     nodes = []
     for lid in G.nodes:
         ga, sa = areas.get(lid, ("—", "—"))
-        nb = sorted(((id2name[n], G[lid][n]["weight"]) for n in G.neighbors(lid)),
-                    key=lambda x: -x[1])
+        nb = sorted(
+            ((id2name[n], G[lid][n]["weight"]) for n in G.neighbors(lid)),
+            key=lambda x: -x[1],
+        )
         if lid in m["pos"]:
             px, py = m["pos"][lid]
-            x, y, iso = round(nx_(px, minx, maxx), 4), round(nx_(py, miny, maxy), 4), False
+            x, y, iso = (
+                round(nx_(px, minx, maxx), 4),
+                round(nx_(py, miny, maxy), 4),
+                False,
+            )
         else:
-            x, y, iso = None, None, True   # isolado: sem coautoria interna
-        nodes.append({
-            "isolado": iso,
-            "id": lid, "name": id2name[lid], "area": ga, "subarea": sa,
-            "deg": m["deg"].get(lid, 0), "wdeg": m["wdeg"].get(lid, 0),
-            "btw": round(m["btw"].get(lid, 0.0), 4),
-            "pr": round(m["pr"].get(lid, 0.0), 4),
-            "comm": m["comm"].get(lid, -1),
-            "papers": papers.get(lid, 0),
-            "x": x, "y": y,
-            "collabs": [{"name": n, "w": w} for n, w in nb[:12]],
-            "ext": [{"name": n, "n": c} for n, c in ext_collab.get(lid, Counter()).most_common(8)],
-        })
+            x, y, iso = None, None, True  # isolado: sem coautoria interna
+        nodes.append(
+            {
+                "isolado": iso,
+                "id": lid,
+                "name": id2name[lid],
+                "area": ga,
+                "subarea": sa,
+                "deg": m["deg"].get(lid, 0),
+                "wdeg": m["wdeg"].get(lid, 0),
+                "btw": round(m["btw"].get(lid, 0.0), 4),
+                "pr": round(m["pr"].get(lid, 0.0), 4),
+                "comm": m["comm"].get(lid, -1),
+                "papers": papers.get(lid, 0),
+                "x": x,
+                "y": y,
+                "collabs": [{"name": n, "w": w} for n, w in nb[:12]],
+                "ext": [
+                    {"name": n, "n": c}
+                    for n, c in ext_collab.get(lid, Counter()).most_common(8)
+                ],
+            }
+        )
     edges = [{"s": a, "t": b, "w": G[a][b]["weight"]} for a, b in G.edges]
 
     n_comm = len({n["comm"] for n in nodes if n["comm"] >= 0})
@@ -367,18 +464,24 @@ def emit(G, id2name, m, ext_collab, papers, out_path: Path, patterns: dict | Non
         "n_comunidades": n_comm,
         "aresta_mais_forte": max((e["w"] for e in edges), default=0),
     }
-    payload = {"gerado_em": datetime.now().strftime("%Y-%m-%d %H:%M"),
-               "stats": stats, "nodes": nodes, "edges": edges,
-               "patterns": patterns or {}}
+    payload = {
+        "gerado_em": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "stats": stats,
+        "nodes": nodes,
+        "edges": edges,
+        "patterns": patterns or {},
+    }
     out_path.with_suffix(".json").write_text(
-        json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        json.dumps(payload, ensure_ascii=False), encoding="utf-8"
+    )
     out_path.write_text(_html(payload), encoding="utf-8")
     return stats
 
 
 def _html(payload: dict) -> str:
     data = json.dumps(payload, ensure_ascii=False)
-    return r"""<!DOCTYPE html>
+    return (
+        r"""<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rede de Colaboração — IFES Campus Serra</title>
@@ -574,54 +677,64 @@ document.getElementById('spr').onclick=()=>applySpread(1.3);
 document.getElementById('cmp').onclick=()=>{if(spread/1.3>=0.4)applySpread(1/1.3);};
 document.getElementById('rst').onclick=()=>{spread=1;clearSel();};
 resize();
-</script></body></html>""".replace("</style>", MOBILE_CSS+"</style>", 1).replace("__DATA__", data).replace("__EXPL__", _EXPL_REDE + _EXPL_COMUNIDADES).replace("__PATTERNS__", _patterns_html(payload.get("patterns") or {}))
+</script></body></html>""".replace(
+            "</style>", MOBILE_CSS + "</style>", 1
+        )
+        .replace("__DATA__", data)
+        .replace("__EXPL__", _EXPL_REDE + _EXPL_COMUNIDADES)
+        .replace("__PATTERNS__", _patterns_html(payload.get("patterns") or {}))
+    )
 
 
-_EXPL_REDE = bloco_metrica({
-    "titulo": "Rede de coautoria (como ler)",
-    "o_que": "Grafo de <b>coautoria</b> entre docentes (artigos + congressos do Lattes): cada nó é "
-             "um docente (tamanho = trabalhos em coautoria), a cor é a <b>comunidade</b> detectada "
-             "(Louvain) e a espessura da aresta é o nº de trabalhos juntos.",
-    "como_ler": "<b>Aglomerados</b> de mesma cor = grupos que publicam juntos. <b>Nós centrais</b> "
-                "(grandes, muito conectados) = pontes/colaboradores frequentes que ligam grupos.",
-    "nao_concluir": [
-        "Coautoria é cruzada <b>por nome</b> (sujeita a homônimo) e <b>coautores externos</b> ao "
-        "campus não entram no grafo.",
-        "Ausência de aresta <b>≠</b> ausência de colaboração (orientação, projetos e parcerias "
-        "informais não aparecem).",
-        "Versão <b>preliminar</b> (under development) — métricas em validação.",
-    ],
-    "gestores": "Identificar <b>grupos</b> e <b>pontes</b>; estimular colaboração entre comunidades "
-                "isoladas e dar visibilidade a quem conecta áreas.",
-})
+_EXPL_REDE = bloco_metrica(
+    {
+        "titulo": "Rede de coautoria (como ler)",
+        "o_que": "Grafo de <b>coautoria</b> entre docentes (artigos + congressos do Lattes): cada nó é "
+        "um docente (tamanho = trabalhos em coautoria), a cor é a <b>comunidade</b> detectada "
+        "(Louvain) e a espessura da aresta é o nº de trabalhos juntos.",
+        "como_ler": "<b>Aglomerados</b> de mesma cor = grupos que publicam juntos. <b>Nós centrais</b> "
+        "(grandes, muito conectados) = pontes/colaboradores frequentes que ligam grupos.",
+        "nao_concluir": [
+            "Coautoria é cruzada <b>por nome</b> (sujeita a homônimo) e <b>coautores externos</b> ao "
+            "campus não entram no grafo.",
+            "Ausência de aresta <b>≠</b> ausência de colaboração (orientação, projetos e parcerias "
+            "informais não aparecem).",
+            "Versão <b>preliminar</b> (under development) — métricas em validação.",
+        ],
+        "gestores": "Identificar <b>grupos</b> e <b>pontes</b>; estimular colaboração entre comunidades "
+        "isoladas e dar visibilidade a quem conecta áreas.",
+    }
+)
 
-_EXPL_COMUNIDADES = bloco_metrica({
-    "titulo": "Comunidades (Louvain) e o papel de cada pesquisador",
-    "o_que": "Como os pesquisadores se <b>agrupam em comunidades</b> de coautoria e qual o "
-             "<b>papel</b> de cada um dentro e entre esses grupos. A cor de cada nó é a comunidade "
-             "a que ele pertence.",
-    "formula": "Louvain: maximiza a modularidade Q (ligações DENTRO da comunidade − esperado ao acaso)",
-    "como_ler": "<b>Por que detectar comunidades:</b> o algoritmo <b>Louvain</b> separa, sem hipótese "
-                "prévia, conjuntos de pesquisadores que <b>publicam mais entre si</b> do que com o "
-                "resto — revelam linhas/temas e grupos de fato, não os declarados. <br>"
-                "<b>Papel de cada um</b> (pelas métricas de centralidade do nó):<br>"
-                "• <b>Hub</b> — grau alto (muitos coautores): núcleo que sustenta a comunidade.<br>"
-                "• <b>Ponte</b> — <i>betweenness</i> alto: conecta comunidades diferentes; se sair, a "
-                "rede se fragmenta. São quem faz a colaboração interdisciplinar acontecer.<br>"
-                "• <b>Influente</b> — <i>PageRank</i> alto: conectado a quem também é bem conectado.<br>"
-                "• <b>Periférico</b> — grau baixo: na borda da comunidade (novatos ou pontuais).",
-    "nao_concluir": [
-        "Comunidade <b>≠</b> grupo de pesquisa oficial: é coautoria <b>observada</b> no Lattes, não o "
-        "cadastro de grupos.",
-        "Ser <b>ponte/hub não é mérito</b> nem ser periférico é demérito — descreve posição na rede, "
-        "que depende de carreira, área e tamanho da amostra.",
-        "Cruzamento por <b>nome</b> (homônimos) e sem <b>coautores externos</b>; a partição Louvain "
-        "tem aleatoriedade (pode variar a cada execução). Versão <b>preliminar</b>.",
-    ],
-    "gestores": "Usar os <b>papéis</b> para decidir: proteger/valorizar as <b>pontes</b> (conexão "
-                "interdisciplinar), apoiar <b>hubs</b> emergentes, e aproximar <b>comunidades "
-                "isoladas</b> e <b>periféricos</b> via projetos e editais conjuntos.",
-})
+_EXPL_COMUNIDADES = bloco_metrica(
+    {
+        "titulo": "Comunidades (Louvain) e o papel de cada pesquisador",
+        "o_que": "Como os pesquisadores se <b>agrupam em comunidades</b> de coautoria e qual o "
+        "<b>papel</b> de cada um dentro e entre esses grupos. A cor de cada nó é a comunidade "
+        "a que ele pertence.",
+        "formula": "Louvain: maximiza a modularidade Q (ligações DENTRO da comunidade − esperado ao acaso)",
+        "como_ler": "<b>Por que detectar comunidades:</b> o algoritmo <b>Louvain</b> separa, sem hipótese "
+        "prévia, conjuntos de pesquisadores que <b>publicam mais entre si</b> do que com o "
+        "resto — revelam linhas/temas e grupos de fato, não os declarados. <br>"
+        "<b>Papel de cada um</b> (pelas métricas de centralidade do nó):<br>"
+        "• <b>Hub</b> — grau alto (muitos coautores): núcleo que sustenta a comunidade.<br>"
+        "• <b>Ponte</b> — <i>betweenness</i> alto: conecta comunidades diferentes; se sair, a "
+        "rede se fragmenta. São quem faz a colaboração interdisciplinar acontecer.<br>"
+        "• <b>Influente</b> — <i>PageRank</i> alto: conectado a quem também é bem conectado.<br>"
+        "• <b>Periférico</b> — grau baixo: na borda da comunidade (novatos ou pontuais).",
+        "nao_concluir": [
+            "Comunidade <b>≠</b> grupo de pesquisa oficial: é coautoria <b>observada</b> no Lattes, não o "
+            "cadastro de grupos.",
+            "Ser <b>ponte/hub não é mérito</b> nem ser periférico é demérito — descreve posição na rede, "
+            "que depende de carreira, área e tamanho da amostra.",
+            "Cruzamento por <b>nome</b> (homônimos) e sem <b>coautores externos</b>; a partição Louvain "
+            "tem aleatoriedade (pode variar a cada execução). Versão <b>preliminar</b>.",
+        ],
+        "gestores": "Usar os <b>papéis</b> para decidir: proteger/valorizar as <b>pontes</b> (conexão "
+        "interdisciplinar), apoiar <b>hubs</b> emergentes, e aproximar <b>comunidades "
+        "isoladas</b> e <b>periféricos</b> via projetos e editais conjuntos.",
+    }
+)
 
 
 def _patterns_html(p: dict) -> str:
@@ -652,27 +765,49 @@ table.an-t{width:100%;border-collapse:collapse;font-size:13px;background:var(--p
         f"<div class='tag' style='color:var(--green);font-weight:700;'>Impacto Qualis {c.get('score',0)} · "
         f"nota média {c.get('qualidade_media',0)} · {c.get('estrato_A',0)} artigos A · {c.get('q1q2',0)} Q1+Q2</div>"
         f"<div class='tag'>{' · '.join(c['subareas'])}</div>"
-        f"<ul>" + "".join(f"<li>{x}</li>" for x in c['membros_top']) + "</ul>"
+        f"<ul>" + "".join(f"<li>{x}</li>" for x in c["membros_top"]) + "</ul>"
         f"<div class='mini'>{c['lacos_internos']} laços internos · densidade {c['densidade']} · ponte: <b>{c['ponte']}</b></div></div>"
         for c in p.get("comunidades", [])
     )
     # área
     a = p.get("area", {})
-    arows = "".join(f"<tr><td>{x['a']}{' ↔ '+x['b'] if x['b']!=x['a'] else ' (interno)'}</td><td class='n'>{x['n']}</td></tr>"
-                    for x in a.get("pares", []))
+    arows = "".join(
+        f"<tr><td>{x['a']}{' ↔ '+x['b'] if x['b']!=x['a'] else ' (interno)'}</td><td class='n'>{x['n']}</td></tr>"
+        for x in a.get("pares", [])
+    )
+
     # hubs
     def htab(rows, lab):
-        return ("<table class='an-t'><thead><tr><th>Docente</th><th>"+lab+"</th></tr></thead><tbody>"
-                + "".join(f"<tr><td>{r['name']}</td><td class='n'>{r['v']}</td></tr>" for r in rows)
-                + "</tbody></table>")
+        return (
+            "<table class='an-t'><thead><tr><th>Docente</th><th>"
+            + lab
+            + "</th></tr></thead><tbody>"
+            + "".join(
+                f"<tr><td>{r['name']}</td><td class='n'>{r['v']}</td></tr>"
+                for r in rows
+            )
+            + "</tbody></table>"
+        )
+
     hubs = p.get("hubs", {})
     # pares coautoria
-    pares = "".join(f"<tr><td>{x['a']} ↔ {x['b']}</td><td class='n'>{x['w']}</td></tr>" for x in p.get("pares", []))
+    pares = "".join(
+        f"<tr><td>{x['a']} ↔ {x['b']}</td><td class='n'>{x['w']}</td></tr>"
+        for x in p.get("pares", [])
+    )
     # projetos
     pj = p.get("projetos", {})
-    pjpairs = "".join(f"<tr><td>{x['a']} ↔ {x['b']}</td><td class='n'>{x['n']}</td></tr>" for x in pj.get("pares", []))
-    pjtop = "".join(f"<tr><td>{x['name']}</td><td class='n'>{x['n']}</td></tr>" for x in pj.get("top", []))
-    return css + f"""
+    pjpairs = "".join(
+        f"<tr><td>{x['a']} ↔ {x['b']}</td><td class='n'>{x['n']}</td></tr>"
+        for x in pj.get("pares", [])
+    )
+    pjtop = "".join(
+        f"<tr><td>{x['name']}</td><td class='n'>{x['n']}</td></tr>"
+        for x in pj.get("top", [])
+    )
+    return (
+        css
+        + f"""
 <div class="an">
   <h2>Comunidades por relevância (impacto, não volume)</h2>
   <div class="exp"><b>O que é:</b> os grupos de colaboração (Louvain) ordenados pela <b>relevância da
@@ -725,6 +860,7 @@ table.an-t{width:100%;border-collapse:collapse;font-size:13px;background:var(--p
   </div>
   <div class="note">Comunidades por modularidade (Louvain, seed fixo). Coautoria/projetos cruzados por nome — sujeito a erro de homônimo. Coautores externos (fora do campus) não entram no grafo, mas aparecem no painel de cada docente.</div>
 </div>"""
+    )
 
 
 def main():
@@ -740,7 +876,13 @@ def main():
     impact_by_id = {}
     try:
         from src.scripts.analyze_venues import (
-            load_qualis, load_scimago, load_qualis_conf, rank_docentes, REF_DIR)
+            REF_DIR,
+            load_qualis,
+            load_qualis_conf,
+            load_scimago,
+            rank_docentes,
+        )
+
         qx = load_qualis(REF_DIR / "qualis.csv")
         sx = load_scimago()
         ca, cn = load_qualis_conf()
@@ -750,14 +892,17 @@ def main():
                 impact_by_id[lid] = r
     except Exception as exc:
         print(f"AVISO: impacto Qualis indisponível ({exc}); comunidades por volume.")
-    patterns = analyze_patterns(G, m, id2name, _areas(list(id2name)),
-                                proj_pair, proj_count, impact_by_id)
+    patterns = analyze_patterns(
+        G, m, id2name, _areas(list(id2name)), proj_pair, proj_count, impact_by_id
+    )
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     stats = emit(G, id2name, m, ext_collab, papers, out, patterns)
     print(f"Rede: {stats}")
-    print(f"Comunidades: {len(patterns['comunidades'])} · homofilia intra-área: {patterns['area']['pct_intra']}%"
-          f" · pares projeto: {patterns['projetos']['n_pares_proj']}")
+    print(
+        f"Comunidades: {len(patterns['comunidades'])} · homofilia intra-área: {patterns['area']['pct_intra']}%"
+        f" · pares projeto: {patterns['projetos']['n_pares_proj']}"
+    )
     print(f"Written: {out}")
     print(f"Written: {out.with_suffix('.json')}")
 

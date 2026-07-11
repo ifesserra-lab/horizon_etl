@@ -25,6 +25,7 @@ def _sha(value: str) -> str:
 
 # --- anonymize_cpf ---
 
+
 def test_anonymize_cpf_returns_lgpd_prefix():
     result = anonymize_cpf("12345678901")
     assert result.startswith("LGPD-")
@@ -60,6 +61,7 @@ def test_anonymize_cpf_invalid_cpf_still_anonymized():
 
 # --- anonymize_email ---
 
+
 def test_anonymize_email_returns_anon_lgpd_suffix():
     result = anonymize_email("user@example.com")
     assert result.endswith("@anon.lgpd")
@@ -89,6 +91,7 @@ def test_anonymize_email_empty_string_returns_none():
 
 # --- anonymize_field ---
 
+
 def test_anonymize_field_cpf():
     result = anonymize_field("12345678901", "cpf")
     assert result.startswith("LGPD-")
@@ -105,8 +108,11 @@ def test_anonymize_field_unknown_type_passthrough():
 
 # --- anonymize_person_data ---
 
+
 def test_anonymize_person_data_masks_identification_id():
-    result = anonymize_person_data({"identification_id": "12345678901", "name": "Alice"})
+    result = anonymize_person_data(
+        {"identification_id": "12345678901", "name": "Alice"}
+    )
     assert result["identification_id"].startswith("LGPD-")
     assert result["name"] == "Alice"
 
@@ -150,6 +156,7 @@ def test_anonymize_person_data_all_registry_keys_masked():
 
 # --- is_anonymized_cpf ---
 
+
 def test_is_anonymized_cpf_true_for_lgpd_prefix():
     assert is_anonymized_cpf("LGPD-abc123")
 
@@ -164,6 +171,7 @@ def test_is_anonymized_cpf_false_for_none():
 
 # --- is_anonymized_email ---
 
+
 def test_is_anonymized_email_true_for_anon_lgpd():
     assert is_anonymized_email("abc123@anon.lgpd")
 
@@ -177,6 +185,7 @@ def test_is_anonymized_email_false_for_none():
 
 
 # --- idempotency ---
+
 
 def test_double_anonymize_cpf_is_idempotent():
     first = anonymize_cpf("12345678901")
@@ -198,6 +207,7 @@ def test_anonymize_person_data_already_anonymized_cpf_is_stable():
 
 
 # --- scrub_emails_from_text ---
+
 
 def test_scrub_emails_from_text_replaces_email():
     result = scrub_emails_from_text("Contact: user@example.com for details.")
@@ -237,6 +247,7 @@ def test_scrub_emails_from_text_lideres_pattern():
 
 
 # --- scrub_pii_deep ---
+
 
 def test_scrub_pii_deep_string():
     result = scrub_pii_deep("email: foo@bar.com")
@@ -278,6 +289,7 @@ def test_scrub_pii_deep_preserves_anon_lgpd():
 
 # --- scrub_source_record_phones ---
 
+
 def test_scrub_source_record_phones_nulls_celular_orientador():
     payload = {"CelularOrientador": "27988281460", "name": "Test"}
     result = scrub_source_record_phones(payload)
@@ -304,6 +316,7 @@ def test_scrub_source_record_phones_returns_new_dict():
 
 
 # --- scrub_source_record_payload ---
+
 
 def test_scrub_source_record_payload_anonymizes_numeric_cpf():
     payload = {"OrientadoCpf": 13601552795, "Orientado": "Fulano"}

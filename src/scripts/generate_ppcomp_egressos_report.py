@@ -26,9 +26,15 @@ from pathlib import Path
 import openpyxl
 
 from src.scripts.generate_formandos_report import (
-    SEMESTER_FILE_MAP, DATA_FORMANDOS, BASE,
-    load_formandos, load_json, load_lattes, load_bolsistas,
-    _match_key, normalize_name,
+    BASE,
+    DATA_FORMANDOS,
+    SEMESTER_FILE_MAP,
+    _match_key,
+    load_bolsistas,
+    load_formandos,
+    load_json,
+    load_lattes,
+    normalize_name,
 )
 
 EGRESSOS_FILE = BASE / "data" / "mestrado" / "egressos_PPComp.xlsx"
@@ -38,6 +44,7 @@ OUT_DIR = BASE / "data" / "exports" / "mestrado"
 # ---------------------------------------------------------------------------
 # Data
 # ---------------------------------------------------------------------------
+
 
 def load_egressos() -> list[str]:
     """Nomes dos egressos PPComp (1 coluna, sem cabeçalho)."""
@@ -62,7 +69,7 @@ def _clean_sup(s: str | None) -> str:
 
 def compute() -> dict:
     egr_raw = load_egressos()
-    egr: dict[str, str] = {}            # match_key → nome (dedup)
+    egr: dict[str, str] = {}  # match_key → nome (dedup)
     for e in egr_raw:
         egr.setdefault(_match_key(e), e)
 
@@ -77,7 +84,7 @@ def compute() -> dict:
     # SigPesq: separa VÍNCULO a projeto (membro) de BOLSA (fellowship registrada)
     adv = load_json("advisorships_canonical.json")
     sig_membro: set[str] = set()
-    sig_bolsa: dict[str, str] = {}   # match_key → nome da bolsa IC (ex.: PIBIC)
+    sig_bolsa: dict[str, str] = {}  # match_key → nome da bolsa IC (ex.: PIBIC)
     for p in adv:
         for a in p.get("advisorships", []):
             if not a.get("person_id"):
@@ -97,7 +104,9 @@ def compute() -> dict:
         }
     bols_tipos: dict[str, set] = defaultdict(set)
     for a in bd.get("alocacoes", []):
-        bols_tipos[_match_key(a.get("bolsista_pesquisador_nome"))].add(a.get("bolsa_sigla") or "?")
+        bols_tipos[_match_key(a.get("bolsista_pesquisador_nome"))].add(
+            a.get("bolsa_sigla") or "?"
+        )
 
     # Lattes dos professores: orientações de IC e TCC (orientando → orientadores)
     lat = load_lattes()
@@ -125,27 +134,32 @@ def compute() -> dict:
         bolsa_ic = (k in sig_bolsa) or bool(tset & _IC_SIGLAS)
         bolsa_mestrado = bool(tset & _MESTRADO_SIGLAS)
         bolsa_outra = bool(tset - _IC_SIGLAS - _MESTRADO_SIGLAS)
-        registros.append({
-            "nome": normalize_name(nome),
-            "formando_serra": f is not None,
-            "curso": f["curso"] if f else None,
-            "vinculo_sigpesq": k in sig_membro,
-            "bolsa_ic_grad": bolsa_ic,
-            "bolsa_mestrado": bolsa_mestrado,
-            "bolsa_outra": bolsa_outra,
-            "bolsa_sigpesq_nome": sig_bolsa.get(k),
-            "fapes_valor": bols_val.get(k, {}).get("valor_alocado", 0),
-            "fapes_tipos": tipos,
-            "orient_ic_prof": orient_ic,
-            "orient_tcc_prof": orient_tcc,
-            "orientadores": sorted(set(orient_ic) | set(orient_tcc)),
-        })
+        registros.append(
+            {
+                "nome": normalize_name(nome),
+                "formando_serra": f is not None,
+                "curso": f["curso"] if f else None,
+                "vinculo_sigpesq": k in sig_membro,
+                "bolsa_ic_grad": bolsa_ic,
+                "bolsa_mestrado": bolsa_mestrado,
+                "bolsa_outra": bolsa_outra,
+                "bolsa_sigpesq_nome": sig_bolsa.get(k),
+                "fapes_valor": bols_val.get(k, {}).get("valor_alocado", 0),
+                "fapes_tipos": tipos,
+                "orient_ic_prof": orient_ic,
+                "orient_tcc_prof": orient_tcc,
+                "orientadores": sorted(set(orient_ic) | set(orient_tcc)),
+            }
+        )
 
     n = len(registros)
+
     def cnt(key) -> int:
         return sum(1 for r in registros if r[key])
 
-    orient_prof = sum(1 for r in registros if r["orient_ic_prof"] or r["orient_tcc_prof"])
+    orient_prof = sum(
+        1 for r in registros if r["orient_ic_prof"] or r["orient_tcc_prof"]
+    )
     return {
         "gerado_em": datetime.now().strftime("%d/%m/%Y %H:%M"),
         "total_linhas": len(egr_raw),
@@ -228,9 +242,11 @@ tbody tr:last-child td{border-bottom:none;}
 
 def _bar(label, value, mx, color, note):
     w = value / mx * 100 if mx else 0
-    return (f'<div class="brow"><span class="bl">{label}</span>'
-            f'<div class="btrack"><div class="bfill" style="width:{max(w,1.5):.1f}%;background:{color};"></div></div>'
-            f'<span class="bv">{note}</span></div>')
+    return (
+        f'<div class="brow"><span class="bl">{label}</span>'
+        f'<div class="btrack"><div class="bfill" style="width:{max(w,1.5):.1f}%;background:{color};"></div></div>'
+        f'<span class="bv">{note}</span></div>'
+    )
 
 
 def render(d: dict) -> str:
@@ -252,14 +268,34 @@ def render(d: dict) -> str:
     # evidence bars
     mx = n
     bars = (
-        _bar("Orientados em IC/TCC por prof. IFES", d["orient_prof_ifes"], mx, "var(--brand)",
-             f"{d['orient_prof_ifes']} · {round(d['orient_prof_ifes']/n*100)}%")
-        + _bar("Vínculo a projeto no SigPesq", d["vinculo_sigpesq"], mx, "#3a9c63",
-               f"{d['vinculo_sigpesq']} · {round(d['vinculo_sigpesq']/n*100)}%")
-        + _bar("Formandos da graduação Serra", d["formandos_serra"], mx, "var(--blue)",
-               f"{d['formandos_serra']} · {round(d['formandos_serra']/n*100)}%")
-        + _bar("Bolsa de IC na graduação", d["bolsa_ic_grad"], mx, "var(--amber)",
-               f"{d['bolsa_ic_grad']} · {round(d['bolsa_ic_grad']/n*100)}%")
+        _bar(
+            "Orientados em IC/TCC por prof. IFES",
+            d["orient_prof_ifes"],
+            mx,
+            "var(--brand)",
+            f"{d['orient_prof_ifes']} · {round(d['orient_prof_ifes']/n*100)}%",
+        )
+        + _bar(
+            "Vínculo a projeto no SigPesq",
+            d["vinculo_sigpesq"],
+            mx,
+            "#3a9c63",
+            f"{d['vinculo_sigpesq']} · {round(d['vinculo_sigpesq']/n*100)}%",
+        )
+        + _bar(
+            "Formandos da graduação Serra",
+            d["formandos_serra"],
+            mx,
+            "var(--blue)",
+            f"{d['formandos_serra']} · {round(d['formandos_serra']/n*100)}%",
+        )
+        + _bar(
+            "Bolsa de IC na graduação",
+            d["bolsa_ic_grad"],
+            mx,
+            "var(--amber)",
+            f"{d['bolsa_ic_grad']} · {round(d['bolsa_ic_grad']/n*100)}%",
+        )
     )
     foot_sec = f"""
     <section class="section">
@@ -287,8 +323,10 @@ def render(d: dict) -> str:
         if r["orient_tcc_prof"]:
             tipo += '<span class="chip b">TCC</span>'
         sups = ", ".join(r["orientadores"][:3])
-        orows += (f'<tr><td>{r["nome"]}</td><td>{tipo}</td>'
-                  f'<td style="color:var(--ink2);">{sups}</td></tr>')
+        orows += (
+            f'<tr><td>{r["nome"]}</td><td>{tipo}</td>'
+            f'<td style="color:var(--ink2);">{sups}</td></tr>'
+        )
     orient_sec = f"""
     <section class="section">
       <div class="eyebrow">Orientação na graduação · Lattes dos professores</div>
@@ -305,12 +343,23 @@ def render(d: dict) -> str:
     </section>"""
 
     # tabela de bolsas dos egressos
-    _NAT = {"PIBIC": "IC graduação", "PIVIC": "IC graduação", "ICT": "IC graduação",
-            "ICJr": "IC graduação", "PIBITI": "IC graduação", "PIVITI": "IC graduação",
-            "ME": "Mestrado", "B-UnAC": "Univ. Aberta (EAD)"}
+    _NAT = {
+        "PIBIC": "IC graduação",
+        "PIVIC": "IC graduação",
+        "ICT": "IC graduação",
+        "ICJr": "IC graduação",
+        "PIBITI": "IC graduação",
+        "PIVITI": "IC graduação",
+        "ME": "Mestrado",
+        "B-UnAC": "Univ. Aberta (EAD)",
+    }
 
     def _brl(v):
-        return f'R$ {v:,.0f}'.replace(",", "X").replace(".", ",").replace("X", ".") if v else "—"
+        return (
+            f"R$ {v:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            if v
+            else "—"
+        )
 
     brows = ""
     for r in sorted(d["registros"], key=lambda x: (not x["bolsa_ic_grad"], x["nome"])):
@@ -326,10 +375,12 @@ def render(d: dict) -> str:
             chip = '<span class="chip a">Mestrado</span>'
         else:
             chip = '<span class="chip b">EAD/UnAC</span>'
-        brows += (f'<tr><td>{r["nome"]}</td>'
-                  f'<td>{", ".join(siglas)}</td>'
-                  f'<td>{chip}</td>'
-                  f'<td class="r">{_brl(r["fapes_valor"])}</td></tr>')
+        brows += (
+            f'<tr><td>{r["nome"]}</td>'
+            f'<td>{", ".join(siglas)}</td>'
+            f"<td>{chip}</td>"
+            f'<td class="r">{_brl(r["fapes_valor"])}</td></tr>'
+        )
     bolsa_sec = f"""
     <section class="section">
       <div class="eyebrow">Bolsas dos egressos</div>
@@ -358,8 +409,10 @@ def render(d: dict) -> str:
             chips += '<span class="chip b">bolsa IC</span>'
         if r["bolsa_mestrado"]:
             chips += '<span class="chip a">bolsa mestrado</span>'
-        prows += (f'<tr><td>{r["nome"]}</td><td class="c">{short}</td>'
-                  f'<td>{chips or "—"}</td></tr>')
+        prows += (
+            f'<tr><td>{r["nome"]}</td><td class="c">{short}</td>'
+            f'<td>{chips or "—"}</td></tr>'
+        )
     pipeline = f"""
     <section class="section">
       <div class="eyebrow">Pipeline graduação → mestrado</div>
@@ -415,10 +468,12 @@ def main() -> None:
 
     print("Calculando cruzamento dos egressos PPComp...")
     d = compute()
-    print(f"  {d['total_unicos']} egressos únicos · {d['orient_prof_ifes']} orientados por prof. IFES "
-          f"(IC {d['orient_ic_prof']}, TCC {d['orient_tcc_prof']}) · "
-          f"{d['formandos_serra']} ex-formandos Serra · bolsa IC-grad {d['bolsa_ic_grad']}, "
-          f"mestrado {d['bolsa_mestrado']}, UnAC {d['bolsa_outra']}")
+    print(
+        f"  {d['total_unicos']} egressos únicos · {d['orient_prof_ifes']} orientados por prof. IFES "
+        f"(IC {d['orient_ic_prof']}, TCC {d['orient_tcc_prof']}) · "
+        f"{d['formandos_serra']} ex-formandos Serra · bolsa IC-grad {d['bolsa_ic_grad']}, "
+        f"mestrado {d['bolsa_mestrado']}, UnAC {d['bolsa_outra']}"
+    )
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     html_path = Path(args.out) if args.out else OUT_DIR / "ppcomp_egressos.html"
