@@ -13,6 +13,9 @@ PII_COLUMN_REGISTRY: dict[str, str] = {
 # Structured phone fields in SigPesq advisorship payloads — nulled on export.
 _PAYLOAD_PHONE_FIELDS = frozenset({"CelularOrientador", "CelularOrientado"})
 
+# Structured CPF fields in SigPesq advisorship payloads — values may be int.
+_PAYLOAD_CPF_FIELDS = frozenset({"OrientadoCpf", "OrientadorCpf"})
+
 _EMAIL_RE = re.compile(
     r"[a-zA-Z0-9._%+\-]+@(?!anon\.lgpd)[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
 )
@@ -21,6 +24,10 @@ _EMAIL_RE = re.compile(
 def anonymize_cpf(value: str | None) -> str | None:
     if not value:
         return None
+    if is_anonymized_cpf(value):
+        # Idempotent: re-hashing an already-anonymized value on every ORM
+        # flush makes the stored identity drift (hash-of-hash chains).
+        return value
     digest = hashlib.sha256(value.encode("utf-8") + SALT).hexdigest()
     return f"LGPD-{digest[:16]}"
 
@@ -28,6 +35,8 @@ def anonymize_cpf(value: str | None) -> str | None:
 def anonymize_email(value: str | None) -> str | None:
     if not value:
         return None
+    if is_anonymized_email(value):
+        return value
     digest = hashlib.sha256(value.encode("utf-8") + SALT).hexdigest()
     return f"{digest[:12]}@anon.lgpd"
 
@@ -73,6 +82,19 @@ def scrub_source_record_phones(payload: dict) -> dict:
         if field in result:
             result[field] = None
     return result
+
+
+def scrub_source_record_payload(payload: Any) -> Any:
+    """Full PII scrub for a source-record payload: phones nulled, structured
+    CPF fields anonymized (values may be numeric), emails inside any string
+    anonymized. Safe on non-dict payloads."""
+    if not isinstance(payload, dict):
+        return scrub_pii_deep(payload)
+    result = scrub_source_record_phones(payload)
+    for field in _PAYLOAD_CPF_FIELDS:
+        if result.get(field) is not None:
+            result[field] = anonymize_cpf(str(result[field]))
+    return scrub_pii_deep(result)
 
 
 def is_anonymized_cpf(value: str | None) -> bool:

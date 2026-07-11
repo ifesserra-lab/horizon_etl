@@ -12,6 +12,7 @@ from src.core.logic.pii_anonymizer import (
     is_anonymized_email,
     scrub_emails_from_text,
     scrub_pii_deep,
+    scrub_source_record_payload,
     scrub_source_record_phones,
 )
 
@@ -180,14 +181,20 @@ def test_is_anonymized_email_false_for_none():
 def test_double_anonymize_cpf_is_idempotent():
     first = anonymize_cpf("12345678901")
     second = anonymize_cpf(first)
-    assert first != second
+    assert first == second
     assert is_anonymized_cpf(first)
 
 
-def test_anonymize_person_data_already_anonymized_cpf_still_hashes_again():
+def test_double_anonymize_email_is_idempotent():
+    first = anonymize_email("user@example.com")
+    second = anonymize_email(first)
+    assert first == second
+
+
+def test_anonymize_person_data_already_anonymized_cpf_is_stable():
     anon = anonymize_cpf("12345678901")
     result = anonymize_person_data({"identification_id": anon})
-    assert result["identification_id"].startswith("LGPD-")
+    assert result["identification_id"] == anon
 
 
 # --- scrub_emails_from_text ---
@@ -294,3 +301,34 @@ def test_scrub_source_record_phones_returns_new_dict():
     payload = {"CelularOrientador": "123"}
     result = scrub_source_record_phones(payload)
     assert result is not payload
+
+
+# --- scrub_source_record_payload ---
+
+def test_scrub_source_record_payload_anonymizes_numeric_cpf():
+    payload = {"OrientadoCpf": 13601552795, "Orientado": "Fulano"}
+    result = scrub_source_record_payload(payload)
+    assert result["OrientadoCpf"] == anonymize_cpf("13601552795")
+    assert result["Orientado"] == "Fulano"
+
+
+def test_scrub_source_record_payload_nulls_phones_and_scrubs_emails():
+    payload = {
+        "CelularOrientado": "27 99999-0000",
+        "OrientadoEmail": "aluno@ifes.edu.br",
+    }
+    result = scrub_source_record_payload(payload)
+    assert result["CelularOrientado"] is None
+    assert result["OrientadoEmail"].endswith("@anon.lgpd")
+
+
+def test_scrub_source_record_payload_is_idempotent():
+    payload = {"OrientadoCpf": 13601552795, "OrientadoEmail": "aluno@ifes.edu.br"}
+    once = scrub_source_record_payload(payload)
+    twice = scrub_source_record_payload(once)
+    assert once == twice
+
+
+def test_scrub_source_record_payload_non_dict_passthrough():
+    assert scrub_source_record_payload(["a@b.com"]) == [anonymize_email("a@b.com")]
+    assert scrub_source_record_payload(None) is None

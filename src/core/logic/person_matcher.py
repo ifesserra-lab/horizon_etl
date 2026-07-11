@@ -1,10 +1,12 @@
 import re
 import unicodedata
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from eo_lib import Person, PersonController
 from loguru import logger
 from thefuzz import fuzz, process
+
+from src.core.logic.pii_anonymizer import anonymize_email, is_anonymized_email
 
 
 class PersonMatcher:
@@ -43,10 +45,14 @@ class PersonMatcher:
             for p in all_persons:
                 if isinstance(p, dict):
                     name = p.get("name")
-                    email = p.get("email")
+                    emails = p.get("emails") or ([p["email"]] if p.get("email") else [])
                 else:
                     name = getattr(p, "name", None)
-                    email = getattr(p, "email", None)
+                    # Person has an `emails` relationship (PersonEmail rows), not an `email` column.
+                    emails = [
+                        e.email if hasattr(e, "email") else e
+                        for e in (getattr(p, "emails", None) or [])
+                    ]
                 if name:
                     self._persons_cache[name] = p
                     canonical_name = self.canonicalize_name(name)
@@ -54,8 +60,9 @@ class PersonMatcher:
                         current = self._canonical_cache.get(canonical_name)
                         if current is None or self._person_quality_score(p) > self._person_quality_score(current):
                             self._canonical_cache[canonical_name] = p
-                if email:
-                    self._emails_cache[email.lower()] = p
+                for email in emails:
+                    if email:
+                        self._emails_cache[email.strip().lower()] = p
             logger.info(f"Loaded {len(self._persons_cache)} persons and {len(self._emails_cache)} emails into cache")
         except Exception as e:
             logger.warning(f"Failed to preload persons cache: {e}")
@@ -104,10 +111,31 @@ class PersonMatcher:
         ]
         return " ".join(tokens)
 
+    def _email_keys(self, email: str) -> List[str]:
+        """Candidate cache keys for an email.
+
+        Stored emails are LGPD-anonymized by the session hook, so an incoming
+        raw email must also be looked up by its anonymized forms (hashed
+        as-written and lowercased, since the hook does not normalize case).
+        """
+        stripped = email.strip()
+        keys = [stripped.lower()]
+        if not is_anonymized_email(stripped):
+            for candidate in (anonymize_email(stripped), anonymize_email(stripped.lower())):
+                if candidate and candidate not in keys:
+                    keys.append(candidate)
+        return keys
+
+    def _register_email(self, email: Optional[str], person: Person) -> None:
+        if not email:
+            return
+        for key in self._email_keys(email):
+            self._emails_cache[key] = person
+
     def _person_quality_score(self, person: Person) -> int:
         """Prefers the richer record when duplicates share the same canonical name."""
         score = 0
-        for attr in ("identification_id", "email", "resume", "citation_names", "cnpq_url"):
+        for attr in ("identification_id", "emails", "resume", "citation_names", "cnpq_url"):
             value = person.get(attr) if isinstance(person, dict) else getattr(person, attr, None)
             if value:
                 score += 10
@@ -137,10 +165,10 @@ class PersonMatcher:
 
         # 1. Match by Email first (highest priority)
         if email:
-            email_key = email.strip().lower()
-            if email_key in self._emails_cache:
-                logger.debug(f"Match found by email: {email_key}")
-                return self._emails_cache[email_key]
+            for email_key in self._email_keys(email):
+                if email_key in self._emails_cache:
+                    logger.debug(f"Match found by email: {email_key}")
+                    return self._emails_cache[email_key]
 
         name = name.strip() if name else ""
         normalized_input = self.normalize_name(name)
@@ -150,16 +178,14 @@ class PersonMatcher:
         # This collapses duplicates such as "De"/"de" and accent-only variants.
         if canonical_input and canonical_input in self._canonical_cache:
             person = self._canonical_cache[canonical_input]
-            if email:
-                self._emails_cache[email.strip().lower()] = person
+            self._register_email(email, person)
             self._persons_cache[name] = person
             return person
 
         # 1.6 Exact raw-name match.
         if name in self._persons_cache:
             person = self._persons_cache[name]
-            if email:
-                self._emails_cache[email.strip().lower()] = person
+            self._register_email(email, person)
             return person
 
         # 2. Exact Match in Cache (Normalized)
@@ -167,8 +193,7 @@ class PersonMatcher:
             norm_cached = self.normalize_name(cached_name)
             if norm_cached == normalized_input:
                 self._persons_cache[name] = person
-                if email:
-                    self._emails_cache[email.strip().lower()] = person
+                self._register_email(email, person)
                 return person
 
         # 3. Fuzzy Matching in Cache
@@ -195,8 +220,7 @@ class PersonMatcher:
                     )
                     person = self._persons_cache[original_name]
                     self._persons_cache[name] = person
-                    if email:
-                        self._emails_cache[email.strip().lower()] = person
+                    self._register_email(email, person)
                     return person
 
         # 4. Create new person (if no match found)
@@ -208,8 +232,7 @@ class PersonMatcher:
                 current = self._canonical_cache.get(canonical_input)
                 if current is None or self._person_quality_score(person) > self._person_quality_score(current):
                     self._canonical_cache[canonical_input] = person
-            if email:
-                self._emails_cache[email.strip().lower()] = person
+            self._register_email(email, person)
             logger.debug(f"Created person: {name} (emails: {emails})")
             return person
         except Exception as e:

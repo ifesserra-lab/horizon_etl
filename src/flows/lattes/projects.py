@@ -17,12 +17,6 @@ from research_domain.controllers import (
     ArticleController,
     ResearcherController,
 )
-from research_domain.domain.entities.academic_education import (
-    AcademicEducation,
-    EducationType,
-    academic_education_knowledge_areas,
-)
-from research_domain.domain.entities.article import Article, article_authors
 from research_domain.domain.entities.researcher import Researcher
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
@@ -114,16 +108,22 @@ def _ingest_researcher_file(
         )
 
         if not target_researcher:
+            # identification_id is a CPF-like column (LGPD-hashed on write);
+            # a hashed lattes_id there never matches raw lookups. The stable
+            # Lattes identity lives in cnpq_url, set right below.
             target_researcher = resolve_or_create_researcher(
                 researcher_ctrl,
                 all_researchers,
                 name=json_name,
-                identification_id=personal_info.get("lattes_id") or lattes_id,
             )
         if not target_researcher:
             raise RuntimeError(
                 f"Unable to resolve or create researcher for Lattes ID {lattes_id}."
             )
+
+        # Guarantee the Lattes URL identity so future runs resolve by cnpq_url.
+        if lattes_id and not personal_info.get("cnpq_url"):
+            personal_info["cnpq_url"] = f"http://lattes.cnpq.br/{lattes_id}"
 
         # 1. Update Personal Info
         needs_update = False
@@ -597,15 +597,9 @@ def ingest_lattes_projects_flow():
 
     engine = _resolve_sqlalchemy_engine(init_ctrl)
 
-    try:
-        AcademicEducation.__table__.drop(engine, checkfirst=True)
-        academic_education_knowledge_areas.drop(engine, checkfirst=True)
-        EducationType.__table__.drop(engine, checkfirst=True)
-        Article.__table__.drop(engine, checkfirst=True)
-        article_authors.drop(engine, checkfirst=True)
-    except Exception:
-        pass
-
+    # Ingestion is idempotent (articles dedup by DOI/title+year, educations by
+    # natural key), so tables are never dropped here: a partial run must not
+    # destroy data ingested for researchers whose JSONs are absent from disk.
     Base.metadata.create_all(engine)
 
     for json_file in json_files:

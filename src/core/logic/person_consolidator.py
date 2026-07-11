@@ -83,6 +83,17 @@ class PersonConsolidator:
             if len(members) < 2:
                 continue
 
+            conflict = self._identifier_conflict(members)
+            if conflict:
+                logger.warning(
+                    "Skipping duplicate group '{}' (ids {}): conflicting {} — "
+                    "likely distinct homonyms, manual review required.",
+                    canonical_name,
+                    [int(m["id"]) for m in members],
+                    conflict,
+                )
+                continue
+
             ordered = sorted(
                 members,
                 key=lambda item: (self._quality_score(item), -int(item["id"])),
@@ -100,6 +111,30 @@ class PersonConsolidator:
             )
 
         return duplicate_groups
+
+    def _identifier_conflict(self, members: List[Dict[str, Any]]) -> Optional[str]:
+        """Returns the conflicting identifier name when members carry distinct
+        strong identifiers (i.e. they are homonyms, not duplicates)."""
+        def _lattes_key(url: Optional[str]) -> Optional[str]:
+            if not url:
+                return None
+            return url.rstrip("/").rsplit("/", 1)[-1].strip() or None
+
+        cnpq_ids = {
+            _lattes_key(m.get("cnpq_url")) for m in members if _lattes_key(m.get("cnpq_url"))
+        }
+        if len(cnpq_ids) > 1:
+            return f"cnpq_url ({sorted(cnpq_ids)})"
+
+        identifications = {
+            (m.get("identification_id") or "").strip()
+            for m in members
+            if self._has_strong_identification(m)
+        }
+        if len(identifications) > 1:
+            return f"identification_id ({sorted(identifications)})"
+
+        return None
 
     def consolidate_all(self) -> int:
         """Consolidate every currently detected duplicate group."""
@@ -187,6 +222,23 @@ class PersonConsolidator:
                 self._update_fk_column(conn, "academic_educations", "researcher_id", winner_id, loser_id)
                 self._update_fk_column(conn, "academic_educations", "advisor_id", winner_id, loser_id)
                 self._update_fk_column(conn, "academic_educations", "co_advisor_id", winner_id, loser_id)
+                if self._table_exists(conn, "production_authors"):
+                    self._merge_simple_link_table(
+                        conn,
+                        table="production_authors",
+                        key_columns=("production_id", "researcher_id"),
+                        static_values=("production_id",),
+                        winner_id=winner_id,
+                        loser_id=loser_id,
+                        target_column="researcher_id",
+                    )
+                if self._table_exists(conn, "awards"):
+                    self._update_fk_column(conn, "awards", "researcher_id", winner_id, loser_id)
+                if self._table_exists(conn, "professional_activities"):
+                    self._update_fk_column(conn, "professional_activities", "researcher_id", winner_id, loser_id)
+                if self._table_exists(conn, "proficiencies"):
+                    self._merge_proficiencies(conn, winner_id, loser_id)
+                self._remap_lineage(conn, winner_id, loser_id)
                 conn.execute("DELETE FROM researchers WHERE id = ?", (loser_id,))
                 conn.execute("DELETE FROM persons WHERE id = ?", (loser_id,))
 
@@ -420,6 +472,44 @@ class PersonConsolidator:
                     "UPDATE advisorship_members SET person_id = ? WHERE id = ?",
                     (winner_id, row["id"]),
                 )
+
+    def _merge_proficiencies(self, conn: sqlite3.Connection, winner_id: int, loser_id: int) -> None:
+        conn.execute(
+            """
+            UPDATE proficiencies SET researcher_id = ?
+            WHERE researcher_id = ?
+              AND language_id NOT IN (
+                SELECT language_id FROM proficiencies WHERE researcher_id = ?
+              )
+            """,
+            (winner_id, loser_id, winner_id),
+        )
+        conn.execute("DELETE FROM proficiencies WHERE researcher_id = ?", (loser_id,))
+
+    def _remap_lineage(self, conn: sqlite3.Connection, winner_id: int, loser_id: int) -> None:
+        """Repoints tracking/lineage rows at the winner so entity_matches,
+        attribute_assertions and entity_change_logs never reference a deleted
+        person. UNIQUE-conflicting rows (same source record already linked to
+        the winner) are dropped as exact duplicates."""
+        for table in ("entity_matches", "attribute_assertions", "entity_change_logs"):
+            if not self._table_exists(conn, table):
+                continue
+            conn.execute(
+                f"""
+                UPDATE OR IGNORE {table} SET canonical_entity_id = ?
+                WHERE canonical_entity_type IN ('person', 'researcher')
+                  AND canonical_entity_id = ?
+                """,
+                (winner_id, loser_id),
+            )
+            conn.execute(
+                f"""
+                DELETE FROM {table}
+                WHERE canonical_entity_type IN ('person', 'researcher')
+                  AND canonical_entity_id = ?
+                """,
+                (loser_id,),
+            )
 
     def _update_fk_column(
         self,

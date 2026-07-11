@@ -50,12 +50,12 @@ def test_sync_members_uses_resume_fallback_for_new_researcher():
 
     logic.res_ctrl.create_researcher.assert_called_once_with(
         name="Alice",
-        identification_id="Alice",
+        identification_id=None,
         emails=None,
     )
     logic.res_ctrl._service.create_with_details.assert_called_once_with(
         name="Alice",
-        identification_id="Alice",
+        identification_id=None,
         emails=None,
     )
     assert session.commit.called

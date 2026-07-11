@@ -5,6 +5,8 @@ from typing import Any
 
 from loguru import logger
 
+from src.core.logic.atomic_io import atomic_write_json
+
 
 class ResearchGroupMembershipGraphsManifestGenerator:
     """
@@ -65,9 +67,7 @@ class ResearchGroupMembershipGraphsManifestGenerator:
             "groups": entries,
         }
 
-        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(manifest, f, ensure_ascii=False, indent=2)
+        atomic_write_json(output_path, manifest, ensure_ascii=False, indent=2)
 
         logger.info(
             "Manifest generated: {} groups, {} total nodes, {} total edges → {}",

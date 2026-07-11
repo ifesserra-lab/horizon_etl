@@ -8,6 +8,8 @@ import networkx as nx
 from loguru import logger
 from networkx.readwrite import json_graph
 
+from src.core.logic.atomic_io import atomic_write_json
+
 
 class PeopleCollaborationGraphGenerator:
     """
@@ -122,9 +124,7 @@ class PeopleCollaborationGraphGenerator:
             "graph": data,
         }
 
-        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(result, f, ensure_ascii=False, indent=2)
+        atomic_write_json(output_path, result, ensure_ascii=False, indent=2)
 
         logger.info(
             "People collaboration graph: {} nodes, {} edges → {}",

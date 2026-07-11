@@ -218,15 +218,23 @@ def export_advisorship_analytics_task(output_dir: str):
 @task(name="zip_exports_task")
 def zip_exports_task(output_dir: str):
     zip_path = os.path.join(output_dir, "exports_canonical.zip")
+    tmp_zip_path = zip_path + ".tmp"
     logger.info("Zipping exports to {}...", zip_path)
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-        for root, _dirs, files in os.walk(output_dir):
-            for fname in files:
-                if fname == "exports_canonical.zip":
-                    continue
-                fpath = os.path.join(root, fname)
-                arcname = os.path.relpath(fpath, output_dir)
-                zf.write(fpath, arcname)
+    skip_names = {os.path.basename(zip_path), os.path.basename(tmp_zip_path)}
+    try:
+        with zipfile.ZipFile(tmp_zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            for root, _dirs, files in os.walk(output_dir):
+                for fname in files:
+                    if fname in skip_names:
+                        continue
+                    fpath = os.path.join(root, fname)
+                    arcname = os.path.relpath(fpath, output_dir)
+                    zf.write(fpath, arcname)
+        os.replace(tmp_zip_path, zip_path)
+    except BaseException:
+        if os.path.exists(tmp_zip_path):
+            os.unlink(tmp_zip_path)
+        raise
     size_mb = os.path.getsize(zip_path) / (1024 * 1024)
     logger.info("Exports zipped: {} ({:.1f} MB)", zip_path, size_mb)
 

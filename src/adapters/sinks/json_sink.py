@@ -1,10 +1,10 @@
-import json
 import os
 from typing import Any, List
 
 from loguru import logger
 from pydantic import BaseModel
 
+from src.core.logic.atomic_io import atomic_write_json
 from src.core.ports.export_sink import IExportSink
 
 
@@ -59,8 +59,7 @@ class JsonSink(IExportSink):
 
             json_data = [serialize(item) for item in data]
 
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(json_data, f, ensure_ascii=False, indent=4)
+            atomic_write_json(path, json_data, indent=4, ensure_ascii=False)
 
             logger.info(f"Successfully exported {len(data)} items to {path}")
 

@@ -11,6 +11,7 @@ from research_domain import (
     KnowledgeAreaController,
     ResearchGroupController,
 )
+from src.core.logic.atomic_io import atomic_write_json
 from src.core.logic.export_campus_resolver import ExportCampusResolver
 
 
@@ -111,9 +112,7 @@ class KnowledgeAreaMartGenerator:
                     mart_list.append(item)
 
             # 4. Save to JSON
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(mart_list, f, indent=4, ensure_ascii=False)
+            atomic_write_json(output_path, mart_list, indent=4, ensure_ascii=False)
 
             logger.info(f"Knowledge Area Mart successfully generated at {output_path}")
             return mart_list
@@ -397,9 +396,7 @@ class InitiativeAnalyticsMartGenerator:
             }
 
             # 5. Save to JSON
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(mart_data, f, indent=4, ensure_ascii=False)
+            atomic_write_json(output_path, mart_data, indent=4, ensure_ascii=False)
 
             logger.info(
                 f"Initiative Analytics Mart successfully generated at {output_path}"
