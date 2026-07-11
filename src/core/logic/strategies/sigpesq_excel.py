@@ -96,11 +96,12 @@ class SigPesqResearcherStrategy(ResearcherStrategy):
         """Ensures a researcher exists using strict idempotency."""
         try:
             all_res = researcher_ctrl.get_all()
+            # Email belongs only in `emails`; identification_id is a CPF-like
+            # identity column and an email hash there poisons future matching.
             res = resolve_or_create_researcher(
                 researcher_ctrl,
                 all_res,
                 name=name,
-                identification_id=email,
                 emails=[email] if email else None,
             )
             if res:

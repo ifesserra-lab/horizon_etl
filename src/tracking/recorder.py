@@ -6,6 +6,7 @@ from typing import Any, Iterable, Optional
 
 from sqlalchemy.exc import IntegrityError
 
+from src.core.logic.pii_anonymizer import scrub_source_record_payload
 from src.tracking.context import current_ingestion_run_id, current_source_system
 from src.tracking.controllers import (
     AttributeAssertionController,
@@ -149,7 +150,10 @@ class TrackingRecorder:
                     source_record_id=source_record_id,
                     source_file=source_file,
                     source_path=source_path,
-                    raw_payload_json=_json_safe(payload),
+                    # PII never reaches the tracking store: the hash is taken
+                    # from the original payload (stable dedup), the stored
+                    # JSON is scrubbed (CPF/phones/emails).
+                    raw_payload_json=scrub_source_record_payload(_json_safe(payload)),
                     payload_hash=payload_hash,
                 )
             except IntegrityError:

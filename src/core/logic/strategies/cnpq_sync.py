@@ -249,12 +249,13 @@ class CnpqSyncLogic:
             )
 
             try:
-                # 1. Ensure Researcher exists
+                # 1. Ensure Researcher exists.
+                # identification_id must stay None: it is a CPF-like identity
+                # column, and storing a name hash there poisons future matching.
                 researcher = resolve_or_create_researcher(
                     self.res_ctrl,
                     all_res,
                     name=name,
-                    identification_id=name,
                 )
 
                 if researcher:

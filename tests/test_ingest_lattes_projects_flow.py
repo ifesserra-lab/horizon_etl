@@ -65,5 +65,4 @@ def test_ingest_file_creates_researcher_when_lattes_match_is_missing(
         researcher_ctrl,
         [],
         name="Leonardo Azevedo Scardua",
-        identification_id="3651077981942079",
     )

@@ -9,6 +9,8 @@ import networkx as nx
 from loguru import logger
 from networkx.readwrite import json_graph
 
+from src.core.logic.atomic_io import atomic_write_json
+
 
 RELATION_DESCRIPTIONS = {
     "initiative": "People who appear together in the same initiative team.",
@@ -205,11 +207,7 @@ class PeopleRelationshipGraphGenerator:
         }
 
     def _write_json(self, output_path: str, payload: dict[str, Any]) -> None:
-        output_dir = os.path.dirname(output_path)
-        if output_dir:
-            os.makedirs(output_dir, exist_ok=True)
-        with open(output_path, "w", encoding="utf-8") as file_handle:
-            json.dump(payload, file_handle, ensure_ascii=False, indent=4)
+        atomic_write_json(output_path, payload, ensure_ascii=False, indent=4)
 
     def _build_classification_subgraph(
         self, graph: nx.Graph, classification: Optional[str]

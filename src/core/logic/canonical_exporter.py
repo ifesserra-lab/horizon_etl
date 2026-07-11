@@ -16,7 +16,7 @@ from src.research_domain_compat import AdvisorshipRole
 
 from src.core.ports.export_sink import IExportSink
 from src.core.logic.export_campus_resolver import ExportCampusResolver
-from src.core.logic.pii_anonymizer import scrub_pii_deep, scrub_source_record_phones
+from src.core.logic.pii_anonymizer import scrub_pii_deep, scrub_source_record_payload
 from src.tracking.entities import (
     AttributeAssertion,
     EntityChangeLog,
@@ -946,8 +946,8 @@ class CanonicalDataExporter:
             item = scrub_pii_deep(item)
             if entity_type == "source_record":
                 payload = item.get("raw_payload_json")
-                if isinstance(payload, dict):
-                    item["raw_payload_json"] = scrub_source_record_phones(payload)
+                if payload is not None:
+                    item["raw_payload_json"] = scrub_source_record_payload(payload)
             enriched.append(item)
         return enriched
 
@@ -972,24 +972,29 @@ class CanonicalDataExporter:
             logger.error(f"Failed to export {entity_name}: {e}")
             raise e
 
-    def _load_tracking_entities(self, model: Any, label: str) -> List[Any]:
+    def _load_tracking_entities(self, model: Any, label: str) -> Optional[List[Any]]:
+        """Returns the entities, or None when tracking is unavailable.
+
+        A query failure raises instead of returning an empty list: writing []
+        to the canonical export would silently destroy the previous good file.
+        """
         if not self._has_tracking_schema():
             logger.info(
                 "Tracking schema not available. Skipping {} canonical export.",
                 label,
             )
-            return []
+            return None
 
         session = self._get_session()
         if session is None:
             logger.info("Tracking session not available. Skipping {} export.", label)
-            return []
+            return None
 
         try:
             return session.query(model).order_by(model.id).all()
         except Exception as exc:
-            logger.warning(f"Failed to load {label} tracking entities: {exc}")
-            return []
+            logger.error(f"Failed to load {label} tracking entities: {exc}")
+            raise
 
     def _export_tracking_entities(
         self,
@@ -999,6 +1004,8 @@ class CanonicalDataExporter:
         entity_type: Optional[str] = None,
     ) -> None:
         data = self._load_tracking_entities(model, entity_name)
+        if data is None:
+            return
         self._export_entities(
             data, output_path, entity_name, entity_type=entity_type
         )
