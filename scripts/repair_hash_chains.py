@@ -80,8 +80,15 @@ def collect_payload_seeds(conn: sqlite3.Connection) -> tuple[set[str], set[str]]
     return cpfs, emails
 
 
-def build_ident_index(conn: sqlite3.Connection) -> dict[str, dict]:
-    """chain-hash -> {kind, canonical} for every recoverable seed."""
+def build_ident_index(
+    conn: sqlite3.Connection, seed_conn: sqlite3.Connection
+) -> dict[str, dict]:
+    """chain-hash -> {kind, canonical} for every recoverable seed.
+
+    seed_conn may point at a pre-scrub backup: after scrub_payload_pii runs,
+    payloads no longer hold raw CPF/email seeds, so chains must be rebuilt
+    from the backup while repairs are applied to the live DB.
+    """
     index: dict[str, dict] = {}
 
     def register(seed: str, kind: str, canonical):
@@ -96,7 +103,7 @@ def build_ident_index(conn: sqlite3.Connection) -> dict[str, dict]:
         if lattes.isdigit():
             register(lattes, "lattes", _h(lattes))
 
-    cpfs, emails = collect_payload_seeds(conn)
+    cpfs, emails = collect_payload_seeds(seed_conn)
     for cpf in cpfs:
         register(cpf, "cpf", _h(cpf))
 
@@ -111,9 +118,9 @@ def build_ident_index(conn: sqlite3.Connection) -> dict[str, dict]:
     return index
 
 
-def build_email_index(conn: sqlite3.Connection) -> dict[str, str]:
+def build_email_index(seed_conn: sqlite3.Connection) -> dict[str, str]:
     """chain-hash -> canonical H1(raw_email) for stored anonymized emails."""
-    _, emails = collect_payload_seeds(conn)
+    _, emails = collect_payload_seeds(seed_conn)
     index: dict[str, str] = {}
     for e in emails:
         canonical = _h_email(e)
@@ -125,14 +132,18 @@ def build_email_index(conn: sqlite3.Connection) -> dict[str, str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", default="db/horizon.db")
+    parser.add_argument("--seed-db", default=None,
+                        help="DB to read raw CPF/email seeds from (use a pre-scrub "
+                             "backup when the live DB payloads were already scrubbed)")
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--null-unknown", action="store_true",
                         help="also NULL unrecoverable LGPD- identifications")
     args = parser.parse_args()
 
     conn = sqlite3.connect(args.db)
+    seed_conn = sqlite3.connect(args.seed_db) if args.seed_db else conn
     try:
-        ident_index = build_ident_index(conn)
+        ident_index = build_ident_index(conn, seed_conn)
 
         resets: list[tuple[str, int]] = []
         nulls: list[int] = []
@@ -156,7 +167,7 @@ def main() -> None:
             else:
                 stats["already_ok"] += 1
 
-        email_index = build_email_index(conn)
+        email_index = build_email_index(seed_conn)
         email_resets: list[tuple[str, int]] = []
         email_unknown = 0
         for eid, email in conn.execute(
@@ -204,6 +215,8 @@ def main() -> None:
             )
         print("Applied.")
     finally:
+        if seed_conn is not conn:
+            seed_conn.close()
         conn.close()
 
 
