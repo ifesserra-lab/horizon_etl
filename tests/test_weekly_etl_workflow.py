@@ -21,7 +21,11 @@ def test_weekly_etl_workflow_runs_weekly_flows_with_notifications():
 def test_makefile_weekly_flows_runs_weekly_pipeline_entrypoint():
     makefile = Path("Makefile").read_text()
 
-    target = makefile[makefile.index("weekly-flows:") : makefile.index("full-refresh:")]
+    # Isolate the weekly-flows recipe without assuming target ordering.
+    start = makefile.index("weekly-flows:")
+    rest = makefile[start:]
+    end = rest.index("\n\n") if "\n\n" in rest else len(rest)
+    target = rest[:end]
 
     assert "weekly-flows: db-reset prefect-server" in target
     assert 'app.py weekly "$(WEEKLY_CAMPUS)" "$(OUTPUT_DIR)"' in target
