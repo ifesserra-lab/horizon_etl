@@ -199,6 +199,126 @@ class LattesParser:
 
         return parsed_items
 
+    def _to_int(self, value: Any) -> Optional[int]:
+        """Coerces a Lattes year-ish value to int, tolerating strings/None/'Atual'."""
+        if value is None:
+            return None
+        s = str(value).strip()
+        return int(s) if s.isdigit() else None
+
+    def parse_awards(self, data: Dict) -> List[Dict[str, Any]]:
+        """Parses 'premios_titulos' (awards and titles) from JSON.
+
+        Maps to the `awards` entity (title, year).
+        """
+        items = data.get("premios_titulos") or []
+        parsed = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            title = (item.get("descricao") or item.get("titulo") or "").strip()
+            if not title:
+                continue
+            parsed.append({"title": title[:255], "year": self._to_int(item.get("ano"))})
+        return parsed
+
+    def parse_languages(self, data: Dict) -> List[Dict[str, Any]]:
+        """Parses 'idiomas' (language proficiencies) from JSON.
+
+        Maps to the `languages` + `proficiencies` entities.
+        """
+        items = data.get("idiomas") or []
+        parsed = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            name = (item.get("nome") or item.get("idioma") or "").strip()
+            if not name:
+                continue
+            parsed.append(
+                {
+                    "language": name,
+                    "comprehension": (item.get("compreende") or None),
+                    "speaking": (item.get("fala") or None),
+                    "reading": (item.get("le") or None),
+                    "writing": (item.get("escreve") or None),
+                }
+            )
+        return parsed
+
+    def parse_professional_activities(self, data: Dict) -> List[Dict[str, Any]]:
+        """Parses 'atuacao_profissional' from JSON.
+
+        Maps to the `professional_activities` entity. `ano_fim` == 'Atual'
+        marks a current bond (end_year left null, current=True).
+        """
+        items = data.get("atuacao_profissional") or []
+        parsed = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            institution = (
+                item.get("instituicao") or item.get("instituicao_nome") or ""
+            ).strip()
+            if not institution:
+                continue
+            end_raw = item.get("ano_fim")
+            is_current = isinstance(end_raw, str) and end_raw.strip().lower() in (
+                "atual",
+                "atualmente",
+            )
+            parsed.append(
+                {
+                    "institution": institution[:500],
+                    "institution_name": (item.get("instituicao_nome") or None),
+                    "institution_acronym": (item.get("instituicao_sigla") or None),
+                    "institution_country": (item.get("instituicao_pais") or None),
+                    "period": (item.get("periodo") or None),
+                    "start_year": self._to_int(item.get("ano_inicio")),
+                    "end_year": None if is_current else self._to_int(end_raw),
+                    "bond": (item.get("vinculo") or None),
+                    "classification": (item.get("enquadramento") or None),
+                    "work_regime": (item.get("regime") or None),
+                    "role_function": (item.get("cargo_funcao") or None),
+                    "activity_type": (item.get("tipo") or None),
+                    "current": is_current,
+                }
+            )
+        return parsed
+
+    def parse_technical_productions(self, data: Dict) -> List[Dict[str, Any]]:
+        """Parses 'producao_tecnica' and 'patentes_registros' from JSON.
+
+        Both are dicts of category -> list of items; maps to the generic
+        `research_productions` entity, with the Lattes category kept as
+        `production_type` (e.g. 'softwares_sem_patente', 'patentes').
+        """
+        parsed = []
+        for section_key in ("producao_tecnica", "patentes_registros"):
+            section = data.get(section_key) or {}
+            if not isinstance(section, dict):
+                continue
+            for category, items in section.items():
+                if not isinstance(items, list):
+                    continue
+                for item in items:
+                    if not isinstance(item, dict):
+                        continue
+                    title = (item.get("titulo") or "").strip()
+                    if not title:
+                        continue
+                    parsed.append(
+                        {
+                            "title": title,
+                            "normalized_title": self.normalize_title(title),
+                            "year": self._to_int(item.get("ano")),
+                            "authors_str": item.get("autores"),
+                            "institution": (item.get("instituicao") or None),
+                            "production_type": category,
+                        }
+                    )
+        return parsed
+
     def _parse_generic_projects(
         self, data: Dict, projects_key: str, type_name: str
     ) -> List[Dict]:
@@ -336,8 +456,16 @@ class LattesParser:
 
             start_year_str = item.get("ano_inicio")
             end_year_str = item.get("ano_conclusao") or item.get("ano")
-            start_year = int(start_year_str) if start_year_str and str(start_year_str).isdigit() else None
-            end_year = int(end_year_str) if end_year_str and str(end_year_str).isdigit() else None
+            start_year = (
+                int(start_year_str)
+                if start_year_str and str(start_year_str).isdigit()
+                else None
+            )
+            end_year = (
+                int(end_year_str)
+                if end_year_str and str(end_year_str).isdigit()
+                else None
+            )
             year = end_year or start_year
 
             institution = item.get("instituicao") or item.get("nome_instituicao")
@@ -441,8 +569,16 @@ class LattesParser:
 
             start_year_str = item.get("ano_inicio")
             end_year_str = item.get("ano_conclusao") or item.get("ano")
-            start_year = int(start_year_str) if start_year_str and str(start_year_str).isdigit() else None
-            end_year = int(end_year_str) if end_year_str and str(end_year_str).isdigit() else None
+            start_year = (
+                int(start_year_str)
+                if start_year_str and str(start_year_str).isdigit()
+                else None
+            )
+            end_year = (
+                int(end_year_str)
+                if end_year_str and str(end_year_str).isdigit()
+                else None
+            )
             year = end_year or start_year
 
             institution = item.get("instituicao") or item.get("nome_instituicao")
