@@ -204,9 +204,12 @@ class PeopleRelationshipGraphGenerator:
 
     @staticmethod
     def _load_json(path: str) -> list[dict[str, Any]]:
-        with open(path, "r", encoding="utf-8") as file_handle:
-            payload = json.load(file_handle)
-        return payload if isinstance(payload, list) else []
+        try:
+            with open(path, "r", encoding="utf-8") as file_handle:
+                payload = json.load(file_handle)
+            return payload if isinstance(payload, list) else []
+        except FileNotFoundError:
+            return []
 
     def _serialize_graph_result(
         self,
