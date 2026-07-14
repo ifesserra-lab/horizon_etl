@@ -18,11 +18,11 @@
 
 **Purpose**: Verify environment and create safety checkpoints before synchronization
 
-- [ ] T001 Verify current branch is clean with no uncommitted changes using `git status`
-- [ ] T002 Verify upstream remote is configured and accessible using `git remote -v`
-- [ ] T003 Record pre-sync download.py hash using `sha256sum src/flows/lattes/download.py`
-- [ ] T004 Record pre-sync planning commit count using `git rev-list --count HEAD`
-- [ ] T005 Create backup branch using `git branch backup-pre-sync-$(date +%Y%m%d)`
+- [x] T001 Verify current branch is clean with no uncommitted changes using `git status`
+- [x] T002 Verify upstream remote is configured and accessible using `git remote -v`
+- [x] T003 Record pre-sync download.py hash using `sha256sum src/flows/lattes/download.py`
+- [x] T004 Record pre-sync planning commit count using `git rev-list --count HEAD`
+- [x] T005 Create backup branch using `git branch backup-pre-sync-$(date +%Y%m%d)`
 
 **Checkpoint**: Environment verified and backup created - synchronization can proceed
 
@@ -34,7 +34,7 @@
 
 **⚠️ CRITICAL**: No synchronization work can begin until upstream is fetched
 
-- [ ] T006 Fetch all upstream changes using `git fetch upstream`
+- [x] T006 Fetch all upstream changes using `git fetch upstream`
 
 **Checkpoint**: Upstream fetched - synchronization can now proceed
 
@@ -48,8 +48,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Verify upstream default branch reference updated using `git log --oneline upstream/main -1`
-- [ ] T008 [US1] Confirm no local changes were made during fetch using `git status`
+- [x] T007 [US1] Verify upstream default branch reference updated using `git log --oneline upstream/main -1`
+- [x] T008 [US1] Confirm no local changes were made during fetch using `git status`
 
 **Checkpoint**: Upstream references updated - fork knows about latest upstream state
 
@@ -63,12 +63,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Analyze potential conflicts using `git merge-tree` or `git rebase` dry-run
-- [ ] T010 [US2] Choose synchronization strategy (merge or rebase) based on conflict analysis
-- [ ] T011 [US2] Execute synchronization strategy (merge: `git merge upstream/main` OR rebase: `git rebase upstream/main`)
-- [ ] T012 [US2] If conflicts occur, resolve manually following three-tier priority: (1) preserve local work, (2) incorporate compatible upstream, (3) avoid losing upstream fixes
-- [ ] T013 [US2] Complete synchronization (merge commit or rebase continue)
-- [ ] T014 [US2] Verify all planning commits preserved using `git rev-list --count HEAD`
+- [x] T009 [US2] Analyze potential conflicts using `git merge-tree` or `git rebase` dry-run
+- [x] T010 [US2] Choose synchronization strategy (merge or rebase) based on conflict analysis
+- [x] T011 [US2] Execute synchronization strategy (merge: `git merge upstream/main` OR rebase: `git rebase upstream/main`)
+- [x] T012 [US2] If conflicts occur, resolve manually following three-tier priority: (1) preserve local work, (2) incorporate compatible upstream, (3) avoid losing upstream fixes
+- [x] T013 [US2] Complete synchronization (merge commit or rebase continue)
+- [x] T014 [US2] Verify all planning commits preserved using `git rev-list --count HEAD`
 
 **Checkpoint**: Upstream changes integrated - planning work intact
 
@@ -82,11 +82,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] Check if download.py had conflicts during synchronization
-- [ ] T016 [US3] If download.py conflicted, restore local version using `git checkout --ours src/flows/lattes/download.py`
-- [ ] T017 [US3] If download.py conflicted, stage restored file using `git add src/flows/lattes/download.py`
-- [ ] T018 [US3] Verify download.py hash matches pre-sync hash using `sha256sum src/flows/lattes/download.py`
-- [ ] T019 [US3] If hash doesn't match, restore from backup using `git checkout backup-pre-sync-YYYYMMDD -- src/flows/lattes/download.py`
+- [x] T015 [US3] Check if download.py had conflicts during synchronization
+- [x] T016 [US3] If download.py conflicted, restore local version using `git checkout --ours src/flows/lattes/download.py`
+- [x] T017 [US3] If download.py conflicted, stage restored file using `git add src/flows/lattes/download.py`
+- [x] T018 [US3] Verify download.py hash matches pre-sync hash using `sha256sum src/flows/lattes/download.py`
+- [x] T019 [US3] If hash doesn't match, restore from backup using `git checkout backup-pre-sync-YYYYMMDD -- src/flows/lattes/download.py`
 
 **Checkpoint**: download.py protected - local version preserved exactly
 
@@ -100,9 +100,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T020 [US4] Review non-download.py file changes from upstream
-- [ ] T021 [US4] For each conflicting non-download.py file, apply priority rules manually
-- [ ] T022 [US4] Verify compatible upstream improvements are incorporated using `git diff HEAD~1 --stat`
+- [x] T020 [US4] Review non-download.py file changes from upstream
+- [x] T021 [US4] For each conflicting non-download.py file, apply priority rules manually
+- [x] T022 [US4] Verify compatible upstream improvements are incorporated using `git diff HEAD~1 --stat`
 
 **Checkpoint**: Upstream improvements integrated - fork stays current
 
@@ -116,11 +116,11 @@
 
 ### Implementation for User Story 5
 
-- [ ] T023 [US5] Run CI checks using `make ci-check`
-- [ ] T024 [US5] If CI fails, analyze and fix issues
-- [ ] T025 [US5] Verify no planning artifacts were lost or modified using `git diff backup-pre-sync-YYYYMMDD -- specs/`
-- [ ] T026 [US5] Verify upstream history is integrated using `git log --oneline -10`
-- [ ] T027 [US5] Verify repository status is clean using `git status`
+- [x] T023 [US5] Run CI checks using `make ci-check`
+- [x] T024 [US5] If CI fails, analyze and fix issues
+- [x] T025 [US5] Verify no planning artifacts were lost or modified using `git diff backup-pre-sync-YYYYMMDD -- specs/`
+- [x] T026 [US5] Verify upstream history is integrated using `git log --oneline -10`
+- [x] T027 [US5] Verify repository status is clean using `git status`
 
 **Checkpoint**: Repository validated - ready for implementation work
 
@@ -130,9 +130,9 @@
 
 **Purpose**: Final verification and cleanup
 
-- [ ] T028 Delete backup branch if synchronization successful using `git branch -d backup-pre-sync-YYYYMMDD`
-- [ ] T029 Document synchronization completion in commit message
-- [ ] T030 Verify all success criteria from spec.md are met:
+- [x] T028 Delete backup branch if synchronization successful using `git branch -d backup-pre-sync-YYYYMMDD`
+- [x] T029 Document synchronization completion in commit message
+- [x] T030 Verify all success criteria from spec.md are met:
   - Zero planning commits lost
   - download.py byte-identical before/after
   - All compatible upstream improvements integrated

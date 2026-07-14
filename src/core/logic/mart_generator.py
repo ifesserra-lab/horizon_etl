@@ -1,8 +1,6 @@
-import json
-import os
 from collections import Counter
 from datetime import date
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from eo_lib import InitiativeController, TeamController
 from loguru import logger

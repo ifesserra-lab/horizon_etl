@@ -13,6 +13,7 @@ from eo_lib.infrastructure.database.postgres_client import PostgresClient
 
 # Import all models to register them  # Import others if needed?
 
+
 def debug_metadata():
     logger.info("Debugging Metadata...")
 
