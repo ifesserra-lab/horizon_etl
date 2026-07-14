@@ -34,6 +34,7 @@ class ResearchGroupExporter:
 
             if not all_groups:
                 logger.warning("No Research Groups found to export.")
+                self.sink.export([], output_path, "Research Groups")
                 return
 
             # Filter by Campus if requested

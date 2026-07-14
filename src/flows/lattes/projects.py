@@ -31,7 +31,9 @@ from src.core.logic.researcher_resolution import (  # noqa E402
     resolve_or_create_researcher,
     resolve_researcher_from_lattes,
 )
-from src.core.logic.strategies.lattes_projects import LattesProjectMappingStrategy  # noqa E402
+from src.core.logic.strategies.lattes_projects import (  # noqa E402
+    LattesProjectMappingStrategy,
+)
 from src.notifications.telegram import telegram_flow_state_handlers  # noqa E402
 from src.tracking.recorder import tracking_recorder  # noqa E402
 
