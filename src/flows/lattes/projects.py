@@ -17,20 +17,20 @@ from research_domain.controllers import (  # noqa E402
     ArticleController,
     ResearcherController,
 )
-from research_domain.domain.entities.researcher import Researcher
-from sqlalchemy import text
-from sqlalchemy.engine import Engine
+from research_domain.domain.entities.researcher import Researcher  # noqa E402
+from sqlalchemy import text  # noqa E402
+from sqlalchemy.engine import Engine  # noqa E402
 
-from src.adapters.sources.lattes_parser import LattesParser
-from src.core.logic.entity_manager import EntityManager
-from src.core.logic.project_loader import ProjectLoader
-from src.core.logic.researcher_resolution import (
+from src.adapters.sources.lattes_parser import LattesParser  # noqa E402
+from src.core.logic.entity_manager import EntityManager  # noqa E402
+from src.core.logic.project_loader import ProjectLoader  # noqa E402
+from src.core.logic.researcher_resolution import (  # noqa E402
     resolve_or_create_researcher,
     resolve_researcher_from_lattes,
 )
-from src.core.logic.strategies.lattes_projects import LattesProjectMappingStrategy
-from src.notifications.telegram import telegram_flow_state_handlers
-from src.tracking.recorder import tracking_recorder
+from src.core.logic.strategies.lattes_projects import LattesProjectMappingStrategy  # noqa E402
+from src.notifications.telegram import telegram_flow_state_handlers  # noqa E402
+from src.tracking.recorder import tracking_recorder  # noqa E402
 
 
 def _resolve_sqlalchemy_engine(init_ctrl: InitiativeController) -> Engine:
@@ -635,8 +635,7 @@ def ingest_lattes_projects_flow():
     article_ctrl = ArticleController()
     all_researchers = researcher_ctrl.get_all()
 
-    from eo_lib.domain.base import Base
-        engine = _resolve_sqlalchemy_engine(init_ctrl)
+    engine = _resolve_sqlalchemy_engine(init_ctrl)
 
     # Ingestion is idempotent (articles dedup by DOI/title+year, educations by
     # natural key), so tables are never dropped here: a partial run must not

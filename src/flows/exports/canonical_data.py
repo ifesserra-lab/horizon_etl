@@ -1,4 +1,5 @@
 import os
+import zipfile
 from typing import Optional
 
 from loguru import logger
@@ -236,6 +237,8 @@ def zip_exports_task(output_dir: str):
         raise
     size_mb = os.path.getsize(zip_path) / (1024 * 1024)
     logger.info("Exports zipped: {} ({:.1f} MB)", zip_path, size_mb)
+
+
 @flow(name="Export Canonical Data Flow", **telegram_flow_state_handlers())
 def export_canonical_data_flow(
     output_dir: str = "data/exports", campus: Optional[str] = None

@@ -15,7 +15,12 @@ from research_domain import (
 from sqlalchemy import text
 
 from src.core.logic.export_campus_resolver import ExportCampusResolver
-from src.core.logic.pii_anonymizer import scrub_pii_deep, scrub_source_record_payload
+from src.core.logic.pii_anonymizer import (
+    anonymize_person_data,
+    is_anonymized_cpf,
+    scrub_pii_deep,
+    scrub_source_record_payload,
+)
 from src.core.ports.export_sink import IExportSink
 from src.research_domain_compat import AdvisorshipRole
 from src.tracking.entities import (
