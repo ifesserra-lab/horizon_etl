@@ -21,7 +21,10 @@ class ResearchGroupMembershipGraphsManifestGenerator:
         logger.info("Scanning {} for group graphs", graphs_dir)
 
         if not os.path.isdir(graphs_dir):
-            raise FileNotFoundError(f"Graphs directory not found: {graphs_dir}")
+            logger.warning(
+                "Graphs directory not found: {}. Skipping manifest.", graphs_dir
+            )
+            return {"entries": [], "total_groups": 0}
 
         entries = []
         for filename in sorted(os.listdir(graphs_dir)):
