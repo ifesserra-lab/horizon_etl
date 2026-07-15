@@ -24,7 +24,16 @@ class ResearchGroupMembershipGraphsManifestGenerator:
             logger.warning(
                 "Graphs directory not found: {}. Skipping manifest.", graphs_dir
             )
-            return {"entries": [], "total_groups": 0}
+            return {
+                "metadata": {
+                    "generated_at": datetime.now(timezone.utc).isoformat(),
+                    "total_groups": 0,
+                    "total_nodes": 0,
+                    "total_edges": 0,
+                    "graphs_directory": self.GRAPHS_DIR,
+                },
+                "groups": [],
+            }
 
         entries = []
         for filename in sorted(os.listdir(graphs_dir)):
