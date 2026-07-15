@@ -1015,6 +1015,9 @@ class CanonicalDataExporter:
         entity_type: Optional[str] = None,
     ) -> None:
         data = self._load_tracking_entities(model, entity_name)
+        if data is None:
+            logger.info("Tracking data not available for {}. Skipping.", entity_name)
+            return
 
         logger.info(f"Exporting {len(data)} {entity_name}...")
         try:
