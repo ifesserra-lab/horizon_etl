@@ -245,21 +245,29 @@ def _ingest_researcher_file(
 
         # 5. Awards, languages, professional activities, technical productions.
         # Idempotent: each is deduped by natural key so re-runs don't duplicate.
-        awards = parser.parse_awards(data)
-        if awards:
-            ingest_awards_task(awards, target_researcher, session)
-
-        languages = parser.parse_languages(data)
-        if languages:
-            ingest_languages_task(languages, target_researcher, session)
-
-        activities = parser.parse_professional_activities(data)
-        if activities:
-            ingest_professional_activities_task(activities, target_researcher, session)
-
-        productions = parser.parse_technical_productions(data)
-        if productions:
-            ingest_technical_productions_task(productions, target_researcher, session)
+        # Each section is isolated so one failure never aborts the others.
+        for section_name, parse_fn, ingest_fn in (
+            ("awards", parser.parse_awards, ingest_awards_task),
+            ("languages", parser.parse_languages, ingest_languages_task),
+            (
+                "professional_activities",
+                parser.parse_professional_activities,
+                ingest_professional_activities_task,
+            ),
+            (
+                "technical_productions",
+                parser.parse_technical_productions,
+                ingest_technical_productions_task,
+            ),
+        ):
+            try:
+                items = parse_fn(data)
+                if items:
+                    ingest_fn(items, target_researcher, session)
+            except Exception as exc:
+                logger.warning(
+                    f"Failed to ingest {section_name} for {target_researcher.name}: {exc}"
+                )
 
     except Exception as e:
         logger.error(f"Failed to process file {file_path}: {e}")
@@ -627,8 +635,19 @@ def ingest_awards_task(awards, target_researcher, session):
     logger.info(f"Awards: {created} created for {target_researcher.name}")
 
 
-def _trunc(value, limit=13):
-    return value[:limit] if isinstance(value, str) else value
+def _proficiency_level(value):
+    """Maps a Lattes proficiency word to the ProficiencyLevel enum.
+
+    Lattes scale: Bem / Razoavelmente / Pouco / Nenhum (or empty).
+    """
+    from research_domain.domain.entities.proficiency import ProficiencyLevel
+
+    key = (value or "").strip().lower()
+    return {
+        "bem": ProficiencyLevel.ALTO,
+        "razoavelmente": ProficiencyLevel.MEDIO,
+        "pouco": ProficiencyLevel.BASICO,
+    }.get(key, ProficiencyLevel.NAO_SE_APLICA)
 
 
 def ingest_languages_task(languages, target_researcher, session):
@@ -643,7 +662,10 @@ def ingest_languages_task(languages, target_researcher, session):
         )
         return
     from research_domain.domain.entities.language import Language
-    from research_domain.domain.entities.proficiency import Proficiency
+    from research_domain.domain.entities.proficiency import (
+        Proficiency,
+        ProficiencyLevel,
+    )
 
     created = 0
     for lg in languages:
@@ -664,10 +686,10 @@ def ingest_languages_task(languages, target_researcher, session):
             Proficiency(
                 researcher_id=target_researcher.id,
                 language_id=language.id,
-                comprehension=_trunc(lg.get("comprehension")),
-                speaking=_trunc(lg.get("speaking")),
-                reading=_trunc(lg.get("reading")),
-                writing=_trunc(lg.get("writing")),
+                comprehension=_proficiency_level(lg.get("comprehension")),
+                speaking=_proficiency_level(lg.get("speaking")),
+                reading=_proficiency_level(lg.get("reading")),
+                writing=_proficiency_level(lg.get("writing")),
             )
         )
         created += 1
