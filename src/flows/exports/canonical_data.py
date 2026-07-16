@@ -127,6 +127,44 @@ def export_articles_task(output_dir: str):
     exporter.export_articles(os.path.join(output_dir, "articles_canonical.json"))
 
 
+@task(name="export_awards_task")
+def export_awards_task(output_dir: str):
+    logger.info("Starting Awards export...")
+    exporter = CanonicalDataExporter(sink=JsonSink())
+    exporter.export_awards(os.path.join(output_dir, "awards_canonical.json"))
+
+
+@task(name="export_languages_task")
+def export_languages_task(output_dir: str):
+    logger.info("Starting Languages/Proficiencies export...")
+    exporter = CanonicalDataExporter(sink=JsonSink())
+    exporter.export_languages(os.path.join(output_dir, "languages_canonical.json"))
+    exporter.export_proficiencies(
+        os.path.join(output_dir, "proficiencies_canonical.json")
+    )
+
+
+@task(name="export_professional_activities_task")
+def export_professional_activities_task(output_dir: str):
+    logger.info("Starting Professional Activities export...")
+    exporter = CanonicalDataExporter(sink=JsonSink())
+    exporter.export_professional_activities(
+        os.path.join(output_dir, "professional_activities_canonical.json")
+    )
+
+
+@task(name="export_research_productions_task")
+def export_research_productions_task(output_dir: str):
+    logger.info("Starting Research Productions export...")
+    exporter = CanonicalDataExporter(sink=JsonSink())
+    exporter.export_production_types(
+        os.path.join(output_dir, "production_types_canonical.json")
+    )
+    exporter.export_research_productions(
+        os.path.join(output_dir, "research_productions_canonical.json")
+    )
+
+
 @task(name="export_advisorships_task")
 def export_advisorships_task(output_dir: str):
     logger.info("Starting Advisorships export...")
@@ -268,6 +306,10 @@ def export_canonical_data_flow(
     export_initiatives_tracking_task(output_dir)
     export_initiative_types_task(output_dir)
     export_articles_task(output_dir)
+    export_awards_task(output_dir)
+    export_languages_task(output_dir)
+    export_professional_activities_task(output_dir)
+    export_research_productions_task(output_dir)
     export_advisorships_task(output_dir)
     export_advisorships_tracking_task(output_dir)
     export_ingestion_runs_task(output_dir)

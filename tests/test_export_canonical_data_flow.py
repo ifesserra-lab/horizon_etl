@@ -38,6 +38,20 @@ def test_export_canonical_data_flow_calls_tracking_exports_individually(tmp_path
         articles_task = stack.enter_context(
             patch("src.flows.exports.canonical_data.export_articles_task")
         )
+        awards_task = stack.enter_context(
+            patch("src.flows.exports.canonical_data.export_awards_task")
+        )
+        languages_task = stack.enter_context(
+            patch("src.flows.exports.canonical_data.export_languages_task")
+        )
+        professional_activities_task = stack.enter_context(
+            patch(
+                "src.flows.exports.canonical_data.export_professional_activities_task"
+            )
+        )
+        research_productions_task = stack.enter_context(
+            patch("src.flows.exports.canonical_data.export_research_productions_task")
+        )
         advisorships_task = stack.enter_context(
             patch("src.flows.exports.canonical_data.export_advisorships_task")
         )
@@ -70,6 +84,18 @@ def test_export_canonical_data_flow_calls_tracking_exports_individually(tmp_path
                 "src.flows.exports.canonical_data.export_people_relationship_graph_flow"
             )
         )
+        for _graph_flow in (
+            "export_people_collaboration_graph_flow",
+            "export_researchers_collaboration_graph_flow",
+            "export_students_collaboration_graph_flow",
+            "export_outside_ifes_collaboration_graph_flow",
+            "export_null_researchers_collaboration_graph_flow",
+            "export_research_group_membership_graphs_manifest_flow",
+        ):
+            stack.enter_context(
+                patch(f"src.flows.exports.canonical_data.{_graph_flow}")
+            )
+        stack.enter_context(patch("src.flows.exports.canonical_data.zip_exports_task"))
         makedirs = stack.enter_context(patch("os.makedirs"))
         export_canonical_data_flow.fn(output_dir=output_dir, campus="Serra")
 
@@ -84,6 +110,10 @@ def test_export_canonical_data_flow_calls_tracking_exports_individually(tmp_path
     initiatives_tracking_task.assert_called_once_with(output_dir)
     initiative_types_task.assert_called_once_with(output_dir)
     articles_task.assert_called_once_with(output_dir)
+    awards_task.assert_called_once_with(output_dir)
+    languages_task.assert_called_once_with(output_dir)
+    professional_activities_task.assert_called_once_with(output_dir)
+    research_productions_task.assert_called_once_with(output_dir)
     advisorships_task.assert_called_once_with(output_dir)
     advisorships_tracking_task.assert_called_once_with(output_dir)
     ingestion_runs_task.assert_called_once_with(output_dir)
