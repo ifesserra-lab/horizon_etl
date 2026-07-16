@@ -163,6 +163,9 @@ def export_research_productions_task(output_dir: str):
     exporter.export_research_productions(
         os.path.join(output_dir, "research_productions_canonical.json")
     )
+    exporter.export_production_authors(
+        os.path.join(output_dir, "production_authors_canonical.json")
+    )
 
 
 @task(name="export_advisorships_task")

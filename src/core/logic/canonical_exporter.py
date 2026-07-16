@@ -1905,6 +1905,20 @@ class CanonicalDataExporter:
             entity_type="research_production",
         )
 
+    def export_production_authors(self, output_path: str):
+        """Exports the production<->researcher association (no controller;
+        raw association rows) so consumers can attribute productions."""
+        session = self._get_session()
+        if session is None:
+            logger.info("No session available. Skipping Production Authors export.")
+            return
+        rows = session.execute(
+            text("SELECT production_id, researcher_id FROM production_authors")
+        ).fetchall()
+        data = [{"production_id": row[0], "researcher_id": row[1]} for row in rows]
+        logger.info(f"Exporting {len(data)} Production Authors...")
+        self.sink.export(data, output_path)
+
     def export_researchers_tracking(self, output_path: str):
         data = self._build_tracking_export("researcher")
         self._export_entities(data, output_path, "Researchers Tracking")
@@ -2005,6 +2019,9 @@ class CanonicalDataExporter:
         )
         self.export_research_productions(
             os.path.join(output_dir, "research_productions_canonical.json")
+        )
+        self.export_production_authors(
+            os.path.join(output_dir, "production_authors_canonical.json")
         )
         self.export_advisorships(
             os.path.join(output_dir, "advisorships_canonical.json")
