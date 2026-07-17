@@ -41,12 +41,6 @@ class InitiativeLinker:
         except Exception:
             pass
 
-    def _rollback_session(self):
-        try:
-            self.initiative_controller._service._repository._session.rollback()
-        except Exception:
-            pass
-
     def create_initiative_team(
         self, initiative: Any, project_data: Dict[str, Any]
     ) -> None:
