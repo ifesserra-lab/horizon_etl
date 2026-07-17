@@ -1,4 +1,5 @@
 import glob
+import hashlib
 import json
 import os
 from typing import Any, List
@@ -87,6 +88,22 @@ def ingest_advisorships_file_task(
     loader.process_records(advisorships, source_file=file_path)
 
 
+def _deduplicate_json_files(file_paths: List[str]) -> List[str]:
+    """Remove duplicate JSON files by content hash, keeping the first occurrence."""
+    seen_hashes = set()
+    unique_files = []
+    for path in file_paths:
+        try:
+            with open(path, "rb") as f:
+                file_hash = hashlib.md5(f.read()).hexdigest()
+            if file_hash not in seen_hashes:
+                seen_hashes.add(file_hash)
+                unique_files.append(path)
+        except Exception:
+            unique_files.append(path)
+    return unique_files
+
+
 @flow(name="Ingest Lattes Advisorships Flow", **telegram_flow_state_handlers())
 def ingest_lattes_advisorships_flow():
     base_dir = "data/lattes_json"
@@ -99,6 +116,11 @@ def ingest_lattes_advisorships_flow():
     if not json_files:
         logger.warning(f"No JSON files found in {base_dir}")
         return
+
+    json_files = _deduplicate_json_files(json_files)
+    logger.info(
+        f"Processing {len(json_files)} unique JSON files (deduped by content hash)"
+    )
 
     researcher_ctrl = ResearcherController()
     all_researchers = researcher_ctrl.get_all()

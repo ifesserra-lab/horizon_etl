@@ -632,37 +632,37 @@ def ingest_lattes_projects_flow():
         entity_manager = EntityManager(init_ctrl, person_ctrl)
         parser = LattesParser()
 
-    # Instantiate controllers once before the loop to avoid memory leaks
-    researcher_ctrl = ResearcherController()
-    article_ctrl = ArticleController()
-    all_researchers = researcher_ctrl.get_all()
+        # Instantiate controllers once before the loop to avoid memory leaks
+        researcher_ctrl = ResearcherController()
+        article_ctrl = ArticleController()
+        all_researchers = researcher_ctrl.get_all()
 
-    engine = _resolve_sqlalchemy_engine(init_ctrl)
+        engine = _resolve_sqlalchemy_engine(init_ctrl)
 
-    # Ingestion is idempotent (articles dedup by DOI/title+year, educations by
-    # natural key), so tables are never dropped here: a partial run must not
-    # destroy data ingested for researchers whose JSONs are absent from disk.
-    Base.metadata.create_all(engine)
+        # Ingestion is idempotent (articles dedup by DOI/title+year, educations by
+        # natural key), so tables are never dropped here: a partial run must not
+        # destroy data ingested for researchers whose JSONs are absent from disk.
+        Base.metadata.create_all(engine)
 
-    session = None
-    try:
-        session = researcher_ctrl._service._repository._session
-    except Exception:
-        pass
+        session = None
+        try:
+            session = researcher_ctrl._service._repository._session
+        except Exception:
+            pass
 
-    for idx, json_file in enumerate(json_files, 1):
-        _ingest_researcher_file(
-            json_file,
-            entity_manager,
-            parser,
-            all_researchers,
-            researcher_ctrl,
-            article_ctrl,
-        )
+        for idx, json_file in enumerate(json_files, 1):
+            _ingest_researcher_file(
+                json_file,
+                entity_manager,
+                parser,
+                all_researchers,
+                researcher_ctrl,
+                article_ctrl,
+            )
 
-        if session and idx % 50 == 0:
-            session.expire_all()
-        gc.collect()
+            if session and idx % 50 == 0:
+                session.expire_all()
+            gc.collect()
 
 
 if __name__ == "__main__":

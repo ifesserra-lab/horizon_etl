@@ -94,8 +94,14 @@ class ProjectLoader:
         """
         Maps a list of raw dictionary records and orchestrates the UPSERT logic across handlers and linkers.
         """
-        logger.info("Fetching existing initiatives for UPSERT...")
-        existing_initiatives = self.controller.get_all()
+        if not hasattr(self, "_initiatives_cache") or self._initiatives_cache is None:
+            logger.info("Fetching existing initiatives for UPSERT...")
+            self._initiatives_cache = self.controller.get_all()
+        else:
+            logger.info(
+                f"Using cached initiatives ({len(self._initiatives_cache)} items)."
+            )
+        existing_initiatives = self._initiatives_cache
         existing_by_name = {
             init.name: init
             for init in existing_initiatives

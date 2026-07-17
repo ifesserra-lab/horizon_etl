@@ -115,6 +115,7 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         self.entity_manager = entity_manager
         self._fellowships_cache: Dict[str, Fellowship] = {}
         self._advisorship_roles_cache: Dict[str, Role] = {}
+        self._person_by_id_cache: Dict[int, Person] = {}
         self._preload_fellowships()
 
     def _preload_fellowships(self):
@@ -465,16 +466,23 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         if not person_id:
             return None
 
+        if person_id in self._person_by_id_cache:
+            return self._person_by_id_cache[person_id]
+
         session = self.person_matcher.person_controller._service._repository._session
         try:
             base_person = session.get(Person, person_id)
             if base_person:
+                self._person_by_id_cache[person_id] = base_person
                 return base_person
         except Exception:
             pass
 
         try:
-            return self.person_matcher.person_controller.get_by_id(person_id)
+            fetched = self.person_matcher.person_controller.get_by_id(person_id)
+            if fetched:
+                self._person_by_id_cache[person_id] = fetched
+            return fetched
         except Exception:
             return person if isinstance(person, Person) else None
 
