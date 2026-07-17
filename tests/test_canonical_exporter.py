@@ -119,7 +119,9 @@ def test_export_all_orchestrates_exports():
 
             # Verify Sink Calls
             # Includes canonical exports, tracking overlays, and tracking entities.
-            assert mock_sink.export.call_count == 21
+            # +6 Lattes-derived exports: awards, languages, proficiencies,
+            # professional_activities, production_types, research_productions.
+            assert mock_sink.export.call_count == 28
 
             # Check call args to verify content
             calls = mock_sink.export.call_args_list

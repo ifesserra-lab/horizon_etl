@@ -15,7 +15,10 @@ from prefect import flow, task  # noqa E402
 from prefect.cache_policies import NO_CACHE  # noqa E402
 from research_domain.controllers import (  # noqa E402
     ArticleController,
+    ProductionTypeController,
+    ProfessionalActivityController,
     ResearcherController,
+    ResearchProductionController,
 )
 from research_domain.domain.entities.researcher import Researcher  # noqa E402
 from sqlalchemy import text  # noqa E402
@@ -250,6 +253,32 @@ def _ingest_researcher_file(
                 researcher_ctrl,
                 file_path,
             )
+
+        # 5. Awards, languages, professional activities, technical productions.
+        # Idempotent: each is deduped by natural key so re-runs don't duplicate.
+        # Each section is isolated so one failure never aborts the others.
+        for section_name, parse_fn, ingest_fn in (
+            ("awards", parser.parse_awards, ingest_awards_task),
+            ("languages", parser.parse_languages, ingest_languages_task),
+            (
+                "professional_activities",
+                parser.parse_professional_activities,
+                ingest_professional_activities_task,
+            ),
+            (
+                "technical_productions",
+                parser.parse_technical_productions,
+                ingest_technical_productions_task,
+            ),
+        ):
+            try:
+                items = parse_fn(data)
+                if items:
+                    ingest_fn(items, target_researcher, session)
+            except Exception as exc:
+                logger.warning(
+                    f"Failed to ingest {section_name} for {target_researcher.name}: {exc}"
+                )
 
     except Exception as e:
         logger.error(f"Failed to process file {file_path}: {e}")
@@ -610,6 +639,194 @@ def ingest_education_task(
             )
         except Exception as e:
             logger.warning(f"Failed to ingest education item: {e}")
+
+
+def ingest_awards_task(awards, target_researcher, session):
+    """Ingests Lattes awards (premios_titulos) into the `awards` table.
+
+    No controller exists for awards, so rows are written via the ORM.
+    Deduped by (researcher_id, title, year).
+    """
+    if session is None:
+        logger.warning(
+            f"No DB session available; skipping {len(awards)} awards for {target_researcher.name}"
+        )
+        return
+    from research_domain.domain.entities.award import Award
+
+    created = 0
+    for a in awards:
+        title, year = a["title"], a.get("year")
+        exists = (
+            session.query(Award)
+            .filter_by(researcher_id=target_researcher.id, title=title, year=year)
+            .first()
+        )
+        if exists:
+            continue
+        session.add(Award(researcher_id=target_researcher.id, title=title, year=year))
+        created += 1
+    if created:
+        session.commit()
+    logger.info(f"Awards: {created} created for {target_researcher.name}")
+
+
+def _proficiency_level(value):
+    """Maps a Lattes proficiency word to the ProficiencyLevel enum.
+
+    Lattes scale: Bem / Razoavelmente / Pouco / Nenhum (or empty).
+    """
+    from research_domain.domain.entities.proficiency import ProficiencyLevel
+
+    key = (value or "").strip().lower()
+    return {
+        "bem": ProficiencyLevel.ALTO,
+        "razoavelmente": ProficiencyLevel.MEDIO,
+        "pouco": ProficiencyLevel.BASICO,
+    }.get(key, ProficiencyLevel.NAO_SE_APLICA)
+
+
+def ingest_languages_task(languages, target_researcher, session):
+    """Ingests Lattes languages (idiomas) into `languages` + `proficiencies`.
+
+    Language is get-or-created by name; proficiency deduped by
+    (researcher_id, language_id).
+    """
+    if session is None:
+        logger.warning(
+            f"No DB session available; skipping {len(languages)} languages for {target_researcher.name}"
+        )
+        return
+    from research_domain.domain.entities.language import Language
+    from research_domain.domain.entities.proficiency import (
+        Proficiency,
+        ProficiencyLevel,
+    )
+
+    created = 0
+    for lg in languages:
+        name = lg["language"]
+        language = session.query(Language).filter_by(name=name).first()
+        if not language:
+            language = Language(name=name)
+            session.add(language)
+            session.flush()
+        exists = (
+            session.query(Proficiency)
+            .filter_by(researcher_id=target_researcher.id, language_id=language.id)
+            .first()
+        )
+        if exists:
+            continue
+        session.add(
+            Proficiency(
+                researcher_id=target_researcher.id,
+                language_id=language.id,
+                comprehension=_proficiency_level(lg.get("comprehension")),
+                speaking=_proficiency_level(lg.get("speaking")),
+                reading=_proficiency_level(lg.get("reading")),
+                writing=_proficiency_level(lg.get("writing")),
+            )
+        )
+        created += 1
+    if created:
+        session.commit()
+    logger.info(f"Proficiencies: {created} created for {target_researcher.name}")
+
+
+def ingest_professional_activities_task(activities, target_researcher, session):
+    """Ingests Lattes professional activities (atuacao_profissional).
+
+    Deduped by (researcher_id, institution, start_year, activity_type).
+    """
+    ctrl = ProfessionalActivityController()
+    seen = set()
+    if session is not None:
+        from research_domain.domain.entities.professional_activity import (
+            ProfessionalActivity,
+        )
+
+        for e in (
+            session.query(ProfessionalActivity)
+            .filter_by(researcher_id=target_researcher.id)
+            .all()
+        ):
+            seen.add((e.institution, e.start_year, e.activity_type))
+
+    created = 0
+    for act in activities:
+        key = (act["institution"], act["start_year"], act["activity_type"])
+        if key in seen:
+            continue
+        try:
+            ctrl.create_professional_activity(researcher_id=target_researcher.id, **act)
+            seen.add(key)
+            created += 1
+        except Exception as e:
+            logger.warning(f"Failed to ingest professional activity: {e}")
+    logger.info(
+        f"Professional activities: {created} created for {target_researcher.name}"
+    )
+
+
+def ingest_technical_productions_task(productions, target_researcher, session):
+    """Ingests Lattes technical/patent productions (producao_tecnica,
+    patentes_registros) into `research_productions`.
+
+    Production type is get-or-created by category name; production deduped by
+    (title, year, production_type_id) for this researcher.
+    """
+    type_ctrl = ProductionTypeController()
+    prod_ctrl = ResearchProductionController()
+
+    type_cache = {}
+    for t in type_ctrl.get_all():
+        name = getattr(t, "name", None)
+        if name:
+            type_cache[name] = t.id
+
+    created = 0
+    for prod in productions:
+        title = prod["title"]
+        year = prod.get("year")
+        category = prod["production_type"]
+
+        type_id = type_cache.get(category)
+        if type_id is None:
+            try:
+                pt = type_ctrl.create_production_type(name=category)
+                type_id = pt.id
+                type_cache[category] = type_id
+            except Exception as e:
+                logger.warning(f"Failed to ensure production type '{category}': {e}")
+                continue
+
+        existing_id = None
+        if session is not None:
+            from research_domain.domain.entities.research_production import (
+                ResearchProduction,
+            )
+
+            row = (
+                session.query(ResearchProduction)
+                .filter_by(title=title, year=year, production_type_id=type_id)
+                .first()
+            )
+            existing_id = row.id if row else None
+
+        try:
+            if existing_id is None:
+                production = prod_ctrl.create_production(
+                    title=title, year=year, production_type_id=type_id
+                )
+                existing_id = production.id
+                created += 1
+            prod_ctrl.add_author(existing_id, target_researcher.id)
+        except Exception as e:
+            logger.warning(f"Failed to ingest technical production '{title}': {e}")
+    logger.info(
+        f"Technical productions: {created} created for {target_researcher.name}"
+    )
 
 
 @flow(name="Ingest Lattes Projects Flow", **telegram_flow_state_handlers())

@@ -1920,6 +1920,77 @@ class CanonicalDataExporter:
             logger.info("Articles table not available; exporting empty list.")
             self._export_entities([], output_path, "Articles", entity_type="article")
 
+    def _export_via_orm(self, model, output_path, label, entity_type=None):
+        """Exports every row of an ORM `model` (used for entities without a
+        research_domain controller, e.g. awards/languages/proficiencies)."""
+        session = self._get_session()
+        if session is None:
+            logger.info("No session available. Skipping {} export.", label)
+            return
+        data = session.query(model).order_by(model.id).all()
+        self._export_entities(data, output_path, label, entity_type=entity_type)
+
+    def export_awards(self, output_path: str):
+        from research_domain.domain.entities.award import Award
+
+        self._export_via_orm(Award, output_path, "Awards", entity_type="award")
+
+    def export_languages(self, output_path: str):
+        from research_domain.domain.entities.language import Language
+
+        self._export_via_orm(Language, output_path, "Languages", entity_type="language")
+
+    def export_proficiencies(self, output_path: str):
+        from research_domain.domain.entities.proficiency import Proficiency
+
+        self._export_via_orm(
+            Proficiency, output_path, "Proficiencies", entity_type="proficiency"
+        )
+
+    def export_professional_activities(self, output_path: str):
+        from research_domain.controllers import ProfessionalActivityController
+
+        data = ProfessionalActivityController().get_all()
+        self._export_entities(
+            data,
+            output_path,
+            "Professional Activities",
+            entity_type="professional_activity",
+        )
+
+    def export_production_types(self, output_path: str):
+        from research_domain.controllers import ProductionTypeController
+
+        data = ProductionTypeController().get_all()
+        self._export_entities(
+            data, output_path, "Production Types", entity_type="production_type"
+        )
+
+    def export_research_productions(self, output_path: str):
+        from research_domain.controllers import ResearchProductionController
+
+        data = ResearchProductionController().get_all()
+        self._export_entities(
+            data,
+            output_path,
+            "Research Productions",
+            entity_type="research_production",
+        )
+
+    def export_production_authors(self, output_path: str):
+        """Exports the production<->researcher association (no controller;
+        raw association rows) so consumers can attribute productions."""
+        session = self._get_session()
+        if session is None:
+            logger.info("No session available. Skipping Production Authors export.")
+            return
+        rows = session.execute(
+            text("SELECT production_id, researcher_id FROM production_authors")
+        ).fetchall()
+        data = [{"production_id": row[0], "researcher_id": row[1]} for row in rows]
+        logger.info(f"Exporting {len(data)} Production Authors...")
+        self.sink.export(data, output_path)
+
     def export_researchers_tracking(self, output_path: str):
         data = self._build_tracking_export("researcher")
         self._export_entities(data, output_path, "Researchers Tracking")
@@ -2007,6 +2078,23 @@ class CanonicalDataExporter:
             os.path.join(output_dir, "initiative_types_canonical.json")
         )
         self.export_articles(os.path.join(output_dir, "articles_canonical.json"))
+        self.export_awards(os.path.join(output_dir, "awards_canonical.json"))
+        self.export_languages(os.path.join(output_dir, "languages_canonical.json"))
+        self.export_proficiencies(
+            os.path.join(output_dir, "proficiencies_canonical.json")
+        )
+        self.export_professional_activities(
+            os.path.join(output_dir, "professional_activities_canonical.json")
+        )
+        self.export_production_types(
+            os.path.join(output_dir, "production_types_canonical.json")
+        )
+        self.export_research_productions(
+            os.path.join(output_dir, "research_productions_canonical.json")
+        )
+        self.export_production_authors(
+            os.path.join(output_dir, "production_authors_canonical.json")
+        )
         self.export_advisorships(
             os.path.join(output_dir, "advisorships_canonical.json")
         )
