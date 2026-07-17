@@ -34,8 +34,15 @@ class PersonMatcher:
         Preloads the internal persons cache from the database.
 
         Fetches all persons and populates _persons_cache using their names
-        and _emails_cache using their emails.
+        and _emails_cache using their emails. Skips if the cache is already
+        populated (new persons created mid-run are added incrementally).
         """
+        if self._persons_cache:
+            logger.info(
+                f"Persons cache already loaded ({len(self._persons_cache)} persons, "
+                f"{len(self._emails_cache)} emails). Skipping reload."
+            )
+            return
         logger.info("Pre-loading persons cache...")
         try:
             all_persons = self.person_controller.get_all()

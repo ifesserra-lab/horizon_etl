@@ -24,6 +24,7 @@ class TeamSynchronizer:
         """
         self.team_controller = team_controller
         self.roles_cache = roles_cache
+        self._teams_cache = None
 
     def ensure_team(self, team_name: str, description: str) -> Optional[Any]:
         """
@@ -37,7 +38,9 @@ class TeamSynchronizer:
             Optional[Any]: The existing or newly created Team object, or None if error.
         """
         try:
-            existing_teams = self.team_controller.get_all()
+            if self._teams_cache is None:
+                self._teams_cache = self.team_controller.get_all()
+            existing_teams = self._teams_cache
             team_name_key = normalize_text(team_name)
             for t in existing_teams:
                 t_name = (
@@ -53,6 +56,9 @@ class TeamSynchronizer:
                 name=team_name, description=description
             )
             logger.info(f"Created team: {team_name[:50]}...")
+            # Add newly created team to cache so subsequent lookups don't reload
+            if self._teams_cache is not None:
+                self._teams_cache.append(team)
             return team
         except Exception as e:
             logger.warning(f"Failed to manage team '{team_name[:50]}': {e}")
@@ -63,7 +69,13 @@ class TeamSynchronizer:
     ):
         """
         Synchronizes team members: adds new ones and removes obsolete ones.
+        Loads the current member list once per team to avoid N+1 queries.
         """
+        try:
+            current_members = self.team_controller.get_members(team_id)
+        except Exception:
+            current_members = []
+
         current_source_memberships: Set[Tuple[int, int]] = set()
 
         for person, role_name, start_date in members_to_sync:
@@ -78,13 +90,21 @@ class TeamSynchronizer:
             if role_id:
                 current_source_memberships.add((person.id, role_id))
 
-            # Add member with idempotency check
+            # Add member with idempotency check (reuses cached member list)
             self._add_member_if_new(
-                team_id, person, role_obj, role_name, role_id, start_date
+                team_id,
+                person,
+                role_obj,
+                role_name,
+                role_id,
+                start_date,
+                current_members=current_members,
             )
 
-        # Remove obsolete members
-        self._remove_obsolete_members(team_id, current_source_memberships)
+        # Remove obsolete members (reuses cached member list)
+        self._remove_obsolete_members(
+            team_id, current_source_memberships, current_members=current_members
+        )
 
     def add_members(
         self, team_id: int, members_to_add: List[Tuple[Any, str, Optional[Any]]]
@@ -92,7 +112,13 @@ class TeamSynchronizer:
         """
         Adds members to the team without removing existing ones.
         Idempotent: only adds if (person, role, start_date) is missing.
+        Loads the current member list once to avoid N+1 queries.
         """
+        try:
+            current_members = self.team_controller.get_members(team_id)
+        except Exception:
+            current_members = []
+
         for person, role_name, start_date in members_to_add:
             if not person:
                 continue
@@ -102,13 +128,26 @@ class TeamSynchronizer:
                 role_obj.get("id") if isinstance(role_obj, dict) else None
             )
 
-            # Add member with idempotency check
+            # Add member with idempotency check (reuses cached member list)
             self._add_member_if_new(
-                team_id, person, role_obj, role_name, role_id, start_date
+                team_id,
+                person,
+                role_obj,
+                role_name,
+                role_id,
+                start_date,
+                current_members=current_members,
             )
 
     def _add_member_if_new(
-        self, team_id, person, role_obj, role_name, role_id, start_date
+        self,
+        team_id,
+        person,
+        role_obj,
+        role_name,
+        role_id,
+        start_date,
+        current_members=None,
     ):
         """
         Adds a member to the team if they are not already present with the same role and start date.
@@ -120,9 +159,11 @@ class TeamSynchronizer:
             role_name (str): Name of the role (for logging).
             role_id (int): ID of the role.
             start_date (Optional[Any]): The start date of the membership.
+            current_members (Optional[list]): Pre-loaded member list to avoid DB re-query.
         """
         try:
-            current_members = self.team_controller.get_members(team_id)
+            if current_members is None:
+                current_members = self.team_controller.get_members(team_id)
             for m in current_members:
                 m_person_id = getattr(m, "person_id", None)
                 m_role_id = getattr(m, "role_id", None)
@@ -160,7 +201,10 @@ class TeamSynchronizer:
             logger.warning(f"Failed to add {role_name} '{person.name}': {e}")
 
     def _remove_obsolete_members(
-        self, team_id: int, current_source_memberships: Set[Tuple[int, int]]
+        self,
+        team_id: int,
+        current_source_memberships: Set[Tuple[int, int]],
+        current_members=None,
     ):
         """
         Removes members from the database that are not present in the current source data.
@@ -169,10 +213,12 @@ class TeamSynchronizer:
             team_id (int): ID of the team.
             current_source_memberships (Set[Tuple[int, int]]):
                 Set of (PersonID, RoleID) that should currently belong to the team.
+            current_members (Optional[list]): Pre-loaded member list to avoid DB re-query.
         """
         try:
-            db_members = self.team_controller.get_members(team_id)
-            for m in db_members:
+            if current_members is None:
+                current_members = self.team_controller.get_members(team_id)
+            for m in current_members:
                 m_person_id = getattr(m, "person_id", None)
                 m_role_id = getattr(m, "role_id", None)
 

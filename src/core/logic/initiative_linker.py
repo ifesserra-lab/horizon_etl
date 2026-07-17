@@ -27,6 +27,13 @@ class InitiativeLinker:
         self.person_matcher = person_matcher
         self.team_synchronizer = team_synchronizer
         self.entity_manager = entity_manager
+        self._rgs_cache: Optional[List] = None
+
+    def _get_all_groups(self) -> List:
+        """Load all research groups, caching the result for reuse."""
+        if self._rgs_cache is None:
+            self._rgs_cache = self.rg_controller.get_all()
+        return self._rgs_cache
 
     def _rollback_session(self):
         try:
@@ -149,7 +156,7 @@ class InitiativeLinker:
     ) -> None:
         """Links an initiative to a Research Group, creating it if missing."""
         try:
-            all_groups = self.rg_controller.get_all()
+            all_groups = self._get_all_groups()
             target_group = None
 
             def normalize(s):
@@ -355,7 +362,7 @@ class InitiativeLinker:
 
     def _link_kas_to_group(self, rg_name: str, ka_ids: List[int]) -> None:
         try:
-            all_groups = self.rg_controller.get_all()
+            all_groups = self._get_all_groups()
             target_group = None
 
             def normalize(s):

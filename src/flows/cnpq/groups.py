@@ -337,43 +337,43 @@ def sync_cnpq_groups_flow(
     ):
         groups = get_groups_to_sync(campus_name=campus_name)
 
-    if not groups:
-        logger.warning("No groups to synchronize.")
-        return {"total_groups": 0, "success_count": 0, "failed_count": 0}
+        if not groups:
+            logger.warning("No groups to synchronize.")
+            return {"total_groups": 0, "success_count": 0, "failed_count": 0}
 
-    all_results = []
+        all_results = []
 
-    # Stream: parallel downloads via thread pool, sequential DB writes as each finishes
-    logger.info(
-        f"Downloading {len(groups)} groups with up to {max_parallel_downloads} parallel workers..."
-    )
+        # Stream: parallel downloads via thread pool, sequential DB writes as each finishes
+        logger.info(
+            f"Downloading {len(groups)} groups with up to {max_parallel_downloads} parallel workers..."
+        )
 
-    with ThreadPoolExecutor(max_workers=max_parallel_downloads) as executor:
-        fut_map = {executor.submit(_download_cnpq_group_impl, g): g for g in groups}
+        with ThreadPoolExecutor(max_workers=max_parallel_downloads) as executor:
+            fut_map = {executor.submit(_download_cnpq_group_impl, g): g for g in groups}
 
-        for future in as_completed(fut_map):
-            group_info = fut_map[future]
-            try:
-                download_result = future.result()
-                result = process_cnpq_group_data(download_result)
-            except Exception:
-                logger.exception(f"Download failed for {group_info['name']}")
-                result = {
-                    "success": False,
-                    "group_id": group_info["id"],
-                    "group_name": group_info["name"],
-                    "url": group_info["url"],
-                }
-            finally:
-                del fut_map[future]
-            all_results.append(result)
+            for future in as_completed(fut_map):
+                group_info = fut_map[future]
+                try:
+                    download_result = future.result()
+                    result = process_cnpq_group_data(download_result)
+                except Exception:
+                    logger.exception(f"Download failed for {group_info['name']}")
+                    result = {
+                        "success": False,
+                        "group_id": group_info["id"],
+                        "group_name": group_info["name"],
+                        "url": group_info["url"],
+                    }
+                finally:
+                    del fut_map[future]
+                all_results.append(result)
 
-    success_count = sum(1 for r in all_results if r.get("success"))
-    summary = build_cnpq_sync_summary(all_results)
-    logger.info(
-        f"Flow finished. Successfully synchronized {success_count}/{len(groups)} groups."
-    )
-    return summary
+        success_count = sum(1 for r in all_results if r.get("success"))
+        summary = build_cnpq_sync_summary(all_results)
+        logger.info(
+            f"Flow finished. Successfully synchronized {success_count}/{len(groups)} groups."
+        )
+        return summary
 
 
 if __name__ == "__main__":
