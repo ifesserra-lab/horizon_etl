@@ -6,6 +6,12 @@ __pycache__/
 data/*
 !data/exports/
 !data/exports/**
+# Qualis reference data (public, no PII) — build input for the weekly
+# docentes/OpenAlex report phases; must be versioned so CI can run them.
+!data/reference/
+data/reference/*
+!data/reference/qualis.csv
+!data/reference/qualis_conferencias.json
 logs/
 *.log
 venv/
