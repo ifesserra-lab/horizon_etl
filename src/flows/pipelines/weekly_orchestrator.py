@@ -13,9 +13,20 @@ run and publish whatever the sources produced, while a failure in any
 the overall run exit non-zero so CI and Telegram surface it — instead of the
 old fail-open behavior that reported success on partial data.
 
-Every phase is driven through `app.py`, never `python -m ...`, because the
-LGPD `before_flush` anonymization hook is installed at app.py import time;
-a phase that bypassed it would write raw PII to the database.
+Every phase that WRITES to the database is driven through `app.py`, never
+`python -m ...`, because the LGPD `before_flush` anonymization hook is
+installed at app.py import time; a phase that bypassed it would write raw
+PII to the database.
+
+The docentes/OpenAlex analytics phases are the one exception: they are
+read-only with respect to the database (they only read Lattes CV JSON,
+canonical export JSON and the OpenAlex API, and write JSON reports), so they
+run as `python -m src.scripts.<x>` modules. Not touching the DB, they have
+no PII-write path and don't need the app.py hook. They run AFTER
+`export_canonical` (a couple need `researchers_canonical.json` /
+`openalex_citacoes.json` produced upstream) and are all non-critical, so a
+missing optional manual input (bolsistas, projetos, corpo docente) degrades
+gracefully without failing the weekly run.
 """
 
 import subprocess
@@ -24,19 +35,31 @@ from typing import Optional
 
 from loguru import logger
 
-# (name, app.py argv tail, timeout seconds, critical)
-# Order is load-bearing: SigPesq -> CNPq -> Lattes, then exports, then LGPD.
+# (name, argv tail, timeout seconds, critical, mode)
+#   mode "app"    -> `python app.py <argv...>`      (DB-writing phases; LGPD hook active)
+#   mode "module" -> `python -m <module>`           (read-only docentes/OpenAlex reports)
+# Order is load-bearing: SigPesq -> CNPq -> Lattes -> exports -> docentes -> LGPD.
+# The docentes block runs after export_canonical (needs researchers_canonical.json /
+# openalex_citacoes.json produced upstream) and is ordered internally so each report's
+# inputs exist: fetch_openalex -> rank -> {maturity, venues, impacto, ppp}.
 _PHASES = [
-    ("sigpesq", ["sigpesq"], 3600, True),
-    ("cnpq", ["cnpq_sync"], 5400, False),
-    ("lattes_download", ["lattes_download"], 5400, False),
-    ("lattes_projects", ["ingest_lattes_projects"], 3600, False),
-    ("lattes_advisorships", ["lattes_advisorships"], 1800, False),
-    ("export_canonical", ["export_canonical"], 1800, True),
-    ("knowledge_areas_mart", ["ka_mart"], 900, False),
-    ("initiatives_analytics_mart", ["analytics_mart"], 900, False),
-    ("people_relationship_graph", ["people_graph"], 1800, False),
-    ("anonymize_backfill", ["anonymize_backfill"], 1800, True),
+    ("sigpesq", ["sigpesq"], 3600, True, "app"),
+    ("cnpq", ["cnpq_sync"], 5400, False, "app"),
+    ("lattes_download", ["lattes_download"], 5400, False, "app"),
+    ("lattes_projects", ["ingest_lattes_projects"], 3600, False, "app"),
+    ("lattes_advisorships", ["lattes_advisorships"], 1800, False, "app"),
+    ("export_canonical", ["export_canonical"], 1800, True, "app"),
+    ("knowledge_areas_mart", ["ka_mart"], 900, False, "app"),
+    ("initiatives_analytics_mart", ["analytics_mart"], 900, False, "app"),
+    ("people_relationship_graph", ["people_graph"], 1800, False, "app"),
+    # --- docentes / OpenAlex analytics (read-only wrt DB; run as modules) ---
+    ("openalex_citations", ["src.scripts.fetch_openalex_citations"], 3600, False, "module"),
+    ("rank_docentes_impact", ["src.scripts.rank_docentes_impact"], 600, False, "module"),
+    ("analyze_maturity", ["src.scripts.analyze_maturity"], 900, False, "module"),
+    ("analyze_venues", ["src.scripts.analyze_venues"], 1800, False, "module"),
+    ("impacto_dashboard", ["src.scripts.generate_impacto_dashboard"], 900, False, "module"),
+    ("ppp_edital_report", ["src.scripts.generate_ppp_edital_report"], 900, False, "module"),
+    ("anonymize_backfill", ["anonymize_backfill"], 1800, True, "app"),
 ]
 
 
@@ -50,13 +73,17 @@ def _describe_rc(rc: Optional[int]) -> str:
     return f"exit {rc}"
 
 
-def _run_phase(name, argv_tail, timeout, campus, output_dir):
-    argv = [sys.executable, "app.py", *argv_tail]
-    # Pass positional args only where app.py expects them.
-    if argv_tail[0] == "cnpq_sync" and campus:
-        argv.append(campus)
-    elif argv_tail[0] == "export_canonical":
-        argv.append(output_dir)
+def _run_phase(name, argv_tail, timeout, campus, output_dir, mode="app"):
+    if mode == "module":
+        # Read-only report modules — run directly, no app.py LGPD hook needed.
+        argv = [sys.executable, "-m", *argv_tail]
+    else:
+        argv = [sys.executable, "app.py", *argv_tail]
+        # Pass positional args only where app.py expects them.
+        if argv_tail[0] == "cnpq_sync" and campus:
+            argv.append(campus)
+        elif argv_tail[0] == "export_canonical":
+            argv.append(output_dir)
     logger.info("▶ phase '{}': {}", name, " ".join(argv[1:]))
     try:
         proc = subprocess.run(argv, timeout=timeout)
@@ -76,7 +103,7 @@ def _run_phase(name, argv_tail, timeout, campus, output_dir):
 
 
 def _critical(name):
-    for n, _a, _t, crit in _PHASES:
+    for n, _a, _t, crit, _m in _PHASES:
         if n == name:
             return crit
     return False
@@ -104,8 +131,10 @@ def run_weekly(
     """Run every weekly phase in its own subprocess. Returns a process exit code."""
     campus = (campus_name or "").strip()
     results = []
-    for name, argv_tail, timeout, _crit in _PHASES:
-        results.append(_run_phase(name, argv_tail, timeout, campus, output_dir))
+    for name, argv_tail, timeout, _crit, mode in _PHASES:
+        results.append(
+            _run_phase(name, argv_tail, timeout, campus, output_dir, mode)
+        )
 
     failed = [r for r in results if not r["ok"]]
     crit_failed = [r for r in failed if r["critical"]]
