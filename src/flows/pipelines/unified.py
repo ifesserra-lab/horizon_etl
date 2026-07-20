@@ -23,6 +23,7 @@ from src.flows.lattes.advisorships import ingest_lattes_advisorships_flow
 from src.flows.lattes.projects import ingest_lattes_projects_flow
 from src.flows.sigpesq.advisorships import persist_advisorships
 from src.flows.sigpesq.all import download_all_sigpesq_reports
+from src.flows.sigpesq.enrich_projects import enrich_projects_flow
 from src.flows.sigpesq.groups import persist_research_groups
 from src.flows.sigpesq.projects import persist_projects
 from src.notifications.telegram import telegram_flow_state_handlers
@@ -109,7 +110,7 @@ def full_ingestion_pipeline(
         else:
             ingest_lattes_projects_flow()
 
-        logger.info("Step 7/9: Ingesting Lattes advisorships...")
+        logger.info("Step 7/10: Ingesting Lattes advisorships...")
         if reporter:
             reporter.run_step(
                 step_name="lattes_advisorships",
@@ -119,11 +120,18 @@ def full_ingestion_pipeline(
         else:
             ingest_lattes_advisorships_flow()
 
-        logger.info(f"Step 8/9: Exporting canonical data to {output_dir}...")
+        # Runs AFTER SigPesq + Lattes project ingestion: it matches PJ document
+        # files against initiatives from both sources (by SigPesq code, then
+        # title). Must precede the export so enrichment reaches the canonical
+        # output. Best-effort: a no-op when no PJ files are present.
+        logger.info("Step 8/10: Enriching projects from SigPesq document files...")
+        enrich_projects_flow()
+
+        logger.info(f"Step 9/10: Exporting canonical data to {output_dir}...")
         export_canonical_data_flow(output_dir=output_dir, campus=campus_name)
 
         ka_mart_path = os.path.join(output_dir, "knowledge_areas_mart.json")
-        logger.info(f"Step 9/9: Generating marts at {output_dir}...")
+        logger.info(f"Step 10/10: Generating marts at {output_dir}...")
         export_knowledge_areas_mart_flow(output_path=ka_mart_path, campus=campus_name)
 
         analytics_mart_path = os.path.join(
