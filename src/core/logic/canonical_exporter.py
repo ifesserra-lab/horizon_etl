@@ -1692,26 +1692,6 @@ class CanonicalDataExporter:
         except Exception as e:
             logger.warning(f"Failed to fetch Knowledge Area mappings: {e}")
 
-        # Initiative enrichment (SigPesq project document extraction). Stored in
-        # the initiatives.enrichment_json column by ProjectEnrichmentLoader; the
-        # column may not exist on older databases, so this is best-effort.
-        initiative_enrichment_map = {}
-        try:
-            import json as _json
-
-            e_result = session.execute(
-                text(
-                    "SELECT id, enrichment_json FROM initiatives WHERE enrichment_json IS NOT NULL"
-                )
-            ).fetchall()
-            for row in e_result:
-                try:
-                    initiative_enrichment_map[row[0]] = _json.loads(row[1])
-                except (TypeError, ValueError):
-                    continue
-        except Exception as e:
-            logger.info(f"No initiative enrichment available: {e}")
-
         # Normalize types and orgs to handle both dicts and objects
         raw_types = self.initiative_ctrl.list_initiative_types()
         types = {}
@@ -1865,7 +1845,6 @@ class CanonicalDataExporter:
                     "campus": resolver.get_campus("initiative", item.id),
                     "research_group": research_group_data,
                     "knowledge_areas": initiative_kas_map.get(item.id, []),
-                    "enrichment": initiative_enrichment_map.get(item.id),
                     "external_partner": (
                         item.metadata.get("external_partner")
                         if item.metadata and isinstance(item.metadata, dict)
