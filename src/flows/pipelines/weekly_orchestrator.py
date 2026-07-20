@@ -56,12 +56,36 @@ _PHASES = [
     ("initiatives_analytics_mart", ["analytics_mart"], 900, False, "app"),
     ("people_relationship_graph", ["people_graph"], 1800, False, "app"),
     # --- docentes / OpenAlex analytics (read-only wrt DB; run as modules) ---
-    ("openalex_citations", ["src.scripts.fetch_openalex_citations"], 3600, False, "module"),
-    ("rank_docentes_impact", ["src.scripts.rank_docentes_impact"], 600, False, "module"),
+    (
+        "openalex_citations",
+        ["src.scripts.fetch_openalex_citations"],
+        3600,
+        False,
+        "module",
+    ),
+    (
+        "rank_docentes_impact",
+        ["src.scripts.rank_docentes_impact"],
+        600,
+        False,
+        "module",
+    ),
     ("analyze_maturity", ["src.scripts.analyze_maturity"], 900, False, "module"),
     ("analyze_venues", ["src.scripts.analyze_venues"], 1800, False, "module"),
-    ("impacto_dashboard", ["src.scripts.generate_impacto_dashboard"], 900, False, "module"),
-    ("ppp_edital_report", ["src.scripts.generate_ppp_edital_report"], 900, False, "module"),
+    (
+        "impacto_dashboard",
+        ["src.scripts.generate_impacto_dashboard"],
+        900,
+        False,
+        "module",
+    ),
+    (
+        "ppp_edital_report",
+        ["src.scripts.generate_ppp_edital_report"],
+        900,
+        False,
+        "module",
+    ),
     ("anonymize_backfill", ["anonymize_backfill"], 1800, True, "app"),
 ]
 
@@ -135,9 +159,7 @@ def run_weekly(
     campus = (campus_name or "").strip()
     results = []
     for name, argv_tail, timeout, _crit, mode in _PHASES:
-        results.append(
-            _run_phase(name, argv_tail, timeout, campus, output_dir, mode)
-        )
+        results.append(_run_phase(name, argv_tail, timeout, campus, output_dir, mode))
 
     failed = [r for r in results if not r["ok"]]
     crit_failed = [r for r in failed if r["critical"]]

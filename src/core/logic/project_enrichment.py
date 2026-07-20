@@ -70,11 +70,15 @@ class ProjectEnrichmentLoader:
         """Adds the ``enrichment_json`` column to ``initiatives`` if missing."""
         cols = {
             row[1]
-            for row in self._session.execute(text("PRAGMA table_info(initiatives)")).fetchall()
+            for row in self._session.execute(
+                text("PRAGMA table_info(initiatives)")
+            ).fetchall()
         }
         if "enrichment_json" not in cols:
             logger.info("Adding column initiatives.enrichment_json (TEXT)")
-            self._session.execute(text("ALTER TABLE initiatives ADD COLUMN enrichment_json TEXT"))
+            self._session.execute(
+                text("ALTER TABLE initiatives ADD COLUMN enrichment_json TEXT")
+            )
             self._session.commit()
 
     # ------------------------------------------------------------------ indexes
@@ -111,7 +115,9 @@ class ProjectEnrichmentLoader:
                 index[code] = init_id
         return index
 
-    def _load_research_project_names(self) -> Tuple[Dict[str, List[int]], List[Tuple[int, str]]]:
+    def _load_research_project_names(
+        self,
+    ) -> Tuple[Dict[str, List[int]], List[Tuple[int, str]]]:
         """Returns (normalized_name -> [initiative_id], [(id, normalized_name)]) for
         Research Project initiatives only (advisorships excluded)."""
         rows = self._session.execute(
@@ -137,7 +143,9 @@ class ProjectEnrichmentLoader:
         return by_name, norm_list
 
     def _load_current_descriptions(self) -> Dict[int, str]:
-        rows = self._session.execute(text("SELECT id, description FROM initiatives")).fetchall()
+        rows = self._session.execute(
+            text("SELECT id, description FROM initiatives")
+        ).fetchall()
         return {row[0]: (row[1] or "") for row in rows}
 
     # ------------------------------------------------------------------ matching
@@ -247,7 +255,9 @@ class ProjectEnrichmentLoader:
                 stats["skipped_no_match"] += 1
                 continue
             init_id, strategy, needs_review = match
-            candidates.append((priority[strategy], path, pj, init_id, strategy, needs_review))
+            candidates.append(
+                (priority[strategy], path, pj, init_id, strategy, needs_review)
+            )
 
         candidates.sort(key=lambda c: (c[0], c[1]))
         claimed: set[int] = set()
@@ -255,7 +265,9 @@ class ProjectEnrichmentLoader:
         for _prio, path, pj, init_id, strategy, needs_review in candidates:
             if init_id in claimed:
                 stats["skipped_collision"] += 1
-                logger.debug(f"init {init_id} already claimed; skipping {os.path.basename(path)}")
+                logger.debug(
+                    f"init {init_id} already claimed; skipping {os.path.basename(path)}"
+                )
                 continue
             claimed.add(init_id)
 
@@ -270,8 +282,10 @@ class ProjectEnrichmentLoader:
             write_desc = bool(new_desc) and (self.overwrite or not current)
 
             if self.dry_run:
-                action = "fill" if (write_desc and not current) else (
-                    "overwrite" if write_desc else "keep"
+                action = (
+                    "fill"
+                    if (write_desc and not current)
+                    else ("overwrite" if write_desc else "keep")
                 )
                 logger.info(
                     f"[dry-run][{strategy}] init {init_id} desc={action} "
@@ -290,7 +304,14 @@ class ProjectEnrichmentLoader:
                 )
 
             stats["enriched"] += 1
-            stats["by_" + {"sigpesq_project_code": "code", "title_exact": "title_exact", "title_fuzzy": "title_fuzzy"}[strategy]] += 1
+            stats[
+                "by_"
+                + {
+                    "sigpesq_project_code": "code",
+                    "title_exact": "title_exact",
+                    "title_fuzzy": "title_fuzzy",
+                }[strategy]
+            ] += 1
             if needs_review:
                 stats["needs_review"] += 1
             if write_desc and not current:
@@ -298,14 +319,20 @@ class ProjectEnrichmentLoader:
             elif current and not self.overwrite:
                 stats["desc_kept_existing"] += 1
 
-        logger.info(f"Enrichment complete ({'dry-run' if self.dry_run else 'applied'}): {stats}")
+        logger.info(
+            f"Enrichment complete ({'dry-run' if self.dry_run else 'applied'}): {stats}"
+        )
         return stats
 
-    def _apply(self, init_id: int, enrichment: Dict[str, Any], description: Optional[str]) -> None:
+    def _apply(
+        self, init_id: int, enrichment: Dict[str, Any], description: Optional[str]
+    ) -> None:
         payload = json.dumps(enrichment, ensure_ascii=False)
         if description:
             self._session.execute(
-                text("UPDATE initiatives SET description = :d, enrichment_json = :j WHERE id = :id"),
+                text(
+                    "UPDATE initiatives SET description = :d, enrichment_json = :j WHERE id = :id"
+                ),
                 {"d": description, "j": payload, "id": init_id},
             )
         else:
@@ -382,7 +409,9 @@ class ProjectEnrichmentLoader:
         if end:
             match = re.match(r"^(\d{4})-(\d{2})-(\d{2})", str(end))
             if match:
-                end_dt = datetime(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+                end_dt = datetime(
+                    int(match.group(1)), int(match.group(2)), int(match.group(3))
+                )
                 return "Concluded" if end_dt < datetime.now() else "Active"
         return "Active" if start else "Unknown"
 
@@ -418,7 +447,12 @@ class ProjectEnrichmentLoader:
         org_id, type_id = self._lookup_org_and_type()
 
         files = sorted(glob.glob(os.path.join(pj_dir, "PJ_*.json")))
-        stats = {"created": 0, "skipped_matched": 0, "skipped_poor": 0, "skipped_duplicate": 0}
+        stats = {
+            "created": 0,
+            "skipped_matched": 0,
+            "skipped_poor": 0,
+            "skipped_duplicate": 0,
+        }
         seen_titles: set[str] = set()
 
         for path in files:
@@ -459,7 +493,9 @@ class ProjectEnrichmentLoader:
             description = descricao or geral
 
             if self.dry_run:
-                logger.info(f"[dry-run][new] would create '{title[:60]}' (code={code or '-'}, {status})")
+                logger.info(
+                    f"[dry-run][new] would create '{title[:60]}' (code={code or '-'}, {status})"
+                )
                 stats["created"] += 1
                 continue
 
@@ -498,5 +534,7 @@ class ProjectEnrichmentLoader:
             stats["created"] += 1
             logger.info(f"[new] initiative {new_id} created: {title[:60]} ({status})")
 
-        logger.info(f"Ingest unmatched complete ({'dry-run' if self.dry_run else 'applied'}): {stats}")
+        logger.info(
+            f"Ingest unmatched complete ({'dry-run' if self.dry_run else 'applied'}): {stats}"
+        )
         return stats
