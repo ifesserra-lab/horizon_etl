@@ -63,6 +63,14 @@ EXPECTED_TOP_LEVEL = {
     "students_collaboration_graph.json",
     "outside_ifes_collaboration_graph.json",
     "null_researchers_collaboration_graph.json",
+    # New Lattes data families (upstream)
+    "awards_canonical.json",
+    "languages_canonical.json",
+    "proficiencies_canonical.json",
+    "professional_activities_canonical.json",
+    "production_authors_canonical.json",
+    "production_types_canonical.json",
+    "research_productions_canonical.json",
 }
 
 SUBGRAPH_DIR = "research_group_relationship_graphs"
