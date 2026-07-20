@@ -1656,7 +1656,9 @@ class CanonicalDataExporter:
             import json as _json
 
             e_result = session.execute(
-                text("SELECT id, enrichment_json FROM initiatives WHERE enrichment_json IS NOT NULL")
+                text(
+                    "SELECT id, enrichment_json FROM initiatives WHERE enrichment_json IS NOT NULL"
+                )
             ).fetchall()
             for row in e_result:
                 try:

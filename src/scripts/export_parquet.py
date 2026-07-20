@@ -15,6 +15,7 @@ Round-trips losslessly for the homogeneous canonical/graph tables. Usage::
 
     python -m src.scripts.export_parquet --src data/exports --dst data/exports_parquet
 """
+
 import argparse
 import glob
 import json
@@ -30,7 +31,11 @@ def _stringify_nested(df: pd.DataFrame) -> pd.DataFrame:
     for col in df.columns:
         if df[col].dtype == object:
             df[col] = df[col].apply(
-                lambda v: v if isinstance(v, (str, type(None))) else json.dumps(v, ensure_ascii=False)
+                lambda v: (
+                    v
+                    if isinstance(v, (str, type(None)))
+                    else json.dumps(v, ensure_ascii=False)
+                )
             )
     return df
 
@@ -72,7 +77,9 @@ def convert_file(path: str, dst_dir: str) -> str:
                 "graph": graph.get("graph"),
             },
         }
-        with open(os.path.join(dst_dir, f"{stem}.meta.json"), "w", encoding="utf-8") as fh:
+        with open(
+            os.path.join(dst_dir, f"{stem}.meta.json"), "w", encoding="utf-8"
+        ) as fh:
             json.dump(meta, fh, ensure_ascii=False)
         return "graph"
 
@@ -94,7 +101,9 @@ def convert_dir(src: str, dst: str) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Convert JSON exports to Parquet layout.")
+    parser = argparse.ArgumentParser(
+        description="Convert JSON exports to Parquet layout."
+    )
     parser.add_argument("--src", default="data/exports")
     parser.add_argument("--dst", default="data/exports_parquet")
     args = parser.parse_args()
