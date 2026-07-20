@@ -38,7 +38,9 @@ from loguru import logger
 # (name, argv tail, timeout seconds, critical, mode)
 #   mode "app"    -> `python app.py <argv...>`      (DB-writing phases; LGPD hook active)
 #   mode "module" -> `python -m <module>`           (read-only docentes/OpenAlex reports)
-# Order is load-bearing: SigPesq -> CNPq -> Lattes -> exports -> docentes -> LGPD.
+# Order is load-bearing: SigPesq -> CNPq -> Lattes -> enrich_projects -> exports -> docentes -> LGPD.
+# enrich_projects runs after both project sources so PJ document files can match
+# initiatives by SigPesq code or Lattes title; it must precede export_canonical.
 # The docentes block runs after export_canonical (needs researchers_canonical.json /
 # openalex_citacoes.json produced upstream) and is ordered internally so each report's
 # inputs exist: fetch_openalex -> rank -> {maturity, venues, impacto, ppp}.
@@ -48,6 +50,7 @@ _PHASES = [
     ("lattes_download", ["lattes_download"], 5400, False, "app"),
     ("lattes_projects", ["ingest_lattes_projects"], 3600, False, "app"),
     ("lattes_advisorships", ["lattes_advisorships"], 1800, False, "app"),
+    ("enrich_projects", ["enrich_projects"], 900, False, "app"),
     ("export_canonical", ["export_canonical"], 1800, True, "app"),
     ("knowledge_areas_mart", ["ka_mart"], 900, False, "app"),
     ("initiatives_analytics_mart", ["analytics_mart"], 900, False, "app"),

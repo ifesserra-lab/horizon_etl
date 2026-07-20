@@ -244,6 +244,12 @@ def main():
             logger.info("Executing Flow: Ingest Lattes Advisorships")
             ingest_lattes_advisorships_flow()
 
+        if flow_to_run == "enrich_projects":
+            from src.flows.sigpesq.enrich_projects import enrich_projects_flow
+
+            logger.info("Executing Flow: Enrich SigPesq Projects")
+            enrich_projects_flow()
+
         if flow_to_run == "lattes_full":
             logger.info("Executing Flow: Lattes Complete Pipeline")
             lattes_complete_flow()
