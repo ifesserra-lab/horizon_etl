@@ -3,13 +3,16 @@ Convert the JSON canonical exports into a Parquet layout for storage/consumption
 
 Layout produced in the destination directory:
 
-* array-of-objects file  ->  ``<name>.parquet`` (nested object/list fields are
-  stored as JSON strings; readers revive them with ``JSON.parse``).
+* array-of-objects file  ->  ``<name>.parquet`` (+ ``<name>.cols.json`` sidecar).
 * node-link graph file    ->  ``<name>.nodes.parquet`` + ``<name>.edges.parquet``
-  + ``<name>.meta.json`` (the small ``metadata`` / ``graph_stats`` /
-  ``directed`` / ``multigraph`` wrapper).
-* other small object (marts, summaries, ``_meta``)  ->  copied as ``<name>.json``
-  (already tiny and deeply nested; Parquet adds no value).
+  (+ their ``.cols.json`` sidecars) + ``<name>.meta.json``.
+* other small object (marts, summaries, ``_meta``)  ->  copied as ``<name>.json``.
+
+Nested (object/list) fields are stored as JSON strings; the reader revives them.
+The ``<name>.cols.json`` sidecar (``{"json_columns": [...]}``) tells the reader
+EXACTLY which columns were JSON-encoded, so it never has to guess (see the
+dashboard's parquet plugin). Id-like columns are pinned to a nullable integer
+dtype so they don't round-trip as floats (e.g. ``4737.0``).
 
 Round-trips losslessly for the homogeneous canonical/graph tables. Usage::
 
@@ -23,26 +26,48 @@ import os
 import shutil
 
 import pandas as pd
+from loguru import logger
 
 COMPRESSION = "zstd"
+NESTED_TYPES = (dict, list)
 
 
-def _stringify_nested(df: pd.DataFrame) -> pd.DataFrame:
+def _is_id_column(name: str) -> bool:
+    return name == "id" or name.endswith("_id")
+
+
+def _first_non_null(series: pd.Series):
+    non_null = series.dropna()
+    return non_null.iloc[0] if len(non_null) else None
+
+
+def _encode_columns(df: pd.DataFrame) -> list:
+    """Stringifies nested columns (in place) and pins id-like columns to a nullable
+    integer dtype. Returns the list of columns that were JSON-encoded."""
+    json_columns = []
     for col in df.columns:
-        if df[col].dtype == object:
-            df[col] = df[col].apply(
-                lambda v: (
-                    v
-                    if isinstance(v, (str, type(None)))
-                    else json.dumps(v, ensure_ascii=False)
-                )
-            )
-    return df
+        sample = _first_non_null(df[col])
+        if isinstance(sample, NESTED_TYPES):
+            df[col] = [
+                json.dumps(v, ensure_ascii=False) if isinstance(v, NESTED_TYPES) else v
+                for v in df[col]
+            ]
+            json_columns.append(col)
+        elif _is_id_column(col):
+            try:
+                df[col] = pd.to_numeric(df[col]).astype("Int64")
+            except (ValueError, TypeError):
+                pass  # non-numeric id (already a string) — leave as is
+    return json_columns
 
 
 def _write_table(rows: list, path: str) -> None:
     df = pd.json_normalize(rows, max_level=0)
-    _stringify_nested(df).to_parquet(path, compression=COMPRESSION, index=False)
+    json_columns = _encode_columns(df)
+    df.to_parquet(path, compression=COMPRESSION, index=False)
+    sidecar = path[: -len(".parquet")] + ".cols.json"
+    with open(sidecar, "w", encoding="utf-8") as fh:
+        json.dump({"json_columns": json_columns}, fh, ensure_ascii=False)
 
 
 def _is_graph(data) -> bool:
@@ -95,7 +120,7 @@ def convert_dir(src: str, dst: str) -> dict:
         try:
             stats[convert_file(path, dst)] += 1
         except Exception as exc:  # keep going; report at the end
-            print(f"ERROR converting {os.path.basename(path)}: {exc}")
+            logger.warning("Failed converting {}: {}", os.path.basename(path), exc)
             stats["error"] += 1
     return stats
 
@@ -108,7 +133,7 @@ def main() -> None:
     parser.add_argument("--dst", default="data/exports_parquet")
     args = parser.parse_args()
     stats = convert_dir(args.src, args.dst)
-    print(f"Parquet conversion complete: {stats} -> {args.dst}")
+    logger.info("Parquet conversion complete: {} -> {}", stats, args.dst)
 
 
 if __name__ == "__main__":
