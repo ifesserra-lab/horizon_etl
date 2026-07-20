@@ -5,12 +5,14 @@ import re
 from datetime import datetime
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
-from eo_lib import InitiativeController
+from eo_lib import Initiative, InitiativeController
 from loguru import logger
+from pydantic import BaseModel, ConfigDict, Field
 from rapidfuzz import fuzz, process
 from sqlalchemy import text
 
 from src.core.logic.initiative_identity import normalize_text
+from src.db.migrations import run_migrations
 from src.tracking.recorder import tracking_recorder
 
 RESEARCH_PROJECT_TYPE = "Research Project"
@@ -18,6 +20,40 @@ RESEARCH_PROJECT_TYPE = "Research Project"
 FUZZY_THRESHOLD = 90.0
 NEW_FROM_DOCUMENT = "new_from_document"
 STRATEGY_PRIORITY = {"sigpesq_project_code": 0, "title_exact": 1, "title_fuzzy": 2}
+
+
+# --------------------------------------------------------------------------- #
+# Enrichment payload schema (validated on build; stored as JSON in enrichment_json)
+# --------------------------------------------------------------------------- #
+class Objetivos(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    geral: Optional[str] = None
+    especificos: List[str] = Field(default_factory=list)
+
+
+class CronogramaItem(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    atividade: Optional[str] = None
+    inicio: Optional[str] = None
+    fim: Optional[str] = None
+
+
+class EnrichmentPayload(BaseModel):
+    """Typed, validated shape of ``initiatives.enrichment_json``."""
+
+    model_config = ConfigDict(extra="forbid")
+    source: str
+    project_code: Optional[str] = None
+    match_strategy: str
+    needs_review: bool
+    objetivos: Objetivos = Field(default_factory=Objetivos)
+    cronograma: List[CronogramaItem] = Field(default_factory=list)
+    linha_pesquisa: Optional[str] = None
+    palavras_chave: List[str] = Field(default_factory=list)
+    area_conhecimento: Optional[str] = None
+    extracted_at: Optional[str] = None
+    extraction_model: Optional[str] = None
+    source_file: Optional[str] = None
 
 
 # --------------------------------------------------------------------------- #
@@ -43,22 +79,38 @@ def compose_description(pj: Dict[str, Any]) -> Optional[str]:
 def build_enrichment(
     pj: Dict[str, Any], *, code: str, strategy: str, needs_review: bool
 ) -> Dict[str, Any]:
-    """Assembles the ``enrichment_json`` payload from a PJ document."""
+    """Assembles and VALIDATES the ``enrichment_json`` payload from a PJ document.
+
+    Returns a plain dict (``EnrichmentPayload.model_dump``); raises
+    ``pydantic.ValidationError`` on a malformed document so the row is skipped
+    (via the caller's savepoint) instead of persisting garbage.
+    """
     meta = pj.get("_meta") or {}
-    return {
-        "source": ProjectEnrichmentLoader.SOURCE_SYSTEM,
-        "project_code": code or None,
-        "match_strategy": strategy,
-        "needs_review": needs_review,
-        "objetivos": pj.get("objetivos") or {},
-        "cronograma": pj.get("cronograma") or [],
-        "linha_pesquisa": pj.get("linha_pesquisa"),
-        "palavras_chave": pj.get("palavras_chave") or [],
-        "area_conhecimento": pj.get("area_conhecimento"),
-        "extracted_at": meta.get("extraido_em"),
-        "extraction_model": meta.get("modelo"),
-        "source_file": meta.get("arquivo"),
-    }
+    payload = EnrichmentPayload(
+        source=ProjectEnrichmentLoader.SOURCE_SYSTEM,
+        project_code=code or None,
+        match_strategy=strategy,
+        needs_review=needs_review,
+        objetivos=pj.get("objetivos") or {},
+        cronograma=pj.get("cronograma") or [],
+        linha_pesquisa=pj.get("linha_pesquisa"),
+        palavras_chave=pj.get("palavras_chave") or [],
+        area_conhecimento=pj.get("area_conhecimento"),
+        extracted_at=meta.get("extraido_em"),
+        extraction_model=meta.get("modelo"),
+        source_file=meta.get("arquivo"),
+    )
+    return payload.model_dump()
+
+
+def parse_datetime(value: Any) -> Optional[datetime]:
+    """Parses a 'YYYY-MM-DD' prefix into a ``datetime`` (for the ORM), or None."""
+    if not value:
+        return None
+    match = re.match(r"^(\d{4})-(\d{2})-(\d{2})", str(value))
+    if not match:
+        return None
+    return datetime(int(match.group(1)), int(match.group(2)), int(match.group(3)))
 
 
 def parse_sql_datetime(value: Any) -> Optional[str]:
@@ -203,23 +255,9 @@ class ProjectEnrichmentLoader:
 
     # -------------------------------------------------------------- schema
     def ensure_schema(self) -> None:
-        """Adds the ``enrichment_json`` column to ``initiatives`` if missing.
-
-        NOTE: runtime DDL is a pragmatic stopgap — this belongs in a real
-        migration once the project adopts a migration tool.
-        """
-        cols = {
-            row[1]
-            for row in self._session.execute(
-                text("PRAGMA table_info(initiatives)")
-            ).fetchall()
-        }
-        if "enrichment_json" not in cols:
-            logger.info("Adding column initiatives.enrichment_json (TEXT)")
-            self._session.execute(
-                text("ALTER TABLE initiatives ADD COLUMN enrichment_json TEXT")
-            )
-            self._session.commit()
+        """Applies pending schema migrations (idempotent). Delegates DDL to the
+        migrations module instead of running ad-hoc ``ALTER`` in business logic."""
+        run_migrations(self._session)
 
     # -------------------------------------------------------------- indexes
     def _load_code_index(self) -> Dict[str, int]:
@@ -479,34 +517,32 @@ class ProjectEnrichmentLoader:
         )
         datas = pj.get("datas") or {}
         description = compose_description(pj)
-        params = {
-            "name": (pj.get("titulo") or "").strip(),
-            "status": derive_status(
-                datas.get("inicio"), datas.get("fim"), now=datetime.now()
-            ),
-            "desc": description,
-            "start": parse_sql_datetime(datas.get("inicio")),
-            "end": parse_sql_datetime(datas.get("fim")),
-            "type_id": type_id,
-            "org_id": org_id,
-            "j": json.dumps(enrichment, ensure_ascii=False),
-        }
+        name = (pj.get("titulo") or "").strip()
         new_id_box: Dict[str, Optional[int]] = {"id": None}
 
         def _do():
-            result = self._session.execute(
-                text(
-                    """
-                    INSERT INTO initiatives
-                        (name, status, description, start_date, end_date,
-                         initiative_type_id, organization_id, parent_id, enrichment_json)
-                    VALUES (:name, :status, :desc, :start, :end,
-                            :type_id, :org_id, NULL, :j)
-                    """
+            # Create through the ORM entity so SQLAlchemy defaults and the
+            # session's before_flush hooks (e.g. LGPD anonymization) fire.
+            # flush() (not commit) keeps this inside the run() transaction.
+            initiative = Initiative(
+                name=name,
+                status=derive_status(
+                    datas.get("inicio"), datas.get("fim"), now=datetime.now()
                 ),
-                params,
+                description=description,
+                start_date=parse_datetime(datas.get("inicio")),
+                end_date=parse_datetime(datas.get("fim")),
+                initiative_type_id=type_id,
+                organization_id=org_id,
             )
-            new_id_box["id"] = result.lastrowid
+            self._session.add(initiative)
+            self._session.flush()
+            new_id_box["id"] = initiative.id
+            # enrichment_json has no ORM column mapping -> raw UPDATE, same txn.
+            self._session.execute(
+                text("UPDATE initiatives SET enrichment_json = :j WHERE id = :id"),
+                {"j": json.dumps(enrichment, ensure_ascii=False), "id": initiative.id},
+            )
 
         if not self._write_row(_do):
             return False
@@ -520,9 +556,7 @@ class ProjectEnrichmentLoader:
             path=cand.path,
             pj=pj,
         )
-        logger.info(
-            f"[new] initiative {new_id_box['id']} created: {params['name'][:60]}"
-        )
+        logger.info(f"[new] initiative {new_id_box['id']} created: {name[:60]}")
         return True
 
     # -------------------------------------------------------------- write helpers

@@ -77,9 +77,23 @@ def test_build_enrichment_shape():
 def test_build_enrichment_empty_code_becomes_none():
     e = build_enrichment({}, code="", strategy="new_from_document", needs_review=True)
     assert e["project_code"] is None
-    assert e["objetivos"] == {}
+    # objetivos is validated/normalized by the Pydantic model
+    assert e["objetivos"] == {"geral": None, "especificos": []}
     assert e["cronograma"] == []
     assert e["palavras_chave"] == []
+
+
+def test_build_enrichment_rejects_malformed_payload():
+    from pydantic import ValidationError
+
+    # palavras_chave must be a list of strings; a dict is invalid
+    with pytest.raises(ValidationError):
+        build_enrichment(
+            {"palavras_chave": {"nope": 1}},
+            code="1",
+            strategy="title_exact",
+            needs_review=False,
+        )
 
 
 # --------------------------------------------------------------- parse_sql_datetime
