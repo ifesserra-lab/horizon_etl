@@ -1,24 +1,19 @@
-import unicodedata
 from typing import Any, Dict, Optional
 
-from eo_lib import (
-    InitiativeController,
-    PersonController,
-    OrganizationController
-)
+from eo_lib import InitiativeController, OrganizationController, PersonController
 from eo_lib.domain import Role
 from eo_lib.infrastructure.database.postgres_client import PostgresClient
 from loguru import logger
 from research_domain.controllers import (
-    UniversityController,
-    EducationTypeController,
     AcademicEducationController,
+    ArticleController,
     CampusController,
+    EducationTypeController,
     KnowledgeAreaController,
     RoleController,
-    ArticleController
+    UniversityController,
 )
-from research_domain.domain.entities.academic_education import EducationType
+
 from src.core.logic.initiative_identity import normalize_text
 
 
@@ -47,6 +42,8 @@ class EntityManager:
         self.org_controller = OrganizationController()
 
         self._roles_cache: Dict[str, Role] = {}
+        self._kas_cache: Dict[str, int] = {}
+        self._orgs_cache: Dict[str, int] = {}
 
     def ensure_organization(
         self, name: str = "Instituto Federal do Espírito Santo", short_name: str = None
@@ -54,7 +51,7 @@ class EntityManager:
         """Ensure an organization exists and return its ID."""
         if not name:
             return None
-        
+
         # If using the default name and short_name is not provided, default it to IFES
         if name == "Instituto Federal do Espírito Santo" and short_name is None:
             short_name = "IFES"
@@ -64,6 +61,11 @@ class EntityManager:
             target_norm = normalize_text(name)
             target_short_norm = normalize_text(short_name) if short_name else ""
 
+            # Check in-memory cache first
+            cache_key = target_norm
+            if cache_key in self._orgs_cache:
+                return self._orgs_cache[cache_key]
+
             orgs = self.uni_controller.get_all()
             for o in orgs:
                 o_name = o.name if hasattr(o, "name") else o.get("name", "")
@@ -72,18 +74,28 @@ class EntityManager:
                     if hasattr(o, "short_name")
                     else o.get("short_name", "")
                 )
+                o_id = o.id if hasattr(o, "id") else o.get("id")
+
+                # Cache by both name and short_name for future lookups
+                if o_name:
+                    self._orgs_cache[normalize_text(o_name)] = o_id
+                if o_short_name:
+                    self._orgs_cache[normalize_text(o_short_name)] = o_id
 
                 if normalize_text(o_name) == target_norm or (
-                    target_short_norm and normalize_text(o_short_name) == target_short_norm
+                    target_short_norm
+                    and normalize_text(o_short_name) == target_short_norm
                 ):
-                    return o.id if hasattr(o, "id") else o.get("id")
+                    return o_id
 
             # If not found, create one
             logger.info(f"Creating Organization: {name}...")
             new_org = self.uni_controller.create_university(
                 name=name, short_name=short_name
             )
-            return new_org.id if hasattr(new_org, "id") else new_org.get("id")
+            new_id = new_org.id if hasattr(new_org, "id") else new_org.get("id")
+            self._orgs_cache[target_norm] = new_id
+            return new_id
         except Exception as e:
             logger.warning(f"Failed to ensure organization '{name}': {e}")
             return None
@@ -185,7 +197,9 @@ class EntityManager:
 
         return initiative_type
 
-    def resolve_campus(self, campus_name: Optional[str], org_id: Optional[int]) -> Optional[int]:
+    def resolve_campus(
+        self, campus_name: Optional[str], org_id: Optional[int]
+    ) -> Optional[int]:
         """Resolve a campus name to an ID, creating it if necessary."""
         if not campus_name or not isinstance(campus_name, str):
             campus_name = "Reitoria"
@@ -200,12 +214,12 @@ class EntityManager:
                 c_org = (
                     c.organization_id
                     if hasattr(c, "organization_id")
-                    else c.get("organization_id")
-                    if isinstance(c, dict)
-                    else None
+                    else c.get("organization_id") if isinstance(c, dict) else None
                 )
-                if c_name and normalize_text(c_name) == target_norm and (
-                    org_id is None or c_org is None or c_org == org_id
+                if (
+                    c_name
+                    and normalize_text(c_name) == target_norm
+                    and (org_id is None or c_org is None or c_org == org_id)
                 ):
                     return c.id if hasattr(c, "id") else c.get("id")
 
@@ -233,6 +247,10 @@ class EntityManager:
         except Exception:
             return None
 
+        # Check in-memory cache first
+        if norm_name in self._kas_cache:
+            return self._kas_cache[norm_name]
+
         try:
             all_kas = self.ka_controller.get_all()
             for ka in all_kas:
@@ -240,14 +258,18 @@ class EntityManager:
                 if k_name:
                     try:
                         k_norm = normalize_text(k_name)
+                        ka_id = ka.id if hasattr(ka, "id") else ka.get("id")
+                        self._kas_cache[k_norm] = ka_id
                         if k_norm == norm_name:
-                            return ka.id if hasattr(ka, "id") else ka.get("id")
+                            return ka_id
                     except Exception:
                         continue
 
             logger.info(f"Creating Knowledge Area: {name}")
             new_ka = self.ka_controller.create_knowledge_area(name=name)
-            return new_ka.id if hasattr(new_ka, "id") else new_ka.get("id")
+            new_id = new_ka.id if hasattr(new_ka, "id") else new_ka.get("id")
+            self._kas_cache[norm_name] = new_id
+            return new_id
 
         except Exception as e:
             logger.warning(f"Failed to ensure Knowledge Area '{name}': {e}")
@@ -269,7 +291,7 @@ class EntityManager:
             # Create
             logger.info(f"Creating Education Type: {name}")
             new_type = self.edu_type_controller.create_education_type(name=name)
-            
+
             # The controller returns the object or a dict depending on implementation
             # In v0.12.7 it returns the object directly
             return new_type.id if hasattr(new_type, "id") else new_type.get("id")

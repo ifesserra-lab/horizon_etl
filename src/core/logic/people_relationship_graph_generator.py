@@ -57,6 +57,26 @@ class PeopleRelationshipGraphGenerator:
         )
         return result
 
+    def _clean_research_group_graphs(self, output_dir: str) -> None:
+        graphs_dir = os.path.join(output_dir, RESEARCH_GROUP_GRAPH_DIRECTORY)
+        if os.path.isdir(graphs_dir):
+            for fname in os.listdir(graphs_dir):
+                fpath = os.path.join(graphs_dir, fname)
+                try:
+                    if os.path.isfile(fpath):
+                        os.unlink(fpath)
+                except OSError:
+                    pass
+
+        membership_alias = os.path.join(
+            output_dir, RESEARCH_GROUP_MEMBERSHIP_GRAPH_DIRECTORY
+        )
+        if os.path.islink(membership_alias) or os.path.isfile(membership_alias):
+            try:
+                os.unlink(membership_alias)
+            except OSError:
+                pass
+
     def generate_all(
         self,
         researchers_path: str,
@@ -68,6 +88,8 @@ class PeopleRelationshipGraphGenerator:
         logger.info(
             "Generating People Relationship Graph bundle into directory {}", output_dir
         )
+
+        self._clean_research_group_graphs(output_dir)
 
         sources, graph, research_groups = self._build_graph_from_paths(
             researchers_path=researchers_path,
@@ -182,9 +204,12 @@ class PeopleRelationshipGraphGenerator:
 
     @staticmethod
     def _load_json(path: str) -> list[dict[str, Any]]:
-        with open(path, "r", encoding="utf-8") as file_handle:
-            payload = json.load(file_handle)
-        return payload if isinstance(payload, list) else []
+        try:
+            with open(path, "r", encoding="utf-8") as file_handle:
+                payload = json.load(file_handle)
+            return payload if isinstance(payload, list) else []
+        except FileNotFoundError:
+            return []
 
     def _serialize_graph_result(
         self,

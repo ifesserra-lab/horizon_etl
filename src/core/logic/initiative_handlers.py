@@ -5,13 +5,6 @@ from typing import Any, Dict, Optional
 from eo_lib import Initiative, InitiativeController, Person
 from eo_lib.domain import Role
 from loguru import logger
-from research_domain import (
-    CampusController,
-    KnowledgeAreaController,
-    ResearcherController,
-    ResearchGroupController,
-    UniversityController,
-)
 
 # Workaround: Import directly from controllers module since not exported in __init__
 from research_domain.controllers.controllers import (
@@ -122,6 +115,7 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         self.entity_manager = entity_manager
         self._fellowships_cache: Dict[str, Fellowship] = {}
         self._advisorship_roles_cache: Dict[str, Role] = {}
+        self._person_by_id_cache: Dict[int, Person] = {}
         self._preload_fellowships()
 
     def _preload_fellowships(self):
@@ -387,13 +381,14 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         sponsor_id: Optional[int] = None,
     ) -> str:
         name_key = self._normalize_fellowship_cache_part(fellowship_data["name"])
+        value_key = fellowship_data.get("value", 0.0)
         if sponsor_id is not None:
             sponsor_key = f"id:{sponsor_id}"
         else:
             sponsor_key = self._normalize_fellowship_cache_part(
                 fellowship_data.get("sponsor_name")
             )
-        return f"{name_key}::{sponsor_key}"
+        return f"{name_key}::{value_key}::{sponsor_key}"
 
     @staticmethod
     def _clean_fellowship_sponsor_name(sponsor_name: Any) -> Optional[str]:
@@ -471,16 +466,23 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         if not person_id:
             return None
 
+        if person_id in self._person_by_id_cache:
+            return self._person_by_id_cache[person_id]
+
         session = self.person_matcher.person_controller._service._repository._session
         try:
             base_person = session.get(Person, person_id)
             if base_person:
+                self._person_by_id_cache[person_id] = base_person
                 return base_person
         except Exception:
             pass
 
         try:
-            return self.person_matcher.person_controller.get_by_id(person_id)
+            fetched = self.person_matcher.person_controller.get_by_id(person_id)
+            if fetched:
+                self._person_by_id_cache[person_id] = fetched
+            return fetched
         except Exception:
             return person if isinstance(person, Person) else None
 

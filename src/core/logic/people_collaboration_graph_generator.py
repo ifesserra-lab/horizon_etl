@@ -1,5 +1,4 @@
 import json
-import os
 from datetime import datetime, timezone
 from itertools import combinations
 from typing import Any
@@ -29,8 +28,14 @@ class PeopleCollaborationGraphGenerator:
     ) -> dict[str, Any]:
         logger.info("Building people collaboration graph from {}", researchers_path)
 
-        with open(researchers_path) as f:
-            raw = json.load(f)
+        try:
+            with open(researchers_path) as f:
+                raw = json.load(f)
+        except FileNotFoundError:
+            logger.warning(
+                "File not found: {}. Skipping graph generation.", researchers_path
+            )
+            return {"nodes": [], "edges": [], "sources": {}}
         people = raw["data"] if "data" in raw else raw
         if node_filter is not None:
             before = len(people)

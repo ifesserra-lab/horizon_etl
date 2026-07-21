@@ -1,8 +1,6 @@
-import json
-import os
 from collections import Counter
 from datetime import date
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from eo_lib import InitiativeController, TeamController
 from loguru import logger
@@ -17,6 +15,7 @@ from src.core.logic.export_campus_resolver import ExportCampusResolver
 
 
 class KnowledgeAreaMartGenerator:
+
     def __init__(self):
         self.ka_ctrl = KnowledgeAreaController()
         self.rg_ctrl = ResearchGroupController()
@@ -363,7 +362,7 @@ class InitiativeAnalyticsMartGenerator:
                                         or "coordenador" in role_name
                                     ):
                                         year_researchers.add(m.person_id)
-                        except:
+                        except Exception:
                             pass
 
                 # Apply partition priority per year (Student > Researcher)

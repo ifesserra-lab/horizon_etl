@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 
 from dotenv import load_dotenv
@@ -48,6 +49,21 @@ os.environ.setdefault("PREFECT_API_URL", "http://127.0.0.1:4200/api")
 install_lgpd_session_hooks()
 
 
+def _create_export_zip(output_dir: str) -> None:
+    try:
+        result = subprocess.run(
+            [sys.executable, "scripts/export_zip.py", output_dir],
+            capture_output=True,
+            text=True,
+        )
+        for line in result.stdout.splitlines():
+            logger.info(line.strip())
+        if result.returncode != 0:
+            logger.error("ZIP creation failed:\n{}", result.stderr.strip())
+    except Exception as e:
+        logger.warning("Could not create export ZIP: {}", e)
+
+
 def main():
     """
     Main entry point for Horizon ETL.
@@ -66,6 +82,7 @@ def main():
                 f"Executing FULL Pipeline (Campus: {campus_filter}, Output: {output_dir})"
             )
             full_ingestion_pipeline(campus_name=campus_filter, output_dir=output_dir)
+            _create_export_zip(output_dir)
 
         elif flow_to_run in ["weekly", "weekly_flows"]:
             campus_filter = sys.argv[2] if len(sys.argv) > 2 else None
@@ -85,6 +102,7 @@ def main():
             output_dir = sys.argv[3] if len(sys.argv) > 3 else "data/exports"
             logger.info("Executing WEEKLY Pipelines in a single process (legacy).")
             weekly_pipelines_flow(campus_name=campus_filter, output_dir=output_dir)
+            _create_export_zip(output_dir)
 
         elif flow_to_run == "all_sources":
             campus_filter = sys.argv[2] if len(sys.argv) > 2 else None
@@ -124,6 +142,7 @@ def main():
                 f"Executing Flow: Export Canonical Data (Output: {output_dir}, Campus: {campus_filter})"
             )
             export_canonical_data_flow(output_dir=output_dir, campus=campus_filter)
+            _create_export_zip(output_dir)
 
         if flow_to_run in ["ka_mart", "all"]:
             output_path = (
@@ -243,12 +262,6 @@ def main():
         if flow_to_run == "lattes_advisorships":
             logger.info("Executing Flow: Ingest Lattes Advisorships")
             ingest_lattes_advisorships_flow()
-
-        if flow_to_run == "enrich_projects":
-            from src.flows.sigpesq.enrich_projects import enrich_projects_flow
-
-            logger.info("Executing Flow: Enrich SigPesq Projects")
-            enrich_projects_flow()
 
         if flow_to_run == "lattes_full":
             logger.info("Executing Flow: Lattes Complete Pipeline")

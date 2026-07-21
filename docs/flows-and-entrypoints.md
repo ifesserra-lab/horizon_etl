@@ -4,12 +4,15 @@
 
 Os pontos de entrada mais relevantes hoje sao:
 
-- `make full-refresh`
-- `make pipeline-serra`
+- `make full-refresh` — executa pipeline completo + export canonico + ZIP
+- `make pipeline CAMPUS=Serra` — executa pipeline para um campus + ZIP
+- `make weekly-flows` — executa pipelines semanais + ZIP
+- `make export-canonical CAMPUS=Serra` — exporta dados canonicos + ZIP
 - `make ingest-sigpesq`
 - `make ingest-lattes-full`
-- `make export-canonical CAMPUS=Serra`
 - `python app.py full_pipeline Serra data/exports`
+- `python app.py export_canonical data/exports`
+- `python app.py weekly data/exports`
 - `python app.py all_sources Serra`
 - `python app.py sigpesq`
 - `python app.py cnpq_sync Serra`
@@ -53,6 +56,41 @@ O `full_ingestion_pipeline` coordena, em alto nivel:
 4. exportacoes canonicas
 5. geracao de marts
 6. escrita de reports operacionais
+
+> **Consolidacao de duplicatas removida dos pipelines automaticos.**  
+> O `PersonConsolidator` anteriormente era executado automaticamente apos a
+> ingestao de cada pipeline (`unified.py`, `weekly.py`), mas usava correspondencia
+> exclusiva por nome para deletar registros de pesquisadores, causando perda de
+> dados. A consolidacao manual continua disponivel como script avulso:
+> ```bash
+> python src/scripts/consolidate_duplicates.py
+> ```
+
+Ao final de cada pipeline, o `app.py` chama automaticamente o script
+`scripts/export_zip.py` para compactar todos os JSONs gerados em um unico ZIP
+com timestamp (`canonical_export_<YYYYMMDD_HHMMSS>.zip`).
+
+O processo de geracao inclui:
+
+1. **Limpeza** — grafos relacionais de grupos da execucao anterior sao removidos;
+   symlinks sao eliminados antes da compactacao.
+2. **Compactacao** — todos os JSONs sao zipados com `ZIP_DEFLATED`.
+3. **Validacao** — o ZIP e verificado contra a lista de arquivos esperados e
+   a consistencia dos manifests de grafos. Se falhar, o ZIP e deletado.
+4. **Limpeza pos-zip** — JSONs soltos e diretorios vazios sao removidos.
+
+### Protecao LGPD nas exportacoes
+
+Durante a exportacao, todos os dados passam por anonimizacao antes de serem
+serializados:
+
+- CPF (`identification_id`) → `LGPD-<sha256>`
+- E-mails → `<hash>@anon.lgpd` (inclusive em campos de texto livre)
+- Telefones em payloads fonte → anulados
+
+Alem do hook de banco de dados (ORM session hook), os metodos de exportacao
+(`export_researchers`, `export_initiatives`, `export_advisorships`) aplicam
+`scrub_pii_deep` em cada registro como camada defensiva adicional.
 
 ## Lattes
 

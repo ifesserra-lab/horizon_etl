@@ -41,6 +41,7 @@ jobs:
       CHROME_BINARY: /usr/bin/chromium-browser
       CHROMEDRIVER_PATH: /usr/bin/chromedriver
       RAPIDFUZZ_IMPLEMENTATION: fallback
+      CNPQ_MAX_PARALLEL: 2
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -76,12 +77,6 @@ jobs:
 
       - name: Run weekly flows
         run: make weekly-flows
-
-      - name: Compress large export files
-        if: always()
-        run: |
-          find data/ -type f -size +10M \
-            -exec sh -c 'for f; do zip -m -j "$f.zip" "$f"; done' sh {} +
 
       - name: Upload ETL artifacts
         if: always()

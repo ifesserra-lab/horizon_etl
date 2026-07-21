@@ -1,10 +1,12 @@
 import glob
 import os
 
+import pandas as pd
 from dotenv import load_dotenv
 from prefect import flow, get_run_logger, task
 
 from src.adapters.sources.sigpesq.adapter import SigPesqAdapter
+from src.core.logic.initiative_identity import normalize_sigpesq_code
 from src.core.logic.project_loader import ProjectLoader
 from src.core.logic.strategies.sigpesq_advisorships import (
     SigPesqAdvisorshipMappingStrategy,
@@ -12,6 +14,23 @@ from src.core.logic.strategies.sigpesq_advisorships import (
 from src.notifications.telegram import telegram_flow_state_handlers
 
 load_dotenv()
+
+
+@task
+def download_advisorships_task() -> dict:
+    """
+    Downloads Advisorships from SigPesq and saves to a dedicated folder.
+    """
+    logger = get_run_logger()
+    from agent_sigpesq.strategies import AdvisorshipsDownloadStrategy
+
+    try:
+        adapter = SigPesqAdapter(download_dir="data/raw/sigpesq/advisorships")
+        adapter.extract(download_strategies=[AdvisorshipsDownloadStrategy()])
+        return {"success": True}
+    except Exception as e:
+        logger.error(f"Error downloading Advisorships: {e}")
+        return {"success": False}
 
 
 @task
@@ -27,16 +46,18 @@ def persist_advisorships():
     # but we follow the pattern in ingest_sigpesq_projects.py
 
     files = glob.glob("data/raw/sigpesq/advisorships/**/*.xlsx", recursive=True)
+
     if not files:
-        # Try generic sigpesq folder if specific one doesn't exist
+        # Fallback to legacy path for compatibility with single-session downloads
         files = glob.glob("data/raw/sigpesq/*.xlsx")
 
     if not files:
         logger.warning("No Advisorship Excel files found.")
         return
 
-    # Sort by mtime (optional, but good for logs)
-    files.sort(key=os.path.getmtime)
+    # Sort by year directory in ascending order (oldest first)
+    # so the most recent year's values take precedence (last processed wins).
+    files.sort(key=lambda f: os.path.basename(os.path.dirname(f)))
 
     loader = ProjectLoader(mapping_strategy=SigPesqAdvisorshipMappingStrategy())
 
@@ -72,7 +93,33 @@ def persist_advisorships():
 
     for file_path in files:
         logger.info(f"Loading Advisorships from {file_path}")
-        loader.process_file(file_path)
+        df = pd.read_excel(file_path)
+        df = df.fillna("")
+
+        # Within-file dedup: keep only the row with the highest Id per CodPT.
+        # This prevents multiple phases of the same workplan from clobbering each other.
+        if "CodPT" in df.columns and "Id" in df.columns:
+            before = len(df)
+            df["_norm_codpt"] = df["CodPT"].apply(
+                lambda x: normalize_sigpesq_code(x) if pd.notna(x) else ""
+            )
+            df = df.sort_values("Id", ascending=False)
+            valid = df["_norm_codpt"].str.len() > 0
+            df = pd.concat(
+                [
+                    df[valid].drop_duplicates(subset=["_norm_codpt"], keep="first"),
+                    df[~valid],
+                ]
+            )
+            df = df.drop(columns=["_norm_codpt"])
+            after = len(df)
+            if after < before:
+                logger.info(
+                    f"  Deduped {before - after} rows by CodPT (kept highest Id per workplan)"
+                )
+
+        records = df.to_dict("records")
+        loader.process_records(records, source_file=file_path)
 
     # Final pass: Recalculate parent project dates and status from DB
     loader.recalculate_all_parent_statuses()
@@ -88,7 +135,7 @@ def ingest_advisorships_flow() -> None:
 
     from agent_sigpesq.strategies import AdvisorshipsDownloadStrategy
 
-    adapter = SigPesqAdapter()
+    adapter = SigPesqAdapter(download_dir="data/raw/sigpesq/advisorships")
 
     # 1. Extract Advisorships
     logger.info("Extracting Advisorships...")

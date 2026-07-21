@@ -1,7 +1,5 @@
 import hashlib
 
-import pytest
-
 from src.core.logic.pii_anonymizer import (
     PII_COLUMN_REGISTRY,
     anonymize_cpf,

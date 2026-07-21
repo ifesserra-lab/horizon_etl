@@ -256,20 +256,6 @@ def export_advisorship_analytics_task(output_dir: str):
     exporter.generate_advisorship_mart(input_path, output_path)
 
 
-@task(name="export_parquet_task")
-def export_parquet_task(output_dir: str):
-    """Emit a Parquet mirror of the canonical JSON exports under ``<output_dir>/parquet``.
-
-    Tables become ``<name>.parquet``; top-level node-link graphs are split into
-    ``<name>.nodes.parquet`` + ``<name>.edges.parquet`` + ``<name>.meta.json``.
-    """
-    from src.scripts.export_parquet import convert_dir
-
-    dst = os.path.join(output_dir, "parquet")
-    stats = convert_dir(output_dir, dst)
-    logger.info("Parquet export: {} -> {}", stats, dst)
-
-
 @task(name="zip_exports_task")
 def zip_exports_task(output_dir: str):
     zip_path = os.path.join(output_dir, "exports_canonical.zip")
@@ -343,8 +329,6 @@ def export_canonical_data_flow(
     export_outside_ifes_collaboration_graph_flow(output_dir=output_dir)
     export_null_researchers_collaboration_graph_flow(output_dir=output_dir)
     export_research_group_membership_graphs_manifest_flow(output_dir=output_dir)
-    export_parquet_task(output_dir)
-    zip_exports_task(output_dir)
 
 
 if __name__ == "__main__":

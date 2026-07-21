@@ -36,7 +36,8 @@ PREFECT_DB_SERVICE ?= database
 	export-canonical export-knowledge-areas-mart export-initiatives-analytics-mart export-people-graph export-collaboration-graph export-researchers-collaboration-graph export-outside-ifes-collaboration-graph export-null-researchers-collaboration-graph export-students-collaboration-graph export-rg-membership-manifest \
 	anonymize-backfill anonymize-check \
 	test test-coverage lint format format-check ci-check \
-	audit-duplicates consolidate-duplicates \
+	audit-duplicates validate \
+	benchmark \
 	status clean \
 	docker-up docker-stop docker-build \
 	docker-pipeline docker-weekly-flows docker-full-refresh \
@@ -138,7 +139,7 @@ sync-cnpq: prefect-server ## Sync CNPq research groups (CAMPUS=Serra)
 
 # --- Exports ---
 
-export-canonical: prefect-server ## Export all canonical data to OUTPUT_DIR
+export-canonical: prefect-server ## Export all canonical data to a timestamped ZIP (no loose JSON files)
 	@$(FLOW_PYTHON) app.py export_canonical "$(OUTPUT_DIR)" "$(CAMPUS)"
 
 export-knowledge-areas-mart: prefect-server ## Export knowledge areas mart JSON
@@ -228,13 +229,23 @@ format-check: ## Check formatting without modifying files
 
 ci-check: format-check lint test ## Run all CI checks
 
+# --- Benchmark ---
+
+benchmark: ## Run pipeline benchmarks (RUNS=3, optional: TARGETS, DB_RESET, CLEAN_CACHE, SEQUENTIAL)
+	@$(PYTHON) scripts/benchmark.py \
+		$(if $(RUNS),-n $(RUNS)) \
+		$(if $(TARGETS),--targets $(TARGETS)) \
+		$(if $(DB_RESET),--db-reset) \
+		$(if $(CLEAN_CACHE),--clean-cache) \
+		$(if $(SEQUENTIAL),--sequential)
+
 # --- Data Quality ---
 
 audit-duplicates: ## Audit duplicate candidates in the database
 	@$(PYTHON) src/scripts/audit_duplicates.py
 
-consolidate-duplicates: ## Consolidate duplicate persons, teams, and knowledge areas
-	@$(PYTHON) src/scripts/consolidate_duplicates.py --entity all
+validate: ## Validate ETL report vs DB row counts and run duplicate audit
+	@$(PYTHON) src/scripts/validate_pipeline.py
 
 # --- Docker ---
 
@@ -272,7 +283,7 @@ docker-weekly-flows: docker-up ## Run weekly flows in Docker
 docker-db-reset: ## Reset the ETL database inside Docker
 	@$(DOCKER_COMPOSE) run --rm --no-deps app db/create_db.py
 
-docker-full-refresh: docker-db-reset docker-up ## Reset DB and run all sources in Docker
+docker-full-refresh: docker-up docker-db-reset ## Reset DB and run all sources in Docker
 	@$(DOCKER_COMPOSE) run --rm --no-deps app
 
 docker-ingest-sigpesq: docker-up ## Ingest SigPesq in Docker
@@ -281,8 +292,9 @@ docker-ingest-sigpesq: docker-up ## Ingest SigPesq in Docker
 docker-sync-cnpq: docker-up ## Sync CNPq groups in Docker (CAMPUS=Serra)
 	@$(DOCKER_COMPOSE) run --rm --no-deps app app.py cnpq_sync "$(CAMPUS)"
 
-docker-export-canonical: docker-up ## Export canonical data in Docker
-	@$(DOCKER_COMPOSE) run --rm --no-deps app app.py export_canonical "$(OUTPUT_DIR)" "$(CAMPUS)"
+docker-export-canonical: docker-up ## Export canonical data to a timestamped ZIP in Docker
+	-@$(DOCKER_COMPOSE) run --rm --no-deps app app.py export_canonical "$(OUTPUT_DIR)" "$(CAMPUS)"
+	@$(PYTHON) scripts/export_zip.py "$(OUTPUT_DIR)"
 
 # --- Utilities ---
 
@@ -290,7 +302,7 @@ status: ## Show database and export status
 	@echo "Database:"
 	@ls -lh db/horizon.db 2>/dev/null || echo "  not initialized"
 	@echo "Exports:"
-	@ls -lh $(OUTPUT_DIR)/*.json 2>/dev/null | wc -l | xargs -I {} echo "  {} files exported"
+	@ls -lh $(OUTPUT_DIR)/canonical_export_*.zip 2>/dev/null | wc -l | xargs -I {} echo "  {} canonical export(s)"
 	@echo "Last pipeline log:"
 	@ls -lt logs/pipeline_*.log 2>/dev/null | head -1 || echo "  no logs found"
 

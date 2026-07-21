@@ -1,11 +1,14 @@
 import glob
+import hashlib
 import json
 import os
+from typing import Any, List
 
 from loguru import logger as fallback_logger
 from prefect import flow, get_run_logger, task
 from prefect.cache_policies import NO_CACHE
 from research_domain.controllers import ResearcherController
+from research_domain.domain.entities.researcher import Researcher
 
 from src.adapters.sources.lattes_parser import LattesParser
 from src.core.logic.project_loader import ProjectLoader
@@ -14,10 +17,15 @@ from src.core.logic.strategies.lattes_advisorships import (
     LattesAdvisorshipMappingStrategy,
 )
 from src.notifications.telegram import telegram_flow_state_handlers
+from src.tracking.recorder import tracking_recorder
 
 
 @task(name="Ingest Lattes Advisorships for File", cache_policy=NO_CACHE)
-def ingest_advisorships_file_task(file_path: str):
+def ingest_advisorships_file_task(
+    file_path: str,
+    all_researchers: List[Researcher],
+    loader: Any,
+):
     try:
         logger = get_run_logger()
     except Exception:
@@ -38,7 +46,6 @@ def ingest_advisorships_file_task(file_path: str):
 
     # 1. Identify Supervisor (Owner of CV)
     researcher_ctrl = ResearcherController()
-    all_researchers = researcher_ctrl.get_all()
 
     json_name = (
         data.get("nome")
@@ -76,10 +83,25 @@ def ingest_advisorships_file_task(file_path: str):
     logger.info(f"Processing {len(advisorships)} advisorships for {json_name}...")
 
     # 3. Ingest with Strategy & ProjectLoader
-    mapping_strategy = LattesAdvisorshipMappingStrategy(json_name)
-    loader = ProjectLoader(mapping_strategy=mapping_strategy)
+    loader.mapping_strategy = LattesAdvisorshipMappingStrategy(json_name)
 
     loader.process_records(advisorships, source_file=file_path)
+
+
+def _deduplicate_json_files(file_paths: List[str]) -> List[str]:
+    """Remove duplicate JSON files by content hash, keeping the first occurrence."""
+    seen_hashes = set()
+    unique_files = []
+    for path in file_paths:
+        try:
+            with open(path, "rb") as f:
+                file_hash = hashlib.md5(f.read()).hexdigest()
+            if file_hash not in seen_hashes:
+                seen_hashes.add(file_hash)
+                unique_files.append(path)
+        except Exception:
+            unique_files.append(path)
+    return unique_files
 
 
 @flow(name="Ingest Lattes Advisorships Flow", **telegram_flow_state_handlers())
@@ -95,8 +117,20 @@ def ingest_lattes_advisorships_flow():
         logger.warning(f"No JSON files found in {base_dir}")
         return
 
-    for json_file in json_files:
-        ingest_advisorships_file_task(json_file)
+    json_files = _deduplicate_json_files(json_files)
+    logger.info(
+        f"Processing {len(json_files)} unique JSON files (deduped by content hash)"
+    )
+
+    researcher_ctrl = ResearcherController()
+    all_researchers = researcher_ctrl.get_all()
+    loader = ProjectLoader(mapping_strategy=LattesAdvisorshipMappingStrategy(""))
+
+    with tracking_recorder.run_context(
+        source_system="lattes", flow_name="ingest_lattes_advisorships"
+    ):
+        for json_file in json_files:
+            ingest_advisorships_file_task(json_file, all_researchers, loader)
 
 
 if __name__ == "__main__":

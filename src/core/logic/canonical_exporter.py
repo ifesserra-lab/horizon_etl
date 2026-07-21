@@ -15,7 +15,12 @@ from research_domain import (
 from sqlalchemy import text
 
 from src.core.logic.export_campus_resolver import ExportCampusResolver
-from src.core.logic.pii_anonymizer import scrub_pii_deep, scrub_source_record_payload
+from src.core.logic.pii_anonymizer import (
+    anonymize_person_data,
+    is_anonymized_cpf,
+    scrub_pii_deep,
+    scrub_source_record_payload,
+)
 from src.core.ports.export_sink import IExportSink
 from src.research_domain_compat import AdvisorshipRole
 from src.tracking.entities import (
@@ -25,6 +30,7 @@ from src.tracking.entities import (
     IngestionRun,
     SourceRecord,
 )
+from src.tracking.recorder import sanitize_payload
 
 try:
     from research_domain.controllers import ArticleController
@@ -225,7 +231,11 @@ class CanonicalDataExporter:
             WHERE a.supervisor_id IS NOT NULL
             """
         )
-        return session.execute(legacy_query).fetchall()
+        try:
+            return session.execute(legacy_query).fetchall()
+        except Exception:
+            logger.info("Legacy advisorship query also failed; returning empty result.")
+            return []
 
     @staticmethod
     def _fetch_advisorship_export_rows(session: Any) -> list[Any]:
@@ -312,7 +322,11 @@ class CanonicalDataExporter:
             LEFT JOIN organizations o ON f.sponsor_id = o.id
             """
         )
-        return session.execute(legacy_query).fetchall()
+        try:
+            return session.execute(legacy_query).fetchall()
+        except Exception:
+            logger.info("Legacy advisorship query also failed; returning empty result.")
+            return []
 
     @staticmethod
     def _normalize_person_id(person_id: Any) -> Any:
@@ -859,7 +873,7 @@ class CanonicalDataExporter:
                     "source_record_pk": record.get("source_record_pk"),
                     "selection_reason": record.get("selection_reason"),
                     "asserted_at": record.get("asserted_at"),
-                    "value": record.get("value_json"),
+                    "value": sanitize_payload(record.get("value_json")),
                     "value_hash": record.get("value_hash"),
                 }
 
@@ -885,9 +899,11 @@ class CanonicalDataExporter:
                     "source_file": record.get("source_file"),
                     "source_path": record.get("source_path"),
                     "changed_at": record.get("changed_at"),
-                    "changed_fields": record.get("changed_fields_json"),
-                    "before": record.get("before_json"),
-                    "after": record.get("after_json"),
+                    "changed_fields": sanitize_payload(
+                        record.get("changed_fields_json")
+                    ),
+                    "before": sanitize_payload(record.get("before_json")),
+                    "after": sanitize_payload(record.get("after_json")),
                     "reason": record.get("reason"),
                 }
                 items[entity_id]["changes"].append(change)
@@ -1000,8 +1016,31 @@ class CanonicalDataExporter:
     ) -> None:
         data = self._load_tracking_entities(model, entity_name)
         if data is None:
+            logger.info("Tracking data not available for {}. Skipping.", entity_name)
             return
-        self._export_entities(data, output_path, entity_name, entity_type=entity_type)
+
+        logger.info(f"Exporting {len(data)} {entity_name}...")
+        try:
+            export_data = []
+            for item in data:
+                item_dict = self._item_to_export_dict(item)
+                for key in [
+                    "raw_payload_json",
+                    "value_json",
+                    "changed_fields_json",
+                    "before_json",
+                    "after_json",
+                ]:
+                    if key in item_dict and item_dict[key] is not None:
+                        item_dict[key] = sanitize_payload(item_dict[key])
+                export_data.append(item_dict)
+
+            export_data = self._enrich_export_rows(export_data, entity_type=entity_type)
+            self.sink.export(export_data, output_path)
+            logger.info(f"Successfully exported {entity_name} to {output_path}")
+        except Exception as e:
+            logger.error(f"Failed to export {entity_name}: {e}")
+            raise e
 
     def export_organizations(self, output_path: str):
         """
@@ -1251,13 +1290,13 @@ class CanonicalDataExporter:
             # Note: We need to join organizations and education_types
             ae_query = text(
                 """
-                SELECT 
-                    ae.researcher_id, 
-                    org.name as institution, 
-                    et.name as degree, 
-                    ae.title as course_name, 
-                    ae.start_year, 
-                    ae.end_year, 
+                SELECT
+                    ae.researcher_id,
+                    org.name as institution,
+                    et.name as degree,
+                    ae.title as course_name,
+                    ae.start_year,
+                    ae.end_year,
                     ae.thesis_title,
                     p_adv.name as advisor_name,
                     p_co.name as co_advisor_name
@@ -1563,6 +1602,11 @@ class CanonicalDataExporter:
             )
             r_dict["campus"] = resolver.get_campus("researcher", p_id_int or p_id)
 
+            if r_dict.get("identification_id") and not is_anonymized_cpf(
+                r_dict["identification_id"]
+            ):
+                r_dict = anonymize_person_data(r_dict)
+            r_dict = scrub_pii_deep(r_dict)
             export_data.append(r_dict)
 
         logger.info(
@@ -1647,26 +1691,6 @@ class CanonicalDataExporter:
 
         except Exception as e:
             logger.warning(f"Failed to fetch Knowledge Area mappings: {e}")
-
-        # Initiative enrichment (SigPesq project document extraction). Stored in
-        # the initiatives.enrichment_json column by ProjectEnrichmentLoader; the
-        # column may not exist on older databases, so this is best-effort.
-        initiative_enrichment_map = {}
-        try:
-            import json as _json
-
-            e_result = session.execute(
-                text(
-                    "SELECT id, enrichment_json FROM initiatives WHERE enrichment_json IS NOT NULL"
-                )
-            ).fetchall()
-            for row in e_result:
-                try:
-                    initiative_enrichment_map[row[0]] = _json.loads(row[1])
-                except (TypeError, ValueError):
-                    continue
-        except Exception as e:
-            logger.info(f"No initiative enrichment available: {e}")
 
         # Normalize types and orgs to handle both dicts and objects
         raw_types = self.initiative_ctrl.list_initiative_types()
@@ -1821,7 +1845,6 @@ class CanonicalDataExporter:
                     "campus": resolver.get_campus("initiative", item.id),
                     "research_group": research_group_data,
                     "knowledge_areas": initiative_kas_map.get(item.id, []),
-                    "enrichment": initiative_enrichment_map.get(item.id),
                     "external_partner": (
                         item.metadata.get("external_partner")
                         if item.metadata and isinstance(item.metadata, dict)
@@ -1844,7 +1867,8 @@ class CanonicalDataExporter:
             )
 
         logger.info(f"Exporting {len(serialized_data)} enriched Initiatives...")
-        self.sink.export(serialized_data, output_path)
+        export_data = [scrub_pii_deep(item) for item in serialized_data]
+        self.sink.export(export_data, output_path)
         logger.info(f"Successfully exported enriched Initiatives to {output_path}")
 
     def export_initiative_types(self, output_path: str):
@@ -1859,15 +1883,42 @@ class CanonicalDataExporter:
             data, output_path, "Initiative Types", entity_type="initiative_type"
         )
 
-    def export_articles(self, output_path: str):
+    def export_articles(self, output_path: str, batch_size: int = 1000):
         """
-        Exports all articles to a JSON file.
+        Exports all articles to a JSON file using batched processing.
 
         Args:
             output_path (str): The destination file path.
+            batch_size (int): Number of records to process per batch.
         """
-        data = self.article_ctrl.get_all()
-        self._export_entities(data, output_path, "Articles", entity_type="article")
+        try:
+            from research_domain.domain.entities.article import Article
+
+            service = self.article_ctrl._service
+            repository = service._repository
+            session = repository._session
+
+            total = session.query(Article).count()
+            logger.info(f"Exporting {total} Articles in batches of {batch_size}...")
+
+            all_data = []
+            for offset in range(0, total, batch_size):
+                batch = (
+                    session.query(Article)
+                    .order_by(Article.id)
+                    .offset(offset)
+                    .limit(batch_size)
+                    .all()
+                )
+                all_data.extend(batch)
+                logger.info(f"Fetched batch: offset={offset}, size={len(batch)}")
+
+            self._export_entities(
+                all_data, output_path, "Articles", entity_type="article"
+            )
+        except Exception:
+            logger.info("Articles table not available; exporting empty list.")
+            self._export_entities([], output_path, "Articles", entity_type="article")
 
     def _export_via_orm(self, model, output_path, label, entity_type=None):
         """Exports every row of an ORM `model` (used for entities without a
@@ -2144,7 +2195,7 @@ class CanonicalDataExporter:
             ids_str = ",".join(str(pid) for pid in parent_ids)
             members_query = text(
                 f"""
-                SELECT 
+                SELECT
                     it.initiative_id,
                     p.name as person_name,
                     r.name as role_name
@@ -2202,6 +2253,7 @@ class CanonicalDataExporter:
         logger.info(
             f"Filtered export: {len(final_data)} parent projects with advisorships (excluded {len(projects_map) - len([p for p in projects_map.values() if p.get('advisorships')])} projects without advisorships)"
         )
+        final_data = [scrub_pii_deep(item) for item in final_data]
         self.sink.export(final_data, output_path)
         logger.info(
             f"Successfully exported {len(final_data)} parent projects with advisorships to {output_path}"
@@ -2211,19 +2263,23 @@ class CanonicalDataExporter:
         """
         Exports all fellowships to a JSON file.
         """
-        session = self.initiative_ctrl._service._repository._session
-        query = text("SELECT * FROM fellowships")
-        result = session.execute(query).fetchall()
-        data = []
-        for row in result:
-            data.append(
-                {
-                    "id": row.id,
-                    "name": row.name,
-                    "description": row.description,
-                    "value": row.value,
-                }
-            )
+        try:
+            session = self.initiative_ctrl._service._repository._session
+            query = text("SELECT * FROM fellowships")
+            result = session.execute(query).fetchall()
+            data = []
+            for row in result:
+                data.append(
+                    {
+                        "id": row.id,
+                        "name": row.name,
+                        "description": row.description,
+                        "value": row.value,
+                    }
+                )
+        except Exception:
+            logger.info("Fellowships table not available; exporting empty list.")
+            data = []
 
         self._export_entities(
             data, output_path, "Fellowships", entity_type="fellowship"
