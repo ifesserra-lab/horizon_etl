@@ -2,20 +2,31 @@ import asyncio
 import os
 import shutil
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from loguru import logger
+
+from src.adapters.secrets.infisical import InfisicalSecretProvider
+from src.adapters.sources.sigpesq.credentials import (
+    parse_credential_source,
+    resolve_infisical_credentials,
+)
+from src.core.logic.loaders import SigPesqFileLoader
+from src.core.ports.secret_provider import ISecretProvider
+from src.core.ports.source import ISource
 
 _SIGPESQ_429_WAIT_SECONDS = int(os.getenv("SIGPESQ_429_WAIT_SECONDS", "60"))
 _SIGPESQ_MAX_RETRIES = int(os.getenv("SIGPESQ_MAX_RETRIES", "3"))
 
-from src.core.logic.loaders import SigPesqFileLoader
-from src.core.ports.source import ISource
-
 
 class SigPesqAdapter(ISource):
-    def __init__(self, download_dir: str = "data/raw/sigpesq"):
+    def __init__(
+        self,
+        download_dir: str = "data/raw/sigpesq",
+        secret_provider: Optional[ISecretProvider] = None,
+    ):
         self.download_dir = download_dir
+        self._secret_provider = secret_provider
         os.makedirs(self.download_dir, exist_ok=True)
 
     def extract(self, download_strategies: list = None) -> List[Dict[str, Any]]:
@@ -43,7 +54,24 @@ class SigPesqAdapter(ISource):
     def _validate_environment(self):
         """
         Ensures necessary environment variables are set for sigpesq_agent.
+
+        The credential source is selected explicitly by
+        ``SIGPESQ_CREDENTIALS_SOURCE`` (FR-003): ``infisical`` resolves the pair
+        via the ``ISecretProvider`` port and exports it for the download step;
+        ``legacy`` keeps the previous env-var behavior byte-for-byte.
         """
+        source = parse_credential_source()
+
+        if source == "infisical":
+            provider = self._secret_provider or InfisicalSecretProvider()
+            resolved = resolve_infisical_credentials(provider)
+            logger.info(
+                "SigPesq credential mode: infisical ({} secrets resolved).", resolved
+            )
+            return
+
+        logger.info("SigPesq credential mode: legacy.")
+
         # Support SIGPESQ_USER as alias for SIGPESQ_USERNAME and vice-versa
         if os.getenv("SIGPESQ_USER") and not os.getenv("SIGPESQ_USERNAME"):
             os.environ["SIGPESQ_USERNAME"] = os.getenv("SIGPESQ_USER")
@@ -82,7 +110,10 @@ class SigPesqAdapter(ISource):
         """
         Calls the external lib to download files.
         Retries up to _SIGPESQ_MAX_RETRIES times with exponential backoff when
-        HTTP 429 rate-limiting is detected on login.
+        the download does not succeed. A failed login (HTTP 429 rate-limit OR a
+        Page.goto timeout — RNP portal is intermittently slow from GitHub-hosted
+        runners) previously aborted after a single attempt; the same transient
+        slowness is often cleared by a later retry.
         """
         logger.info(f"Triggering sigpesq_agent in {self.download_dir}...")
 
@@ -113,14 +144,19 @@ class SigPesqAdapter(ISource):
             if success:
                 return
 
-            if rate_limited["seen"] and attempt < _SIGPESQ_MAX_RETRIES:
-                wait = _SIGPESQ_429_WAIT_SECONDS * (2 ** (attempt - 1))
-                logger.warning(
-                    "HTTP 429 on attempt {}/{}. Waiting {}s before retry...",
-                    attempt,
-                    _SIGPESQ_MAX_RETRIES,
-                    wait,
-                )
+            if attempt < _SIGPESQ_MAX_RETRIES:
+                if rate_limited["seen"]:
+                    wait = _SIGPESQ_429_WAIT_SECONDS * (2 ** (attempt - 1))
+                    reason = f"HTTP 429 rate-limiting on attempt {attempt}/{_SIGPESQ_MAX_RETRIES}"
+                else:
+                    # Non-429 failure (e.g. Page.goto TimeoutError on login).
+                    # RNP portal is intermittently slow from hosted runners; use
+                    # a shorter wait and still allow the download to retry.
+                    wait = min(5 * (2 ** (attempt - 1)), 60)
+                    reason = (
+                        f"Non-429 failure on attempt {attempt}/{_SIGPESQ_MAX_RETRIES}"
+                    )
+                logger.warning("{}. Waiting {}s before retry...", reason, wait)
                 time.sleep(wait)
                 self._clean_download_dir()
                 continue
@@ -142,13 +178,16 @@ class SigPesqAdapter(ISource):
         Only apply the simplified launch on macOS.
         """
         import sys
+
         if sys.platform != "darwin":
             return
         try:
             from agent_sigpesq.core import browser_factory as _bf_mod
             from playwright.async_api import Playwright
 
-            async def _safe_create_browser_context(playwright: Playwright, headless: bool = True):
+            async def _safe_create_browser_context(
+                playwright: Playwright, headless: bool = True
+            ):
                 browser = await playwright.chromium.launch(headless=headless)
                 context = await browser.new_context(
                     viewport={"width": 1920, "height": 1080},
@@ -160,7 +199,9 @@ class SigPesqAdapter(ISource):
                 )
                 return context
 
-            _bf_mod.BrowserFactory.create_browser_context = staticmethod(_safe_create_browser_context)
+            _bf_mod.BrowserFactory.create_browser_context = staticmethod(
+                _safe_create_browser_context
+            )
         except Exception as exc:
             logger.warning(f"Could not patch BrowserFactory: {exc}")
 

@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from loguru import logger
 
+from src.core.logic.person_identity import is_junk_name
 from src.core.logic.person_matcher import PersonMatcher
 
 
@@ -13,16 +14,24 @@ class DuplicateGroup:
     winner_id: int
     loser_ids: List[int]
     members: List[Dict[str, Any]]
+    status: str = "merged"
+    reason: Optional[str] = None
 
 
 class PersonConsolidator:
-    """Consolidates duplicate people/researchers in the SQLite database."""
+    """Consolidates duplicate people/researchers in the SQLite database.
+
+    Two participant records are the same person exactly when their normalized
+    names agree and no strong identifier disagrees (contract R6-R9). Groups
+    that survive the guard are merged as a union; conflicting-identifier
+    homonyms and junk names are refused and reported, never merged.
+    """
 
     def __init__(self, db_path: str = "db/horizon.db"):
         self.db_path = db_path
         self._matcher = PersonMatcher(person_controller=None)
 
-    def find_duplicate_groups(self) -> List[DuplicateGroup]:
+    def _load_people(self) -> List[Dict[str, Any]]:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             advisorship_count_sql = """
@@ -70,28 +79,24 @@ class PersonConsolidator:
                 LEFT JOIN researchers r ON r.id = p.id
                 """
             ).fetchall()
+        return [dict(row) for row in people]
 
+    def find_all_groups(self) -> List[DuplicateGroup]:
+        """Classifies every duplicate candidate: merged, refused-homonym or
+        refused-junk. Only the merged groups are returned by
+        ``find_duplicate_groups``, so consolidation is driven by the same
+        classification the report describes."""
         groups: Dict[str, List[Dict[str, Any]]] = {}
-        for row in people:
-            record = dict(row)
-            canonical = self._matcher.canonicalize_name(record.get("name") or "")
+        for record in self._load_people():
+            canonical = self._matcher.invariant_canonicalize_name(
+                record.get("name") or ""
+            )
             if canonical:
                 groups.setdefault(canonical, []).append(record)
 
         duplicate_groups: List[DuplicateGroup] = []
         for canonical_name, members in groups.items():
             if len(members) < 2:
-                continue
-
-            conflict = self._identifier_conflict(members)
-            if conflict:
-                logger.warning(
-                    "Skipping duplicate group '{}' (ids {}): conflicting {} — "
-                    "likely distinct homonyms, manual review required.",
-                    canonical_name,
-                    [int(m["id"]) for m in members],
-                    conflict,
-                )
                 continue
 
             ordered = sorted(
@@ -101,16 +106,78 @@ class PersonConsolidator:
             )
             winner_id = int(ordered[0]["id"])
             loser_ids = [int(item["id"]) for item in ordered[1:]]
-            duplicate_groups.append(
-                DuplicateGroup(
-                    canonical_name=canonical_name,
-                    winner_id=winner_id,
-                    loser_ids=loser_ids,
-                    members=ordered,
+
+            if is_junk_name(canonical_name):
+                duplicate_groups.append(
+                    DuplicateGroup(
+                        canonical_name,
+                        winner_id,
+                        loser_ids,
+                        ordered,
+                        status="refused_junk",
+                        reason="junk name (not a plausible person's name)",
+                    )
                 )
+                continue
+
+            conflict = self._identifier_conflict(ordered)
+            if conflict:
+                logger.warning(
+                    "Skipping duplicate group '{}' (ids {}): conflicting {} — "
+                    "likely distinct homonyms, manual review required.",
+                    canonical_name,
+                    [int(m["id"]) for m in members],
+                    conflict,
+                )
+                duplicate_groups.append(
+                    DuplicateGroup(
+                        canonical_name,
+                        winner_id,
+                        loser_ids,
+                        ordered,
+                        status="refused_homonym",
+                        reason=conflict,
+                    )
+                )
+                continue
+
+            duplicate_groups.append(
+                DuplicateGroup(canonical_name, winner_id, loser_ids, ordered)
             )
 
         return duplicate_groups
+
+    def find_duplicate_groups(self) -> List[DuplicateGroup]:
+        return [group for group in self.find_all_groups() if group.status == "merged"]
+
+    def build_report(
+        self, groups: Optional[List[DuplicateGroup]] = None
+    ) -> Dict[str, Any]:
+        """Read-only deduplication report: what would/should be merged and what
+        refuses to be. Keeps personal data minimal: member ids, member names and
+        the refusal reason only."""
+        if groups is None:
+            groups = self.find_all_groups()
+        merged_groups = [group for group in groups if group.status == "merged"]
+        refused_groups = [group for group in groups if group.status != "merged"]
+        return {
+            "db_path": self.db_path,
+            "merged_groups": len(merged_groups),
+            "merged_records": sum(len(group.loser_ids) for group in merged_groups),
+            "refused_groups": len(refused_groups),
+            "groups": [
+                {
+                    "canonical_name": group.canonical_name,
+                    "status": group.status,
+                    "reason": group.reason,
+                    "winner_id": group.winner_id,
+                    "loser_ids": group.loser_ids,
+                    "member_ids": [int(member["id"]) for member in group.members],
+                    "member_names": [member.get("name") for member in group.members],
+                }
+                for group in groups
+            ],
+        }
 
     def _identifier_conflict(self, members: List[Dict[str, Any]]) -> Optional[str]:
         """Returns the conflicting identifier name when members carry distinct
@@ -287,11 +354,38 @@ class PersonConsolidator:
                 "UPDATE persons SET identification_id = ? WHERE id = ?",
                 (loser["identification_id"], winner_id),
             )
+        elif (
+            winner["identification_id"]
+            and loser["identification_id"]
+            and winner["identification_id"] != loser["identification_id"]
+        ):
+            # Winner wins; the conflicting value is dropped but documented.
+            logger.warning(
+                "Ignoring identification_id '{}' of person {} while consolidating "
+                "into {} which already owns '{}'.",
+                loser["identification_id"],
+                loser_id,
+                winner_id,
+                winner["identification_id"],
+            )
 
         if not winner["birthday"] and loser["birthday"]:
             conn.execute(
                 "UPDATE persons SET birthday = ? WHERE id = ?",
                 (loser["birthday"], winner_id),
+            )
+        elif (
+            winner["birthday"]
+            and loser["birthday"]
+            and winner["birthday"] != loser["birthday"]
+        ):
+            logger.warning(
+                "Ignoring birthday '{}' of person {} while consolidating into {} "
+                "which already holds '{}'.",
+                loser["birthday"],
+                loser_id,
+                winner_id,
+                winner["birthday"],
             )
 
     def _merge_researcher_record(

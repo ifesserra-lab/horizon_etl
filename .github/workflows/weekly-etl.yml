@@ -2,7 +2,7 @@ name: Weekly Horizon ETL Flows
 
 on:
   schedule:
-    - cron: "0 6 * * 6"
+    - cron: "0 2 * * 6"
   workflow_dispatch:
     inputs:
       weekly_campus:
@@ -16,7 +16,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
   actions: write
 
 concurrency:
@@ -33,8 +33,11 @@ jobs:
       SIGPESQ_USERNAME: ${{ secrets.SIGPESQ_USERNAME }}
       SIGPESQ_USER: ${{ secrets.SIGPESQ_USERNAME }}
       SIGPESQ_PASSWORD: ${{ secrets.SIGPESQ_PASSWORD }}
+      SIGPESQ_CREDENTIALS_SOURCE: legacy
+      HORIZON_PII_HMAC_KEY: ${{ secrets.HORIZON_PII_HMAC_KEY }}
       HORIZON_TELEGRAM_BOT_TOKEN: ${{ secrets.HORIZON_TELEGRAM_BOT_TOKEN }}
       HORIZON_TELEGRAM_CHAT_ID: ${{ secrets.HORIZON_TELEGRAM_CHAT_ID }}
+      MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
       WEEKLY_CAMPUS: ${{ github.event.inputs.weekly_campus }}
       OUTPUT_DIR: ${{ github.event.inputs.output_dir || 'data/exports' }}
       PREFECT_UI_URL: http://127.0.0.1:4200
@@ -71,8 +74,8 @@ jobs:
           test -n "$STORAGE_TYPE" || { echo "Missing GitHub secret: STORAGE_TYPE"; exit 1; }
           test -n "$SIGPESQ_USERNAME" || { echo "Missing GitHub secret: SIGPESQ_USERNAME"; exit 1; }
           test -n "$SIGPESQ_PASSWORD" || { echo "Missing GitHub secret: SIGPESQ_PASSWORD"; exit 1; }
-          test -n "$HORIZON_TELEGRAM_BOT_TOKEN" || { echo "Missing GitHub secret: HORIZON_TELEGRAM_BOT_TOKEN"; exit 1; }
-          test -n "$HORIZON_TELEGRAM_CHAT_ID" || { echo "Missing GitHub secret: HORIZON_TELEGRAM_CHAT_ID"; exit 1; }
+          test -n "$HORIZON_PII_HMAC_KEY" || { echo "Missing GitHub secret: HORIZON_PII_HMAC_KEY"; exit 1; }
+          test -n "$MISTRAL_API_KEY" || { echo "Missing GitHub secret: MISTRAL_API_KEY"; exit 1; }
 
       - name: Run weekly flows
         run: make weekly-flows
@@ -80,8 +83,30 @@ jobs:
       - name: Compress large export files
         if: always()
         run: |
-          find data/ -type f -size +10M \
+          # Never touch archives: exports_canonical.zip is the flow's own
+          # deliverable and must ship byte-for-byte as written by
+          # `make weekly-flows` (no double wrapping).
+          find data/ -type f -size +10M ! -name '*.zip' \
             -exec sh -c 'for f; do zip -m -j "$f.zip" "$f"; done' sh {} +
+
+      - name: Commit exports_canonical.zip if changed
+        if: success()
+        run: |
+          set -euo pipefail
+          ZIP="data/exports/exports_canonical.zip"
+          if [ ! -f "$ZIP" ]; then
+            echo "::warning::$ZIP was not generated; nothing to commit."
+            exit 0
+          fi
+          git add -- "$ZIP"
+          if git diff --cached --quiet; then
+            echo "No changes to $ZIP; nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(exports_canonical.zip): update from weekly run $(date -u +%Y-%m-%d)"
+          git push origin "HEAD:${{ github.ref_name }}"
 
       - name: Upload ETL artifacts
         if: always()
@@ -93,6 +118,7 @@ jobs:
           path: |
             data
             db/horizon.db
+            !data/exports/exports_canonical.zip
             !.venv
             !.venv/**
             !.env

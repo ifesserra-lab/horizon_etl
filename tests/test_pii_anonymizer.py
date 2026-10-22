@@ -1,26 +1,46 @@
 import hashlib
+import hmac
+import os
 
 import pytest
 
 from src.core.logic.pii_anonymizer import (
     PII_COLUMN_REGISTRY,
+    _hmac_hex,
     anonymize_cpf,
     anonymize_email,
     anonymize_field,
     anonymize_person_data,
+    anonymize_phone,
     is_anonymized_cpf,
     is_anonymized_email,
+    is_anonymized_phone,
+    is_anonymized_text,
     scrub_emails_from_text,
+    scrub_phones_from_text,
     scrub_pii_deep,
+    scrub_pii_text,
     scrub_source_record_payload,
     scrub_source_record_phones,
 )
 
-SALT = b":horizon-lgpd-v1"
+TEST_KEY = "test-only-horizon-pii-hmac-key"
+
+# Force a deterministic key so expected-token assertions stay stable
+# regardless of machine-local .env values.
+os.environ["HORIZON_PII_HMAC_KEY"] = TEST_KEY
 
 
-def _sha(value: str) -> str:
-    return hashlib.sha256(value.encode("utf-8") + SALT).hexdigest()
+def _expected_hmac(domain: str, value: str) -> str:
+    """Independent RFC 5869 HKDF-SHA256 + HMAC-SHA256 oracle for tests.
+
+    Deliberately re-implements the keyed derivation here instead of reusing
+    module internals, so the test verifies the wiring (domain label, key
+    loading, truncation) rather than trusting the implementation under test.
+    """
+    prk = hmac.new(b"\x00" * 32, TEST_KEY.encode("utf-8"), hashlib.sha256).digest()
+    subkey = hmac.new(prk, domain.encode("utf-8") + b"\x01", hashlib.sha256).digest()
+    return hmac.new(subkey, value.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
 # --- anonymize_cpf ---
@@ -41,7 +61,7 @@ def test_anonymize_cpf_different_inputs_produce_different_hashes():
 
 def test_anonymize_cpf_correct_format():
     value = "12345678901"
-    expected = f"LGPD-{_sha(value)[:16]}"
+    expected = f"LGPD-{_expected_hmac('cpf', value)[:16]}"
     assert anonymize_cpf(value) == expected
 
 
@@ -77,7 +97,7 @@ def test_anonymize_email_different_inputs_differ():
 
 def test_anonymize_email_correct_format():
     value = "user@example.com"
-    expected = f"{_sha(value)[:12]}@anon.lgpd"
+    expected = f"{_expected_hmac('email', value)[:12]}@anon.lgpd"
     assert anonymize_email(value) == expected
 
 
@@ -103,7 +123,18 @@ def test_anonymize_field_email():
 
 
 def test_anonymize_field_unknown_type_passthrough():
-    assert anonymize_field("anything", "phone") == "anything"
+    assert anonymize_field("anything", "whatever") == "anything"
+
+
+def test_anonymize_field_phone_masks_value():
+    result = anonymize_field("(27) 99959-5708", "phone")
+    assert result.startswith("LGPD-PHONE-")
+
+
+def test_anonymize_field_free_text_scrubs_emails_and_phones():
+    result = anonymize_field("C x@y.com (27) 99999-0000", "free_text")
+    assert "@anon.lgpd" in result
+    assert "LGPD-PHONE-" in result
 
 
 # --- anonymize_person_data ---
@@ -182,6 +213,130 @@ def test_is_anonymized_email_false_for_raw():
 
 def test_is_anonymized_email_false_for_none():
     assert not is_anonymized_email(None)
+
+
+# --- anonymize_phone ---
+
+
+def test_anonymize_phone_returns_lgpd_phone_prefix():
+    result = anonymize_phone("(27) 99959-5708")
+    assert result.startswith("LGPD-PHONE-")
+
+
+def test_anonymize_phone_deterministic():
+    assert anonymize_phone("27999595708") == anonymize_phone("27999595708")
+
+
+def test_anonymize_phone_uses_distinct_salt_from_cpf():
+    value = "27999595708"
+    assert anonymize_phone(value) != anonymize_cpf(value)
+
+
+def test_anonymize_phone_double_is_idempotent():
+    first = anonymize_phone("(27) 99959-5708")
+    assert anonymize_phone(first) == first
+    assert is_anonymized_phone(first)
+
+
+def test_anonymize_phone_none_returns_none():
+    assert anonymize_phone(None) is None
+
+
+# --- is_anonymized_phone ---
+
+
+def test_is_anonymized_phone_true_for_lgpd_phone_prefix():
+    assert is_anonymized_phone("LGPD-PHONE-abc")
+
+
+def test_is_anonymized_phone_false_for_raw():
+    assert not is_anonymized_phone("(27) 99959-5708")
+
+
+def test_is_anonymized_phone_false_for_cpf_token():
+    assert not is_anonymized_phone("LGPD-abc")
+
+
+# --- scrub_phones_from_text ---
+
+
+def test_scrub_phones_from_text_masks_area_code_number():
+    text = "Contato: (27) 99959-5708 ou (27)3182-9200"
+    result = scrub_phones_from_text(text)
+    assert "(27) 99959-5708" not in result
+    assert "(27)3182-9200" not in result
+    assert result.count("LGPD-PHONE-") == 2
+
+
+def test_scrub_phones_from_text_masks_plus55_number():
+    result = scrub_phones_from_text("WhatsApp +55 27 99959 5708")
+    assert "99959 5708" not in result
+    assert "LGPD-PHONE-" in result
+
+
+def test_scrub_phones_from_text_ignores_page_ranges_and_years():
+    text = "pages 1601-1625 e ano 2020-2024"
+    assert scrub_phones_from_text(text) == text
+
+
+def test_scrub_phones_from_text_ignores_patent_number():
+    text = "depósito de patente: INPI BR 10 20170091872"
+    assert scrub_phones_from_text(text) == text
+
+
+def test_scrub_phones_from_text_preserves_already_anonymized():
+    text = "fone LGPD-PHONE-abc123 anon"
+    assert scrub_phones_from_text(text) == text
+
+
+def test_scrub_phones_from_text_none_returns_none():
+    assert scrub_phones_from_text(None) is None
+
+
+# --- scrub_pii_text ---
+
+
+def test_scrub_pii_text_masks_email_and_phone():
+    text = "E-mail: thebas@ifes.edu.br (27) 99959-5708 (Texto informado pelo autor)"
+    result = scrub_pii_text(text)
+    assert "thebas@ifes.edu.br" not in result
+    assert "(27) 99959-5708" not in result
+    assert "@anon.lgpd" in result
+    assert "LGPD-PHONE-" in result
+
+
+def test_scrub_pii_text_is_idempotent():
+    text = "thebas@ifes.edu.br (27) 99959-5708"
+    once = scrub_pii_text(text)
+    assert scrub_pii_text(once) == once
+
+
+# --- is_anonymized_text ---
+
+
+def test_is_anonymized_text_false_with_raw_email():
+    assert not is_anonymized_text("contact thebas@ifes.edu.br now")
+
+
+def test_is_anonymized_text_false_with_raw_phone():
+    assert not is_anonymized_text("phone (27) 99959-5708")
+
+
+def test_is_anonymized_text_true_when_clean():
+    assert is_anonymized_text("bio texto sem pii")
+
+
+def test_is_anonymized_text_true_when_already_anonymized():
+    text = "e9a7de842471@anon.lgpd LGPD-PHONE-abc123"
+    assert is_anonymized_text(text)
+
+
+def test_is_anonymized_text_none_or_empty_is_true():
+    assert is_anonymized_text(None)
+    assert is_anonymized_text("")
+
+
+# --- is_anonymized_email ---
 
 
 # --- idempotency ---
@@ -315,6 +470,36 @@ def test_scrub_source_record_phones_returns_new_dict():
     assert result is not payload
 
 
+def test_scrub_source_record_phones_nulls_nested_endereco_contato():
+    payload = {
+        "endereco_contato": {
+            "logradouro": "Avenida Sabiás",
+            "numero": "330",
+            "cep": "29166630",
+            "telefone": "(27) 3182-9200",
+            "fax": "(27) 3182-9201",
+        }
+    }
+    result = scrub_source_record_phones(payload)
+    endereco = result["endereco_contato"]
+    assert endereco["telefone"] is None
+    assert endereco["fax"] is None
+    assert endereco["logradouro"] == "Avenida Sabiás"
+    assert endereco["numero"] == "330"
+    assert endereco["cep"] == "29166630"
+
+
+def test_scrub_source_record_phones_recurses_into_lists():
+    payload = {
+        "contatos": [{"telefone": "(27) 99959-5708"}, {"nome": "A"}],
+        "fax": "123",
+    }
+    result = scrub_source_record_phones(payload)
+    assert result["contatos"][0]["telefone"] is None
+    assert result["contatos"][1]["nome"] == "A"
+    assert result["fax"] is None
+
+
 # --- scrub_source_record_payload ---
 
 
@@ -342,6 +527,97 @@ def test_scrub_source_record_payload_is_idempotent():
     assert once == twice
 
 
+def test_scrub_source_record_payload_sanitizes_cnpq_endereco_contato():
+    payload = {
+        "endereco_contato": {
+            "bairro": "Morada de Laranjeiras",
+            "cep": "29166630",
+            "logradouro": "Avenida Sabiás",
+            "telefone": "(27) 99959-5708",
+            "fax": "(27) 3182-9201",
+        },
+        "email": "grupo@ifes.edu.br",
+    }
+    result = scrub_source_record_payload(payload)
+    endereco = result["endereco_contato"]
+    assert endereco["telefone"] is None
+    assert endereco["fax"] is None
+    assert endereco["logradouro"] == "Avenida Sabiás"
+    assert result["email"].endswith("@anon.lgpd")
+
+
+def test_scrub_pii_deep_masks_phone_in_text():
+    result = scrub_pii_deep("tel (27) 99959-5708 e page 1601-1625")
+    assert "(27) 99959-5708" not in result
+    assert "1601-1625" in result
+
+
 def test_scrub_source_record_payload_non_dict_passthrough():
     assert scrub_source_record_payload(["a@b.com"]) == [anonymize_email("a@b.com")]
     assert scrub_source_record_payload(None) is None
+
+
+# --- keyed HMAC security properties (2026-09-21 security review) ---
+
+
+def test_hkdf_matches_rfc5869_test_case_3():
+    """HKDF-SHA256 against the official RFC 5869 Test Case 3 vector.
+
+    TC3 uses zero-length salt/info: "salt not provided" defaults to HashLen
+    zero octets — exactly the salt our implementation uses. L=32 <= HashLen,
+    so a single-block expand suffices.
+    """
+    from src.core.logic.pii_anonymizer import _hkdf_sha256
+
+    ikm = b"\x0b" * 22
+    okm = _hkdf_sha256(ikm, b"", length=32)
+    assert okm.hex() == (
+        "8da4e775a563c18f715f802a063c5a31" "b8a11f5c5ee1879ec3454e5f3c738d2d"
+    )
+
+
+def test_anonymize_cpf_known_answer():
+    """Pins the full keyed pipeline (key → HKDF → HMAC → truncation)."""
+    assert anonymize_cpf("12345678901") == "LGPD-f3315dc948810753"
+
+
+def test_anonymize_email_known_answer():
+    assert anonymize_email("user@example.com") == "8ee2d0066628@anon.lgpd"
+
+
+def test_anonymize_phone_correct_format():
+    value = "(27) 99959-5708"
+    expected = f"LGPD-PHONE-{_expected_hmac('phone', value)[:16]}"
+    assert anonymize_phone(value) == expected
+
+
+def test_anonymize_phone_known_answer():
+    assert anonymize_phone("(27) 99959-5708") == "LGPD-PHONE-50b7964c71b98d59"
+
+
+def test_domain_separation_same_value_different_fields():
+    """The same string must not tokenize identically across PII field types."""
+    value = "27999595708"
+    assert _hmac_hex("cpf", value) != _hmac_hex("email", value)
+    assert _hmac_hex("cpf", value) != _hmac_hex("phone", value)
+    assert _hmac_hex("email", value) != _hmac_hex("phone", value)
+
+
+def test_missing_key_raises_runtime_error(monkeypatch):
+    monkeypatch.delenv("HORIZON_PII_HMAC_KEY", raising=False)
+    with pytest.raises(RuntimeError, match="HORIZON_PII_HMAC_KEY"):
+        anonymize_cpf("12345678901")
+
+
+def test_blank_key_raises_runtime_error(monkeypatch):
+    monkeypatch.setenv("HORIZON_PII_HMAC_KEY", "   ")
+    with pytest.raises(RuntimeError):
+        anonymize_email("user@example.com")
+
+
+def test_different_key_produces_different_tokens(monkeypatch):
+    first = anonymize_cpf("12345678901")
+    monkeypatch.setenv("HORIZON_PII_HMAC_KEY", "another-test-key")
+    second = anonymize_cpf("12345678901")
+    assert first != second
+    assert second.startswith("LGPD-")

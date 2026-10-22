@@ -1,4 +1,10 @@
 prefect==3.6.23
+# prefect 3.6.23 subclasses fastapi's APIRouter in a way that is broken by the
+# router redesign in fastapi>=0.136. fastapi 0.141.x/starlette 1.x crash the
+# temporary Prefect API server with
+# "AttributeError: 'PrefectRouter' object has no attribute 'routes'".
+# Pin fastapi to the generation that shipped alongside prefect 3.6.23.
+fastapi==0.115.12
 loguru>=0.7.0
 pydantic>=2.0.0
 supabase>=2.0.0
@@ -7,12 +13,23 @@ pyarrow>=15.0.0
 networkx>=3.4.0
 requests>=2.30.0
 beautifulsoup4>=4.12.0
+# Infisical Secret Manager SDK — used by the SigPesq credential adapter
+# (src/adapters/secrets/infisical.py) when SIGPESQ_CREDENTIALS_SOURCE=infisical.
+infisicalsdk==1.0.17
 openpyxl>=3.1.0
 thefuzz>=0.22.0
 rapidfuzz>=3.0.0
 python-Levenshtein>=0.25.0
 python-dotenv>=1.0.0
-git+https://github.com/ifesserra-lab/sigpesq_agent.git@v0.3.2
+# agent_sigpesq: repositorio oficial do ifesserra-lab, branch main -- que ja mergeou
+# a feat/project-pdf-download-and-mistral-extraction, que acrescenta o download dos
+# PDFs por projeto e a extração PDF->JSON via Mistral (produz os
+# data/exports/project_sigpesq_files_json/PJ_*.json que o enrich_projects consome).
+# Branch em vez de SHA: a main é o canal oficial e recebe as correções da upstream,
+# ao custo de não ser build reprodutível (o commit muda debaixo do projeto). Quando
+# a lib publicar uma tag (ex.: v0.4.0), trocar por ela.
+# O extra [extract] traz mistralai e pypdf; a extração exige MISTRAL_KEY no .env.
+agent_sigpesq[extract] @ git+https://github.com/ifesserra-lab/sigpesq_agent.git@main
 git+https://github.com/ifesserra-lab/dgp.cnqp_lib.git@v0.5.0
 scriptLattes @ git+https://github.com/ifesserra-lab/scriptLattes.git@v0.8.0
 selenium>=4.0.0
