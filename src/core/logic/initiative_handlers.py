@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import date, datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from eo_lib import Initiative, InitiativeController, Person
 from eo_lib.domain import Role
@@ -20,6 +20,9 @@ from research_domain.controllers.controllers import (
 )
 from sqlalchemy import text
 
+from src.core.logic.advisorship_matching import base_title
+from src.core.logic.document_skip import claim, merging_fields
+from src.core.logic.initiative_identity import normalize_text
 from src.research_domain_compat import (
     Advisorship,
     AdvisorshipRole,
@@ -70,7 +73,8 @@ class StandardProjectHandler(BaseInitiativeHandler):
             self.initiative_controller.update_initiative(
                 initiative_id=existing_initiative.id,
                 name=title,
-                status=project_data.get("status", "Unknown"),
+                # Branch 030: no status is not "Unknown" over a stored one.
+                status=project_data.get("status"),
                 description=project_data.get("description"),
                 start_date=project_data.get("start_date"),
                 end_date=project_data.get("end_date"),
@@ -122,6 +126,12 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         self.entity_manager = entity_manager
         self._fellowships_cache: Dict[str, Fellowship] = {}
         self._advisorship_roles_cache: Dict[str, Role] = {}
+        # Spec 020 (FR-022): the members of an advisorship that already exists
+        # are written once per phase, with the last value asked for, so two
+        # rows landing on the same advisorship (the same work listed twice in
+        # a CV, or in two CVs) do not delete and re-insert them in between.
+        self.defer_members = False
+        self._pending_members: Dict[tuple, tuple] = {}
         self._preload_fellowships()
 
     def _preload_fellowships(self):
@@ -157,11 +167,18 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         metadata = project_data.get("metadata", {}).copy()
         if project_data.get("identity_key"):
             metadata["source_identity"] = project_data["identity_key"]
-        persisted_title = self._resolve_persisted_title(
-            title,
-            project_data,
-            current_id=getattr(existing_initiative, "id", None),
-        )
+        stored_name = getattr(existing_initiative, "name", None)
+        if isinstance(stored_name, str) and base_title(stored_name) == title:
+            # Spec 035: a matched advisorship keeps its name. Another item of
+            # the same work (co-advisor's curriculum, the other source) would
+            # build another suffix and rename the row back and forth.
+            persisted_title = stored_name
+        else:
+            persisted_title = self._resolve_persisted_title(
+                title,
+                project_data,
+                current_id=getattr(existing_initiative, "id", None),
+            )
         if not existing_initiative:
             existing_initiative = self._find_existing_advisorship_by_title(
                 persisted_title
@@ -173,7 +190,8 @@ class AdvisorshipHandler(BaseInitiativeHandler):
             self.initiative_controller.update_initiative(
                 initiative_id=existing_initiative.id,
                 name=persisted_title,
-                status=project_data.get("status", "Unknown"),
+                # Branch 030: no status is not "Unknown" over a stored one.
+                status=project_data.get("status"),
                 description=project_data.get("description"),
                 start_date=project_data.get("start_date"),
                 end_date=project_data.get("end_date"),
@@ -282,17 +300,7 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         student_person = None
         supervisor_person = None
 
-        student_names = project_data.get("student_names") or [None]
-        student_emails = project_data.get("student_emails") or [None]
-        student_name = student_names[0]
-        student_email = student_emails[0]
-        if student_name or student_email:
-            student_person = self.person_matcher.match_or_create(
-                student_name,
-                email=student_email,
-                strict_match=strict,
-            )
-            student_person = self._coerce_to_person(student_person)
+        student_person = self._student_person(project_data)
 
         supervisor_name = project_data.get("coordinator_name")
         supervisor_email = project_data.get("coordinator_email")
@@ -305,6 +313,44 @@ class AdvisorshipHandler(BaseInitiativeHandler):
             supervisor_person = self._coerce_to_person(supervisor_person)
 
         return student_person, supervisor_person
+
+    def _student_person(self, project_data: Dict[str, Any]) -> Optional[Any]:
+        """The person the item's student resolves to (first name and e-mail)."""
+        student_names = project_data.get("student_names") or [None]
+        student_emails = project_data.get("student_emails") or [None]
+        student_name = student_names[0]
+        student_email = student_emails[0]
+        if not (student_name or student_email):
+            return None
+        student_person = self.person_matcher.match_or_create(
+            student_name,
+            email=student_email,
+            strict_match=True,  # SigPesq requirement
+        )
+        return self._coerce_to_person(student_person)
+
+    def _student_persons(
+        self, project_data: Dict[str, Any], first: Optional[Any]
+    ) -> List[Any]:
+        """Branch 041: the item's students. The first is the one already
+        resolved (``_student_person``, used for matching); each further name of
+        a split field is resolved the same way."""
+        people = [first] if first else []
+        for name in (project_data.get("student_names") or [])[1:]:
+            if not (isinstance(name, str) and name.strip()):
+                continue
+            match = self.person_matcher.match_or_create(name, strict_match=True)
+            match = self._coerce_to_person(match)
+            if match:
+                people.append(match)
+        return people
+
+    def item_student(self, project_data: Dict[str, Any]) -> tuple:
+        """Spec 035: the student of an advisorship item as the matching rule
+        compares it: (person id or None, normalized name or "")."""
+        person = self._student_person(project_data)
+        student_names = project_data.get("student_names") or [None]
+        return getattr(person, "id", None), normalize_text(student_names[0])
 
     def _ensure_fellowship(self, project_data: Dict[str, Any]) -> Optional[Fellowship]:
         fellowship_data = project_data.get("fellowship_data")
@@ -343,6 +389,13 @@ class AdvisorshipHandler(BaseInitiativeHandler):
                 description=fellowship_data.get("description"),
             )
             self.fel_controller.create(fellowship)
+            if sponsor_id is not None:
+                # Branch 036: the library's Fellowship constructor assigns the
+                # (empty) sponsor relationship after the id, so a new row is
+                # stored without its sponsor and the next run does not find
+                # it by name + sponsor. Written again once the row exists.
+                fellowship.sponsor_id = sponsor_id
+                self.fel_controller.update(fellowship)
             self._cache_fellowship(
                 fellowship,
                 fellowship_data,
@@ -351,6 +404,10 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         else:
             updated = False
             new_value = fellowship_data.get("value", 0.0)
+            # Branch 030: a shared fellowship gets its value from every
+            # workplan's claim, not from the last workplan read.
+            if merging_fields():
+                new_value = None
             if new_value and fellowship.value != new_value:
                 logger.debug(
                     f"Updating fellowship '{f_name}' value: {fellowship.value} → {new_value}"
@@ -370,6 +427,12 @@ class AdvisorshipHandler(BaseInitiativeHandler):
                     sponsor_id=sponsor_id or fellowship.sponsor_id,
                 )
 
+        claim(
+            "fellowship",
+            getattr(fellowship, "id", None),
+            "value",
+            fellowship_data.get("value"),
+        )
         return fellowship
 
     def _cache_fellowship(
@@ -436,23 +499,61 @@ class AdvisorshipHandler(BaseInitiativeHandler):
         person: Optional[Any],
         role_name: str,
         start_date: Optional[Any],
+        persons: Optional[List[Any]] = None,
     ) -> None:
-        person = self._coerce_to_person(person)
+        """Sets the members of one role. ``persons`` (branch 041) gives every
+        person of the role, for an item with several students; otherwise the
+        role holds ``person`` alone, as before."""
+        people: List[Any] = []
+        for candidate in persons if persons is not None else [person]:
+            candidate = self._coerce_to_person(candidate)
+            if candidate and all(p.id != candidate.id for p in people):
+                people.append(candidate)
+        person = people[0] if people else None
+
+        if self.defer_members and getattr(initiative, "id", None):
+            self._pending_members[(initiative.id, role_name)] = (
+                initiative,
+                people,
+                start_date,
+            )
+            return
 
         if advisorship_supports_members_api(initiative):
             members = list(getattr(initiative, "members", []) or [])
-            retained_members = [
+            day = str(start_date or "")[:10]
+            wanted = {p.id for p in people}
+            current = [
                 member
                 for member in members
-                if getattr(member, "role_name", None) != role_name
+                if getattr(member, "role_name", None) == role_name
             ]
-            initiative.members = retained_members
-
-            if not person:
+            # The same person in the same role from the same day: keep the row
+            # instead of deleting and re-inserting it (spec 020, FR-022).
+            kept = [
+                member
+                for member in current
+                if getattr(member, "person_id", None) in wanted
+                and getattr(member, "end_date", None) is None
+                and str(getattr(member, "start_date", None) or "")[:10] == day
+            ]
+            kept_ids = {getattr(member, "person_id", None) for member in kept}
+            if people and len(kept) == len(current) and kept_ids == wanted:
                 return
+            initiative.members = [
+                member
+                for member in members
+                if getattr(member, "role_name", None) != role_name or member in kept
+            ]
 
+            missing = [p for p in people if p.id not in kept_ids]
+            if not missing:
+                return
             role = self._get_or_create_advisorship_role(role_name)
-            initiative.add_member(person=person, role=role, start_date=start_date)
+            for new_person in missing:
+                initiative.add_member(
+                    person=new_person, role=role, start_date=start_date
+                )
             return
 
         if role_name == AdvisorshipRole.STUDENT.value:
@@ -468,6 +569,38 @@ class AdvisorshipHandler(BaseInitiativeHandler):
             setattr(
                 initiative, id_attr, getattr(person, "id", None) if person else None
             )
+
+    def flush_members(self) -> int:
+        """Writes the deferred members (see ``defer_members``). Returns how
+        many (advisorship, role) pairs were synced."""
+        pending, self._pending_members = self._pending_members, {}
+        deferred, self.defer_members = self.defer_members, False
+        try:
+            for key in sorted(pending, key=lambda k: (k[0], k[1])):
+                initiative, people, start_date = pending[key]
+                try:
+                    self._sync_advisorship_member(
+                        initiative,
+                        person=people[0] if people else None,
+                        persons=people,
+                        role_name=key[1],
+                        start_date=start_date,
+                    )
+                    self.adv_controller.update(initiative)
+                except Exception as e:
+                    logger.warning(
+                        f"Could not sync {key[1]} of advisorship {key[0]}: {e}"
+                    )
+                    try:
+                        session = (
+                            self.initiative_controller._service._repository._session
+                        )
+                        session.rollback()
+                    except Exception:
+                        pass
+        finally:
+            self.defer_members = deferred
+        return len(pending)
 
     def _coerce_to_person(self, person: Optional[Any]) -> Optional[Person]:
         if not person:
@@ -559,6 +692,12 @@ class AdvisorshipHandler(BaseInitiativeHandler):
 
         return f"{title} | Orientacao {' | '.join(suffix_parts)}".strip()
 
+    def find_existing(self, project_data: Dict[str, Any]) -> Optional[Advisorship]:
+        """The advisorship create_or_update updates when the loader passes none
+        (looked up by the persisted, possibly disambiguated, title)."""
+        title = self._resolve_persisted_title(project_data["title"], project_data)
+        return self._find_existing_advisorship_by_title(title)
+
     def _find_existing_advisorship_by_title(self, title: str) -> Optional[Advisorship]:
         if not title:
             return None
@@ -610,6 +749,7 @@ class AdvisorshipHandler(BaseInitiativeHandler):
             self._sync_advisorship_member(
                 initiative,
                 person=student_person,
+                persons=self._student_persons(project_data, first=student_person),
                 role_name=AdvisorshipRole.STUDENT.value,
                 start_date=start_date,
             )

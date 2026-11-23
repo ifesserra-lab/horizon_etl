@@ -32,6 +32,8 @@ A workflow depende destes secrets do GitHub:
 - `SIGPESQ_PASSWORD`
 - `HORIZON_TELEGRAM_BOT_TOKEN`
 - `HORIZON_TELEGRAM_CHAT_ID`
+- `HORIZON_SLACK_WEBHOOK_URL` (opcional, spec 040; sem ele o aviso no Slack e
+  apenas pulado)
 
 ## Origem das credenciais SigPesq
 
@@ -72,6 +74,49 @@ uma mensagem final com:
 - warnings estruturados por fonte
 - resumo do tracking, quando disponivel
 
+## Aviso no Slack (spec 040)
+
+A weekly do GitHub Actions avisa um canal do Slack duas vezes, so quando roda
+na `main` (inclusive a run agendada), com o nome da branch:
+
+- **ao comecar** (passo "Notify Slack: start", logo depois do checkout): branch,
+  se foi `agendada` ou `manual`, e o link da run;
+- **ao terminar** (passo "Notify Slack: end", sempre o ultimo, roda mesmo depois
+  de falha ou cancelamento): o resultado, a branch, o tempo total e o link da
+  run. O resultado e um destes:
+  - `passou`: mostra o commit dos zips (hash curto com link) ou "nao mudaram";
+  - `passou com avisos`: igual, mais as fases nao criticas que falharam;
+  - `falhou`: o primeiro passo que falhou e, se foi "Run weekly flows", as
+    fases criticas que falharam;
+  - `cancelada`.
+
+As mensagens nao citam ninguem nem mostram totais de dados. Runs locais
+(`make weekly-flows`) nao avisam. O Telegram continua igual.
+
+Desde a spec 041, runs em qualquer outra branch (as branches de spec usadas
+para validar) nao mandam nada: os dois passos so escrevem no log
+`::notice::Slack pulado: a branch <nome> não é a main.` e a run termina com o
+mesmo resultado. Assim as varias runs de validacao nao incomodam o canal. A
+branch que avisa e a constante `NOTIFY_BRANCH` de `src/scripts/notify_slack.py`.
+
+As fases vem de `data/reports/weekly_phase_summary.json`, que a weekly grava
+ao final; o passo que falhou vem da API do GitHub da propria run.
+
+### Como configurar
+
+1. Em https://api.slack.com/apps, criar um app (**Create New App** → **From
+   scratch** → **Pick features**) com o escopo `incoming-webhook`.
+2. Em **Incoming Webhooks**, clicar em **Add New Webhook to Workspace** e
+   escolher o canal. O webhook posta so nesse canal; para trocar de canal, criar
+   outro webhook e trocar o secret.
+3. Salvar a Webhook URL como secret `HORIZON_SLACK_WEBHOOK_URL` em **Settings →
+   Secrets and variables → Actions**.
+
+A URL e uma credencial: o script `src/scripts/notify_slack.py` nunca a
+imprime, e os dois passos do aviso tem `continue-on-error`. Sem o secret, ou
+com o Slack fora do ar, a run so mostra um `::warning::` e termina com o mesmo
+resultado que teria sem o aviso.
+
 ## Artefatos publicados
 
 Artifact do GitHub Actions (retencao de 30 dias):
@@ -109,9 +154,10 @@ configuracoes locais como `lattes.config` continuam sendo artefatos de runtime.
 - O job cria sua propria `.venv` apenas para a execucao
 - `.venv` e arquivos `.env` nao sao publicados como artifact
 - A automacao instala Chromium do Playwright porque o `sigpesq-agent` depende dele
-- O download Lattes usa `scriptLattes` via Selenium e exige Chrome/Chromium
-  compativel com `./chromedriver`; use `CHROME_BINARY` se o ambiente tiver mais
-  de um navegador instalado
+- O download Lattes usa `scriptLattes`, que tambem abre esse Chromium do
+  Playwright; o workflow nao instala nenhum outro navegador (spec 039: o
+  Chromium via apt/snap foi removido porque nada o usava e uma queda da Snap
+  Store parava a weekly)
 - O prefetch paralelo do cache Lattes usa 3 workers por padrao; ajuste com
   `HORIZON_LATTES_DOWNLOAD_WORKERS` ou desative com `HORIZON_LATTES_PREFETCH=0`
 - O agendamento roda aos sabados, 06:00 UTC, pelo cron `0 6 * * 6`
